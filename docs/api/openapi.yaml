@@ -25,6 +25,8 @@ tags:
     description: Published lesson reads for the active context.
   - name: Attempts
     description: Server-authoritative practice and quiz attempts.
+  - name: Sync
+    description: Resumable backend-authoritative synchronization of offline learning mutations.
   - name: Progress
     description: Recomputable learning progress projections.
   - name: Preparation
@@ -250,6 +252,27 @@ paths:
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
         '404': {$ref: '#/components/responses/ResourceNotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
+  /v1/sync/answers:
+    post:
+      summary: Synchronize an ordered batch of offline answer operations
+      operationId: syncAttemptAnswers
+      tags: [Sync]
+      description: Each operation_id is an independent durable idempotency scope. Valid operations are processed independently in input order, so one resource or revision conflict does not roll back other operations in the batch. This endpoint does not use the general Idempotency-Key header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnswerSyncRequest'
+      responses:
+        '200':
+          description: Durable acknowledgements in request order. Individual operations can be applied, rejected, or conflicted while the batch response remains successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerSyncResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
   /v1/progress:
     get:
       summary: Read active-context progress
@@ -593,6 +616,65 @@ components:
       required: [data, meta]
       properties:
         data: {$ref: '#/components/schemas/Answer'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AnswerSyncOperation:
+      type: object
+      additionalProperties: false
+      required: [operation_id, attempt_id, attempt_question_id, expected_revision, value]
+      properties:
+        operation_id:
+          type: string
+          minLength: 16
+          maxLength: 128
+          pattern: '^[!-~]+$'
+          description: Opaque client-generated identifier retained for the logical operation until its acknowledgement is received. The backend persists only a keyed digest.
+        attempt_id: {$ref: '#/components/schemas/Ulid'}
+        attempt_question_id: {$ref: '#/components/schemas/Ulid'}
+        expected_revision: {type: integer, minimum: 0}
+        value: {}
+    AnswerSyncRequest:
+      type: object
+      additionalProperties: false
+      required: [operations]
+      properties:
+        operations:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: {$ref: '#/components/schemas/AnswerSyncOperation'}
+    AnswerSyncAcknowledgement:
+      type: object
+      additionalProperties: false
+      required: [operation_id, outcome, code, replayed, retryable, answer_revision, answered_at]
+      properties:
+        operation_id: {type: string, minLength: 16, maxLength: 128, pattern: '^[!-~]+$'}
+        outcome: {type: string, enum: [applied, rejected, conflict]}
+        code:
+          type: string
+          enum: [SYNC_ANSWER_APPLIED, SYNC_OPERATION_ID_REUSED, SYNC_OPERATION_IN_PROGRESS, RESOURCE_NOT_FOUND, ANSWER_REVISION_CONFLICT, ATTEMPT_NOT_EDITABLE, ANSWER_VALUE_INVALID]
+        replayed:
+          type: boolean
+          description: True only when this acknowledgement was loaded from the durable record for an exact operation replay.
+        retryable: {type: boolean}
+        answer_revision:
+          oneOf: [{type: 'null'}, {type: integer, minimum: 1}]
+        answered_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
+    AnswerSyncResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [acknowledgements]
+          properties:
+            acknowledgements:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items: {$ref: '#/components/schemas/AnswerSyncAcknowledgement'}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     AttemptResultResponse:
       type: object

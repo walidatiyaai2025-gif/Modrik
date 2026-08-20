@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-SYNC-001 resumable offline answer synchronization
+
+- Implemented Issue #14 for REQ-P0-006 / AC-P0-009 / ADR-003 with authenticated `POST /v1/sync/answers` batches bounded to 1–100 ordered answer operations. The sync layer delegates all answer ownership, mutability, value validation, revision checks, and outbox creation to the existing Backend `AttemptService`.
+- Added durable `answer_sync_acknowledgements` persistence scoped by authenticated actor plus a domain-separated HMAC of the opaque client operation ID. The Backend stores a canonical request SHA-256, final outcome/code, retryability, and authoritative answer revision/timestamp when applied; it stores neither raw operation IDs nor duplicated answer values and applies no acknowledgement TTL.
+- Exact operation replay returns the stored acknowledgement with `replayed: true` and creates no additional answer revision or outbox event. Reusing an operation ID with a changed canonical payload returns `SYNC_OPERATION_ID_REUSED` without replacing the original acknowledgement or mutating domain state.
+- Each operation has an independent transaction, with a nested savepoint around the existing authoritative answer write. Expected revision/resource/value conflicts become durable stable-code acknowledgements without rolling back successful siblings; unexpected server failures roll back reservation, answer, and outbox work so the same operation ID can be retried safely.
+- Added integration coverage for authentication and 1–100 bounds, interrupted-batch resume, exact replay, same-ID changed-payload conflicts, stale-revision isolation, cross-user resource concealment, acknowledgement persistence redaction, and outbox answer redaction. Updated OpenAPI/contract assertions, idempotency/errors, ERD/data dictionary, QA ledger/matrix, threat model, and operations runbook.
+- Final pre-integration PR #25 head `124288931816bcad0f7f0a7bb64fc2d10b4ed558` passed Bootstrap CI run `32380469265` across all seven required jobs: contracts/OpenAPI/tokens; PHP 8.4.24 Composer validation/audit, Pint, Larastan and SQLite Backend tests; MariaDB 10.11.18 fresh migration/seed plus the full Backend suite; Web; Flutter Mobile; Gitleaks; and dependency review. Integration with Web #20 preserves both root documentation histories and requires a fresh full CI run before merge.
+
 ## 2026-08-20 — P0-WEB-001 desktop-first multilingual Student Web
 
 - Expanded the BOOT-008 fixture slice into a professional desktop/laptop-first Student Web with a persistent application navigation shell, dashboard/home, academic-context consequence UX, dedicated study reader, practice workbench, progress workspace, and responsive laptop/tablet transitions instead of a stretched mobile layout.

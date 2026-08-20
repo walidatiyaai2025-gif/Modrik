@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AdvertisingDecisionController;
 use App\Http\Controllers\Api\AttemptController;
 use App\Http\Controllers\Api\ContentPreparationController;
 use App\Http\Controllers\Api\LearningController;
+use App\Http\Controllers\Api\OfflineAnswerSyncController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn (): array => ['status' => 'ok'])
@@ -23,6 +24,7 @@ Route::prefix('/v1')->middleware('auth.fixture')->group(function (): void {
     Route::get('/attempts/{attemptId}', [AttemptController::class, 'show'])->name('attempts.show');
     Route::put('/attempts/{attemptId}/answers/{attemptQuestionId}', [AttemptController::class, 'answer'])->name('attempts.answers.update');
     Route::post('/attempts/{attemptId}/submit', [AttemptController::class, 'submit'])->name('attempts.submit');
+    Route::post('/sync/answers', [OfflineAnswerSyncController::class, 'store'])->name('sync.answers.store');
 
     Route::prefix('/admin')->middleware('auth.content')->group(function (): void {
         Route::post('/preparation-requests', [ContentPreparationController::class, 'create'])->name('preparation-requests.store');
