@@ -23,10 +23,10 @@
 
 Shared rule: each issue owns its declared domain/contracts. Do not independently edit another issue owner's migrations/OpenAPI/domain authority. UI agents consume backend contracts. Each agent uses a separate branch/PR and must keep the full repository CI green.
 
-- [x] P0-SYNC-001 / Issue #14 / REQ-P0-006 / AC-P0-009 — resumable idempotent offline answer sync; owns sync acknowledgements, operation IDs and sync-owned backend contract. Focused PR #25 implements ordered 1–100 batches, durable per-operation replay/conflicts, actor-scoped operation digests, persistence/tests/docs, and preserves existing AttemptService/outbox authority. Implementation Bootstrap CI run `32379996303` is green across all seven jobs, including SQLite and MariaDB 10.11.18 full Backend suites; final documentation-head CI remains the merge-ready guard.
+- [x] P0-SYNC-001 / Issue #14 / REQ-P0-006 / AC-P0-009 — resumable idempotent offline answer sync; PR #25 implements ordered 1–100 batches, durable per-operation replay/conflicts, actor-scoped operation digests, persistence/tests/docs, and preserves existing AttemptService/outbox authority. Final pre-integration head `124288931816bcad0f7f0a7bb64fc2d10b4ed558` passed Bootstrap CI run `32380469265`; the integration head must be revalidated after Web #20 reconciliation.
 - [ ] P0-AUTH-001 / Issue #15 / REQ-P0-001 / AC-P0-013 — production email/password lifecycle, verification/recovery, session revocation, account deletion and safe Google/Apple provider linking.
 - [ ] P0-ASSESS-001 / Issue #16 / REQ-P0-005 / AC-P0-002..005 — authoritative quiz/exam randomization, server seeds, variable selection/order and immutable resume.
-- [ ] P0-WEB-001 / Issue #17 / REQ-P0-007/012 / AC-P0-014 — desktop-first multilingual accessible Student Web; consumes backend authority and owns `apps/web` presentation/client work.
+- [x] P0-WEB-001 / Issue #17 / REQ-P0-007/012 / AC-P0-014 — desktop-first multilingual accessible Student Web; dashboard, academic-context consequence UX, study, persisted-authoritative practice resume, progress, AR/EN/FR, RTL/LTR/mixed content, accessibility/failure states and responsive laptop layouts are integrated through PR #20. Bootstrap CI run `32379937336` passed all seven jobs on its final head.
 - [ ] P0-MOBILE-001 / Issue #18 / REQ-P0-008/012 / AC-P0-014 — Flutter Android/iOS learning flows, accessibility and offline client boundary; consumes Issue #14 sync contract.
 - [ ] P0-ADMIN-001 / Issue #19 / REQ-P0-003/004/009 / AC-P0-001/006..008 — Filament Preparation Wizard, review, dry-run and controlled official-content publication workflow.
 
@@ -42,6 +42,7 @@ Shared rule: each issue owns its declared domain/contracts. Do not independently
 
 ## BLOCKED only where applicable
 
+- [ ] P0-ACADEMIC-CONTRACT-002 / Issue #21 — expose a Backend-owned, authorized, localized/display-safe academic-track catalogue for Student Web/Mobile onboarding/reset selection. The client must not invent real board/syllabus/version values or eligibility rules.
 - [ ] CONTENT-REAL-001 Real curriculum import — BLOCKED on exact board/syllabus/version, real subject identifiers, and content-rights evidence.
 - [ ] RELEASE-LEGAL-001 Final legal publication — BLOCKED on legal entity/controller/contact and approved wording.
 - [ ] AUTH-PROD-001 Production Google/Apple identity — BLOCKED on provider accounts, IDs, secrets, callback configuration, and store identifiers/signing.
