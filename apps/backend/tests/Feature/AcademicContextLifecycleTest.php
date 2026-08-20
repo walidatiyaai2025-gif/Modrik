@@ -17,6 +17,8 @@ class AcademicContextLifecycleTest extends TestCase
 
     private const TARGET_TRACK_ID = '01J00000000000000000000040';
 
+    private const TARGET_TRACK_AUTHORIZATION_ID = '01J00000000000000000000041';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -164,14 +166,28 @@ class AcademicContextLifecycleTest extends TestCase
 
     private function createTargetTrack(): void
     {
+        $now = now();
         DB::table('academic_tracks')->insert([
             'id' => self::TARGET_TRACK_ID,
             'code' => 'FIXTURE:SECONDARY:8',
             'year_level' => 'FIXTURE-YEAR-8',
-            'title' => json_encode(['en' => 'Synthetic second track'], JSON_THROW_ON_ERROR),
+            'title' => json_encode([
+                'ar' => 'مسار تركيبي ثانٍ',
+                'en' => 'Synthetic second track',
+                'fr' => 'Deuxième parcours synthétique',
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
             'is_fixture' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        DB::table('academic_track_authorizations')->insert([
+            'id' => self::TARGET_TRACK_AUTHORIZATION_ID,
+            'user_id' => LearningSliceSeeder::USER_ID,
+            'academic_track_id' => self::TARGET_TRACK_ID,
+            'sort_order' => 200,
+            'authorized_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
     }
 
