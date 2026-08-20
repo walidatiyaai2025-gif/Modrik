@@ -26,6 +26,8 @@ const _snapshotEn = RuntimeInspectorSnapshot(
   cacheItemCount: 1,
 );
 
+const _supportCorrelation = '99999999-9999-4999-8999-999999999999';
+
 void main() {
   testWidgets('disabled production diagnostics expose no inspector UI', (tester) async {
     final diagnostics = _diagnostics(enabled: false);
@@ -49,7 +51,7 @@ void main() {
     diagnostics.record(
       severity: DiagnosticSeverity.error,
       category: 'transport',
-      correlationId: 'srv-support-42',
+      correlationId: _supportCorrelation,
       operation: 'learning.get.session',
       result: 'backend_failure',
       stableCode: 'AUTHENTICATION_REQUIRED',
@@ -70,12 +72,19 @@ void main() {
 
     expect(find.text('Runtime Inspector'), findsOneWidget);
     expect(find.text('pilot'), findsOneWidget);
-    expect(find.text('srv-support-42'), findsOneWidget);
-    expect(find.textContaining('AUTHENTICATION_REQUIRED'), findsOneWidget);
+    expect(find.text(_supportCorrelation), findsOneWidget);
     expect(find.text('Copy JSON'), findsOneWidget);
     expect(find.text('Export JSON'), findsOneWidget);
     expect(find.text('Clear diagnostics'), findsOneWidget);
     expect(find.textContaining('Bearer '), findsNothing);
+
+    final stableCode = find.textContaining('AUTHENTICATION_REQUIRED');
+    await tester.dragUntilVisible(
+      stableCode,
+      find.byType(ListView),
+      const Offset(0, -250),
+    );
+    expect(stableCode, findsOneWidget);
   });
 
   testWidgets('app root navigator opens inspector from MaterialApp builder overlay', (tester) async {
@@ -110,7 +119,7 @@ void main() {
     diagnostics.record(
       severity: DiagnosticSeverity.warn,
       category: 'connectivity',
-      correlationId: 'mcr-ar-1',
+      correlationId: _supportCorrelation,
       operation: 'learning.refresh',
       result: 'offline',
       connectivity: DiagnosticConnectivity.offline,
@@ -141,7 +150,13 @@ void main() {
 
     expect(find.text('فاحص التشغيل'), findsOneWidget);
     expect(find.text('ملخص التشغيل'), findsOneWidget);
-    expect(find.text('سجل التشخيصات الأخيرة'), findsOneWidget);
+    final timeline = find.text('سجل التشخيصات الأخيرة');
+    await tester.dragUntilVisible(
+      timeline,
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    expect(timeline, findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
