@@ -11,14 +11,14 @@ void main() {
   const channel = MethodChannel('org.modrik.mobile/secure_session');
   final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
-  tearDown(() async {
-    await messenger.setMockMethodCallHandler(channel, null);
+  tearDown(() {
+    messenger.setMockMethodCallHandler(channel, null);
   });
 
   test('platform secure store round-trips read write and clear through the native channel', () async {
     String? stored;
     final methods = <String>[];
-    await messenger.setMockMethodCallHandler(channel, (call) async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
       methods.add(call.method);
       switch (call.method) {
         case 'read':
@@ -52,7 +52,7 @@ void main() {
   });
 
   test('corrupt native secure storage payload fails closed', () async {
-    await messenger.setMockMethodCallHandler(channel, (call) async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
       if (call.method == 'read') return '{not-json';
       return null;
     });
@@ -72,7 +72,7 @@ void main() {
   });
 
   test('native secure storage unavailability is surfaced without plaintext fallback', () async {
-    await messenger.setMockMethodCallHandler(channel, (call) async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
       throw PlatformException(
         code: 'MOBILE_SECURE_STORAGE_UNAVAILABLE',
         message: 'native store unavailable',
@@ -98,7 +98,7 @@ void main() {
       _credential(DateTime.utc(2026, 8, 19)).toJson(),
     );
     var clearCalls = 0;
-    await messenger.setMockMethodCallHandler(channel, (call) async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
       switch (call.method) {
         case 'read':
           return stored;
