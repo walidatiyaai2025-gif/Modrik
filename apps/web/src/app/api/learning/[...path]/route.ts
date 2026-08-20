@@ -1,4 +1,4 @@
-import { readWebSessionToken } from "../../../../../lib/web-session";
+import { readWebSessionToken } from "../../../../lib/web-session";
 
 const ulid = "[0-9A-HJKMNP-TV-Z]{26}";
 const allowedPaths = [

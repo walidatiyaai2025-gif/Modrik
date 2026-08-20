@@ -121,66 +121,83 @@ export default function AuthWorkspace() {
     }
   }, [copy.sessionExpiredBody, copy.sessionExpiredTitle]);
 
-  const bootstrap = useCallback(
-    async (expiredIsVisible: boolean) => {
+  useEffect(() => {
+    let active = true;
+    const updateOnline = () => {
+      if (active) setOffline(!navigator.onLine);
+    };
+    const initialize = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const verify = params.get("verify_token");
+      const reset = params.get("reset_token");
+      if (active && verify) {
+        setVerificationToken(verify);
+        setScreen("verify");
+      } else if (active && reset) {
+        setResetToken(reset);
+        setScreen("reset");
+      }
+      updateOnline();
+
       try {
         const session = await authApi.session();
+        if (!active) return;
         setLocale(session.locale);
         setAuthenticated(true);
-        if (showAccount) void loadSessions();
       } catch (error) {
+        if (!active) return;
+        if (error instanceof AuthApiError && error.status === 401) {
+          setAuthenticated(false);
+          return;
+        }
+        setAuthenticated(false);
+        setNotice({ kind: "error", body: authCopy.en.genericError });
+      }
+    };
+
+    const startup = window.setTimeout(() => void initialize(), 0);
+    window.addEventListener("online", updateOnline);
+    window.addEventListener("offline", updateOnline);
+
+    return () => {
+      active = false;
+      window.clearTimeout(startup);
+      window.removeEventListener("online", updateOnline);
+      window.removeEventListener("offline", updateOnline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) return;
+    let active = true;
+    const recheck = async () => {
+      try {
+        await authApi.session();
+      } catch (error) {
+        if (!active) return;
         if (error instanceof AuthApiError && error.status === 401) {
           setAuthenticated(false);
           setAccount(null);
           setSessions([]);
           setSessionsState("idle");
           setShowAccount(false);
-          if (expiredIsVisible) setNotice({ kind: "error", title: copy.sessionExpiredTitle, body: copy.sessionExpiredBody });
+          setNotice({ kind: "error", title: copy.sessionExpiredTitle, body: copy.sessionExpiredBody });
           return;
         }
-        setAuthenticated(false);
         setNotice({ kind: "error", body: copy.genericError });
       }
-    },
-    [copy.genericError, copy.sessionExpiredBody, copy.sessionExpiredTitle, loadSessions, showAccount],
-  );
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const verify = params.get("verify_token");
-    const reset = params.get("reset_token");
-    if (verify) {
-      setVerificationToken(verify);
-      setScreen("verify");
-    } else if (reset) {
-      setResetToken(reset);
-      setScreen("reset");
-    }
-
-    const updateOnline = () => setOffline(!navigator.onLine);
-    updateOnline();
-    window.addEventListener("online", updateOnline);
-    window.addEventListener("offline", updateOnline);
-    void bootstrap(false);
-
-    return () => {
-      window.removeEventListener("online", updateOnline);
-      window.removeEventListener("offline", updateOnline);
     };
-  }, []); // bootstrap intentionally runs once; later session checks use the dedicated effect below.
-
-  useEffect(() => {
-    if (!authenticated) return;
-    const timer = window.setInterval(() => void bootstrap(true), 60_000);
+    const timer = window.setInterval(() => void recheck(), 60_000);
     const onVisibility = () => {
-      if (document.visibilityState === "visible") void bootstrap(true);
+      if (document.visibilityState === "visible") void recheck();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      active = false;
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [authenticated, bootstrap]);
+  }, [authenticated, copy.genericError, copy.sessionExpiredBody, copy.sessionExpiredTitle]);
 
   const localeDate = useMemo(
     () => (locale === "ar" ? "ar-KW" : locale === "fr" ? "fr-FR" : "en-US"),
@@ -445,7 +462,7 @@ export default function AuthWorkspace() {
                 <h2>{copy.signInTitle}</h2>
                 <form onSubmit={handleLogin} className="auth-form">
                   <label>{copy.email}<input name="email" type="email" required autoComplete="email" dir="ltr" /></label>
-                  <label>{copy.password}<input name="password" type="password" required minLength={8} autoComplete="current-password" /></label>
+                  <label>{copy.password}<input name="password" type="password" required minLength={12} maxLength={128} autoComplete="current-password" /></label>
                   <button className="auth-primary" type="submit" disabled={busy || offline}>{busy ? copy.working : copy.signIn}</button>
                 </form>
                 <div className="auth-provider-grid" aria-label={copy.providerTitle}>
@@ -467,7 +484,7 @@ export default function AuthWorkspace() {
                 <form onSubmit={handleRegister} className="auth-form">
                   <label>{copy.name}<input name="name" required minLength={2} maxLength={100} autoComplete="name" /></label>
                   <label>{copy.email}<input name="email" type="email" required autoComplete="email" dir="ltr" /></label>
-                  <label>{copy.password}<input name="password" type="password" required minLength={8} maxLength={128} autoComplete="new-password" /></label>
+                  <label>{copy.password}<input name="password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" /></label>
                   <button className="auth-primary" type="submit" disabled={busy || offline}>{busy ? copy.working : copy.register}</button>
                 </form>
                 <button className="auth-text-button" type="button" onClick={() => setScreen("login")}>{copy.backToLogin}</button>
@@ -501,7 +518,7 @@ export default function AuthWorkspace() {
                 <h2>{copy.resetTitle}</h2>
                 <form onSubmit={handleReset} className="auth-form">
                   <label>{copy.token}<input name="token" required minLength={16} value={resetToken} onChange={(event) => setResetToken(event.target.value)} dir="ltr" autoComplete="one-time-code" /></label>
-                  <label>{copy.newPassword}<input name="password" type="password" required minLength={8} maxLength={128} autoComplete="new-password" /></label>
+                  <label>{copy.newPassword}<input name="password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" /></label>
                   <button className="auth-primary" type="submit" disabled={busy || offline}>{busy ? copy.working : copy.resetPassword}</button>
                 </form>
                 <button className="auth-text-button" type="button" onClick={() => setScreen("login")}>{copy.backToLogin}</button>
@@ -587,7 +604,7 @@ export default function AuthWorkspace() {
                 <h2 id="recent-auth-title">{copy.recentAuthTitle}</h2>
                 <p>{copy.recentAuthBody}</p>
                 <form className="auth-form" onSubmit={handleReauthenticate}>
-                  <label>{copy.password}<input name="password" type="password" required autoComplete="current-password" /></label>
+                  <label>{copy.password}<input name="password" type="password" required minLength={12} maxLength={128} autoComplete="current-password" /></label>
                   <button className="auth-primary" type="submit" disabled={busy || offline}>{copy.reauthenticate}</button>
                 </form>
               </section>
@@ -596,8 +613,8 @@ export default function AuthWorkspace() {
             <section className="auth-security-card" aria-labelledby="password-title">
               <h2 id="password-title">{copy.changePasswordTitle}</h2>
               <form className="auth-form" onSubmit={handlePasswordChange}>
-                <label>{copy.currentPassword}<input name="current_password" type="password" required autoComplete="current-password" /></label>
-                <label>{copy.newPassword}<input name="new_password" type="password" required minLength={8} maxLength={128} autoComplete="new-password" /></label>
+                <label>{copy.currentPassword}<input name="current_password" type="password" required minLength={12} maxLength={128} autoComplete="current-password" /></label>
+                <label>{copy.newPassword}<input name="new_password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" /></label>
                 <button className="auth-primary" type="submit" disabled={busy || offline}>{copy.changePassword}</button>
               </form>
             </section>

@@ -21,7 +21,7 @@ export type AuthSession = {
   authenticated_at: string;
   last_used_at: string;
   expires_at: string;
-  created_at: string;
+  created_at?: string;
   is_current: boolean;
 };
 
@@ -31,8 +31,6 @@ export type AuthResult = {
 };
 
 export type ProviderIntent = {
-  provider: Provider;
-  purpose: "login" | "link";
   state: string;
   nonce: string;
   expires_at: string;
