@@ -515,7 +515,15 @@ class _QuestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = controller.answers[question.attemptQuestionId] ?? '';
+    final selected = controller.answers[question.attemptQuestionId];
+    final selectedIds = selected is List
+        ? selected.whereType<String>().toSet()
+        : const <String>{};
+    final textValue = selected is String
+        ? selected
+        : selected is num
+            ? selected.toString()
+            : '';
     return _SurfaceCard(
       child: Semantics(
         container: true,
@@ -544,20 +552,49 @@ class _QuestionCard extends StatelessWidget {
                 _ChoiceTile(
                   label: localize(option.label, controller.locale),
                   selected: selected == option.id,
-                  onPressed: () => controller.setAnswer(question.attemptQuestionId, option.id),
+                  onPressed: () => controller.setAnswer(
+                    question.attemptQuestionId,
+                    option.id,
+                  ),
+                )
+            else if (question.responseContract.kind == 'multiple_choice')
+              for (final option in question.responseContract.options)
+                _ChoiceTile(
+                  label: localize(option.label, controller.locale),
+                  selected: selectedIds.contains(option.id),
+                  multiple: true,
+                  onPressed: () {
+                    final next = <String>{...selectedIds};
+                    if (!next.add(option.id)) {
+                      next.remove(option.id);
+                    }
+                    controller.setAnswer(
+                      question.attemptQuestionId,
+                      [
+                        for (final candidate in question.responseContract.options)
+                          if (next.contains(candidate.id)) candidate.id,
+                      ],
+                    );
+                  },
                 )
             else
               TextFormField(
                 key: ValueKey('${question.attemptQuestionId}-answer'),
-                initialValue: selected,
+                initialValue: textValue,
                 maxLength: question.responseContract.maxLength,
                 minLines: 2,
                 maxLines: 5,
+                keyboardType: question.type == 'numeric'
+                    ? const TextInputType.numberWithOptions(decimal: true, signed: true)
+                    : TextInputType.text,
                 decoration: InputDecoration(
                   labelText: copy.t('answer_hint'),
                   border: const OutlineInputBorder(),
                 ),
-                onChanged: (value) => controller.setAnswer(question.attemptQuestionId, value),
+                onChanged: (value) => controller.setAnswer(
+                  question.attemptQuestionId,
+                  question.type == 'numeric' ? (num.tryParse(value) ?? value) : value,
+                ),
               ),
           ],
         ),
@@ -567,11 +604,17 @@ class _QuestionCard extends StatelessWidget {
 }
 
 class _ChoiceTile extends StatelessWidget {
-  const _ChoiceTile({required this.label, required this.selected, required this.onPressed});
+  const _ChoiceTile({
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+    this.multiple = false,
+  });
 
   final String label;
   final bool selected;
   final VoidCallback onPressed;
+  final bool multiple;
 
   @override
   Widget build(BuildContext context) {
@@ -597,7 +640,9 @@ class _ChoiceTile extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  multiple
+                      ? (selected ? Icons.check_box : Icons.check_box_outline_blank)
+                      : (selected ? Icons.radio_button_checked : Icons.radio_button_unchecked),
                   color: selected ? ModrikColors.teal : ModrikColors.slate,
                 ),
                 const SizedBox(width: 12),
