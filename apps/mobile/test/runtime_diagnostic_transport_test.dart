@@ -58,6 +58,87 @@ void main() {
     }
   });
 
+  test('offline reconnect backend failure and success remain followable', () async {
+    final diagnostics = RuntimeDiagnostics(
+      config: _config,
+      persistence: MemoryRuntimeDiagnosticsPersistence(),
+    );
+    await diagnostics.initialize();
+
+    final reservation = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final port = reservation.port;
+    await reservation.close(force: true);
+    final baseUrl = Uri.parse('http://127.0.0.1:$port/api/v1/');
+    final gateway = HttpLearningGateway(
+      baseUrl: baseUrl,
+      diagnostics: diagnostics,
+    );
+
+    await expectLater(
+      gateway.academicTracks(),
+      throwsA(
+        isA<LearningFailure>().having(
+          (failure) => failure.code,
+          'code',
+          'MOBILE_NETWORK_OFFLINE',
+        ),
+      ),
+    );
+
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, port);
+    var requestCount = 0;
+    server.listen((request) async {
+      requestCount += 1;
+      request.response.headers.contentType = ContentType.json;
+      request.response.headers.set(
+        mobileCorrelationHeader,
+        requestCount == 1 ? 'srv-reconnect-failure' : 'srv-reconnect-success',
+      );
+      if (requestCount == 1) {
+        request.response.statusCode = HttpStatus.serviceUnavailable;
+        request.response.write(jsonEncode({
+          'code': 'CATALOGUE_TEMPORARILY_UNAVAILABLE',
+          'detail': 'Temporary failure.',
+          'retryable': true,
+        }));
+      } else {
+        request.response.write(jsonEncode({
+          'data': {'tracks': []},
+        }));
+      }
+      await request.response.close();
+    });
+
+    try {
+      await expectLater(
+        gateway.academicTracks(),
+        throwsA(
+          isA<LearningFailure>().having(
+            (failure) => failure.code,
+            'code',
+            'CATALOGUE_TEMPORARILY_UNAVAILABLE',
+          ),
+        ),
+      );
+      expect(await gateway.academicTracks(), isEmpty);
+
+      final transportEvents = diagnostics.events
+          .where((event) => event.operation == 'learning.get.academic-tracks')
+          .toList(growable: false);
+      expect(transportEvents.map((event) => event.result), [
+        'offline',
+        'backend_failure',
+        'success',
+      ]);
+      expect(
+        transportEvents.map((event) => event.correlationId),
+        containsAll(['srv-reconnect-failure', 'srv-reconnect-success']),
+      );
+    } finally {
+      await server.close(force: true);
+    }
+  });
+
   test('sync correlation never replaces operation ID and answer stays out of diagnostics', () async {
     const logicalOperationId = 'op-stable-issue14-001';
     const answerSentinel = 'SENTINEL learner answer payload';
