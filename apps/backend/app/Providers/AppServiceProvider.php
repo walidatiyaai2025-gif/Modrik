@@ -2,21 +2,17 @@
 
 namespace App\Providers;
 
+use App\Auth\PendingProviderIdentityVerifier;
+use App\Auth\ProviderIdentityVerifier;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->bind(ProviderIdentityVerifier::class, PendingProviderIdentityVerifier::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         //

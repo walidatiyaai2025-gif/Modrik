@@ -17,6 +17,8 @@ servers:
 tags:
   - name: System
     description: Liveness and operational boundaries.
+  - name: Auth
+    description: Backend-owned production account lifecycle, opaque sessions, and explicit Google/Apple provider linking.
   - name: Session
     description: Current authenticated identity shell.
   - name: Academics
@@ -52,6 +54,254 @@ paths:
                 properties:
                   status: {type: string, const: ok}
         '400': {$ref: '#/components/responses/BadRequest'}
+  /v1/auth/register:
+    post:
+      summary: Register a password account
+      operationId: registerAccount
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthRegisterRequest'}
+      responses:
+        '201':
+          description: Active account with an unverified email and a new opaque backend session.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthSessionResponse'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/login:
+    post:
+      summary: Sign in with email and password
+      operationId: loginAccount
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthLoginRequest'}
+      responses:
+        '200':
+          description: Authenticated account and a new opaque backend session.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthSessionResponse'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/email/verify:
+    post:
+      summary: Consume a one-time email verification token
+      operationId: verifyAccountEmail
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthTokenRequest'}
+      responses:
+        '204': {description: Email verified.}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/email/verification:
+    post:
+      summary: Resend email verification for the authenticated account
+      operationId: resendAccountEmailVerification
+      tags: [Auth]
+      responses:
+        '202':
+          description: Verification delivery accepted or already unnecessary.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthAcceptedResponse'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+  /v1/auth/password/recovery:
+    post:
+      summary: Request password recovery without disclosing account existence
+      operationId: requestPasswordRecovery
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthRecoveryRequest'}
+      responses:
+        '202':
+          description: Always accepted for structurally valid requests; eligibility and rate suppression are not disclosed.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthAcceptedResponse'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/password/reset:
+    post:
+      summary: Consume a one-time password reset token
+      operationId: resetAccountPassword
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthPasswordResetRequest'}
+      responses:
+        '204': {description: Password replaced and all existing sessions revoked.}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/reauthenticate:
+    post:
+      summary: Refresh recent-authentication state for the current password session
+      operationId: reauthenticateAccount
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthReauthenticateRequest'}
+      responses:
+        '204': {description: Current session is recently authenticated.}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/password:
+    put:
+      summary: Change the password after recent authentication
+      operationId: changeAccountPassword
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthPasswordChangeRequest'}
+      responses:
+        '204': {description: Password changed; reset tokens and other sessions are revoked.}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/sessions:
+    get:
+      summary: List active backend-owned sessions
+      operationId: listAccountSessions
+      tags: [Auth]
+      responses:
+        '200':
+          description: Active sessions without bearer token material.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AuthSessionsResponse'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+    delete:
+      summary: Revoke all sessions for the authenticated account
+      operationId: revokeAllAccountSessions
+      tags: [Auth]
+      responses:
+        '204': {description: All sessions revoked.}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/auth/sessions/current:
+    delete:
+      summary: Revoke the current session
+      operationId: revokeCurrentAccountSession
+      tags: [Auth]
+      responses:
+        '204': {description: Current session revoked.}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/auth/sessions/others:
+    delete:
+      summary: Revoke every session except the current session
+      operationId: revokeOtherAccountSessions
+      tags: [Auth]
+      responses:
+        '204': {description: Other active sessions revoked.}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/auth/account:
+    delete:
+      summary: Logically delete and anonymize the account after recent authentication
+      operationId: deleteAccount
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AuthDeleteRequest'}
+      responses:
+        '204': {description: Account logically deleted and all sessions/tokens revoked.}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/providers/{provider}/login-intents:
+    parameters:
+      - $ref: '#/components/parameters/AuthProvider'
+    post:
+      summary: Create a one-time provider login state and nonce
+      operationId: createProviderLoginIntent
+      tags: [Auth]
+      security: []
+      responses:
+        '201':
+          description: Provider login intent; only state/nonce are returned while their hashes are persisted.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProviderIntentResponse'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/providers/{provider}/link-intents:
+    parameters:
+      - $ref: '#/components/parameters/AuthProvider'
+    post:
+      summary: Create a recent-auth explicit provider-link intent
+      operationId: createProviderLinkIntent
+      tags: [Auth]
+      responses:
+        '201':
+          description: Provider link intent bound to the current account.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProviderIntentResponse'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/auth/providers/{provider}/callback:
+    parameters:
+      - $ref: '#/components/parameters/AuthProvider'
+    post:
+      summary: Complete provider login or explicit linking
+      operationId: completeProviderIntent
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ProviderCallbackRequest'}
+      responses:
+        '200':
+          description: Provider login session or explicit link result. Stable provider subject remains the identity key; email is metadata only.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProviderCallbackResponse'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+        '503': {$ref: '#/components/responses/ServiceUnavailable'}
+  /v1/auth/providers/{provider}:
+    parameters:
+      - $ref: '#/components/parameters/AuthProvider'
+    delete:
+      summary: Unlink a provider after recent authentication
+      operationId: unlinkProviderIdentity
+      tags: [Auth]
+      responses:
+        '204': {description: Provider identity unlinked.}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
   /v1/session:
     get:
       summary: Read the current session
@@ -400,6 +650,13 @@ components:
         minLength: 16
         maxLength: 128
         pattern: '^[!-~]+$'
+    AuthProvider:
+      name: provider
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [google, apple]
     LessonId:
       name: lessonId
       in: path
@@ -427,7 +684,7 @@ components:
         application/problem+json:
           schema: {$ref: '#/components/schemas/ProblemDetails'}
     Forbidden:
-      description: Actor lacks permission.
+      description: Actor lacks permission or a recent/verified authentication boundary has not been satisfied.
       content:
         application/problem+json:
           schema: {$ref: '#/components/schemas/ProblemDetails'}
@@ -437,12 +694,22 @@ components:
         application/problem+json:
           schema: {$ref: '#/components/schemas/ProblemDetails'}
     Conflict:
-      description: Authoritative state or idempotency conflict.
+      description: Authoritative state, identity-linking, or idempotency conflict.
       content:
         application/problem+json:
           schema: {$ref: '#/components/schemas/ProblemDetails'}
     ValidationFailed:
       description: Semantic or field validation failed.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    TooManyRequests:
+      description: A bounded authentication or abuse-control rate limit was reached.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    ServiceUnavailable:
+      description: Required external provider verification is not configured or is unavailable.
       content:
         application/problem+json:
           schema: {$ref: '#/components/schemas/ProblemDetails'}
@@ -475,6 +742,169 @@ components:
         request_id: {type: string, minLength: 16, maxLength: 64}
     ProblemDetails:
       $ref: '../../schemas/contracts/problem-details.schema.json'
+    AuthAccount:
+      type: object
+      additionalProperties: false
+      required: [id, email, email_verified, password_enabled, status]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        email:
+          oneOf: [{type: 'null'}, {type: string, format: email, maxLength: 255}]
+        email_verified: {type: boolean}
+        password_enabled: {type: boolean}
+        status: {type: string, enum: [active, deleted]}
+    AuthSession:
+      type: object
+      additionalProperties: false
+      required: [id, name, authenticated_at, last_used_at, expires_at, is_current]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        name:
+          oneOf: [{type: 'null'}, {type: string, maxLength: 80}]
+        authenticated_at: {type: string, format: date-time}
+        last_used_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+        created_at: {type: string, format: date-time}
+        is_current: {type: boolean}
+    AuthRegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, password]
+      properties:
+        name: {type: string, minLength: 2, maxLength: 100}
+        email: {type: string, format: email, minLength: 3, maxLength: 255}
+        password: {type: string, minLength: 12, maxLength: 128, writeOnly: true}
+    AuthLoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: {type: string, format: email, minLength: 3, maxLength: 255}
+        password: {type: string, minLength: 1, maxLength: 128, writeOnly: true}
+    AuthTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token: {type: string, minLength: 16, maxLength: 160, writeOnly: true}
+    AuthRecoveryRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: {type: string, format: email, minLength: 3, maxLength: 255}
+    AuthPasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [token, password]
+      properties:
+        token: {type: string, minLength: 16, maxLength: 160, writeOnly: true}
+        password: {type: string, minLength: 12, maxLength: 128, writeOnly: true}
+    AuthReauthenticateRequest:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password: {type: string, minLength: 1, maxLength: 128, writeOnly: true}
+    AuthPasswordChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [current_password, new_password]
+      properties:
+        current_password: {type: string, minLength: 1, maxLength: 128, writeOnly: true}
+        new_password: {type: string, minLength: 12, maxLength: 128, writeOnly: true}
+    AuthDeleteRequest:
+      type: object
+      additionalProperties: false
+      required: [confirmation]
+      properties:
+        confirmation: {type: string, const: DELETE}
+    AuthSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [account, access_token, token_type, session]
+          properties:
+            account: {$ref: '#/components/schemas/AuthAccount'}
+            access_token: {type: string, minLength: 16, writeOnly: true}
+            token_type: {type: string, const: Bearer}
+            session: {$ref: '#/components/schemas/AuthSession'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AuthAcceptedResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [status]
+          properties:
+            status: {type: string, const: accepted}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AuthSessionsResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [sessions]
+          properties:
+            sessions:
+              type: array
+              items: {$ref: '#/components/schemas/AuthSession'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    ProviderIntentResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [state, nonce, expires_at]
+          properties:
+            state: {type: string, minLength: 32, maxLength: 160, writeOnly: true}
+            nonce: {type: string, minLength: 32, maxLength: 160, writeOnly: true}
+            expires_at: {type: string, format: date-time}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    ProviderCallbackRequest:
+      type: object
+      additionalProperties: false
+      required: [state, id_token]
+      properties:
+        state: {type: string, minLength: 32, maxLength: 160, writeOnly: true}
+        id_token: {type: string, minLength: 16, maxLength: 16384, writeOnly: true}
+    ProviderCallbackResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [provider, linked, account_id]
+              properties:
+                provider: {type: string, enum: [google, apple]}
+                linked: {type: boolean, const: true}
+                account_id: {$ref: '#/components/schemas/Ulid'}
+            - type: object
+              additionalProperties: false
+              required: [account, access_token, token_type, session, provider]
+              properties:
+                account: {$ref: '#/components/schemas/AuthAccount'}
+                access_token: {type: string, minLength: 16, writeOnly: true}
+                token_type: {type: string, const: Bearer}
+                session: {$ref: '#/components/schemas/AuthSession'}
+                provider: {type: string, enum: [google, apple]}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
     SessionResponse:
       type: object
       additionalProperties: false

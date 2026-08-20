@@ -30,16 +30,18 @@ events:
     traceability: [REQ-P0-002, AC-P0-010]
   - type: assessment.attempt_started
     aggregate: attempt
-    payload_required: [quiz_id, question_count, ordering_algorithm]
-    traceability: [REQ-P0-005, AC-P0-002, AC-P0-003]
+    payload_required: [quiz_id, blueprint_version, question_count, selected_question_ids, ordering_algorithm, selection_algorithm, option_ordering_algorithm, question_order_policy, selection_varied_from_previous_attempt, seed_fingerprint]
+    traceability: [REQ-P0-005, AC-P0-002, AC-P0-003, AC-P0-004, AC-P0-005]
+    semantics: The event audits the persisted authoritative selection/order contract. seed_fingerprint is SHA-256 of the server seed for correlation only; the seed and grading contracts are prohibited from events.
   - type: assessment.answer_recorded
     aggregate: attempt
     payload_required: [attempt_question_id, revision]
     traceability: [REQ-P0-005, REQ-P0-006]
   - type: assessment.attempt_submitted
     aggregate: attempt
-    payload_required: [submitted_at, answered_count]
+    payload_required: [submitted_at, answered_count, score, max_score, blueprint_version]
     traceability: [REQ-P0-005]
+    semantics: Score and maximum score are computed from the persisted attempt-question grading snapshots, never mutable question-bank state.
   - type: progress.snapshot_updated
     aggregate: progress_snapshot
     payload_required: [curriculum_node_id, source_version]

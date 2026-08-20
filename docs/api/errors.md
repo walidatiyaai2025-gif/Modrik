@@ -29,6 +29,31 @@ The backend does not expose stack traces, SQL, file paths, provider tokens, atte
 | `RATE_LIMITED` | 429 | Request limit reached; retry metadata may be present. |
 | `SERVICE_UNAVAILABLE` | 503 | Bounded dependency outage or maintenance. |
 
+## Production authentication codes
+
+Auth responses keep account existence, provider assertion material, raw tokens, and provider subjects out of Problem Details. Public login and recovery deliberately avoid existence-sensitive variants.
+
+| Code | HTTP | Meaning |
+| --- | ---: | --- |
+| `INVALID_CREDENTIALS` | 401 | Login or recent-auth credentials are invalid; the response does not distinguish missing, deleted, provider-only, or wrong-password accounts. |
+| `EMAIL_UNAVAILABLE` | 409 | The normalized email cannot be registered, including a concurrent uniqueness collision. |
+| `TOKEN_INVALID_OR_EXPIRED` | 422 | A verification or password-reset token is absent, expired, revoked, or already consumed. |
+| `EMAIL_VERIFICATION_REQUIRED` | 403 | A password account must verify its email before a protected learning mutation. |
+| `RECENT_AUTHENTICATION_REQUIRED` | 403 | A sensitive account/provider mutation requires a fresh production-session authentication timestamp. |
+| `ACCOUNT_NOT_ACTIVE` | 409 | A lifecycle mutation cannot operate on a non-active account. |
+| `PROVIDER_INTENT_INVALID` | 422 | Provider state is invalid, expired, consumed, or otherwise unusable. |
+| `PROVIDER_ASSERTION_INVALID` | 401 | Provider, stable subject, cryptographic validation, or nonce validation failed. Assertion details are not exposed. |
+| `PROVIDER_LINK_REQUIRED` | 409 | A verified provider email collides with an existing account or a revoked binding; explicit authenticated linking is required. |
+| `PROVIDER_IDENTITY_CONFLICT` | 409 | The stable provider subject is already bound to a different MODRIK account. |
+| `PROVIDER_IDENTITY_NOT_FOUND` | 404 | No active provider identity exists on the authenticated account for that provider. |
+| `LAST_RECOVERY_IDENTITY` | 409 | Unlinking would leave the account without a usable password or alternate provider recovery identity. |
+| `PROVIDER_CONFIGURATION_PENDING` | 503 | Production provider cryptographic verification is not configured; the default adapter fails closed. |
+| `TOO_MANY_ATTEMPTS` | 429 | A bounded login, verification-resend, or provider-intent abuse limit was reached. |
+
+Auth field-shape failures remain top-level `422 VALIDATION_FAILED`. Stable field-level codes include `FIELD_NOT_ALLOWED`, `FIELD_INVALID`, `BODY_NOT_ALLOWED`, `PASSWORD_POLICY_FAILED`, `DELETION_CONFIRMATION_REQUIRED`, `PROVIDER_INVALID`, and `PROVIDER_PURPOSE_INVALID`. These appear only in the `errors` list and do not reveal credentials or account existence.
+
+Password recovery is intentionally different from most rate-limited commands: for every structurally valid request it returns the same `202 accepted` shape for eligible, missing, ineligible, and rate-suppressed accounts. This prevents the rate-limit path from becoming an account-enumeration oracle.
+
 ## Offline answer-sync acknowledgement codes
 
 `POST /v1/sync/answers` returns HTTP 200 for a structurally valid authenticated batch and reports each logical operation independently. These per-operation acknowledgements intentionally contain no `detail`, exception message, or raw answer value. Clients branch on `outcome`, `code`, and `retryable` only.
