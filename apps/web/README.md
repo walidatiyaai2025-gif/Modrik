@@ -1,6 +1,6 @@
 # MODRIK Student Web
 
-Desktop/laptop-first Next.js 16 application for the student learning experience. It consumes `@modrik/design-tokens`; it is not the temporary public Coming Soon release.
+Desktop/laptop-first Next.js 16 application for the student learning experience plus release-candidate public information surfaces. It consumes `@modrik/design-tokens`; it is **not** the temporary public Coming Soon deployment.
 
 Use Node.js 22.23.2 and npm 10.9.8 from the repository pins.
 
@@ -18,6 +18,16 @@ npm run build
 Issue #17 / P0-WEB-001 owns the presentation and application-client layer in `apps/web`. The workspace is deliberately desktop-first rather than a stretched phone shell and contains four first-class views: dashboard/home, study, practice and progress. The active academic context is presented with its reset consequences, but the Web client does not invent a board/syllabus/track catalogue that the Backend does not expose.
 
 AR, EN and FR are complete UI locales. Arabic switches the workspace to RTL; lesson/question/option text uses content-aware direction so mixed Arabic/Latin material remains readable. Native buttons, fieldsets, landmarks, headings, skip navigation, visible focus, live status/error regions, reduced-motion CSS and fluid layouts form the accessibility baseline. The manual verification matrix is in `docs/qa/student-web-accessibility-matrix.md`.
+
+## Public release-candidate surfaces
+
+Issue #32 / P0-RELEASE-001 adds the public information routes `/landing`, `/help`, `/admin-guide`, `/about`, `/goal`, `/vision`, `/mission`, `/disclaimer`, `/privacy`, `/terms`, `/safety`, `/cookies`, `/content-policy`, `/account-deletion`, `/support`, and `/contact`.
+
+These routes are generated from one typed multilingual content contract in `src/public-site/`. AR/EN/FR copy, RTL/LTR direction, route links, SEO canonical/language alternates, legal blocker IDs and index policy are tested together. The Web public logo is a byte-for-byte reuse of the canonical Coming Soon horizontal SVG; public CSS consumes the canonical design-token variables.
+
+Legal/support/contact surfaces that still depend on owner/legal facts visibly identify themselves as unapproved templates and set `robots.index=false`. The release code does not invent legal entity/controller/contact, jurisdiction, vendors/transfers, retention, age/guardian policy, safety escalation contacts, copyright/takedown contact, support hours, legal version or effective date. `docs/legal/public-pages-matrix.md`, `docs/release/release-inputs.md` and `docs/qa/public-release-matrix.md` define that boundary.
+
+The root Student Web route is unchanged. `deploy/coming-soon/` remains the canonical dependency-free public shell under ADR-005; Issue #32 does not perform a domain/cPanel cutover. Coming Soon Smoke is triggered by changes to the release-candidate public application so regressions in the canonical shell remain visible without modifying the shell itself.
 
 ## Backend authority
 

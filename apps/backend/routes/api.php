@@ -41,6 +41,7 @@ Route::prefix('/v1/auth')->group(function (): void {
 
 Route::prefix('/v1')->middleware('auth.modrik')->group(function (): void {
     Route::get('/session', [LearningController::class, 'session'])->name('session.show');
+    Route::get('/academic-tracks', [AcademicContextController::class, 'catalogue'])->name('academic-tracks.index');
     Route::get('/academic-context', [LearningController::class, 'academicContext'])->name('academic-context.show');
     Route::post('/academic-context/activate', [AcademicContextController::class, 'activate'])
         ->middleware('auth.verified-password')->name('academic-context.activate');

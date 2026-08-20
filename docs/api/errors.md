@@ -18,7 +18,7 @@ The backend does not expose stack traces, SQL, file paths, provider tokens, atte
 | --- | ---: | --- |
 | `AUTHENTICATION_REQUIRED` | 401 | No valid user session. |
 | `FORBIDDEN` | 403 | Authenticated actor lacks permission. |
-| `RESOURCE_NOT_FOUND` | 404 | Resource is absent or intentionally concealed. |
+| `RESOURCE_NOT_FOUND` | 404 | Resource is absent or intentionally concealed. For academic-track activation/reset this intentionally covers nonexistent, unauthorized, revoked, fixture-hidden, and display-invalid track IDs with one indistinguishable shape. |
 | `VALIDATION_FAILED` | 422 | Request fields failed validation. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Retryable mutation omitted its key. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Key was reused with a different canonical request. |
@@ -28,6 +28,12 @@ The backend does not expose stack traces, SQL, file paths, provider tokens, atte
 | `PREPARATION_ARCHIVE_UNSAFE` | 422 | Archive violates path, size, type, or integrity policy. |
 | `RATE_LIMITED` | 429 | Request limit reached; retry metadata may be present. |
 | `SERVICE_UNAVAILABLE` | 503 | Bounded dependency outage or maintenance. |
+
+## Academic-track catalogue semantics
+
+`GET /v1/academic-tracks` is an authenticated read and returns HTTP 200 with `tracks: []` when the learner currently has no authorized choices. Empty catalogue state is not an error and must never cause a client to synthesize a default track.
+
+`POST /v1/academic-context/activate` and `/reset` accept only a track ID that is currently returned by the same Backend authorization source. A guessed opaque ID is not proof of eligibility. To prevent an enumeration oracle, callers receive the same `404 RESOURCE_NOT_FOUND` for a nonexistent track and for a track that exists but is unauthorized, revoked, fixture-hidden outside fixture mode, or rejected by the display-safety contract. Existing context-conflict codes continue to apply only after the target track passes authorization.
 
 ## Production authentication codes
 

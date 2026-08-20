@@ -6,6 +6,7 @@ use App\Exceptions\ApiProblemException;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AcademicContextService;
+use App\Services\AcademicTrackCatalogueService;
 use App\Services\IdempotencyService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -16,8 +17,16 @@ class AcademicContextController extends Controller
 {
     public function __construct(
         private readonly AcademicContextService $contexts,
+        private readonly AcademicTrackCatalogueService $catalogue,
         private readonly IdempotencyService $idempotency,
     ) {}
+
+    public function catalogue(Request $request): JsonResponse
+    {
+        return ApiResponse::success($request, [
+            'tracks' => $this->catalogue->catalogue($this->user($request)),
+        ])->header('Cache-Control', 'no-store, private');
+    }
 
     public function activate(Request $request): JsonResponse
     {

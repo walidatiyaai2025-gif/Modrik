@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-ACADEMIC-CONTRACT-002 authorized learner track catalogue
+
+- Implemented Issue #21 for REQ-P0-002 / AC-P0-010 with authenticated `GET /v1/academic-tracks`, backed by a learner-scoped `academic_track_authorizations` allowlist. Active authorization is `revoked_at IS NULL`; Backend `sort_order` then the stable opaque track ULID defines deterministic response order.
+- Restricted the public catalogue surface to `id` plus complete `labels.ar`, `labels.en`, and `labels.fr`. Internal track code, board reference, syllabus version, year level, fixture marker, authorization state/order, and eligibility rationale are not exposed. Blank/oversize/missing locales, markup, and Unicode control/format characters fail closed rather than becoming display content.
+- Preserved Issue #4 Backend authority by routing both activation and reset target validation through the same current-learner authorization source before the existing idempotent active-context/reset/archive/history/outbox rules. Nonexistent, unauthorized, revoked, fixture-hidden, and display-invalid targets intentionally collapse to `RESOURCE_NOT_FOUND` to avoid an eligibility enumeration oracle.
+- Kept production catalogue values owner-controlled. The repository adds only the existing synthetic fixture track authorization behind fixture mode, and fixture tracks are filtered from production-mode catalogue reads even if fixture rows remain in a test database. No real board/syllabus/version/year or learner eligibility is invented.
+- Added abuse/authorization/empty/deterministic-order/localization/fixture-boundary tests and updated the Issue #4 lifecycle regression suite. Added OpenAPI schemas and executable contract assertions, RFC9457 semantics, data dictionary, threat model, QA matrix, and a dedicated Issue #21 verification ledger. No Web/Mobile eligibility code, Brand changes, or Issue #33 work is included.
+- Development CI proved the migration and complete behavior suite on MariaDB 10.11.18 and the repository contract/Web/Mobile gates. The final PR #35 clean-history head is required to pass all seven jobs before merge-ready status; the clean-history step removes only a prior synthetic test-string Gitleaks false positive and does not weaken secret scanning.
+
 ## 2026-08-20 — Parallel Wave 1 final integration verification
 
 - Completed the bounded Wave 1 merge sequence Web → Sync → Assessment → Auth → Mobile → Admin/Content without starting Wave 2. Final implementation merge is Admin PR #27 at `d8efb610be48f6cfb75b11942b6c4bfdf35878c7`.
@@ -127,7 +136,7 @@
 ## 2026-08-20 — BOOT-007 clean-checkout and CI proof
 
 - Proved exact commit `5fefa39897c45ce0816d3420f8b75fee535f41eb` from a fresh isolated clone installed only from committed Composer/npm/pub lockfiles; the checkout remained Git-clean after all gates.
-- Fixed two cold-start assumptions discovered by the proof: Web layout typing no longer depends on generated Next.js globals, and PHPUnit has an explicit deterministic test-only application key.
+- Fixed two cold-start assumptions discovered by the proof: Web layout typing no longer depends on generated Next.js globals, and PHPUnit has an explicit deterministic test-only Laravel application key.
 - Opened draft PR #2 and passed GitHub Actions Bootstrap CI run `32365791153`: contracts, Backend, MariaDB 10.11.18 migrations, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review. Coming Soon Smoke run `32365791509` also passed.
 - Enabled GitHub Dependency Graph/Dependabot alerts after the dependency-review action correctly reported the repository feature was disabled; rerunning the unchanged dependency gate passed without weakening policy.
 - Migrations/contracts: no domain migrations or contract changes in BOOT-007; BOOT-008 domain implementation is now unblocked.

@@ -22,7 +22,7 @@ tags:
   - name: Session
     description: Current authenticated identity shell.
   - name: Academics
-    description: Active academic context selected during onboarding.
+    description: Backend-owned authorized academic-track catalogue and active academic context.
   - name: Lessons
     description: Published lesson reads for the active context.
   - name: Attempts
@@ -315,6 +315,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/SessionResponse'
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/academic-tracks:
+    get:
+      summary: List academic tracks authorized for the current learner
+      operationId: listAuthorizedAcademicTracks
+      tags: [Academics]
+      description: Returns only Backend-authorized learner choices in deterministic order. Opaque IDs are selection handles; board, syllabus, internal codes, year levels, authorization metadata, and eligibility rules are intentionally not exposed. Synthetic fixture tracks are never returned while fixture mode is disabled.
+      responses:
+        '200':
+          description: Authorized display-safe catalogue, which may be empty.
+          headers:
+            Cache-Control:
+              description: Learner-specific catalogue responses must not be shared or reused after authorization changes.
+              schema: {type: string, const: 'no-store, private'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicTrackCatalogueResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
   /v1/academic-context:
     get:
       summary: Read the active academic context
@@ -333,6 +351,7 @@ paths:
       summary: Activate the first academic context after onboarding
       operationId: activateAcademicContext
       tags: [Academics]
+      description: The academic_track_id must identify a currently authorized catalogue choice for this learner. The Backend remains authoritative for eligibility and active-context transition rules.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -363,6 +382,7 @@ paths:
       summary: Archive the active academic context and activate a different track
       operationId: resetAcademicContext
       tags: [Academics]
+      description: The target academic_track_id must remain a currently authorized catalogue choice for this learner. Existing archival, history-preservation, and different-track rules remain Backend-owned.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -921,6 +941,35 @@ components:
               type: array
               uniqueItems: true
               items: {type: string, enum: [student, guardian, content_team, admin]}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AcademicTrackLabels:
+      type: object
+      additionalProperties: false
+      required: [ar, en, fr]
+      properties:
+        ar: {type: string, minLength: 1, maxLength: 160}
+        en: {type: string, minLength: 1, maxLength: 160}
+        fr: {type: string, minLength: 1, maxLength: 160}
+    AcademicTrackCatalogueItem:
+      type: object
+      additionalProperties: false
+      required: [id, labels]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        labels: {$ref: '#/components/schemas/AcademicTrackLabels'}
+    AcademicTrackCatalogueResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [tracks]
+          properties:
+            tracks:
+              type: array
+              items: {$ref: '#/components/schemas/AcademicTrackCatalogueItem'}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     AcademicContextResponse:
       type: object
