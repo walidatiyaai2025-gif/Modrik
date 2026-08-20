@@ -25,6 +25,8 @@ final class ContentReviewQueue extends Page
 
     public ?string $selectedImportId = null;
 
+    public ?string $pendingPublicationImportId = null;
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -92,16 +94,42 @@ final class ContentReviewQueue extends Page
         });
     }
 
-    public function publishOfficial(string $importId): void
+    public function requestPublication(string $importId): void
     {
-        $this->perform(function (ContentAdminWorkflowService $workflow) use ($importId): void {
-            $result = $workflow->publish($this->operator(), $importId);
-            Notification::make()
-                ->title($result['replayed'] === true ? __('admin.messages.operation_replayed') : __('admin.messages.published'))
-                ->success()
-                ->send();
-            $this->selectedImportId = $importId;
-        });
+        $row = DB::table('preparation_imports')->where('id', $importId)->first();
+        if ($row === null) {
+            Notification::make()->title(__('admin.messages.import_missing'))->danger()->send();
+
+            return;
+        }
+        if ((string) $row->status !== 'imported') {
+            Notification::make()->title(__('admin.messages.publication_confirmation_unavailable'))->warning()->send();
+
+            return;
+        }
+
+        $this->pendingPublicationImportId = $importId;
+        $this->dispatch('open-modal', id: 'confirm-content-publication');
+    }
+
+    public function cancelPublication(): void
+    {
+        $this->pendingPublicationImportId = null;
+        $this->dispatch('close-modal', id: 'confirm-content-publication');
+    }
+
+    public function confirmPublication(): void
+    {
+        $importId = $this->pendingPublicationImportId;
+        if ($importId === null) {
+            Notification::make()->title(__('admin.messages.confirmation_stale'))->warning()->send();
+
+            return;
+        }
+
+        $this->pendingPublicationImportId = null;
+        $this->dispatch('close-modal', id: 'confirm-content-publication');
+        $this->publishOfficial($importId);
     }
 
     public function retry(string $importId): void
@@ -118,7 +146,7 @@ final class ContentReviewQueue extends Page
             return;
         }
         if ((string) $row->status === 'imported') {
-            $this->publishOfficial($importId);
+            $this->requestPublication($importId);
 
             return;
         }
@@ -244,6 +272,18 @@ final class ContentReviewQueue extends Page
             $reason = $this->reasons[$importId] ?? null;
             $workflow->review($this->operator(), $importId, $decision, $reason);
             Notification::make()->title(__('admin.messages.review_saved'))->success()->send();
+            $this->selectedImportId = $importId;
+        });
+    }
+
+    private function publishOfficial(string $importId): void
+    {
+        $this->perform(function (ContentAdminWorkflowService $workflow) use ($importId): void {
+            $result = $workflow->publish($this->operator(), $importId);
+            Notification::make()
+                ->title($result['replayed'] === true ? __('admin.messages.operation_replayed') : __('admin.messages.published'))
+                ->success()
+                ->send();
             $this->selectedImportId = $importId;
         });
     }
