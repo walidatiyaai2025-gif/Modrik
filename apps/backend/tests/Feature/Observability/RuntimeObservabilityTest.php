@@ -126,7 +126,8 @@ final class RuntimeObservabilityTest extends TestCase
 
     public function test_throwing_diagnostic_sink_preserves_real_auth_learning_and_admin_results(): void
     {
-        $this->app->instance(DiagnosticSink::class, new class implements DiagnosticSink {
+        $this->app->instance(DiagnosticSink::class, new class() implements DiagnosticSink
+        {
             public function write(array $event): void
             {
                 throw new RuntimeException('diagnostic sink unavailable');
