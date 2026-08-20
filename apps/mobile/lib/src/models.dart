@@ -397,4 +397,5 @@ class ProgressSnapshot {
   final String curriculumNodeId;
   final double mastery;
   final int sourceVersion;
+  final String calculatedAt;
 }
