@@ -37,7 +37,7 @@ final class RuntimeDiagnostics
             'category' => 'http_request',
             'correlation_id' => CorrelationId::assign($request),
             'route_name' => $this->routeName($request),
-            'stable_code' => null,
+            'stable_code' => $this->stableCodeFromResponse($response),
             'outcome' => $this->outcome($status),
             'status_code' => $status,
             'duration_ms' => max(0, $durationMs),
@@ -307,6 +307,9 @@ final class RuntimeDiagnostics
 
         $metadata = DiagnosticSanitizer::metadata($event['metadata']);
         $metadataJson = $this->metadataJson($metadata);
+        if ($metadata !== [] && $metadataJson === null) {
+            $metadata = [];
+        }
         $category = DiagnosticSanitizer::text($event['category'], 64) ?? 'runtime';
         $routeName = DiagnosticSanitizer::text($event['route_name'], 160);
         $stableCode = DiagnosticSanitizer::stableCode($event['stable_code']);
@@ -450,6 +453,27 @@ final class RuntimeDiagnostics
         } catch (Throwable) {
             return '{"schema_version":"1.0","truncated":true,"events":[]}';
         }
+    }
+
+    private function stableCodeFromResponse(Response $response): ?string
+    {
+        $contentType = (string) $response->headers->get('Content-Type', '');
+        if (! str_starts_with(strtolower($contentType), 'application/problem+json')) {
+            return null;
+        }
+
+        $content = $response->getContent();
+        if (! is_string($content) || $content === '' || strlen($content) > 4_096) {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($content, true, 8, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return is_array($decoded) ? DiagnosticSanitizer::stableCode($decoded['code'] ?? null) : null;
     }
 
     private function routeName(Request $request): ?string
