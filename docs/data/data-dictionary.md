@@ -1,6 +1,6 @@
 # P0 data dictionary
 
-Status: BOOT-008 learning and P0-CONTENT-001 preparation-staging slices are physically implemented for the synthetic fixture; unknown production curriculum, rights, and retention values intentionally remain unset.
+Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offline-answer synchronization, and the P0-ASSESS-001 authoritative-assessment branch are physically represented for the synthetic fixture; unknown production curriculum, rights, and retention values intentionally remain unset.
 
 | Entity | Purpose | Required invariants and indexes |
 | --- | --- | --- |
@@ -20,6 +20,7 @@ Status: BOOT-008 learning and P0-CONTENT-001 preparation-staging slices are phys
 | `attempt_answers` | Revisioned answer state for one attempt question. | Unique `(attempt_question_id, revision)`; server validates attempt ownership/status and rejects stale conflicting revisions. |
 | `progress_snapshots` | Recomputable mastery/progress projection bound to an academic context. | Unique `(academic_context_id, curriculum_node_id, source_version)`; assessment submission derives scope/version from the immutable attempt snapshot, not a later quiz revision. Reset archives rather than deletes the projection. |
 | `idempotency_keys` | Exact-replay cache for retryable commands. | Unique actor/operation/key hash; request-hash mismatch is a conflict; never store secrets or raw authorization headers. |
+| `answer_sync_acknowledgements` | Durable per-operation result for offline answer synchronization. | Unique `(actor_id, operation_id_digest)`; only a domain-separated HMAC digest of the opaque client operation ID and a canonical SHA-256 request hash are stored. Final rows retain stable outcome/code, authoritative revision/timestamp when applied, retryability, and completion time; no raw operation ID, answer value, exception text, or expiry column is stored. |
 | `preparation_requests` | Immutable, actor-owned bundle-generation settings and deterministic prompt. | ULID primary key; creator FK; SHA-256 of canonical normalized settings; explicit schema version; status indexed by creator. |
 | `preparation_imports` | Durable validation/staging result for a returned archive. | Uploader and archive SHA-256 are unique together; actual and untrusted claimed request IDs remain distinct; pack/rights metadata and structured validation summary are retained; `staged` never means published. |
 | `preparation_import_files` | Per-file validation checkpoint inside a staged import. | Unique `(preparation_import_id, path)`; allowed media type, byte count, and declared/computed SHA-256 are retained; only validated files receive rows. |
@@ -41,6 +42,7 @@ When more eligible candidates exist than a slot requires, consecutive new attemp
 - Academic context: `active`, `archived`.
 - Publication: `draft`, `in_review`, `published`, `archived`.
 - Attempt: `in_progress`, `submitted`, `graded`, `abandoned`.
+- Answer sync acknowledgement: transient reservation `processing`; durable final outcomes `applied`, `rejected`, `conflict`. A transaction rollback removes an uncompleted reservation rather than acknowledging an unknown server failure.
 - Preparation request: `ready`, `returned`, `expired`, `cancelled`.
 - Preparation import: `validating`, `rejected`, `staged`. Publication/import into curriculum tables is a separate, not-yet-implemented reviewed workflow.
 - Age assurance band: `under_13`, `minor`, `adult`; only a current `adult` row can pass the age gate.

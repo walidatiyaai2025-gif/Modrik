@@ -27,6 +27,7 @@ erDiagram
     user_academic_contexts ||--o{ progress_snapshots : scopes
     curriculum_nodes ||--o{ progress_snapshots : measures
     users ||--o{ idempotency_keys : scopes
+    users ||--o{ answer_sync_acknowledgements : acknowledges
     users ||--o{ preparation_requests : creates
     users ||--o{ preparation_imports : uploads
     users ||--o| user_age_assurances : has_current
@@ -175,6 +176,20 @@ erDiagram
       json response_body
       datetime expires_at
     }
+    answer_sync_acknowledgements {
+      char26 id PK
+      char26 actor_id FK
+      char64 operation_id_digest UK_scope
+      char64 request_hash
+      varchar outcome
+      varchar code_nullable
+      int answer_revision_nullable
+      datetime answered_at_nullable
+      boolean retryable
+      datetime completed_at_nullable
+      datetime created_at
+      datetime updated_at
+    }
     preparation_requests {
       char26 id PK
       char26 created_by FK
@@ -283,6 +298,8 @@ erDiagram
 - Foreign keys and tenant/actor scopes are explicit. No client identifier establishes ownership.
 - JSON is used for versioned snapshots and localized value maps, not as a substitute for columns used by authorization, status filtering, joins, or ordering.
 - Published content is immutable by version. Updates create a new content version; attempts retain snapshots.
+- Offline answer operation IDs are persisted only as actor-scoped domain-separated HMAC digests. Their canonical request hashes and final acknowledgements are durable synchronization state without a TTL; no raw answer value is duplicated into acknowledgement rows.
+- Each offline answer operation atomically commits its authoritative answer revision, redacted outbox event, and final acknowledgement. Operations in the same batch are transactionally isolated from one another.
 - Preparation imports end at a validated `staged` boundary. They do not insert, update, or publish curriculum rows; real-content review/publication requires a later explicit workflow.
 - Advertising configuration absence is meaningful canonical state and resolves off. Placement-to-zone mappings and no-ad zones are code-owned; clients and mutable rows cannot redefine them.
 - Outbox publication is at least once. Per-event row locks prevent overlapping workers from republishing a row already completed; a failure keeps it unpublished and preserves the event ID for idempotent consumer retry.
