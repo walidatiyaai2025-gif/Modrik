@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:modrik_mobile/src/academic_context_reset_boundary.dart';
@@ -11,63 +8,6 @@ import 'package:modrik_mobile/src/models.dart';
 import 'package:modrik_mobile/src/offline_boundary.dart';
 
 void main() {
-  test('mobile catalogue forwards secure bearer and preserves backend track order and labels', () async {
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    server.listen((request) async {
-      expect(request.method, 'GET');
-      expect(request.uri.path, '/api/v1/academic-tracks');
-      expect(
-        request.headers.value(HttpHeaders.authorizationHeader),
-        'Bearer secure-production-session',
-      );
-      request.response.headers.contentType = ContentType.json;
-      request.response.write(jsonEncode({
-        'data': {
-          'tracks': [
-            {
-              'id': '01J000000000000000000000B2',
-              'labels': {
-                'ar': 'المسار الثاني',
-                'en': 'Second track',
-                'fr': 'Deuxième parcours',
-              },
-            },
-            {
-              'id': '01J000000000000000000000A1',
-              'labels': {
-                'ar': 'المسار الأول',
-                'en': 'First track',
-                'fr': 'Premier parcours',
-              },
-            },
-          ],
-        },
-        'meta': {'request_id': 'req-mobile-catalogue'},
-      }));
-      await request.response.close();
-    });
-
-    try {
-      final gateway = HttpLearningGateway(
-        baseUrl: Uri.parse(
-          'http://${server.address.address}:${server.port}/api/v1/',
-        ),
-        bearerToken: 'secure-production-session',
-      );
-      final tracks = await gateway.academicTracks();
-
-      expect(
-        tracks.map((track) => track.id),
-        ['01J000000000000000000000B2', '01J000000000000000000000A1'],
-      );
-      expect(tracks.first.label(ModrikLocale.ar), 'المسار الثاني');
-      expect(tracks.first.label(ModrikLocale.en), 'Second track');
-      expect(tracks.first.label(ModrikLocale.fr), 'Deuxième parcours');
-    } finally {
-      await server.close(force: true);
-    }
-  });
-
   test('selected opaque track and stable idempotency key reach activate unchanged', () async {
     final gateway = _AcademicMutationGateway();
     final controller = MobileLearningController(
@@ -141,7 +81,7 @@ void main() {
     expect(await attempts.readLatest(), isNull);
   });
 
-  testWidgets('onboarding selector renders backend order and localized labels', (tester) async {
+  testWidgets('onboarding selector renders backend order without client re-ranking', (tester) async {
     final gateway = _CatalogueGateway();
     final controller = MobileLearningController(
       gateway: gateway,
@@ -173,9 +113,7 @@ void main() {
 
     await tester.tap(find.text('First track').last);
     await tester.pumpAndSettle();
-    controller.setLocale(ModrikLocale.ar);
-    await tester.pumpAndSettle();
-    expect(find.text('المسار الأول'), findsOneWidget);
+    expect(find.text('First track'), findsOneWidget);
   });
 
   testWidgets('reset UX requires confirmation and explains archival consequences', (tester) async {
