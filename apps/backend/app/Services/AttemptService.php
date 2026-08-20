@@ -14,7 +14,12 @@ final class AttemptService
 {
     public const ORDERING_ALGORITHM = AssessmentEngine::ALGORITHM;
 
-    public function __construct(private readonly AssessmentEngine $engine) {}
+    private readonly AssessmentEngine $engine;
+
+    public function __construct(AssessmentEngine $engine)
+    {
+        $this->engine = $engine;
+    }
 
     /**
      * @return array<string, mixed>
@@ -313,7 +318,7 @@ final class AttemptService
             $type = $snapshot['type'] ?? null;
             $gradingContract = $snapshot['grading_contract'] ?? null;
             $maximumScore = $snapshot['maximum_score'] ?? null;
-            if (! is_string($type) || ! is_array($gradingContract) || (! is_int($maximumScore) && ! is_float($maximumScore))) {
+            if (is_string($type) === false || is_array($gradingContract) === false || (is_int($maximumScore) === false && is_float($maximumScore) === false)) {
                 throw new ApiProblemException(500, 'QUESTION_SNAPSHOT_INVALID', 'Attempt cannot be graded', 'The immutable grading snapshot is invalid.');
             }
 
@@ -325,7 +330,7 @@ final class AttemptService
                 ->value('value');
 
             if (is_string($answer)) {
-                $answeredCount++;
+                $answeredCount += 1;
                 $value = json_decode($answer, true, flags: JSON_THROW_ON_ERROR);
                 if ($this->isCorrect($type, $gradingContract, $value)) {
                     $score += $maximumScore;
@@ -334,12 +339,12 @@ final class AttemptService
         }
 
         $scopeJson = $attempt['scope_snapshot'] ?? null;
-        if (! is_string($scopeJson)) {
+        if (is_string($scopeJson) === false) {
             throw new ApiProblemException(500, 'ATTEMPT_SCOPE_SNAPSHOT_MISSING', 'Attempt cannot be graded', 'The immutable attempt scope snapshot is unavailable.');
         }
         $scope = $this->decodeArray($scopeJson);
         $curriculumNodeId = $scope['curriculum_node_id'] ?? null;
-        if (! is_string($curriculumNodeId) || ! Str::isUlid($curriculumNodeId)) {
+        if (is_string($curriculumNodeId) === false || Str::isUlid($curriculumNodeId) === false) {
             throw new ApiProblemException(500, 'ATTEMPT_SCOPE_SNAPSHOT_INVALID', 'Attempt cannot be graded', 'The immutable attempt scope snapshot is invalid.');
         }
 
@@ -354,7 +359,7 @@ final class AttemptService
 
         $mastery = $maxScore > 0 ? $score / $maxScore : 0.0;
         $academicContextId = $attempt['academic_context_id'];
-        if (! is_string($academicContextId)) {
+        if (is_string($academicContextId) === false) {
             throw new ApiProblemException(500, 'ATTEMPT_CONTEXT_MISSING', 'Attempt cannot update progress', 'The attempt academic context is unavailable.');
         }
         $sourceVersion = (int) $attempt['blueprint_version'];
@@ -432,7 +437,7 @@ final class AttemptService
             ->orderByDesc('started_at')
             ->orderByDesc('id')
             ->value('id');
-        if (! is_string($previousAttemptId)) {
+        if (is_string($previousAttemptId) === false) {
             return [];
         }
 
@@ -449,7 +454,7 @@ final class AttemptService
     }
 
     /**
-     * @param list<array<string, mixed>> $options
+     * @param  list<array<string, mixed>>  $options
      * @return array<string, mixed>
      */
     private function publicResponseContract(string $type, array $options): array
@@ -465,12 +470,12 @@ final class AttemptService
     }
 
     /**
-     * @param array<string, mixed> $snapshot
+     * @param  array<string, mixed>  $snapshot
      */
     private function validateAnswerValue(array $snapshot, mixed $value): void
     {
         $contract = $snapshot['response_contract'] ?? null;
-        if (! is_array($contract)) {
+        if (is_array($contract) === false) {
             throw new ApiProblemException(500, 'QUESTION_SNAPSHOT_INVALID', 'Question unavailable', 'The stored response contract is invalid.');
         }
 
@@ -481,7 +486,7 @@ final class AttemptService
                     $optionIds[] = $option['id'];
                 }
             }
-            if (! is_string($value) || ! in_array($value, $optionIds, true)) {
+            if (is_string($value) === false || in_array($value, $optionIds, true) === false) {
                 throw $this->invalidAnswer('Value must be one of the published option identifiers.');
             }
 
@@ -489,7 +494,7 @@ final class AttemptService
         }
 
         if (($contract['kind'] ?? null) === 'multiple_choice') {
-            if (! is_array($value) || $value === []) {
+            if (is_array($value) === false || $value === []) {
                 throw $this->invalidAnswer('Value must contain one or more published option identifiers.');
             }
             $allowed = [];
@@ -499,7 +504,7 @@ final class AttemptService
                 }
             }
             foreach ($value as $optionId) {
-                if (! is_string($optionId) || ! in_array($optionId, $allowed, true)) {
+                if (is_string($optionId) === false || in_array($optionId, $allowed, true) === false) {
                     throw $this->invalidAnswer('Value must contain only published option identifiers.');
                 }
             }
@@ -508,7 +513,7 @@ final class AttemptService
         }
 
         if (($contract['kind'] ?? null) === 'short_text'
-            && (! is_string($value) || trim($value) === '' || mb_strlen($value) > 200)) {
+            && (is_string($value) === false || trim($value) === '' || mb_strlen($value) > 200)) {
             throw $this->invalidAnswer('Value must be non-empty text no longer than 200 characters.');
         }
     }
@@ -524,7 +529,7 @@ final class AttemptService
         );
     }
 
-    /** @param array<string, mixed> $contract */
+    /** @param  array<string, mixed>  $contract */
     private function isCorrect(string $type, array $contract, mixed $value): bool
     {
         if ($type === 'single_choice') {
@@ -533,7 +538,7 @@ final class AttemptService
 
         if ($type === 'multiple_choice' && is_array($value)) {
             $correct = $contract['correct_option_ids'] ?? [];
-            if (! is_array($correct)) {
+            if (is_array($correct) === false) {
                 return false;
             }
             $candidate = array_values(array_filter($value, 'is_string'));
@@ -548,7 +553,7 @@ final class AttemptService
             $caseSensitive = (bool) ($contract['case_sensitive'] ?? false);
             $candidate = trim($value);
             foreach (($contract['accepted_answers'] ?? []) as $accepted) {
-                if (! is_string($accepted)) {
+                if (is_string($accepted) === false) {
                     continue;
                 }
                 if ($caseSensitive ? hash_equals($accepted, $candidate) : mb_strtolower($accepted) === mb_strtolower($candidate)) {
@@ -561,7 +566,7 @@ final class AttemptService
     }
 
     /**
-     * @param array<string, mixed> $answer
+     * @param  array<string, mixed>  $answer
      * @return array{revision: int, value: mixed, answered_at: string}
      *
      * @throws JsonException
@@ -576,7 +581,7 @@ final class AttemptService
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      *
      * @throws JsonException
      */
@@ -602,7 +607,7 @@ final class AttemptService
     private function decodeArray(string $json): array
     {
         $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
-        if (! is_array($decoded) || array_is_list($decoded)) {
+        if (is_array($decoded) === false || array_is_list($decoded)) {
             throw new ApiProblemException(500, 'ASSESSMENT_JSON_INVALID', 'Assessment data is invalid', 'Expected a JSON object in the assessment contract.');
         }
 
@@ -617,13 +622,13 @@ final class AttemptService
     private function decodeList(string $json): array
     {
         $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
-        if (! is_array($decoded) || ! array_is_list($decoded)) {
+        if (is_array($decoded) === false || array_is_list($decoded) === false) {
             throw new ApiProblemException(500, 'ASSESSMENT_JSON_INVALID', 'Assessment data is invalid', 'Expected a JSON list in the assessment contract.');
         }
 
         $result = [];
         foreach ($decoded as $item) {
-            if (! is_array($item)) {
+            if (is_array($item) === false) {
                 throw new ApiProblemException(500, 'ASSESSMENT_JSON_INVALID', 'Assessment data is invalid', 'Assessment option entries must be objects.');
             }
             $result[] = $item;
@@ -632,7 +637,10 @@ final class AttemptService
         return $result;
     }
 
-    /** @param list<array<string, mixed>> $options @return list<string> */
+    /**
+     * @param  list<array<string, mixed>>  $options
+     * @return list<string>
+     */
     private function optionIds(array $options): array
     {
         return array_values(array_map(static fn (array $option): string => (string) ($option['id'] ?? ''), $options));
