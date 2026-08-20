@@ -20,3 +20,7 @@ Laravel owns the MODRIK user ID and authorization state. Email/password, Google,
 The initial Web/API implementation may use secure same-site cookies for first-party Web and scoped opaque bearer tokens for Mobile. Exact token implementation needs its implementation ADR. All production cookies require Secure, HttpOnly, appropriate SameSite, rotation, and CSRF protection for cookie-authenticated mutations.
 
 Production Google/Apple client IDs, secrets, callback URLs, store bundle identifiers, and signing material are BLOCKED owner inputs and never enter source control.
+
+## BOOT-008 synthetic fixture boundary
+
+BOOT-008 does not claim production account authentication. For deterministic local/CI validation only, Laravel may accept one configured synthetic bearer token when `MODRIK_FIXTURE_MODE=true`. The middleware fails closed when the flag or token is absent, authenticates only the synthetic fixture user, and must never be enabled in production. The Next.js proxy reads the token server-side; it is neither prefixed `NEXT_PUBLIC_` nor returned to the browser.

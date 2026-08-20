@@ -18,3 +18,7 @@ The idempotency reservation, domain mutation, and outbox write share a database 
 General command-response records may expire after at least 24 hours; the exact production duration is an operational configuration. Canonical attempts, answers, imports, and their business audit history do not depend on cache retention.
 
 Offline clients retain their logical command key until the server acknowledges the command. They must not generate a new key merely because transport timed out.
+
+## BOOT-008 implementation note
+
+Practice attempt creation and submission implement this contract. Storage contains only a keyed digest of the client key; submit reserves the key, grades and writes the outbox event in one transaction, stores the response, and returns an exact replay with `Idempotency-Replayed: true`. The Web workspace keeps one logical key in local storage across transport retries and clears it only after a recognized server response.

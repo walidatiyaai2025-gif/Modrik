@@ -1,6 +1,6 @@
 # P0 data dictionary
 
-Status: logical bootstrap contract. Unknown production curriculum and retention values intentionally remain unset.
+Status: BOOT-008 physical slice implemented for the synthetic fixture; unknown production curriculum and retention values intentionally remain unset.
 
 | Entity | Purpose | Required invariants and indexes |
 | --- | --- | --- |

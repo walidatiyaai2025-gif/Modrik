@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-08-20 — BOOT-008 fixture-driven learning slice (CI pending)
+
+- Added MariaDB-portable ULID domain migrations for academic context, curriculum, localized lessons/blocks, questions/quizzes, immutable attempts, revisioned answers, progress snapshots, keyed idempotency records, and transactional outbox events.
+- Added a canonical synthetic multilingual fixture seeder sourced from the validated Content Pack. Fixture mode and its single bearer boundary are disabled by default and explicitly unsuitable for production authentication.
+- Implemented localized session/context/lesson/progress reads and server-authoritative practice: encrypted random seeds, deterministic non-static question ordering, immutable resume, revision conflicts, grading, exact idempotent submit replay, request-hash reuse rejection, and event payloads without answers or seeds.
+- Implemented the desktop-first Next.js learning workspace with AR/EN/FR and RTL/LTR support; explicit loading, empty, error, offline, permission, retry, focus, and large-text behavior; a server-only allowlisted Backend proxy; and stable mutation keys across transport retries.
+- Updated OpenAPI/data contracts and added contract assertions for practice quiz discovery, nested attempt results, and replay response headers.
+- Added a reusable end-to-end fixture smoke through the actual Next route handler and live Laravel HTTP server. Local Backend gates pass 6 tests/100 assertions; Web lint/typecheck/test/build and the full repository gates pass.
+- Strengthened GitHub CI so MariaDB 10.11 performs a fresh fixture seed and the full Backend test suite. BOOT-008 remains open until that authoritative branch run is green and integrated.
+
 ## 2026-08-20 — BOOT-007 clean-checkout and CI proof
 
 - Proved exact commit `5fefa39897c45ce0816d3420f8b75fee535f41eb` from a fresh isolated clone installed only from committed Composer/npm/pub lockfiles; the checkout remained Git-clean after all gates.

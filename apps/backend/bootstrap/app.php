@@ -1,5 +1,8 @@
 <?php
 
+use App\Exceptions\ApiProblemException;
+use App\Http\Middleware\FixtureBearerAuthentication;
+use App\Support\ApiResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,10 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: '',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'auth.fixture' => FixtureBearerAuthentication::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(
+            fn (ApiProblemException $exception, Request $request) => ApiResponse::problem($request, $exception),
+        );
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('v1/*') || $request->expectsJson(),
         );
     })->create();

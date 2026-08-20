@@ -151,6 +151,9 @@ assert.equal(openapi.components.schemas.StartAttemptRequest.additionalProperties
 assert(!Object.hasOwn(openapi.components.schemas.StartAttemptRequest.properties, "seed"));
 assert(!Object.hasOwn(openapi.components.schemas.StartAttemptRequest.properties, "question_order"));
 assert.equal(openapi.components.parameters.IdempotencyKey.required, true);
+assert(openapi.components.schemas.LessonResponse.properties.data.required.includes("practice_quiz_id"));
+assert(openapi.components.schemas.AttemptResultResponse.properties.data.required.includes("attempt"));
+assert(openapi.paths["/v1/attempts/{attemptId}/submit"].post.responses["200"].headers["Idempotency-Replayed"]);
 
 const eventCatalog = await readYaml("docs", "events", "event-catalog.yaml");
 assert.equal(eventCatalog.delivery.guarantee, "at_least_once");

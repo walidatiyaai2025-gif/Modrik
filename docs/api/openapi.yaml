@@ -179,6 +179,9 @@ paths:
       responses:
         '200':
           description: Submitted and synchronously graded fixture attempt.
+          headers:
+            Idempotency-Replayed:
+              schema: {type: boolean}
           content:
             application/json:
               schema:
@@ -399,12 +402,13 @@ components:
         data:
           type: object
           additionalProperties: false
-          required: [id, curriculum_node_id, content_version, title, blocks]
+          required: [id, curriculum_node_id, content_version, title, practice_quiz_id, blocks]
           properties:
             id: {$ref: '#/components/schemas/Ulid'}
             curriculum_node_id: {$ref: '#/components/schemas/Ulid'}
             content_version: {type: integer, minimum: 1}
             title: {$ref: '#/components/schemas/LocalizedText'}
+            practice_quiz_id: {$ref: '#/components/schemas/Ulid'}
             blocks:
               type: array
               items: {$ref: '#/components/schemas/LessonBlock'}
@@ -481,13 +485,13 @@ components:
       required: [data, meta]
       properties:
         data:
-          allOf:
-            - $ref: '#/components/schemas/Attempt'
-            - type: object
-              required: [score, max_score]
-              properties:
-                score: {type: number, minimum: 0}
-                max_score: {type: number, exclusiveMinimum: 0}
+          type: object
+          additionalProperties: false
+          required: [attempt, score, max_score]
+          properties:
+            attempt: {$ref: '#/components/schemas/Attempt'}
+            score: {type: number, minimum: 0}
+            max_score: {type: number, exclusiveMinimum: 0}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     ProgressResponse:
       type: object
