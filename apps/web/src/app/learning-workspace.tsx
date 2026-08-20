@@ -33,8 +33,14 @@ function acknowledge(scope: string) {
   window.localStorage.removeItem(`modrik.fixture.command.${scope}`);
 }
 
-function formatStatus(status: Attempt["status"]) {
-  return status.replaceAll("_", " ");
+function attemptStatusLabel(status: Attempt["status"], locale: Locale) {
+  const labels = studentCopy[locale];
+  return {
+    in_progress: labels.statusInProgress,
+    submitted: labels.statusSubmitted,
+    graded: labels.statusGraded,
+    abandoned: labels.statusAbandoned,
+  }[status];
 }
 
 export default function LearningWorkspace() {
@@ -202,6 +208,11 @@ export default function LearningWorkspace() {
     if (!attempt) return false;
     try {
       const authoritativeAttempt = await learningApi.attempt(attempt.id);
+      if (authoritativeAttempt.status === "in_progress") {
+        window.localStorage.setItem(activeAttemptStorageKey, authoritativeAttempt.id);
+      } else {
+        window.localStorage.removeItem(activeAttemptStorageKey);
+      }
       applyAttempt(authoritativeAttempt);
       setMessage(studentCopy[locale].conflict);
       setState("ready");
@@ -296,7 +307,6 @@ export default function LearningWorkspace() {
       <div className="student-frame">
         <aside className="student-sidebar" aria-label={labels.navigation}>
           <div className="brand-lockup" aria-label="MODRIK مُدرك">
-            <span className="brand-mark" aria-hidden="true">M</span>
             <span>
               <strong>MODRIK</strong>
               <small lang="ar" dir="rtl">مُدرك</small>
@@ -332,13 +342,12 @@ export default function LearningWorkspace() {
               <p className="fixture-note">{labels.synthetic}</p>
             </div>
             <fieldset className="locale-switcher">
-              <legend className="sr-only">Interface language</legend>
+              <legend className="sr-only">{labels.languageSelector}</legend>
               {(["ar", "en", "fr"] as const).map((language) => (
                 <button
                   type="button"
                   key={language}
                   lang={language}
-                  aria-label={`Language ${language.toUpperCase()}`}
                   aria-pressed={locale === language}
                   onClick={() => setLocale(language)}
                 >
@@ -361,7 +370,7 @@ export default function LearningWorkspace() {
           <main id="student-main" className="student-main" aria-labelledby="workspace-title">
             {!showWorkspace ? (
               <div className="state-panel" role={state === "loading" ? "status" : "alert"} aria-live="polite">
-                <div className="state-glyph" aria-hidden="true">M</div>
+                <div className="state-wordmark" aria-hidden="true">MODRIK</div>
                 <p>
                   {state === "loading" && labels.loading}
                   {state === "offline" && labels.offline}
@@ -414,7 +423,7 @@ export default function LearningWorkspace() {
                       </article>
                       <article className="metric-card">
                         <span>{labels.attemptStatus}</span>
-                        <strong>{attempt ? formatStatus(attempt.status) : "—"}</strong>
+                        <strong>{attempt ? attemptStatusLabel(attempt.status, locale) : "—"}</strong>
                         <small>{attempt ? labels.attemptReady : labels.noAttempt}</small>
                       </article>
                     </section>
@@ -531,7 +540,7 @@ export default function LearningWorkspace() {
                         <dl>
                           <div>
                             <dt>{labels.attemptStatus}</dt>
-                            <dd>{formatStatus(attempt.status)}</dd>
+                            <dd>{attemptStatusLabel(attempt.status, locale)}</dd>
                           </div>
                           <div>
                             <dt>{labels.question}</dt>
@@ -612,7 +621,7 @@ export default function LearningWorkspace() {
 
                           {attempt.status === "in_progress" && (
                             <div className="practice-submit-row">
-                              <span aria-live="polite">{answeredCount}/{attempt.questions.length} {labels.saved}</span>
+                              <span aria-live="polite">{answeredCount}/{attempt.questions.length} {labels.answered}</span>
                               <button type="submit" className="primary-button" disabled={busy !== null || state === "offline"}>
                                 {busy === "submit" ? labels.submitting : labels.submit}
                               </button>
@@ -626,8 +635,13 @@ export default function LearningWorkspace() {
                         <div className="result-panel" role="status" aria-live="polite">
                           <span>{labels.result}</span>
                           <strong>{result.score}/{result.max_score}</strong>
-                          <button type="button" className="secondary-button" onClick={() => { applyAttempt(null); setResult(null); }}>
-                            {labels.start}
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            disabled={busy !== null || state === "offline" || !lesson}
+                            onClick={() => void startPractice()}
+                          >
+                            {busy === "start" ? labels.starting : labels.start}
                           </button>
                         </div>
                       )}
