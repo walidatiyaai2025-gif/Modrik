@@ -30,6 +30,16 @@ ORDER BY outcome, code;
 
 Do not manually update acknowledgement outcomes, answer revisions, request hashes, operation digests, or outbox rows. Recovery is replay/forward repair, not data surgery.
 
+## Admin / Content Team publication operations
+
+Issue #19 extends the already-integrated preparation/staging boundary into explicit review, canonical draft import and official publication. The detailed operator procedure, stale-settings handling and safe retry rules are in `docs/ops/admin-content-workflow.md`.
+
+Only `admin` and `content_team` roles may operate official publication. Every returned ZIP remains bound to its originating preparation request/settings hash/schema version; review/import/publication never creates an academic track or invents board/syllabus/version values. The target track must already exist in the Backend-owned catalogue. UGC/arbitrary identifiers have no official-promotion path.
+
+The controlled lifecycle is staged → validated → reviewed → imported → published, with superseded for stale non-published work. If preparation settings changed, the operator-visible stale failure is `PREPARATION_REGENERATION_REQUIRED`; do not bypass it by editing state rows. Regenerate the request and use the replacement prompt/bundle and matching returned ZIP.
+
+Canonical import and official publication are separate transactional/idempotent operations. Exact replay returns the existing durable publication operation instead of duplicating rows/events. Failures roll back the domain transaction, then store sanitized checkpoint/error evidence for safe retry. Do not repair publication by editing canonical curriculum, publication items, audits or outbox rows manually.
+
 ## cPanel worker/scheduler pattern
 
 Configure cron with the host's exact PHP 8.4 binary and absolute application path:
@@ -65,7 +75,7 @@ The Coming Soon release is separate: publish its directory contents directly and
 
 ## Incident triage
 
-Capture time window, request/correlation IDs, release SHA, affected operation, HTTP/error code, queue/job ID, and sanitized logs. Do not copy tokens, emails, raw student answers, or production database rows into issues. Disable optional integrations or ads/community with their kill switches when they are implicated; do not destroy production data.
+Capture time window, request/correlation IDs, release SHA, affected operation, HTTP/error code, queue/job ID, and sanitized logs. Do not copy tokens, emails, raw student answers, returned curriculum payloads or production database rows into issues. Disable optional integrations or ads/community with their kill switches when they are implicated; do not destroy production data.
 
 ## Current public-shell observation — 2026-08-20
 
