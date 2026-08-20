@@ -18,6 +18,49 @@ enum ModrikLocale {
 
 typedef LocalizedText = Map<ModrikLocale, String>;
 
+Object? freezeJsonValue(Object? value) {
+  if (value == null || value is String || value is bool || value is num) {
+    return value;
+  }
+  if (value is List) {
+    return List<Object?>.unmodifiable(value.map(freezeJsonValue));
+  }
+  if (value is Map) {
+    final frozen = <String, Object?>{};
+    for (final entry in value.entries) {
+      final key = entry.key;
+      if (key is! String) {
+        throw ArgumentError.value(value, 'value', 'JSON object keys must be strings.');
+      }
+      frozen[key] = freezeJsonValue(entry.value);
+    }
+    return Map<String, Object?>.unmodifiable(frozen);
+  }
+  throw ArgumentError.value(value, 'value', 'Answer values must be JSON-compatible.');
+}
+
+bool jsonValueEquals(Object? left, Object? right) {
+  if (identical(left, right)) return true;
+  if (left is List && right is List) {
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index++) {
+      if (!jsonValueEquals(left[index], right[index])) return false;
+    }
+    return true;
+  }
+  if (left is Map && right is Map) {
+    if (left.length != right.length) return false;
+    for (final entry in left.entries) {
+      if (!right.containsKey(entry.key) ||
+          !jsonValueEquals(entry.value, right[entry.key])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return left == right;
+}
+
 LocalizedText localizedTextFromJson(Object? value) {
   final source = value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
   return UnmodifiableMapView({
@@ -196,11 +239,15 @@ class ResponseContract {
 }
 
 class CurrentAnswer {
-  const CurrentAnswer({required this.revision, required this.value, required this.answeredAt});
+  CurrentAnswer({
+    required this.revision,
+    required Object? value,
+    required this.answeredAt,
+  }) : value = freezeJsonValue(value);
 
   factory CurrentAnswer.fromJson(Map<String, dynamic> json) => CurrentAnswer(
         revision: (json['revision'] as num).toInt(),
-        value: json['value'] as String,
+        value: json['value'],
         answeredAt: json['answered_at'] as String,
       );
 
@@ -211,7 +258,7 @@ class CurrentAnswer {
       };
 
   final int revision;
-  final String value;
+  final Object? value;
   final String answeredAt;
 }
 
@@ -350,5 +397,4 @@ class ProgressSnapshot {
   final String curriculumNodeId;
   final double mastery;
   final int sourceVersion;
-  final String calculatedAt;
 }
