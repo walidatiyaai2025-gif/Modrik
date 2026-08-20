@@ -4,10 +4,9 @@ import test from "node:test";
 
 const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
 
-function ruleBody(selector: string) {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = css.match(new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\n\\}`, "m"));
-  assert.ok(match, `Expected CSS rule for ${selector}`);
+function ruleBody(selector: RegExp) {
+  const match = css.match(new RegExp(`${selector.source}\\s*\\{([\\s\\S]*?)\\n\\}`, "m"));
+  assert.ok(match, `Expected CSS rule matching ${selector}`);
   return match[1];
 }
 
@@ -24,7 +23,7 @@ test("native select and textarea inherit canonical multilingual typography and f
 });
 
 test("native select and textarea use tokenized large-text-safe control geometry", () => {
-  const controls = ruleBody("select,\\ntextarea");
+  const controls = ruleBody(/select,\s*textarea/);
 
   assert.match(controls, /box-sizing: border-box;/);
   assert.match(controls, /width: 100%;/);
@@ -38,13 +37,13 @@ test("native select and textarea use tokenized large-text-safe control geometry"
   assert.match(controls, /border: 2px solid color-mix\(in srgb, var\(--modrik-blue\) 20%, transparent\);/);
   assert.match(controls, /border-radius: var\(--modrik-radius-sm\);/);
 
-  const textarea = ruleBody("textarea");
+  const textarea = ruleBody(/textarea/);
   assert.match(textarea, /min-height: 7\.5rem;/);
   assert.match(textarea, /resize: vertical;/);
 });
 
 test("disabled native controls remain legible and visibly unavailable", () => {
-  const disabled = ruleBody("select:disabled,\\ntextarea:disabled");
+  const disabled = ruleBody(/select:disabled,\s*textarea:disabled/);
 
   assert.match(disabled, /color: var\(--modrik-slate\);/);
   assert.match(disabled, /background: var\(--modrik-background\);/);
