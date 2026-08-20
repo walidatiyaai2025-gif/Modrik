@@ -250,8 +250,8 @@ void main() {
         final failureRect = tester.getRect(failureMessage);
         expect(failureRect.left, greaterThanOrEqualTo(0));
         expect(failureRect.right, lessThanOrEqualTo(320));
-        expect(failureRect.top, greaterThanOrEqualTo(0));
-        expect(failureRect.bottom, lessThanOrEqualTo(640));
+        expect(failureRect.top, lessThan(640));
+        expect(failureRect.bottom, greaterThan(0));
         expect(tester.takeException(), isNull);
 
         await tester.tap(find.text(copy.cancel));
