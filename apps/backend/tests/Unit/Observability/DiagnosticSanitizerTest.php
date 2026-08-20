@@ -35,18 +35,19 @@ final class DiagnosticSanitizerTest extends TestCase
         self::assertStringNotContainsString($sentinel, json_encode($metadata, JSON_THROW_ON_ERROR));
     }
 
-    public function test_audited_correlation_filter_requires_canonical_validation(): void
+    public function test_correlation_filter_text_is_never_diagnostic_audit_metadata(): void
     {
         $sanitizer = new DiagnosticSanitizer;
-        $valid = 'filter-01J6MODRIK1234567890';
-        $sentinel = 'SENTINEL-password-value';
 
-        self::assertSame(
-            ['filter_correlation_id' => $valid],
-            $sanitizer->metadata(['filter_correlation_id' => $valid]),
-        );
-        self::assertSame([], $sanitizer->metadata(['filter_correlation_id' => $sentinel]));
-        self::assertSame([], $sanitizer->metadata(['filter_correlation_id' => str_repeat('x', 97)]));
+        self::assertSame([], $sanitizer->metadata([
+            'filter_correlation_id' => 'filter-01J6MODRIK1234567890',
+        ]));
+        self::assertSame([], $sanitizer->metadata([
+            'filter_correlation_id' => 'SENTINEL-password-value',
+        ]));
+        self::assertSame([], $sanitizer->metadata([
+            'filter_correlation_id' => str_repeat('x', 97),
+        ]));
     }
 
     public function test_strings_and_codes_are_deterministically_bounded(): void
