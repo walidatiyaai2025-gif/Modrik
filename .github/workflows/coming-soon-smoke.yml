@@ -4,11 +4,17 @@ on:
     paths:
       - 'deploy/coming-soon/**'
       - 'packages/design-tokens/**'
+      - 'apps/web/src/app/(public)/**'
+      - 'apps/web/src/public-site/**'
+      - 'apps/web/public/brand/**'
       - '.github/workflows/coming-soon-smoke.yml'
   pull_request:
     paths:
       - 'deploy/coming-soon/**'
       - 'packages/design-tokens/**'
+      - 'apps/web/src/app/(public)/**'
+      - 'apps/web/src/public-site/**'
+      - 'apps/web/public/brand/**'
       - '.github/workflows/coming-soon-smoke.yml'
 permissions:
   contents: read
