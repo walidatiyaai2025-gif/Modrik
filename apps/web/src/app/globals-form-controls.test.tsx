@@ -5,7 +5,7 @@ import test from "node:test";
 const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
 
 function ruleBody(selector: RegExp) {
-  const match = css.match(new RegExp(`${selector.source}\\s*\\{([\\s\\S]*?)\\n\\}`, "m"));
+  const match = css.match(new RegExp(`(?:^|\\n)${selector.source}\\s*\\{([\\s\\S]*?)\\n\\}`, "m"));
   assert.ok(match, `Expected CSS rule matching ${selector}`);
   return match[1];
 }
