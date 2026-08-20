@@ -62,6 +62,16 @@ return [
         'no_audit' => 'No workflow audit entries are available for this import.',
         'actor' => 'Actor',
     ],
+    'confirmations' => [
+        'regeneration_title' => 'Confirm preparation regeneration',
+        'regeneration_description' => 'Review the current request before replacing it with a new preparation request.',
+        'regeneration_consequence_title' => 'This supersedes active non-published work.',
+        'regeneration_consequence_body' => 'Confirming creates a replacement request and supersedes any staged, validated, reviewed, or imported non-published work tied to the current request. Published content is not rolled back.',
+        'publication_title' => 'Confirm official publication',
+        'publication_description' => 'Review the imported draft context before making official curriculum content available.',
+        'publication_consequence_title' => 'This is the final official-content action.',
+        'publication_consequence_body' => 'Confirming invokes the existing authoritative publication transaction for this imported draft. Cancel leaves the imported draft unchanged.',
+    ],
     'actions' => [
         'continue' => 'Continue',
         'back' => 'Back',
@@ -84,6 +94,9 @@ return [
         'import_reviewed' => 'Import reviewed draft',
         'publish_official' => 'Publish official content',
         'retry' => 'Retry failed operation',
+        'cancel' => 'Cancel',
+        'confirm_regeneration' => 'Regenerate and supersede work',
+        'confirm_publication' => 'Confirm official publication',
     ],
     'fields' => [
         'track_reference' => 'Track reference',
@@ -155,6 +168,8 @@ return [
         'operation_replayed' => 'The idempotent operation was already complete.',
         'import_missing' => 'Preparation import not found.',
         'retry_not_available' => 'Retry is not available in this lifecycle state.',
+        'confirmation_stale' => 'This confirmation is no longer current. Review the latest workflow state and try again.',
+        'publication_confirmation_unavailable' => 'Official publication confirmation is available only for an imported draft.',
         'working' => 'Working…',
     ],
     'validation' => [
