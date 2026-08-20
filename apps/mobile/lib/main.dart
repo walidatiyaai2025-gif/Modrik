@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:modrik_design_tokens/modrik_design_tokens.dart';
@@ -14,6 +15,8 @@ import 'src/mobile_learning_controller.dart';
 import 'src/models.dart';
 import 'src/offline_boundary.dart';
 import 'src/provider_auth_launcher.dart';
+import 'src/runtime_diagnostics.dart';
+import 'src/runtime_inspector.dart';
 import 'src/secure_session_store.dart';
 
 void main() {
@@ -26,6 +29,7 @@ class ModrikApp extends StatefulWidget {
     super.key,
     this.controller,
     this.authController,
+    this.diagnostics,
     this.autoInitialize = true,
   });
 
@@ -33,6 +37,7 @@ class ModrikApp extends StatefulWidget {
   /// harness. Production startup creates and owns both controllers instead.
   final MobileLearningController? controller;
   final MobileAuthController? authController;
+  final RuntimeDiagnostics? diagnostics;
   final bool autoInitialize;
 
   @override
@@ -42,14 +47,21 @@ class ModrikApp extends StatefulWidget {
 class _ModrikAppState extends State<ModrikApp> {
   late MobileLearningController _controller;
   MobileAuthController? _authController;
+  RuntimeDiagnostics? _diagnostics;
   late bool _ownsController;
   late bool _ownsAuthController;
+  bool _ownsDiagnostics = false;
   MobileBootstrapConfig? _config;
   MutableBearerToken? _tokenProvider;
+  FlutterExceptionHandler? _previousFlutterErrorHandler;
+  FlutterExceptionHandler? _installedFlutterErrorHandler;
+  bool Function(Object, StackTrace)? _previousPlatformErrorHandler;
+  bool Function(Object, StackTrace)? _installedPlatformErrorHandler;
 
   @override
   void initState() {
     super.initState();
+    _configureDiagnostics();
     _configureRuntime();
 
     if (!widget.autoInitialize) return;
@@ -59,6 +71,51 @@ class _ModrikAppState extends State<ModrikApp> {
     } else {
       unawaited(_controller.initialize());
     }
+  }
+
+  void _configureDiagnostics() {
+    final supplied = widget.diagnostics;
+    if (supplied != null) {
+      _diagnostics = supplied;
+      _ownsDiagnostics = false;
+    } else {
+      final config = RuntimeDiagnosticsConfig.fromEnvironment();
+      if (config.enabled) {
+        _diagnostics = RuntimeDiagnostics(config: config);
+        _ownsDiagnostics = true;
+      }
+    }
+
+    final diagnostics = _diagnostics;
+    if (diagnostics == null || !diagnostics.enabled) return;
+    unawaited(diagnostics.initialize());
+    _installGlobalErrorCapture(diagnostics);
+  }
+
+  void _installGlobalErrorCapture(RuntimeDiagnostics diagnostics) {
+    _previousFlutterErrorHandler = FlutterError.onError;
+    final flutterHandler = (FlutterErrorDetails details) {
+      diagnostics.recordUnexpected(
+        details.exception,
+        details.stack ?? StackTrace.current,
+        operation: 'flutter.framework',
+      );
+      _previousFlutterErrorHandler?.call(details);
+    };
+    _installedFlutterErrorHandler = flutterHandler;
+    FlutterError.onError = flutterHandler;
+
+    _previousPlatformErrorHandler = PlatformDispatcher.instance.onError;
+    final platformHandler = (Object error, StackTrace stack) {
+      diagnostics.recordUnexpected(
+        error,
+        stack,
+        operation: 'flutter.platform',
+      );
+      return _previousPlatformErrorHandler?.call(error, stack) ?? false;
+    };
+    _installedPlatformErrorHandler = platformHandler;
+    PlatformDispatcher.instance.onError = platformHandler;
   }
 
   void _configureRuntime() {
@@ -94,6 +151,7 @@ class _ModrikAppState extends State<ModrikApp> {
         ? HttpAuthGateway(
             baseUrl: baseUrl,
             bearerTokenProvider: tokenProvider.call,
+            diagnostics: _diagnostics,
           )
         : const UnconfiguredAuthGateway();
     _authController = MobileAuthController(
@@ -119,10 +177,12 @@ class _ModrikAppState extends State<ModrikApp> {
       gateway = HttpLearningGateway(
         baseUrl: baseUrl,
         bearerToken: config.bearerToken,
+        diagnostics: _diagnostics,
       );
       pendingSyncClient = HttpIssue14PendingSyncClient(
         baseUrl: baseUrl,
         bearerToken: config.bearerToken,
+        diagnostics: _diagnostics,
       );
     } else {
       gateway = const UnconfiguredLearningGateway();
@@ -148,11 +208,13 @@ class _ModrikAppState extends State<ModrikApp> {
         bearerTokenProvider: tokenProvider.call,
         onAuthenticationRejected: _notifySessionRejected,
         onEmailVerificationRequired: _notifyEmailVerificationRequired,
+        diagnostics: _diagnostics,
       );
       pendingSyncClient = HttpIssue14PendingSyncClient(
         baseUrl: baseUrl,
         bearerTokenProvider: tokenProvider.call,
         onAuthenticationRejected: _notifySessionRejected,
+        diagnostics: _diagnostics,
       );
     } else {
       gateway = const UnconfiguredLearningGateway();
@@ -210,11 +272,23 @@ class _ModrikAppState extends State<ModrikApp> {
 
   @override
   void dispose() {
+    if (identical(FlutterError.onError, _installedFlutterErrorHandler)) {
+      FlutterError.onError = _previousFlutterErrorHandler;
+    }
+    if (identical(
+      PlatformDispatcher.instance.onError,
+      _installedPlatformErrorHandler,
+    )) {
+      PlatformDispatcher.instance.onError = _previousPlatformErrorHandler;
+    }
     if (_ownsController) {
       _controller.dispose();
     }
     if (_ownsAuthController) {
       _authController?.dispose();
+    }
+    if (_ownsDiagnostics) {
+      _diagnostics?.dispose();
     }
     super.dispose();
   }
@@ -231,6 +305,17 @@ class _ModrikAppState extends State<ModrikApp> {
           title: 'MODRIK | مُدرك',
           debugShowCheckedModeBanner: false,
           theme: _themeFor(locale),
+          builder: (context, child) {
+            final diagnostics = _diagnostics;
+            if (diagnostics == null || !diagnostics.enabled) {
+              return child ?? const SizedBox.shrink();
+            }
+            return RuntimeInspectorHost(
+              diagnostics: diagnostics,
+              snapshot: _runtimeInspectorSnapshot(auth),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
           home: auth == null
               ? AcademicContextResetBoundary(
                   controller: _controller,
@@ -242,6 +327,31 @@ class _ModrikAppState extends State<ModrikApp> {
                 ),
         );
       },
+    );
+  }
+
+  RuntimeInspectorSnapshot _runtimeInspectorSnapshot(MobileAuthController? auth) {
+    final isOffline = _controller.status == MobileViewStatus.offline ||
+        (auth?.isOfflineAuthenticated ?? false);
+    final connectivity = isOffline
+        ? DiagnosticConnectivity.offline
+        : _controller.status == MobileViewStatus.loading
+            ? DiagnosticConnectivity.unknown
+            : DiagnosticConnectivity.online;
+    final flow = auth != null && !auth.isAuthenticated
+        ? 'auth.${auth.state.name}'
+        : 'learning.${_controller.section.name}';
+    final cacheCount = (_controller.hasLesson ? 1 : 0) +
+        (_controller.hasAttempt ? 1 : 0);
+    return RuntimeInspectorSnapshot(
+      locale: (auth?.locale ?? _controller.locale).code,
+      direction: (auth?.locale ?? _controller.locale) == ModrikLocale.ar
+          ? TextDirection.rtl
+          : TextDirection.ltr,
+      connectivity: connectivity,
+      currentFlow: flow,
+      pendingSyncCount: _controller.pendingOperationCount,
+      cacheItemCount: cacheCount,
     );
   }
 }
