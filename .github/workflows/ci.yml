@@ -148,3 +148,34 @@ jobs:
       - uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: moderate
+
+  required-matrix:
+    name: contracts, backend, backend-mariadb, web, mobile, secret-scan
+    if: ${{ always() }}
+    needs:
+      - contracts
+      - backend
+      - backend-mariadb
+      - web
+      - mobile
+      - secret-scan
+      - dependency-review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the complete governed CI matrix
+        env:
+          CONTRACTS_RESULT: ${{ needs.contracts.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          BACKEND_MARIADB_RESULT: ${{ needs.backend-mariadb.result }}
+          WEB_RESULT: ${{ needs.web.result }}
+          MOBILE_RESULT: ${{ needs.mobile.result }}
+          SECRET_SCAN_RESULT: ${{ needs.secret-scan.result }}
+          DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+        run: |
+          test "$CONTRACTS_RESULT" = "success"
+          test "$BACKEND_RESULT" = "success"
+          test "$BACKEND_MARIADB_RESULT" = "success"
+          test "$WEB_RESULT" = "success"
+          test "$MOBILE_RESULT" = "success"
+          test "$SECRET_SCAN_RESULT" = "success"
+          test "$DEPENDENCY_REVIEW_RESULT" = "success" || test "$DEPENDENCY_REVIEW_RESULT" = "skipped"
