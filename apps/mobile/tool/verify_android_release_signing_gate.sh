@@ -35,19 +35,10 @@ gradle_app() {
   gradle --project-dir "$android_dir" "$@" --no-daemon
 }
 
-# Release signing inputs must not be required for ordinary debug development.
-(
-  unset MODRIK_ANDROID_SIGNING_STORE_FILE
-  unset MODRIK_ANDROID_SIGNING_STORE_PASSWORD
-  unset MODRIK_ANDROID_SIGNING_KEY_ALIAS
-  unset MODRIK_ANDROID_SIGNING_KEY_PASSWORD
-  gradle_app :app:assembleDebug >/dev/null
-)
-
-# Build an ephemeral standard Android debug identity, then copy it to another path.
-# The copied path proves the release gate checks certificate/key identity rather than path equality.
-android_debug_store="$tmp_dir/android-debug-source.jks"
-copied_debug_store="$tmp_dir/copied-debug-release.jks"
+# Create the actual temporary Android debug identity used by the Gradle debug signing config.
+export ANDROID_USER_HOME="$tmp_dir/android-user-home"
+mkdir -p "$ANDROID_USER_HOME"
+android_debug_store="$ANDROID_USER_HOME/debug.keystore"
 keytool -genkeypair \
   -keystore "$android_debug_store" \
   -storepass android \
@@ -59,6 +50,18 @@ keytool -genkeypair \
   -dname 'CN=Android Debug,O=Android,C=US' \
   -storetype JKS \
   -noprompt >/dev/null 2>&1
+
+# Release signing inputs must not be required for ordinary debug development.
+(
+  unset MODRIK_ANDROID_SIGNING_STORE_FILE
+  unset MODRIK_ANDROID_SIGNING_STORE_PASSWORD
+  unset MODRIK_ANDROID_SIGNING_KEY_ALIAS
+  unset MODRIK_ANDROID_SIGNING_KEY_PASSWORD
+  gradle_app :app:assembleDebug >/dev/null
+)
+
+# Copy the exact debug key/certificate to another path. A path-only check would miss this.
+copied_debug_store="$tmp_dir/copied-debug-release.jks"
 cp "$android_debug_store" "$copied_debug_store"
 
 set +e
