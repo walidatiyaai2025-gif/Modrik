@@ -1,17 +1,21 @@
 <?php
 
 use App\Exceptions\ApiProblemException;
+use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\AuthenticateModrikSession;
 use App\Http\Middleware\AuthenticateProductionSession;
+use App\Http\Middleware\CaptureRuntimeDiagnostics;
 use App\Http\Middleware\FixtureBearerAuthentication;
 use App\Http\Middleware\RequireContentRole;
 use App\Http\Middleware\RequireRecentAuthentication;
 use App\Http\Middleware\RequireVerifiedEmailForPasswordAccount;
 use App\Support\ApiResponse;
+use App\Support\CorrelationId;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -22,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: '',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(AssignCorrelationId::class);
+        $middleware->append(CaptureRuntimeDiagnostics::class);
         $middleware->alias([
             'auth.fixture' => FixtureBearerAuthentication::class,
             'auth.modrik' => AuthenticateModrikSession::class,
@@ -38,4 +44,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('v1/*') || $request->expectsJson(),
         );
+        $exceptions->respond(function (Response $response): Response {
+            $request = request();
+            if ($request instanceof Request) {
+                $response->headers->set(CorrelationId::HEADER, CorrelationId::assign($request));
+            }
+
+            return $response;
+        });
     })->create();
