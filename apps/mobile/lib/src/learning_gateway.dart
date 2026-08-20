@@ -33,7 +33,8 @@ class MobileBootstrapConfig {
           : null,
       fixtureMode: fixtureMode,
       initialLessonId: lessonId.isEmpty ? null : lessonId,
-      academicTrackId: trackId.isEmpty ? null : trackId,
+      academicTrackId:
+          fixtureMode && trackId.isNotEmpty ? trackId : null,
     );
   }
 
