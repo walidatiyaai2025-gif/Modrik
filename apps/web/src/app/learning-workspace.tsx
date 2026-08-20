@@ -12,6 +12,7 @@ import {
   type Progress,
   type Session,
 } from "@/lib/learning-api";
+import AcademicTrackSelector from "./academic-track-selector";
 import { directionForLocale, localize, studentCopy } from "./student-copy";
 
 const fixtureLessonId = "01J00000000000000000000003";
@@ -176,6 +177,16 @@ export default function LearningWorkspace() {
       window.removeEventListener("online", online);
     };
   }, [load]);
+
+  async function handleAcademicTransition() {
+    window.localStorage.removeItem(activeAttemptStorageKey);
+    applyAttempt(null);
+    setResult(null);
+    setLesson(null);
+    setProgress([]);
+    setView("home");
+    await load();
+  }
 
   async function startPractice() {
     if (!lesson || !navigator.onLine) {
@@ -445,23 +456,16 @@ export default function LearningWorkspace() {
                               <dt>{labels.yearLevel}</dt>
                               <dd>{context.year_level}</dd>
                             </div>
-                            <div>
-                              <dt>{labels.track}</dt>
-                              <dd>{labels.trackConfigured}</dd>
-                            </div>
                           </dl>
                         ) : (
                           <p>{labels.onboarding}</p>
                         )}
-                        <p className="muted-copy">{labels.contextLocked}</p>
-                        <details className="reset-consequence">
-                          <summary>{labels.resetReview}</summary>
-                          <div>
-                            <h3>{labels.resetTitle}</h3>
-                            <p>{labels.resetBody}</p>
-                            <p className="contract-note">{labels.resetGap}</p>
-                          </div>
-                        </details>
+                        <AcademicTrackSelector
+                          context={context}
+                          locale={locale}
+                          offline={state === "offline"}
+                          onTransitioned={handleAcademicTransition}
+                        />
                       </section>
 
                       <section className="next-actions" aria-label={labels.navigation}>

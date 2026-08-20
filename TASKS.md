@@ -38,7 +38,32 @@ Shared rule remains: each issue owns its declared domain/contracts; clients cons
 - [x] A separate verification of the exact post-Admin main Git tree passed all seven jobs in run `32402246012`. Zero-file head `a5c1470dae1c177fef854028e2b1da7bbb4da458` used the exact main tree `6f39f0578059b5c2bfa1fc919863ac8cacf64ba7`; verification PR #28 was closed without merge.
 - [x] Cross-domain suites remain green for Auth sessions/revocation/provider fail-closed, Academic activation/reset/archive, Assessment seed/order/grading/resume, Sync ACK/replay/conflicts, Web authoritative attempt consumption, Mobile JSON-array answers and immutable Sync operations, Content Preparation/Admin publication, Outbox, Ads fail-closed and paid-AI-off core. `deploy/coming-soon/` was not touched by Admin integration.
 
-Final issue-state closure and the consolidated evidence report are tracked in Issue #26 rather than as a repository code task. Issue #21 must remain open. Wave 2 has not started.
+Final Wave 1 issue-state closure and consolidated evidence remain tracked in Issue #26.
+
+## COMPLETE — Parallel Wave 2 core implementation
+
+- [x] P0-ACADEMIC-CONTRACT-002 / Issue #21 — Backend-owned authorized academic-track catalogue integrated through PR #35 at merge commit `021db64ca59a6fff23896efc5eab2231d1367c58`; stable IDs and display-safe localization are Backend authority and real board/syllabus/version values remain owner-controlled.
+- [x] P0-WEB-AUTH-UX / Issue #30 — Student Web production Auth/account/session UX integrated through PR #36 at `7d6d2f10b5d82528939254f42792a08d228f8202` without redefining Auth #15 authority.
+- [x] P0-MOBILE-AUTH-UX / Issue #31 — Flutter production Auth/account/session UX integrated through PR #39 at `d37497cb5bc8546cf703c8b2f7991d64903d0201`, preserving Auth/Assessment/Sync boundaries.
+- [x] P0-PUBLIC-SURFACES / Issue #32 — Public Landing/Help/guides/legal-trust engineering surfaces integrated through PR #37 at `fa9c4b38c8d33f3b4fc38c6b202dd38db9b8382e`; `deploy/coming-soon/**` remains preserved and legal/owner facts remain placeholders/blockers.
+- [x] P0-CLIENT-ACADEMIC-002 / Issue #33 — Web/Mobile academic-track catalogue consumption integrated through PR #44 at `fc2c528d9b43c3d6e03e8ce869f4d1f67228b17f` after current-main reconciliation and full governed CI; clients consume the exact #21 contract and do not own academic policy/identifiers.
+
+Wave 2 implementation dependencies are integrated. Issue #34 remains open until final-main CI and captain-owned shared-state reconciliation/closure evidence are complete.
+
+## ACTIVE — P0 release-gap closure
+
+- [x] P0-ACADEMIC-ROLLBACK-001 / Issue #52 / PR #60 — repair Academic migration rollback ordering exposed by the MariaDB round-trip verifier; integrated at `132215c024c8e07f6c0ce8ca8755314e7846a679`.
+- [x] P0-ADMIN-DESTRUCTIVE-CONFIRM-001 / Issue #65 / PR #74 — explicit Admin regeneration/publication confirm/cancel boundary; deterministic Blade parse defect repaired before merge, full governed CI green, integrated at `83ed1486d24d55872cf90c7f7110e82bc8e19232`.
+- [ ] P0-DB-READINESS-001 / Issue #48 / PR #51 — MariaDB 10.11 migration round-trip verifier. Implementation is complete on an older base; reconcile to latest `main`, rerun full governed CI, then captain merge.
+- [ ] P0-OPS-RECOVERY-002 / Issue #53 / PR #57 — exhausted outbox redrive/recovery drill. Implementation is complete on an older base; reconcile to latest `main`, complete independent QA, rerun full governed CI, then captain merge.
+- [ ] P0-WEB-BRAND-POLISH-001 / Issue #55 / PR #59 — canonical Auth logo/token presentation. Reconcile to latest `main`, rerun full governed CI, then captain merge.
+- [ ] P0-PUBLIC-UX-POLISH-001 / Issue #56 / PR #63 — learner-first Landing hierarchy. Reconcile to latest `main`, rerun full governed CI + Coming Soon Smoke, then captain merge.
+- [ ] P0-MOBILE-SIGNING-GATE-001 / Issue #64 / PR #72 — fail-closed Android release signing. BLOCKING review finding: current path-only debug-keystore comparison must be strengthened to prove actual selected release signing identity/certificate is not the debug identity, including alternate-path/copied-debug negative coverage; then reconcile and rerun full CI.
+- [ ] P0-WEB-HEADERS-001 / Issue #66 / PR #73 — repository-enforced browser security headers. Reconcile to latest `main`, complete independent preflight, rerun full governed CI, then captain merge.
+- [ ] P0-WEB-FORM-CONTROL-VISUAL-001 / Issue #69 — canonical global Web `select`/`textarea` visual language. Slot 9 overflow implementation; must remain isolated from active selector/Auth/Public ownership.
+- [ ] P0-QA-SECURITY-PREFLIGHT-007 / Issue #75 — read-only independent pre-integration QA for PR #72/#73 after latest-head reconciliation; support task, no code or merge authority.
+
+Rolling assignments are authoritative in Issue #43; Integration Captain #34 alone merges and closes the Wave/release-gap sequence.
 
 ## Public shell
 
@@ -52,7 +77,6 @@ Final issue-state closure and the consolidated evidence report are tracked in Is
 
 ## BLOCKED only where applicable
 
-- [ ] P0-ACADEMIC-CONTRACT-002 / Issue #21 — expose a Backend-owned, authorized, localized/display-safe academic-track catalogue for Student Web/Mobile onboarding/reset selection. The client must not invent real board/syllabus/version values or eligibility rules. Admin publication consumes an existing track and does not close this issue.
 - [ ] CONTENT-REAL-001 Real curriculum import/publication — BLOCKED on exact board/syllabus/version, real subject identifiers, and content-rights evidence.
 - [ ] RELEASE-LEGAL-001 Final legal publication — BLOCKED on legal entity/controller/contact and approved wording.
 - [ ] AUTH-PROD-001 Production Google/Apple identity — BLOCKED on provider accounts, IDs, secrets, callback configuration, and store identifiers/signing. The P0 Auth architecture and fail-closed provider adapter are complete without inventing these values.
