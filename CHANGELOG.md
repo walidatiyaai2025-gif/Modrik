@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-WEB-AUTH-002 production Student Web account/session UX
+
+- Implemented Issue #30 as a Student Web-only consumer of merged Auth Issue #15 / PR #24. No Backend Auth lifecycle, provider verification, collision/linking policy, migration, Assessment, Sync, Academic, Content, Brand, or public Coming Soon authority was redefined.
+- Added registration/login, email verification plus resend, enumeration-resistant password recovery/reset, production session bootstrap/revoked-expired handling, logout, revoke-other/all sessions, recent-auth confirmation, password change, and exact `DELETE` account-deletion confirmation UX.
+- Added a same-origin Next BFF that captures the existing Backend opaque bearer into an HttpOnly, SameSite=Lax, Secure-in-production cookie and strips `access_token`/`token_type` before browser JSON is returned. Unsafe Auth and learning mutations enforce same-origin Origin/Fetch-Site checks; production learning requests prefer this session while synthetic fixture fallback remains restricted to `MODRIK_FIXTURE_MODE=true`.
+- Added Google/Apple login/link entry points that create only the existing Backend provider state/nonce intent. Until owner-approved production provider client IDs/callback/signing configuration exists, Web renders an explicit provider-pending/unconfigured state and invents no provider ID, secret, callback, account-linking decision or collision behavior.
+- Added complete AR/EN/FR account copy, Arabic RTL / EN-FR LTR, native keyboard-operable forms/controls, screen-reader live/error states, responsive large-text/high-contrast foundations, and explicit Loading/Empty/Error/Offline/Retry/Permission/provider-pending states. Recovery copy remains conditional and does not disclose account existence beyond the Backend contract.
+- Added automated evidence for bearer non-exposure, HttpOnly cookie handling, CSRF/same-origin rejection, Backend 401 revoked/expired-session mapping, verification request shape, provider-intent-only behavior, provider pending announcement, locale direction/completeness and accessible bootstrap landmarks. Added `docs/qa/student-web-auth-matrix.md` and updated the Student Web README/environment boundary.
+- Implementation checkpoint `e11f08e9e05a610c385396d71b92dd6a40bee1a8` passed all seven Bootstrap CI jobs in run `32405967283`, including Web npm audit/ESLint/TypeScript/Node tests/Next production build, MariaDB 10.11.18 full Backend regression, contracts/OpenAPI/tokens, Backend Composer/audit/Pint/Larastan/SQLite PHPUnit, Flutter, Gitleaks and dependency review. Focused PR #36 remains the merge vehicle and its final reconciliation head must also remain 7/7 green before merge.
+
 ## 2026-08-20 — Parallel Wave 1 final integration verification
 
 - Completed the bounded Wave 1 merge sequence Web → Sync → Assessment → Auth → Mobile → Admin/Content without starting Wave 2. Final implementation merge is Admin PR #27 at `d8efb610be48f6cfb75b11942b6c4bfdf35878c7`.
@@ -38,7 +48,7 @@
 - Added Google/Apple provider intent and linking architecture keyed by stable `provider + subject`, with hashed one-time state/nonce, explicit login-vs-link purpose, collision denial instead of email-only auto-linking, subject ownership conflict handling, Apple private-relay-safe metadata, last-recovery-identity protection, and a fail-closed provider-verifier adapter. Production provider IDs, secrets, callback URLs and signing material remain external owner inputs and were not invented.
 - Kept BOOT-008 fixture authentication isolated and disabled outside fixture mode. Production Auth endpoints use a separate `auth.production` boundary and never accept the synthetic fixture bearer as a production session.
 - Added Auth-owned migrations, OpenAPI paths/schemas, RFC 9457 stable codes, contract assertions, ADR/data/ERD/security/QA traceability, and abuse/integration coverage for verification, recovery, session revocation, deletion, provider login/link/collision/relay behavior and cross-account denial on SQLite and MariaDB 10.11.
-- Final Auth head `34e450eed3761e7225034779ac27e420ae6cf94a` passed Bootstrap CI run `32394949281` across all seven required jobs before PR #24 merged on `main` at `4dafe1b7eda839cd250ebfd89df5db7b5aa48a8f`; tested-head-to-merge comparison reported zero changed files.
+- Final Auth head `34e450eed3761e7225034779ac27e420ae6cf94a` passed Bootstrap CI run `32394949281` across all seven required jobs before PR #24 merged on `main` at `4dafe1b7eda839cd250ebfd89df5db7b5aa48a8f`; tested-head-to-merge comparison reported zero file differences.
 
 ## 2026-08-20 — P0-ASSESS-001 authoritative immutable assessment attempts
 

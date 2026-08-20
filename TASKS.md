@@ -38,7 +38,11 @@ Shared rule remains: each issue owns its declared domain/contracts; clients cons
 - [x] A separate verification of the exact post-Admin main Git tree passed all seven jobs in run `32402246012`. Zero-file head `a5c1470dae1c177fef854028e2b1da7bbb4da458` used the exact main tree `6f39f0578059b5c2bfa1fc919863ac8cacf64ba7`; verification PR #28 was closed without merge.
 - [x] Cross-domain suites remain green for Auth sessions/revocation/provider fail-closed, Academic activation/reset/archive, Assessment seed/order/grading/resume, Sync ACK/replay/conflicts, Web authoritative attempt consumption, Mobile JSON-array answers and immutable Sync operations, Content Preparation/Admin publication, Outbox, Ads fail-closed and paid-AI-off core. `deploy/coming-soon/` was not touched by Admin integration.
 
-Final issue-state closure and the consolidated evidence report are tracked in Issue #26 rather than as a repository code task. Issue #21 must remain open. Wave 2 has not started.
+Final issue-state closure and the consolidated evidence report are tracked in Issue #26 rather than as a repository code task. Issue #21 must remain open.
+
+## COMPLETE — Post-Wave-1 Student Web Auth UX
+
+- [x] P0-WEB-AUTH-002 / Issue #30 / REQ-P0-001/007/012 / AC-P0-013/014 — focused PR #36 consumes merged Auth #15 without redefining Backend Auth/provider/collision/security policy. Student Web now covers registration/login, verification/resend, enumeration-resistant recovery/reset, opaque-session bootstrap/expiry/logout/revoke others/all, recent-auth/password/deletion UX, Google/Apple login/link entry points with provider pending/error states, complete AR/EN/FR + RTL/LTR, keyboard/screen-reader/large-text foundations, and Loading/Empty/Error/Offline/Retry/Permission states. The Next BFF stores the existing opaque bearer only in HttpOnly/SameSite/Secure-in-production cookie state, strips bearer material from browser JSON, and enforces same-origin mutation checks. No production provider IDs/secrets/callbacks were invented. Implementation checkpoint `e11f08e9e05a610c385396d71b92dd6a40bee1a8` passed all seven jobs in Bootstrap CI run `32405967283`; final PR-head reconciliation must retain the same seven-job green matrix before merge.
 
 ## Public shell
 
@@ -55,5 +59,5 @@ Final issue-state closure and the consolidated evidence report are tracked in Is
 - [ ] P0-ACADEMIC-CONTRACT-002 / Issue #21 — expose a Backend-owned, authorized, localized/display-safe academic-track catalogue for Student Web/Mobile onboarding/reset selection. The client must not invent real board/syllabus/version values or eligibility rules. Admin publication consumes an existing track and does not close this issue.
 - [ ] CONTENT-REAL-001 Real curriculum import/publication — BLOCKED on exact board/syllabus/version, real subject identifiers, and content-rights evidence.
 - [ ] RELEASE-LEGAL-001 Final legal publication — BLOCKED on legal entity/controller/contact and approved wording.
-- [ ] AUTH-PROD-001 Production Google/Apple identity — BLOCKED on provider accounts, IDs, secrets, callback configuration, and store identifiers/signing. The P0 Auth architecture and fail-closed provider adapter are complete without inventing these values.
+- [ ] AUTH-PROD-001 Production Google/Apple identity — BLOCKED on provider accounts, IDs, secrets, callback configuration, and store identifiers/signing. The P0 Auth architecture, fail-closed provider adapter and Student Web provider-pending UX are complete without inventing these values.
 - [ ] OPS-DR-001 Production backup/retention/DR sign-off — BLOCKED on owner-approved RPO, RTO, backup retention, and data-retention decisions.
