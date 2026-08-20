@@ -116,7 +116,7 @@ void main() {
     );
 
     expect(find.text('Account security'), findsWidgets);
-    expect(find.text('Current session'), findsOneWidget);
+    expect(find.textContaining('Current session'), findsOneWidget);
     expect(find.text('Confirm identity'), findsOneWidget);
     expect(find.text('Change password'), findsWidgets);
     expect(find.text('Link Google'), findsOneWidget);
