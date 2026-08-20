@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:modrik_mobile/src/academic_track_catalogue.dart';
 import 'package:modrik_mobile/src/learning_gateway.dart';
 import 'package:modrik_mobile/src/mobile_learning_controller.dart';
 import 'package:modrik_mobile/src/models.dart';
