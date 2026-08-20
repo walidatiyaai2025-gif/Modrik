@@ -101,7 +101,9 @@ export const authApi = {
   login: (email: string, password: string) =>
     requestData<AuthResult>("login", json("POST", { email, password })),
   verifyEmail: (token: string) => requestData<void>("email/verify", json("POST", { token })),
-  resendVerification: () => requestData<{ status: "accepted" }>("email/verification", json("POST")),
+  resendVerification: async () => {
+    await requestData<{ status: "accepted" }>("email/verification", json("POST"));
+  },
   requestRecovery: (email: string) =>
     requestData<{ status: "accepted" }>("password/recovery", json("POST", { email })),
   resetPassword: (token: string, password: string) =>
