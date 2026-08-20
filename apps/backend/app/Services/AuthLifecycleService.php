@@ -215,7 +215,7 @@ final class AuthLifecycleService
         });
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return array<int, array<string, mixed>> */
     public function sessions(User $user, string $currentSessionId): array
     {
         $rows = DB::table('auth_sessions')
