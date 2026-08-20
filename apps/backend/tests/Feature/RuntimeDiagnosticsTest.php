@@ -9,8 +9,10 @@ use App\Support\CorrelationId;
 use App\Support\DiagnosticSanitizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
+use RuntimeException;
 use Tests\TestCase;
 
 class RuntimeDiagnosticsTest extends TestCase
@@ -79,6 +81,30 @@ class RuntimeDiagnosticsTest extends TestCase
         $this->assertSame(['event_name' => 'safe.event'], $metadata);
     }
 
+    public function test_learning_auth_failure_keeps_rfc9457_code_and_correlation_without_body_capture(): void
+    {
+        $correlationId = '4f1c9b6e-7a8d-4f33-9a12-0123456789ab';
+
+        $this->withHeader(CorrelationId::HEADER, $correlationId)
+            ->getJson('/v1/session')
+            ->assertUnauthorized()
+            ->assertHeader(CorrelationId::HEADER, $correlationId)
+            ->assertJsonPath('request_id', $correlationId)
+            ->assertJsonPath('code', 'AUTHENTICATION_REQUIRED');
+
+        $row = DB::table('runtime_diagnostic_events')
+            ->where('correlation_id', $correlationId)
+            ->where('category', 'http_request')
+            ->first();
+
+        $this->assertNotNull($row);
+        $this->assertSame('backend', $row->surface);
+        $this->assertSame('session.show', $row->route_name);
+        $this->assertSame('AUTHENTICATION_REQUIRED', $row->stable_code);
+        $this->assertSame(401, $row->status_code);
+        $this->assertStringNotContainsString('A valid authenticated session is required', (string) $row->metadata);
+    }
+
     public function test_diagnostic_storage_failure_never_breaks_the_business_request(): void
     {
         Schema::drop('runtime_diagnostic_events');
@@ -89,6 +115,24 @@ class RuntimeDiagnosticsTest extends TestCase
         $correlationId = $response->headers->get(CorrelationId::HEADER);
         $this->assertIsString($correlationId);
         $this->assertTrue(CorrelationId::isValid($correlationId));
+    }
+
+    public function test_logging_sink_failure_is_contained_and_does_not_break_the_business_request(): void
+    {
+        Log::shouldReceive('log')
+            ->once()
+            ->andThrow(new RuntimeException('diagnostic-sink-sentinel'));
+
+        $response = $this->getJson('/health');
+
+        $response->assertOk();
+        $correlationId = $response->headers->get(CorrelationId::HEADER);
+        $this->assertIsString($correlationId);
+        $this->assertDatabaseHas('runtime_diagnostic_events', [
+            'correlation_id' => $correlationId,
+            'category' => 'http_request',
+            'status_code' => 200,
+        ]);
     }
 
     public function test_inspector_is_admin_only_even_though_content_team_can_use_the_admin_panel(): void
@@ -105,6 +149,37 @@ class RuntimeDiagnosticsTest extends TestCase
         Livewire::test(RuntimeInspector::class)
             ->assertSee(__('observability.title'))
             ->assertSee(__('observability.privacy_note'));
+    }
+
+    public function test_inspector_can_be_disabled_without_exposing_an_admin_route(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        config(['modrik.observability.inspector_enabled' => false]);
+
+        $this->actingAs($admin)
+            ->get('/admin/runtime-inspector')
+            ->assertForbidden();
+    }
+
+    public function test_oversized_allowlisted_metadata_is_dropped_instead_of_partially_leaking(): void
+    {
+        config(['modrik.observability.maximum_metadata_bytes' => 256]);
+        $correlationId = '6f1c9b6e-7a8d-4f33-9a12-0123456789ab';
+        $diagnostics = app(RuntimeDiagnostics::class);
+
+        $diagnostics->recordAudit('oversized_metadata', $correlationId, null, [
+            'event_name' => str_repeat('A', 256),
+            'exception_class' => str_repeat('B', 256),
+            'fingerprint' => str_repeat('C', 256),
+        ]);
+
+        $row = DB::table('runtime_diagnostic_events')
+            ->where('correlation_id', $correlationId)
+            ->where('category', 'oversized_metadata')
+            ->first();
+
+        $this->assertNotNull($row);
+        $this->assertNull($row->metadata);
     }
 
     public function test_sanitized_export_is_filterable_byte_bounded_and_audited_with_internal_actor_only(): void
