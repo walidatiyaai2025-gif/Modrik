@@ -56,4 +56,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Run the final documentation-head CI for PR #22 and mark it ready only if every required gate remains green. Integrate Mobile only after conflict/contract review; resolve Issue #21 only through the Academic/Backend owner and do not implement a client-side track catalogue.
+Integration owner review/merge of PR #22 after confirming the final head remains green and conflict-free. Resolve Issue #21 only through the Academic/Backend owner; do not implement a client-side track catalogue.
