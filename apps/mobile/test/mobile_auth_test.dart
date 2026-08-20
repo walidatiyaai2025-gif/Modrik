@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -110,7 +109,7 @@ void main() {
     final store = MemoryAuthCredentialStore();
     final token = MutableBearerToken();
     final gateway = _FakeAuthGateway(
-      currentSession: const Session(
+      sessionResult: const Session(
         userId: 'user-1',
         locale: ModrikLocale.en,
         roles: ['student'],
@@ -125,7 +124,10 @@ void main() {
       canEndSession: () async => false,
     );
 
-    await controller.login(email: 'student@example.test', password: 'password-1234');
+    await controller.login(
+      email: 'student@example.test',
+      password: 'password-1234',
+    );
     await controller.logoutCurrentSession();
 
     expect(gateway.revokeCurrentCalls, 0);
@@ -251,11 +253,11 @@ AuthSessionGrant _grant({DateTime? expiresAt}) => AuthSessionGrant(
 
 class _FakeAuthGateway implements AuthGateway {
   _FakeAuthGateway({
-    this.currentSession,
+    this.sessionResult,
     this.currentSessionFailure,
   });
 
-  final Session? currentSession;
+  final Session? sessionResult;
   final AuthFailure? currentSessionFailure;
   int currentSessionCalls = 0;
   int revokeCurrentCalls = 0;
@@ -266,7 +268,7 @@ class _FakeAuthGateway implements AuthGateway {
   Future<Session> currentSession() async {
     currentSessionCalls++;
     if (currentSessionFailure case final failure?) throw failure;
-    return currentSession ??
+    return sessionResult ??
         const Session(
           userId: 'user-1',
           locale: ModrikLocale.en,
@@ -339,8 +341,8 @@ class _FakeAuthGateway implements AuthGateway {
     return ProviderIntent(
       provider: provider,
       purpose: purpose,
-      state: 's' * 32,
-      nonce: 'n' * 32,
+      state: 'ssssssssssssssssssssssssssssssss',
+      nonce: 'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn',
       expiresAt: DateTime.utc(2026, 8, 20, 12),
     );
   }
