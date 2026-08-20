@@ -353,19 +353,41 @@ class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 3,
-            child: SelectableText(value),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scaledBodySize = MediaQuery.textScalerOf(context).scale(14);
+          final compact = constraints.maxWidth < 360 || scaledBodySize >= 21;
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(value),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  label,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 3,
+                child: SelectableText(value),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -386,26 +408,44 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        _InspectorAction(
-          icon: Icons.copy_outlined,
-          label: copy.t('copy'),
-          onPressed: onCopy,
-        ),
-        _InspectorAction(
-          icon: Icons.file_download_outlined,
-          label: copy.t('export'),
-          onPressed: onExport,
-        ),
-        _InspectorAction(
-          icon: Icons.delete_outline,
-          label: copy.t('clear'),
-          onPressed: onClear,
-        ),
-      ],
+    final actions = [
+      _InspectorAction(
+        icon: Icons.copy_outlined,
+        label: copy.t('copy'),
+        onPressed: onCopy,
+      ),
+      _InspectorAction(
+        icon: Icons.file_download_outlined,
+        label: copy.t('export'),
+        onPressed: onExport,
+      ),
+      _InspectorAction(
+        icon: Icons.delete_outline,
+        label: copy.t('clear'),
+        onPressed: onClear,
+      ),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaledBodySize = MediaQuery.textScalerOf(context).scale(14);
+        final compact = constraints.maxWidth < 360 || scaledBodySize >= 21;
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < actions.length; index++) ...[
+                actions[index],
+                if (index != actions.length - 1) const SizedBox(height: 8),
+              ],
+            ],
+          );
+        }
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: actions,
+        );
+      },
     );
   }
 }
@@ -425,10 +465,27 @@ class _InspectorAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 48),
-      child: OutlinedButton.icon(
+      child: OutlinedButton(
         onPressed: onPressed,
-        icon: Icon(icon),
-        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                softWrap: true,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
