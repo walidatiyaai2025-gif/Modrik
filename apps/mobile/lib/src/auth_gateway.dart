@@ -72,19 +72,18 @@ class HttpAuthGateway implements AuthGateway {
   HttpAuthGateway({
     required this.baseUrl,
     String? bearerToken,
-    String? Function()? bearerTokenProvider,
+    this.bearerTokenProvider,
     HttpClient? client,
   })  : _staticBearerToken = bearerToken,
-        _bearerTokenProvider = bearerTokenProvider,
         _client = client ?? HttpClient();
 
   final Uri baseUrl;
   final String? _staticBearerToken;
-  final String? Function()? _bearerTokenProvider;
+  final String? Function()? bearerTokenProvider;
   final HttpClient _client;
 
   String? get _bearerToken =>
-      _bearerTokenProvider?.call() ?? _staticBearerToken;
+      bearerTokenProvider?.call() ?? _staticBearerToken;
 
   @override
   Future<AuthSessionGrant> register({
