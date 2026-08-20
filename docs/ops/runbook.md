@@ -60,7 +60,13 @@ php artisan modrik:outbox-dispatch --limit=100
 php artisan queue:failed
 ```
 
-An exhausted event requires an engineering review and a forward repair/redrive procedure; do not edit `published_at` or delete the event to clear an alert.
+An exhausted unsent event requires engineering review and forward repair before an explicit redrive. Use the controlled procedure in `docs/ops/outbox-recovery.md`; do not edit `published_at`, delete/recreate the event, or alter its payload to clear an alert. The operator command is deliberately unscheduled and handles exactly one event/action:
+
+```text
+php artisan modrik:outbox-redrive <EVENT_ULID> --request-id=<RECOVERY_REQUEST_ULID> --confirm=REDRIVE-EXHAUSTED
+```
+
+Reuse the same recovery request ID when retrying an uncertain command invocation. A failed recovery remains exhausted and has no automatic follow-up; another deliberate attempt requires another engineering review and a new request ID. Never loop this command with newly generated request IDs.
 
 ## Deploy and rollback
 
