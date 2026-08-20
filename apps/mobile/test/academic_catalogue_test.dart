@@ -216,7 +216,8 @@ void main() {
   testWidgets(
     'active context exposes empty offline and error catalogue states',
     (tester) async {
-      final emptyController = _activeController(_CatalogueGateway(tracks: const []));
+      final emptyController =
+          _activeController(_CatalogueGateway(tracks: const []));
       await tester.pumpWidget(
         KeyedSubtree(
           key: const ValueKey('empty-boundary'),
@@ -225,7 +226,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Learning workspace'), findsOneWidget);
-      expect(find.text('No academic tracks are currently authorized.'), findsOneWidget);
+      expect(
+        find.text('No academic tracks are currently authorized.'),
+        findsOneWidget,
+      );
       expect(find.text('Retry'), findsOneWidget);
 
       final offlineController = _activeController(_CatalogueGateway())
@@ -465,9 +469,8 @@ class _CatalogueGateway extends _AcademicMutationGateway
     List<AcademicTrack>? tracks,
     this.catalogueFailure,
     this.catalogueFailuresBeforeSuccess = 0,
-    int resetFailuresBeforeSuccess = 0,
-  })  : _tracks = tracks ?? _catalogue(),
-        super(resetFailuresBeforeSuccess: resetFailuresBeforeSuccess);
+    super.resetFailuresBeforeSuccess,
+  }) : _tracks = tracks ?? _catalogue();
 
   final List<AcademicTrack> _tracks;
   final LearningFailure? catalogueFailure;
