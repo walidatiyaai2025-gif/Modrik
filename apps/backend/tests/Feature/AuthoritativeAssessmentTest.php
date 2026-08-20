@@ -164,18 +164,18 @@ class AuthoritativeAssessmentTest extends TestCase
             ->assertOk();
 
         DB::table('questions')->where('id', $questionId)->update([
-            'prompt' => $this->json(['en' => 'MUTATED', 'ar' => 'MUTATED', 'fr' => 'MUTATED']),
-            'options' => $this->json([
+            'prompt' => $this->encodeJson(['en' => 'MUTATED', 'ar' => 'MUTATED', 'fr' => 'MUTATED']),
+            'options' => $this->encodeJson([
                 ['id' => 'A', 'label' => ['en' => 'Wrong now', 'ar' => 'Wrong now', 'fr' => 'Wrong now']],
                 ['id' => 'B', 'label' => ['en' => 'Correct now', 'ar' => 'Correct now', 'fr' => 'Correct now']],
             ]),
-            'answer_contract' => $this->json(['correct_option_id' => 'B']),
+            'answer_contract' => $this->encodeJson(['correct_option_id' => 'B']),
             'maximum_score' => 99,
             'status' => 'retired',
         ]);
         DB::table('quizzes')->where('id', $quizId)->update([
             'blueprint_version' => 99,
-            'blueprint' => $this->json(['question_order' => 'fixed']),
+            'blueprint' => $this->encodeJson(['question_order' => 'fixed']),
         ]);
 
         $resume = $this->withToken(self::TOKEN)->getJson('/v1/attempts/'.$attemptId)->assertOk();
@@ -261,12 +261,12 @@ class AuthoritativeAssessmentTest extends TestCase
             'curriculum_node_id' => LearningSliceSeeder::TOPIC_NODE_ID,
             'content_version' => 1,
             'type' => 'single_choice',
-            'prompt' => $this->json(['en' => 'Synthetic assessment question', 'ar' => 'سؤال تقييم اصطناعي', 'fr' => 'Question synthétique']),
-            'options' => $this->json($options ?? $this->standardOptions()),
-            'answer_contract' => $this->json(['correct_option_id' => $correctOptionId]),
-            'explanation' => $this->json(['en' => 'Synthetic explanation', 'ar' => 'شرح اصطناعي', 'fr' => 'Explication synthétique']),
+            'prompt' => $this->encodeJson(['en' => 'Synthetic assessment question', 'ar' => 'سؤال تقييم اصطناعي', 'fr' => 'Question synthétique']),
+            'options' => $this->encodeJson($options ?? $this->standardOptions()),
+            'answer_contract' => $this->encodeJson(['correct_option_id' => $correctOptionId]),
+            'explanation' => $this->encodeJson(['en' => 'Synthetic explanation', 'ar' => 'شرح اصطناعي', 'fr' => 'Explication synthétique']),
             'maximum_score' => $maximumScore,
-            'assessment_metadata' => $metadata === [] ? null : $this->json($metadata),
+            'assessment_metadata' => $metadata === [] ? null : $this->encodeJson($metadata),
             'option_shuffle_safe' => $optionShuffleSafe,
             'status' => 'published',
             'created_at' => $now,
@@ -287,8 +287,8 @@ class AuthoritativeAssessmentTest extends TestCase
             'curriculum_node_id' => LearningSliceSeeder::TOPIC_NODE_ID,
             'kind' => 'practice',
             'blueprint_version' => $blueprintVersion,
-            'blueprint' => $blueprint === null ? null : $this->json($blueprint),
-            'title' => $this->json(['en' => 'Synthetic assessment', 'ar' => 'تقييم اصطناعي', 'fr' => 'Évaluation synthétique']),
+            'blueprint' => $blueprint === null ? null : $this->encodeJson($blueprint),
+            'title' => $this->encodeJson(['en' => 'Synthetic assessment', 'ar' => 'تقييم اصطناعي', 'fr' => 'Évaluation synthétique']),
             'status' => 'published',
             'created_at' => $now,
             'updated_at' => $now,
@@ -347,7 +347,7 @@ class AuthoritativeAssessmentTest extends TestCase
     }
 
     /** @throws JsonException */
-    private function json(mixed $value): string
+    private function encodeJson(mixed $value): string
     {
         return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
