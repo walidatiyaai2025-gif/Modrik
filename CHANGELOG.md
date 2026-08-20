@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-08-20 — Parallel Wave 1 final integration verification
+
+- Completed the bounded Wave 1 merge sequence Web → Sync → Assessment → Auth → Mobile → Admin/Content without starting Wave 2. Final implementation merge is Admin PR #27 at `d8efb610be48f6cfb75b11942b6c4bfdf35878c7`.
+- Clean final Admin head `58053d1fe31d80bf658b466d388616e5ca1fbe61` passed the full seven-job Bootstrap CI matrix in run `32401629269` before merge; compare to the merge commit reported zero changed files.
+- Performed a separate complete post-Admin verification on the exact final-main Git tree. Because the connected GitHub surface cannot enumerate push-triggered runs, zero-file verification head `a5c1470dae1c177fef854028e2b1da7bbb4da458` was created with the same tree SHA `6f39f0578059b5c2bfa1fc919863ac8cacf64ba7` as `main`; PR #28 contained zero changed files, run `32402246012` passed all seven jobs, and the verification PR was closed without merge.
+- Final cross-domain regression coverage remains green for production Auth session/revocation/provider fail-closed behavior; Academic Context activation/reset/archive; server-owned Assessment seed/selection/order/grading snapshots and same-attempt resume; Sync durable ACK/replay/conflict/idempotency; Student Web authoritative attempt consumption; Mobile Auth bearer compatibility, JSON array answers and immutable Sync operations; Content Preparation and controlled Admin publication including `PREPARATION_REGENERATION_REQUIRED`, authorization, no UGC promotion, exact replay and rollback/retry; Outbox delivery behavior; fail-closed Ads safety; and the paid-AI-off learning core.
+- `deploy/coming-soon/` was not changed by Admin integration. Issue #21 remains open for the Backend-owned authorized academic-track catalogue. Exact real board/syllabus/version, real curriculum/rights inputs, production identity credentials, legal facts, deployment inputs and RPO/RTO/retention remain explicit external blockers rather than fabricated completion.
+
 ## 2026-08-20 — P0-ADMIN-001 controlled content review and publication
 
 - Reconciled Admin/Content PR #27 onto Mobile-integrated `main` `64775bafdd4a854755aec0daa9b35648b5f5209d` without replacing Auth, Assessment, Sync, Web, Mobile, Academic Context, Ads safety, Outbox, paid-AI-off, Brand or `deploy/coming-soon/` authority.
@@ -9,7 +17,7 @@
 - Added atomic publication rollback and safe retry visibility: failed import/publication transactions roll back domain state, then persist sanitized checkpoint/error code/SHA-256 fingerprint evidence for operator recovery. Retry reuses the durable operation after the underlying condition is repaired.
 - Official publication is restricted to `admin` / `content_team`; arbitrary/UGC IDs have no promotion path. Canonical import requires an existing Backend-owned academic track with matching scope; Admin does not synthesize real board, syllabus, syllabus version, curriculum rights, legal facts or production credentials.
 - Added migration-backed `content_publications`, `content_publication_items`, `content_workflow_audits` plus preparation request/import supersession, validated snapshot/dry-run/review/publication/retry fields. Updated operations runbook, Admin publication QA matrix, general P0 test matrix, data dictionary, ERD and threat model. Content Pack v1 and unrelated OpenAPI/domain contracts remain unchanged.
-- Expanded SQLite/MariaDB tests for authorization, ZIP origin binding, stale-settings precedence, UGC denial, existing academic-track requirement, immutable conflicts, exact replay, rollback/retry and deterministic supersession. Code/test checkpoint `ca83cf9a06ae71de527498ca852a83be1a1e0e89` passed all seven jobs in Bootstrap CI run `32399779101`; temporary documentation-helper head `e1caa4db667bc22bf6191880fb1ff0f253ec4937` also passed 7/7 in run `32400158886`. Those are prior evidence only: the clean final documentation head must receive a fresh seven-job run after helper removal before PR #27 is Ready/merged.
+- Expanded SQLite/MariaDB tests for authorization, ZIP origin binding, stale-settings precedence, UGC denial, existing academic-track requirement, immutable conflicts, exact replay, rollback/retry and deterministic supersession. Final clean head `58053d1fe31d80bf658b466d388616e5ca1fbe61` passed all seven jobs in Bootstrap CI run `32401629269`; PR #27 then merged at `d8efb610be48f6cfb75b11942b6c4bfdf35878c7` with zero tree differences from the tested head. Earlier runs `32399779101` and `32400158886` remain prior evidence only.
 
 ## 2026-08-20 — P0-MOBILE-001 Android/iOS learning client reconciliation
 
@@ -119,7 +127,7 @@
 ## 2026-08-20 — BOOT-007 clean-checkout and CI proof
 
 - Proved exact commit `5fefa39897c45ce0816d3420f8b75fee535f41eb` from a fresh isolated clone installed only from committed Composer/npm/pub lockfiles; the checkout remained Git-clean after all gates.
-- Fixed two cold-start assumptions discovered by the proof: Web layout typing no longer depends on generated Next.js globals, and PHPUnit has an explicit deterministic test-only Laravel application key.
+- Fixed two cold-start assumptions discovered by the proof: Web layout typing no longer depends on generated Next.js globals, and PHPUnit has an explicit deterministic test-only application key.
 - Opened draft PR #2 and passed GitHub Actions Bootstrap CI run `32365791153`: contracts, Backend, MariaDB 10.11.18 migrations, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review. Coming Soon Smoke run `32365791509` also passed.
 - Enabled GitHub Dependency Graph/Dependabot alerts after the dependency-review action correctly reported the repository feature was disabled; rerunning the unchanged dependency gate passed without weakening policy.
 - Migrations/contracts: no domain migrations or contract changes in BOOT-007; BOOT-008 domain implementation is now unblocked.
