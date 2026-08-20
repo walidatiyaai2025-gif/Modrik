@@ -52,11 +52,11 @@ class MobileLearningController extends ChangeNotifier {
   int pendingOperationCount = 0;
   String? messageCode;
 
-  final Map<String, String> _answers = {};
-  final Map<String, String> _savedAnswers = {};
+  final Map<String, Object?> _answers = {};
+  final Map<String, Object?> _savedAnswers = {};
   final Map<String, int> _revisions = {};
 
-  UnmodifiableMapView<String, String> get answers =>
+  UnmodifiableMapView<String, Object?> get answers =>
       UnmodifiableMapView(_answers);
   bool get isOffline => status == MobileViewStatus.offline;
   bool get requiresOnboarding =>
@@ -64,7 +64,7 @@ class MobileLearningController extends ChangeNotifier {
   bool get hasLesson => lesson != null;
   bool get hasAttempt => attempt != null;
   bool get hasUnsavedAnswers => _answers.entries.any(
-        (entry) => _savedAnswers[entry.key] != entry.value,
+        (entry) => !jsonValueEquals(_savedAnswers[entry.key], entry.value),
       );
 
   Future<void> initialize() async {
@@ -296,17 +296,18 @@ class MobileLearningController extends ChangeNotifier {
     });
   }
 
-  void setAnswer(String attemptQuestionId, String value) {
-    _answers[attemptQuestionId] = value;
+  void setAnswer(String attemptQuestionId, Object? value) {
+    final frozen = freezeJsonValue(value);
+    _answers[attemptQuestionId] = frozen;
     if (isOffline && attempt != null) {
-      unawaited(_queuePendingAnswer(attemptQuestionId, value));
+      unawaited(_queuePendingAnswer(attemptQuestionId, frozen));
     }
     notifyListeners();
   }
 
   Future<void> _queuePendingAnswer(
     String attemptQuestionId,
-    String value,
+    Object? value,
   ) async {
     final currentAttempt = attempt;
     if (currentAttempt == null) return;
@@ -342,8 +343,8 @@ class MobileLearningController extends ChangeNotifier {
     if (currentAttempt == null) return;
     for (final question in currentAttempt.questions) {
       final questionId = question.attemptQuestionId;
-      final value = _answers[questionId] ?? '';
-      if (_savedAnswers[questionId] != value) {
+      final value = _answers[questionId];
+      if (!jsonValueEquals(_savedAnswers[questionId], value)) {
         await _queuePendingAnswer(questionId, value);
       }
     }
@@ -353,8 +354,7 @@ class MobileLearningController extends ChangeNotifier {
     final currentAttempt = attempt;
     if (currentAttempt == null) return;
     if (currentAttempt.questions.any(
-      (question) =>
-          (_answers[question.attemptQuestionId] ?? '').trim().isEmpty,
+      (question) => _isEmptyAnswer(_answers[question.attemptQuestionId]),
     )) {
       messageCode = 'answer_every_question';
       notifyListeners();
@@ -522,7 +522,7 @@ class MobileLearningController extends ChangeNotifier {
   Future<void> _refreshAttemptPreservingDrafts() async {
     final currentAttempt = attempt;
     if (currentAttempt == null || isOffline) return;
-    final desiredDrafts = Map<String, String>.from(_answers);
+    final desiredDrafts = Map<String, Object?>.from(_answers);
     final resumed = await gateway.resumeAttempt(currentAttempt.id);
     _acceptAttemptSnapshot(resumed);
     final validIds = resumed.questions
@@ -549,7 +549,10 @@ class MobileLearningController extends ChangeNotifier {
       ..addEntries(snapshot.questions.map(
         (question) => MapEntry(
           question.attemptQuestionId,
-          question.currentAnswer?.value ?? '',
+          question.currentAnswer?.value ??
+              (question.responseContract.kind == 'multiple_choice'
+                  ? const <Object?>[]
+                  : ''),
         ),
       ));
     _savedAnswers
@@ -563,6 +566,14 @@ class MobileLearningController extends ChangeNotifier {
           question.currentAnswer?.revision ?? 0,
         ),
       ));
+  }
+
+  bool _isEmptyAnswer(Object? value) {
+    if (value == null) return true;
+    if (value is String) return value.trim().isEmpty;
+    if (value is List) return value.isEmpty;
+    if (value is Map) return value.isEmpty;
+    return false;
   }
 
   Future<void> _refreshPendingCount() async {
