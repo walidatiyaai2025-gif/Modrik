@@ -1,8 +1,12 @@
 <?php
 
 use App\Exceptions\ApiProblemException;
+use App\Http\Middleware\AuthenticateModrikSession;
+use App\Http\Middleware\AuthenticateProductionSession;
 use App\Http\Middleware\FixtureBearerAuthentication;
 use App\Http\Middleware\RequireContentRole;
+use App\Http\Middleware\RequireRecentAuthentication;
+use App\Http\Middleware\RequireVerifiedEmailForPasswordAccount;
 use App\Support\ApiResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'auth.fixture' => FixtureBearerAuthentication::class,
+            'auth.modrik' => AuthenticateModrikSession::class,
+            'auth.production' => AuthenticateProductionSession::class,
+            'auth.recent' => RequireRecentAuthentication::class,
+            'auth.verified-password' => RequireVerifiedEmailForPasswordAccount::class,
             'auth.content' => RequireContentRole::class,
         ]);
     })
