@@ -1,9 +1,5 @@
-import LearningWorkspace from "./learning-workspace";
+import AuthWorkspace from "./auth-workspace";
 
 export default function Home() {
-  return (
-    <main className="min-h-screen bg-background text-ink">
-      <LearningWorkspace />
-    </main>
-  );
+  return <AuthWorkspace />;
 }
