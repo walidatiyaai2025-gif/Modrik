@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-WEB-001 desktop-first multilingual Student Web
+
+- Expanded the BOOT-008 fixture slice into a professional desktop/laptop-first Student Web with a persistent application navigation shell, dashboard/home, academic-context consequence UX, dedicated study reader, practice workbench, progress workspace, and responsive laptop/tablet transitions instead of a stretched mobile layout.
+- Added complete AR/EN/FR interface copy, Arabic RTL and EN/FR LTR direction, content-aware `dir=auto` handling for mixed-language lesson/question/option/input content, skip navigation, semantic landmarks/headings/fieldsets, visible focus, live status/error regions, reduced-motion behavior and large-text-friendly fluid layouts.
+- Practice remains Backend-authoritative. The client starts attempts with only `quiz_id` + idempotency metadata, persists only an in-progress attempt ID as a resume pointer, reconnects through `GET /attempts/{id}`, renders question/option arrays exactly as returned, and reloads Backend state after revision conflicts. No client seed, question selection, ordering or scoring authority was introduced.
+- Added explicit loading, empty lesson/progress, unavailable, offline/stale, retry, permission and conflict recovery states. Offline-after-load keeps stale study content visible while pausing server writes; no duplicate offline-sync contract was created because Issue #14 owns synchronization.
+- Added automated Web tests for desktop/accessibility shell semantics, AR/EN/FR key/direction/fallback integrity and the no-client-seed/order request boundary; added `docs/qa/student-web-accessibility-matrix.md` with desktop/laptop, keyboard, screen-reader, 200% zoom, RTL/LTR, reduced-motion and failure-state verification cases.
+- Documented the missing production academic-track catalogue as Issue #21 instead of inventing board/syllabus values or modifying Academic/OpenAPI ownership. No Backend migration/OpenAPI/domain file and no `deploy/coming-soon/` file changed.
+- Bootstrap CI run `32379247891` passed all seven jobs at implementation checkpoint `d66554b21df0520c219b2c27bbef493ca0afa6de`, including contracts/OpenAPI/tokens, Backend, MariaDB 10.11, Web npm audit/ESLint/TypeScript/Node tests/Next production build, Flutter Mobile, Gitleaks and dependency review.
+
 ## 2026-08-20 — P0-AI-001 paid-AI-off learning core boundary
 
 - Added Issue #12 for REQ-P0-013 / AC-P0-015 and made the paid-AI-off architecture boundary executable instead of relying on documentation alone.
@@ -42,7 +52,7 @@
 - Added a portable follow-up migration binding attempts and progress to the originating academic context, archive markers, a context-scoped progress uniqueness rule, safe backfill, and an immutable transition audit with archived-row counts.
 - Reset now serializes on the Backend-owned user, archives the old context/attempts/progress without deletion, marks in-progress attempts abandoned, activates the new context, and emits redacted transactional `academic.context_activated` / `academic.context_reset` events.
 - Updated OpenAPI, event catalog, ERD, data dictionary, contract validation, and the Next same-origin client/proxy for the new lifecycle endpoints and context identifiers.
-- Added integration coverage for onboarding, reset-required enforcement, exact idempotent replay, changed-payload conflicts, historical preservation, active-context isolation, and outbox redaction. Local Backend gates pass 8 tests/165 assertions; contracts (9 events), OpenAPI, Web build, and a SQLite migration forward/rollback/forward round trip pass.
+- Added integration coverage for onboarding, reset-required enforcement, exact idempotent replay, changed-payload conflict, historical preservation, active-context isolation, and outbox redaction. Local Backend gates pass 8 tests/165 assertions; contracts (9 events), OpenAPI, Web build, and a SQLite migration forward/rollback/forward round trip pass.
 - MariaDB CI first exposed error 1553 because the prior progress unique index also backed its user foreign key. The portable repair creates the replacement user-leading index before dropping the old one and restores the reverse order on rollback; Bootstrap CI run `32370143748` then passed all seven jobs, including MariaDB 10.11.
 - Known boundary: only synthetic tracks are exercised; exact real board/syllabus/version remains owner-blocked. Production account authentication remains REQ-P0-001.
 
