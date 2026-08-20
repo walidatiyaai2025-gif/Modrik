@@ -9,6 +9,7 @@ use App\Support\Observability\DatabaseDiagnosticSink;
 use App\Support\Observability\DiagnosticSanitizer;
 use App\Support\Observability\DiagnosticSink;
 use App\Support\Observability\RuntimeInspectorService;
+use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -95,24 +96,74 @@ final class RuntimeObservabilityTest extends TestCase
         self::assertMatchesRegularExpression('/\A[a-f0-9]{64}\z/', (string) $metadata['exception_fingerprint']);
     }
 
-    public function test_throwing_diagnostic_sink_does_not_change_business_result(): void
+    public function test_learning_correlation_is_echoed_and_queryable_through_runtime_inspector(): void
     {
-        $this->app->instance(DiagnosticSink::class, new class implements DiagnosticSink
-        {
+        (new LearningSliceSeeder)->run();
+        $token = 'modrik-observability-fixture-token';
+        config([
+            'modrik.fixture.enabled' => true,
+            'modrik.fixture.bearer_token' => $token,
+            'modrik.fixture.user_id' => LearningSliceSeeder::USER_ID,
+        ]);
+        $correlationId = 'learning-01J6MODRIK123456789';
+
+        $this->withToken($token)
+            ->withHeader(CorrelationId::HEADER, $correlationId)
+            ->getJson('/v1/lessons/lesson-fixture')
+            ->assertOk()
+            ->assertHeader(CorrelationId::HEADER, $correlationId)
+            ->assertJsonPath('data.id', 'lesson-fixture');
+
+        $events = app(RuntimeInspectorService::class)->events([
+            'correlation_id' => $correlationId,
+            'hours' => 24,
+        ]);
+
+        self::assertNotEmpty($events);
+        self::assertSame($correlationId, $events[0]['correlation_id']);
+        self::assertSame('lessons.show', $events[0]['route']);
+    }
+
+    public function test_throwing_diagnostic_sink_preserves_real_auth_learning_and_admin_results(): void
+    {
+        $this->app->instance(DiagnosticSink::class, new class implements DiagnosticSink {
             public function write(array $event): void
             {
                 throw new RuntimeException('diagnostic sink unavailable');
             }
         });
 
-        Route::get('/__test/observability/fail-open', fn () => response()->json([
-            'result' => 'business-result-preserved',
-        ], 207))->name('observability.fail-open');
+        config(['modrik.fixture.enabled' => false]);
+        $authCorrelation = 'auth-failopen-01J6MODRIK123456';
+        $this->withHeader(CorrelationId::HEADER, $authCorrelation)
+            ->getJson('/v1/session')
+            ->assertUnauthorized()
+            ->assertHeader(CorrelationId::HEADER, $authCorrelation)
+            ->assertJsonPath('code', 'AUTHENTICATION_REQUIRED')
+            ->assertJsonPath('request_id', $authCorrelation);
 
-        $response = $this->getJson('/__test/observability/fail-open');
+        (new LearningSliceSeeder)->run();
+        $token = 'modrik-observability-fixture-token';
+        config([
+            'modrik.fixture.enabled' => true,
+            'modrik.fixture.bearer_token' => $token,
+            'modrik.fixture.user_id' => LearningSliceSeeder::USER_ID,
+        ]);
+        $learningCorrelation = 'learning-failopen-01J6MODRIK123';
+        $this->withToken($token)
+            ->withHeader(CorrelationId::HEADER, $learningCorrelation)
+            ->getJson('/v1/lessons/lesson-fixture')
+            ->assertOk()
+            ->assertHeader(CorrelationId::HEADER, $learningCorrelation)
+            ->assertJsonPath('data.id', 'lesson-fixture');
 
-        $response->assertStatus(207)->assertJson(['result' => 'business-result-preserved']);
-        self::assertTrue(CorrelationId::isValid((string) $response->headers->get(CorrelationId::HEADER)));
+        $admin = User::factory()->create(['role' => 'admin']);
+        $adminCorrelation = 'admin-failopen-01J6MODRIK12345';
+        $this->actingAs($admin)
+            ->withHeader(CorrelationId::HEADER, $adminCorrelation)
+            ->get('/admin/content-review')
+            ->assertOk()
+            ->assertHeader(CorrelationId::HEADER, $adminCorrelation);
     }
 
     public function test_database_sink_is_bounded_and_keeps_newest_events(): void
@@ -166,21 +217,34 @@ final class RuntimeObservabilityTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin);
-        $sentinel = 'SENTINEL-password-value';
-        $page = app(RuntimeInspector::class);
-        $page->correlationId = $sentinel;
+        $sentinels = [
+            'Bearer SENTINEL-BACKEND-SECRET',
+            'learner.sentinel@example.test',
+            'SENTINEL-password-value',
+        ];
 
-        $page->downloadDiagnosticBundle();
+        foreach ($sentinels as $sentinel) {
+            $page = app(RuntimeInspector::class);
+            $page->correlationId = $sentinel;
+            $page->downloadDiagnosticBundle();
+        }
 
-        $audit = DB::table('runtime_diagnostic_events')
+        $audits = DB::table('runtime_diagnostic_events')
             ->where('data_class', 'audit')
             ->where('stable_code', 'DIAGNOSTIC_EXPORT')
-            ->latest('occurred_at')
-            ->first();
-        self::assertNotNull($audit);
-        $metadata = json_decode((string) $audit->metadata, true, flags: JSON_THROW_ON_ERROR);
-        self::assertArrayNotHasKey('filter_correlation_id', $metadata);
-        self::assertStringNotContainsString($sentinel, json_encode((array) $audit, JSON_THROW_ON_ERROR));
+            ->get();
+        self::assertCount(count($sentinels), $audits);
+
+        foreach ($audits as $audit) {
+            $metadata = json_decode((string) $audit->metadata, true, flags: JSON_THROW_ON_ERROR);
+            self::assertArrayNotHasKey('filter_correlation_id', $metadata);
+            self::assertSame(['event_count'], array_keys($metadata));
+        }
+
+        $serialized = json_encode($audits->map(static fn (object $row): array => (array) $row)->all(), JSON_THROW_ON_ERROR);
+        foreach ($sentinels as $sentinel) {
+            self::assertStringNotContainsString($sentinel, $serialized);
+        }
     }
 
     public function test_runtime_inspector_is_admin_only_and_feature_gated(): void
