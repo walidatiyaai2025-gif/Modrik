@@ -1,6 +1,6 @@
 # P0 test matrix
 
-Automated gates run from `.github/workflows/ci.yml`; manual release checks supplement rather than replace them. Issue #19 publication-specific assertions are expanded in `docs/qa/admin-content-publication-matrix.md`.
+Automated gates run from `.github/workflows/ci.yml`; manual release checks supplement rather than replace them. Issue #19 publication-specific assertions are expanded in `docs/qa/admin-content-publication-matrix.md`; Issue #32 public-release checks are expanded in `docs/qa/public-release-matrix.md`.
 
 | Area | Required automated evidence | Required manual/release evidence |
 | --- | --- | --- |
@@ -19,6 +19,7 @@ Automated gates run from `.github/workflows/ci.yml`; manual release checks suppl
 | Advertising safety | Unauthenticated denial; unknown placement; immutable no-ad zones; missing/disabled/future/stale/invalid config; disabled placement; cross-user/missing/invalid/stale/non-adult age assurance; eligible adult happy path; minimal audit/outbox payload. | Owner/legal/safety approval and provider/SDK privacy review before any production policy row, ad SDK, or network activation. |
 | Outbox/cron worker | Validated 1–500 batch bound; oldest-first batches; published-state recheck; no completed redelivery; same-ID at-least-once retry; exponential defer; attempt cap/exhausted failure exit; sanitized fingerprint; reversible migration; scheduled overlap lock. | cPanel cron path/PHP binary, alert capture, and intentional failed-event redrive drill before Pilot release. |
 | Paid-AI-off core | Default-off configuration; complete session/context/lesson/attempt/answer/submit/progress flow with outbound HTTP forbidden; disabled-boundary denial; enabled-test context allowlisting; prohibited-field contract checks. | Owner-approved use case plus provider/privacy review before any provider transport or production activation. |
+| Public release/trust surfaces | Exact 16-route inventory; AR/EN/FR copy completeness and AR RTL/EN-FR LTR direction; rendered skip/header/nav/main/footer semantics; canonical/language-alternate SEO; explicit `noindex` policy for unapproved legal/support templates; stable legal-blocker inventory; unsupported scale/partnership/exam-board/outcome-claim scan; byte-for-byte canonical logo reuse; Next production build; Coming Soon Smoke triggered without editing the shell. | 1440/1024/390 responsive checks; keyboard-only traversal; screen-reader landmarks/headings; 200% zoom/large text; reduced-motion; all three legal-language reviews; approved owner/legal blocker replacement and a separate ADR-005 cutover/rollback/domain-smoke review. Static bundled pages have no runtime loading/offline/permission state; see the applicability note in `docs/qa/public-release-matrix.md`. |
 | Security | Gitleaks, dependency review, Composer/npm audit, threat-model abuse cases. | Provider configuration, key rotation, privacy/legal, minor-safety and penetration review before release. |
 | Public shell | Required files/domain/brand scan in CI. | Public HTTPS/redirect/assets/favicon/responsive/directory-listing smoke test and rollback check. |
 
