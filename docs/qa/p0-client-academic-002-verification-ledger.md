@@ -24,7 +24,7 @@ Integration owner: #34
 
 Web maps catalogue loading, empty, error, offline, retry and permission states directly from the Backend-facing client. A 401/403 is a permission state; a rejected stale/nonexistent selected track is surfaced as a Backend rejection and does not trigger client probing, fallback IDs or eligibility inference.
 
-Mobile onboarding exposes loading, empty, error, offline, retry and permission states. For an already-active learner, the learning workspace remains available while the change-track lane exposes a non-blocking loading/empty/error/offline/permission status card and retry affordance where retry is meaningful. The boundary subscribes to `MobileLearningController`, so locale changes update selected catalogue labels and reset copy reactively. Widget evidence covers EN/LTR → AR/RTL → FR/LTR without re-fetching or re-ranking the catalogue.
+Mobile onboarding exposes loading, empty, error, offline, retry and permission states. For an already-active learner, the learning workspace remains available while the change-track lane exposes a non-blocking loading/empty/error/offline/permission status card and retry affordance where retry is meaningful. The lane is reserved in normal layout flow rather than floating over the learning surface, so it cannot intercept Practice content or the Auth-owned Account action. The boundary subscribes to `MobileLearningController`, so locale changes update selected catalogue labels and reset copy reactively. Widget evidence covers EN/LTR → AR/RTL → FR/LTR without re-fetching or re-ranking the catalogue.
 
 ## Automated evidence
 
@@ -35,14 +35,16 @@ Web:
 Mobile:
 - `apps/mobile/test/academic_catalogue_transport_test.dart` locks secure bearer forwarding, the exact catalogue route, Backend order, and complete AR/EN/FR label parsing.
 - `apps/mobile/test/academic_catalogue_test.dart` covers selected opaque-ID/idempotency forwarding, reset cache invalidation, Backend-order rendering, reactive EN/AR/FR labels with RTL/LTR, active-context loading/empty/offline/permission/error states without hiding learning, permission retry recovery, explicit reset consequence confirmation, and stale/unauthorized 404 reset rejection while retaining the same logical-operation key and never inventing a fallback track.
-- Existing Mobile authority/widget/Auth tests remain regression gates for persisted Assessment order, Sync behavior, secure sessions and accessibility foundations.
+- `apps/mobile/test/mobile_auth_widget_test.dart` exercises the real authenticated host at 320 logical pixels and 200% text scale, then verifies the Auth-owned Account action and Issue #33 Change-track action remain independently visible/reachable at >=48px, do not overlap each other or `NavigationBar`, and remain valid across EN/LTR, AR/RTL and FR/LTR.
+- Existing Mobile authority/widget/Auth tests remain regression gates for persisted Assessment order, Sync behavior, secure sessions and accessibility foundations; the Practice multiple-choice interaction regression remains green with the reserved catalogue lane.
 
 ## Independent-review fix cycle
 
-The three blocking findings recorded by independent review #45 on the earlier `edab835b2e2cad3d7b62d7b8357cf4cd7c1b9fd9` head are addressed by the current branch:
-1. active-context Mobile catalogue failure/loading states are visible without replacing the learning workspace, with focused retry/state tests;
-2. reactive AR/EN/FR + RTL/LTR catalogue UI assertions are restored after making the boundary listen to the learning controller;
-3. focused Web and Mobile negative-path evidence now covers catalogue permission and Backend stale/nonexistent selected-track rejection without fallback eligibility logic.
+The blocking findings recorded after the earlier `edab835b2e2cad3d7b62d7b8357cf4cd7c1b9fd9` handoff are addressed by the current branch:
+1. #45: active-context Mobile catalogue failure/loading states are visible without replacing the learning workspace, with focused retry/state tests;
+2. #45: reactive AR/EN/FR + RTL/LTR catalogue UI assertions are restored after making the boundary listen to the learning controller;
+3. #45: focused Web and Mobile negative-path evidence now covers catalogue permission and Backend stale/nonexistent selected-track rejection without fallback eligibility logic;
+4. #47: the Change-track action moved out of the floating `bottom:92` collision region into reserved flow, with an authenticated compact-width/200%-text test proving independent Account, Change-track and bottom-navigation hit areas across AR/EN/FR.
 
 ## Final gate
 
