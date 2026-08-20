@@ -20,6 +20,34 @@ abstract interface class AuthCredentialStore {
   Future<void> clear();
 }
 
+class ExpiryAwareAuthCredentialStore implements AuthCredentialStore {
+  ExpiryAwareAuthCredentialStore(
+    this.delegate, {
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now;
+
+  final AuthCredentialStore delegate;
+  final DateTime Function() _clock;
+
+  @override
+  Future<StoredAuthCredential?> read() async {
+    final credential = await delegate.read();
+    if (credential == null) return null;
+    if (!credential.session.expiresAt.isAfter(_clock())) {
+      await delegate.clear();
+      return null;
+    }
+    return credential;
+  }
+
+  @override
+  Future<void> write(StoredAuthCredential credential) =>
+      delegate.write(credential);
+
+  @override
+  Future<void> clear() => delegate.clear();
+}
+
 class PlatformSecureAuthCredentialStore implements AuthCredentialStore {
   const PlatformSecureAuthCredentialStore();
 
