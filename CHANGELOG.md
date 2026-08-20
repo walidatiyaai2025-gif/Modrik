@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-SAFETY-001 fail-closed advertising eligibility
+
+- Added Issue #8 and ADR-007 for REQ-P0-010 / AC-P0-011..012. Laravel now owns placement-to-zone mapping and the complete eligibility precedence; client query values cannot supply or override age, zone, policy, or placement state.
+- Added MariaDB-portable append-only advertising policy/placement tables, minimal per-user age assurance without birth dates, and durable decision audits. No policy row is seeded, so the default remains ads off.
+- Added an authenticated decision endpoint that denies unknown placements, immutable `account`/`assessment`/`help`/`lesson`/`onboarding`/`progress` zones, missing/disabled/future/stale/invalid policy, disabled placements, and missing/invalid/future/stale/non-adult assurance. Only a current adult assurance with every general-placement layer enabled can return `ELIGIBLE`.
+- Added minimal redacted `safety.advertising_decision_evaluated` outbox events and response contracts that expose no age band, assurance source, contact data, tracking ID, or targeting profile. No ad SDK, network, or production activation is included.
+- Updated OpenAPI, event catalog, ERD/data dictionary, threat model, QA/release matrices, README, and contract checks. Local Composer audit, Pint/Larastan, PHPUnit (16 tests/451 assertions), contracts/OpenAPI/tokens, SQLite migration forward/rollback/forward, root/Web npm audits, Web lint/typecheck/test/build, and Flutter 3.47.1 analyze/test all pass.
+- Known boundary: any production advertising configuration, age-assurance source, provider/SDK, privacy review, and activation remain blocked on owner/legal/safety input. Absence keeps advertising off.
+
 ## 2026-08-20 — P0-CONTENT-001 deterministic content preparation staging
 
 - Added Issue #6 for REQ-P0-003/004 and AC-P0-006..008, with Content Team/Admin-only preparation endpoints and explicit student-role denial.

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AcademicContextController;
+use App\Http\Controllers\Api\AdvertisingDecisionController;
 use App\Http\Controllers\Api\AttemptController;
 use App\Http\Controllers\Api\ContentPreparationController;
 use App\Http\Controllers\Api\LearningController;
@@ -16,6 +17,7 @@ Route::prefix('/v1')->middleware('auth.fixture')->group(function (): void {
     Route::post('/academic-context/reset', [AcademicContextController::class, 'reset'])->name('academic-context.reset');
     Route::get('/lessons/{lessonId}', [LearningController::class, 'lesson'])->name('lessons.show');
     Route::get('/progress', [LearningController::class, 'progress'])->name('progress.index');
+    Route::get('/advertising/decisions/{placementCode}', [AdvertisingDecisionController::class, 'show'])->name('advertising-decisions.show');
 
     Route::post('/attempts', [AttemptController::class, 'start'])->name('attempts.store');
     Route::get('/attempts/{attemptId}', [AttemptController::class, 'show'])->name('attempts.show');

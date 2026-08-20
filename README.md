@@ -2,7 +2,7 @@
 
 MODRIK is an education platform for structured study, practice, exam preparation, and progress tracking across Student Web and Mobile, with a Laravel/Filament administration backend.
 
-Status: BOOT-001..008 and the REQ-P0-002 archival academic-context reset are integrated and green. Issue #6 implements the authorized deterministic Content Preparation request and returned-ZIP staging boundary for REQ-P0-003/004; it deliberately does not publish curriculum. `deploy/coming-soon/` remains the public-shell release artifact; Student Web does not replace it.
+Status: BOOT-001..008, the archival academic-context reset, and deterministic Content Preparation staging are integrated and green. Issue #8 implements REQ-P0-010's fail-closed advertising eligibility boundary without enabling an ad network or production policy. `deploy/coming-soon/` remains the public-shell release artifact; Student Web does not replace it.
 
 ## Read first
 
@@ -53,6 +53,8 @@ docker compose up -d database
 Run all Backend/Web/contract checks with `scripts/verify.sh` or `scripts/verify.ps1`. CI additionally proves migrations on MariaDB 10.11.18 and runs Flutter 3.47.1 analysis/tests, secret scanning, and dependency review.
 
 When fixture mode is explicitly enabled, Content Team/Admin actors can create deterministic preparation bundles at `POST /v1/admin/preparation-requests` and validate returned archives at `POST /v1/admin/preparation-imports/validate`. Accepted archives stop at durable staging; real-content rights review and publication remain separate owner-controlled work.
+
+Authenticated clients can ask the Backend for an advertising eligibility decision at `GET /v1/advertising/decisions/{placementCode}`. Missing/stale/invalid policy or age assurance, non-adults, unknown placements, the global kill switch, and immutable no-ad zones all resolve to ads off. The repository ships no advertising policy row, SDK, network integration, targeting profile, or production activation.
 
 ## Public shell
 

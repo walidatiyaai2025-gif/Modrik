@@ -29,9 +29,12 @@ erDiagram
     users ||--o{ idempotency_keys : scopes
     users ||--o{ preparation_requests : creates
     users ||--o{ preparation_imports : uploads
+    users ||--o| user_age_assurances : has_current
+    users ||--o{ advertising_decision_audits : receives
     preparation_requests ||--o{ preparation_imports : receives
     preparation_imports ||--o{ preparation_import_files : checkpoints
-    outbox_events }o--|| users : actor_optional
+    advertising_policies ||--o{ advertising_placements : enables
+    advertising_policies ||--o{ advertising_decision_audits : evaluated_under
 
     users {
       char26 id PK
@@ -209,6 +212,46 @@ erDiagram
       datetime created_at
       datetime updated_at
     }
+    advertising_policies {
+      char26 id PK
+      int version UK
+      boolean global_enabled
+      datetime effective_at
+      datetime expires_at
+      char26 created_by FK_nullable
+      varchar change_reference
+      datetime created_at
+      datetime updated_at
+    }
+    advertising_placements {
+      char26 id PK
+      char26 advertising_policy_id FK
+      varchar placement_code
+      boolean enabled
+      datetime created_at
+      datetime updated_at
+    }
+    user_age_assurances {
+      char26 id PK
+      char26 user_id FK_UK
+      varchar age_band
+      varchar assurance_source
+      datetime assured_at
+      datetime expires_at
+      datetime created_at
+      datetime updated_at
+    }
+    advertising_decision_audits {
+      char26 id PK
+      char26 user_id FK
+      char26 advertising_policy_id FK_nullable
+      varchar placement_code
+      varchar zone_code_nullable
+      boolean advertising_allowed
+      varchar reason_code
+      int policy_version_nullable
+      datetime decided_at
+    }
     outbox_events {
       char26 id PK
       char26 actor_user_id FK_nullable
@@ -229,4 +272,5 @@ erDiagram
 - JSON is used for versioned snapshots and localized value maps, not as a substitute for columns used by authorization, status filtering, joins, or ordering.
 - Published content is immutable by version. Updates create a new content version; attempts retain snapshots.
 - Preparation imports end at a validated `staged` boundary. They do not insert, update, or publish curriculum rows; real-content review/publication requires a later explicit workflow.
+- Advertising configuration absence is meaningful canonical state and resolves off. Placement-to-zone mappings and no-ad zones are code-owned; clients and mutable rows cannot redefine them.
 - Soft deletion or archival is used where history is product-significant. Retention periods remain owner input.

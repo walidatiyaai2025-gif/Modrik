@@ -166,12 +166,18 @@ assert(openapi.paths["/v1/admin/preparation-imports/validate"].post.responses["4
 assert(openapi.components.schemas.PreparationRequestResponse.properties.data.required.includes("prompt"));
 assert(openapi.components.schemas.PreparationRequestResponse.properties.data.required.includes("bundle"));
 assert.equal(openapi.components.schemas.PreparationImportResponse.properties.data.properties.status.const, "staged");
+assert.equal(openapi.paths["/v1/advertising/decisions/{placementCode}"].get.operationId, "getAdvertisingDecision");
+assert(openapi.components.schemas.AdvertisingDecisionResponse.properties.data.required.includes("advertising_allowed"));
+assert(openapi.components.schemas.AdvertisingDecisionResponse.properties.data.properties.reason_code.enum.includes("GLOBAL_KILL_SWITCH"));
+assert(openapi.components.schemas.AdvertisingDecisionResponse.properties.data.properties.reason_code.enum.includes("NO_AD_ZONE"));
+assert.equal(openapi.paths["/v1/advertising/decisions/{placementCode}"].get.responses["200"].headers["Cache-Control"].schema.const, "no-store, private");
 
 const eventCatalog = await readYaml("docs", "events", "event-catalog.yaml");
 assert.equal(eventCatalog.delivery.guarantee, "at_least_once");
 assertUnique(eventCatalog.events.map(({ type }) => type), "event types");
 assert(eventCatalog.events.some(({ type }) => type === "academic.context_reset"));
 assert(eventCatalog.events.some(({ type }) => type === "content.preparation_imported"));
+assert(eventCatalog.events.some(({ type }) => type === "safety.advertising_decision_evaluated"));
 
 const shell = await readFile(fromRoot("deploy", "coming-soon", "index.html"), "utf8");
 assert.match(shell, /https:\/\/modrik\.org\//);
