@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:modrik_mobile/src/academic_context_reset_boundary.dart';
+import 'package:modrik_mobile/src/academic_track_catalogue.dart';
 import 'package:modrik_mobile/src/learning_gateway.dart';
 import 'package:modrik_mobile/src/mobile_learning_controller.dart';
 import 'package:modrik_mobile/src/models.dart';
@@ -137,6 +140,82 @@ void main() {
     expect(await lessons.listLessons(), isEmpty);
     expect(await attempts.readLatest(), isNull);
   });
+
+  testWidgets('onboarding selector renders backend order and localized labels', (tester) async {
+    final gateway = _CatalogueGateway();
+    final controller = MobileLearningController(
+      gateway: gateway,
+      config: MobileBootstrapConfig(
+        apiBaseUrl: Uri.parse('https://example.invalid/api/v1/'),
+      ),
+    )
+      ..status = MobileViewStatus.ready
+      ..locale = ModrikLocale.en
+      ..academicContext = AcademicContext.fromJson({'state': 'onboarding_required'});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AcademicContextResetBoundary(
+          controller: controller,
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose your academic context'), findsOneWidget);
+    expect(find.text('Second track'), findsOneWidget);
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    final secondTop = tester.getTopLeft(find.text('Second track').last).dy;
+    final firstTop = tester.getTopLeft(find.text('First track').last).dy;
+    expect(secondTop, lessThan(firstTop), reason: 'client must preserve Backend order');
+
+    await tester.tap(find.text('First track').last);
+    await tester.pumpAndSettle();
+    controller.setLocale(ModrikLocale.ar);
+    await tester.pumpAndSettle();
+    expect(find.text('المسار الأول'), findsOneWidget);
+  });
+
+  testWidgets('reset UX requires confirmation and explains archival consequences', (tester) async {
+    final gateway = _CatalogueGateway();
+    final controller = MobileLearningController(
+      gateway: gateway,
+      config: MobileBootstrapConfig(
+        apiBaseUrl: Uri.parse('https://example.invalid/api/v1/'),
+      ),
+    )
+      ..status = MobileViewStatus.ready
+      ..locale = ModrikLocale.en
+      ..academicContext = _activeContext('01J000000000000000000000A1');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AcademicContextResetBoundary(
+          controller: controller,
+          child: const Scaffold(body: Text('Learning workspace')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Change academic track'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('archives the prior context'), findsOneWidget);
+    expect(find.textContaining('Pending answers and changes'), findsOneWidget);
+
+    final confirmFinder = find.widgetWithText(FilledButton, 'Confirm reset');
+    expect(tester.widget<FilledButton>(confirmFinder).onPressed, isNull);
+    await tester.tap(find.text('I understand the archival reset consequences.'));
+    await tester.pump();
+    expect(tester.widget<FilledButton>(confirmFinder).onPressed, isNotNull);
+
+    await tester.tap(confirmFinder);
+    await tester.pumpAndSettle();
+    expect(gateway.resetTrackIds, ['01J000000000000000000000B2']);
+    expect(controller.academicContext?.academicTrackId, '01J000000000000000000000B2');
+  });
 }
 
 AcademicContext _activeContext(String trackId) => AcademicContext.fromJson({
@@ -146,6 +225,25 @@ AcademicContext _activeContext(String trackId) => AcademicContext.fromJson({
       'year_level': 'fixture-year',
       'activated_at': '2026-08-20T10:00:00Z',
     });
+
+List<AcademicTrack> _catalogue() => [
+      AcademicTrack(
+        id: '01J000000000000000000000B2',
+        labels: {
+          ModrikLocale.ar: 'المسار الثاني',
+          ModrikLocale.en: 'Second track',
+          ModrikLocale.fr: 'Deuxième parcours',
+        },
+      ),
+      AcademicTrack(
+        id: '01J000000000000000000000A1',
+        labels: {
+          ModrikLocale.ar: 'المسار الأول',
+          ModrikLocale.en: 'First track',
+          ModrikLocale.fr: 'Premier parcours',
+        },
+      ),
+    ];
 
 class _AcademicMutationGateway implements LearningGateway {
   final List<String> activateTrackIds = [];
@@ -205,4 +303,10 @@ class _AcademicMutationGateway implements LearningGateway {
   @override
   Future<AttemptResult> submit(String attemptId, String idempotencyKey) =>
       throw UnimplementedError();
+}
+
+class _CatalogueGateway extends _AcademicMutationGateway
+    implements AcademicTrackCatalogueGateway {
+  @override
+  Future<List<AcademicTrack>> academicTracks() async => _catalogue();
 }
