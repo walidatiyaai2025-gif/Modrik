@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Exceptions\ApiProblemException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 final class ApiResponse
 {
@@ -61,14 +60,6 @@ final class ApiResponse
 
     public static function requestId(Request $request): string
     {
-        $existing = $request->attributes->get('modrik_request_id');
-        if (is_string($existing) && strlen($existing) >= 16) {
-            return $existing;
-        }
-
-        $requestId = (string) Str::ulid();
-        $request->attributes->set('modrik_request_id', $requestId);
-
-        return $requestId;
+        return CorrelationId::assign($request);
     }
 }
