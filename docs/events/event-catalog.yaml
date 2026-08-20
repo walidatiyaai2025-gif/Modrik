@@ -1,0 +1,43 @@
+schema_version: 1.0.0
+envelope: ../../schemas/contracts/event-envelope.schema.json
+delivery:
+  persistence: transactional_outbox
+  guarantee: at_least_once
+  consumer_requirement: idempotent_by_event_id
+privacy:
+  default: opaque_identifiers_only
+  prohibited:
+    - authorization headers or tokens
+    - passwords or provider credentials
+    - email addresses or phone numbers
+    - raw student answers
+    - attempt seeds or correct-answer contracts
+events:
+  - type: assessment.attempt_started
+    aggregate: attempt
+    payload_required: [quiz_id, question_count, ordering_algorithm]
+    traceability: [REQ-P0-005, AC-P0-002, AC-P0-003]
+  - type: assessment.answer_recorded
+    aggregate: attempt
+    payload_required: [attempt_question_id, revision]
+    traceability: [REQ-P0-005, REQ-P0-006]
+  - type: assessment.attempt_submitted
+    aggregate: attempt
+    payload_required: [submitted_at, answered_count]
+    traceability: [REQ-P0-005]
+  - type: progress.snapshot_updated
+    aggregate: progress_snapshot
+    payload_required: [curriculum_node_id, source_version]
+    traceability: [REQ-P0-006]
+  - type: content.preparation_requested
+    aggregate: preparation_request
+    payload_required: [schema_version, settings_hash]
+    traceability: [REQ-P0-004, AC-P0-007]
+  - type: content.preparation_import_rejected
+    aggregate: preparation_import
+    payload_required: [preparation_request_id, rejection_codes]
+    traceability: [REQ-P0-004, AC-P0-008]
+  - type: content.preparation_imported
+    aggregate: preparation_import
+    payload_required: [preparation_request_id, imported_file_count, imported_record_count]
+    traceability: [REQ-P0-003, REQ-P0-004]

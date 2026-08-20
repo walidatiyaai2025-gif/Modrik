@@ -1,0 +1,84 @@
+schema_version: 1.0.0
+updated: 2026-08-20
+completeness: kickoff_mirror_only
+acceptance_criteria:
+  - id: AC-P0-001
+    requirement_ids: [REQ-P0-009]
+    statement: Domain decisions are enforced by Backend services and policies, not independently reimplemented by clients.
+    verification: architecture review and backend contract tests
+  - id: AC-P0-002
+    requirement_ids: [REQ-P0-005]
+    statement: Every new quiz or exam attempt receives a fresh cryptographically secure server-generated seed.
+    verification: backend integration test
+  - id: AC-P0-003
+    requirement_ids: [REQ-P0-005]
+    statement: When an attempt has more than one question, authoritative order is non-static; selected sets rotate when the bank and blueprint permit.
+    verification: backend property and integration tests
+  - id: AC-P0-004
+    requirement_ids: [REQ-P0-005]
+    statement: Resuming or reconnecting to the same attempt returns the original seed and authoritative order without reshuffling.
+    verification: backend integration test
+  - id: AC-P0-005
+    requirement_ids: [REQ-P0-005]
+    statement: A client-supplied seed or question order is rejected or ignored and can never become authoritative.
+    verification: API contract and abuse-case tests
+  - id: AC-P0-006
+    requirement_ids: [REQ-P0-003]
+    statement: Only authorized Admin or Content Team roles can publish official curriculum content; UGC cannot be promoted automatically.
+    verification: authorization tests and data-model constraints
+  - id: AC-P0-007
+    requirement_ids: [REQ-P0-004]
+    statement: A preparation import must match preparation_request_id, settings_hash, and schema_version from the originating request.
+    verification: schema and backend import tests
+  - id: AC-P0-008
+    requirement_ids: [REQ-P0-004]
+    statement: Stale, mismatched, malformed, or corrupt returned packs are rejected before persistent content import.
+    verification: golden invalid-fixture tests
+  - id: AC-P0-009
+    requirement_ids: [REQ-P0-006]
+    statement: Offline retries and imports are idempotent and resumable where applicable, and acknowledged answers or progress are not lost.
+    verification: retry, replay, conflict, and interrupted-sync tests
+  - id: AC-P0-010
+    requirement_ids: [REQ-P0-002]
+    statement: Changing the active academic track requires the defined reset flow and archives, rather than deletes, historical attempts and mastery.
+    verification: domain and persistence tests
+  - id: AC-P0-011
+    requirement_ids: [REQ-P0-010]
+    statement: Missing or stale age and advertising configuration resolves to ads off for under-13 and unknown users.
+    verification: policy default tests
+  - id: AC-P0-012
+    requirement_ids: [REQ-P0-010]
+    statement: Immutable no-ad zones and a backend global kill switch override placement-level advertising settings.
+    verification: policy precedence tests
+  - id: AC-P0-013
+    requirement_ids: [REQ-P0-001]
+    statement: Provider linking preserves one user profile and includes verification, recovery, deletion, and session-revocation paths.
+    verification: auth integration and security tests
+  - id: AC-P0-014
+    requirement_ids: [REQ-P0-007, REQ-P0-008, REQ-P0-012]
+    statement: Applicable UI states cover AR, EN, FR, RTL, LTR, keyboard and screen-reader access, large text, loading, empty, error, offline, retry, and permission handling.
+    verification: automated accessibility checks plus manual test matrix
+  - id: AC-P0-015
+    requirement_ids: [REQ-P0-013]
+    statement: Core study, practice, attempts, and progress work with all paid-AI integrations disabled, and optional AI receives no student PII by default.
+    verification: configuration-off integration test and threat-model review
+  - id: AC-P0-016
+    requirement_ids: [REQ-P0-009, REQ-P0-014]
+    statement: Migrations and queries run on MariaDB 10.11 without PostgreSQL-specific JSONB, operators, extensions, sequences, or index syntax.
+    verification: MariaDB migration and test job
+  - id: AC-P0-017
+    requirement_ids: [REQ-P0-014]
+    statement: Queued work can use a database driver and cron-compatible bounded workers; long jobs are chunked, resumable, idempotent, and observable.
+    verification: operations test and runbook review
+  - id: AC-P0-018
+    requirement_ids: [REQ-P0-011]
+    statement: Unknown owner inputs remain explicit placeholders or blockers and are never fabricated in production configuration or content.
+    verification: release-input checklist and repository scan
+  - id: AC-P0-019
+    requirement_ids: [REQ-P0-011]
+    statement: deploy/coming-soon remains dependency-free, truthful, accessible, and releasable until an approved Landing replacement exists.
+    verification: static smoke test and controlled release review
+  - id: AC-P0-020
+    requirement_ids: [REQ-P0-007]
+    statement: A clean checkout can install, lint, test, and build Backend and Student Web using pinned toolchains and lockfiles.
+    verification: CI clean-checkout jobs

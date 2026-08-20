@@ -1,0 +1,150 @@
+{
+  "pack_id": "01J00000000000000000000002",
+  "schema_version": "1.0.0",
+  "academic_scope": {
+    "track_reference": "FIXTURE:TRACK:PENDING-BOARD",
+    "board_reference": null,
+    "syllabus_version": null,
+    "year_level": "FIXTURE-YEAR-6-7",
+    "subject_references": ["FIXTURE:SUBJECT:GENERAL-STUDY"]
+  },
+  "curriculum_nodes": [
+    {
+      "reference": "FIXTURE:SUBJECT:GENERAL-STUDY",
+      "parent_reference": null,
+      "type": "subject",
+      "title": {
+        "en": "Synthetic study skills",
+        "ar": "مهارات مذاكرة تجريبية",
+        "fr": "Compétences d'étude synthétiques"
+      }
+    },
+    {
+      "reference": "FIXTURE:TOPIC:STUDY-PLAN",
+      "parent_reference": "FIXTURE:SUBJECT:GENERAL-STUDY",
+      "type": "topic",
+      "title": {
+        "en": "A simple study plan",
+        "ar": "خطة مذاكرة بسيطة",
+        "fr": "Un plan d'étude simple"
+      }
+    }
+  ],
+  "lessons": [
+    {
+      "id": "01J00000000000000000000003",
+      "curriculum_node_reference": "FIXTURE:TOPIC:STUDY-PLAN",
+      "slug": "simple-study-plan",
+      "content_version": 1,
+      "title": {
+        "en": "Build a simple study plan",
+        "ar": "أنشئ خطة مذاكرة بسيطة",
+        "fr": "Créer un plan d'étude simple"
+      },
+      "blocks": [
+        {
+          "id": "01J00000000000000000000004",
+          "position": 1,
+          "type": "heading",
+          "content": {
+            "en": "Choose one clear goal",
+            "ar": "اختر هدفًا واضحًا واحدًا",
+            "fr": "Choisissez un objectif clair"
+          }
+        },
+        {
+          "id": "01J00000000000000000000005",
+          "position": 2,
+          "type": "rich_text",
+          "content": {
+            "en": "Break the goal into short sessions and include a review step.",
+            "ar": "قسّم الهدف إلى جلسات قصيرة وأضف خطوة للمراجعة.",
+            "fr": "Divisez l'objectif en courtes séances et ajoutez une étape de révision."
+          }
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "01J00000000000000000000010",
+      "curriculum_node_reference": "FIXTURE:TOPIC:STUDY-PLAN",
+      "content_version": 1,
+      "type": "single_choice",
+      "prompt": {
+        "en": "Which plan includes a review step?",
+        "ar": "أي خطة تتضمن خطوة للمراجعة؟",
+        "fr": "Quel plan comprend une étape de révision ?"
+      },
+      "options": [
+        {"id": "review", "label": {"en": "Study, then review", "ar": "ذاكر ثم راجع", "fr": "Étudier, puis réviser"}},
+        {"id": "repeat", "label": {"en": "Repeat without checking", "ar": "كرر دون تحقق", "fr": "Répéter sans vérifier"}}
+      ],
+      "answer_contract": {"correct_option_id": "review"},
+      "explanation": {
+        "en": "A review step helps check what was understood.",
+        "ar": "تساعد خطوة المراجعة على التحقق مما تم فهمه.",
+        "fr": "Une étape de révision aide à vérifier ce qui a été compris."
+      },
+      "maximum_score": 1
+    },
+    {
+      "id": "01J00000000000000000000011",
+      "curriculum_node_reference": "FIXTURE:TOPIC:STUDY-PLAN",
+      "content_version": 1,
+      "type": "single_choice",
+      "prompt": {
+        "en": "What makes a study goal easier to act on?",
+        "ar": "ما الذي يجعل هدف المذاكرة أسهل في التنفيذ؟",
+        "fr": "Qu'est-ce qui rend un objectif d'étude plus facile à réaliser ?"
+      },
+      "options": [
+        {"id": "clear", "label": {"en": "It is clear and specific", "ar": "أن يكون واضحًا ومحددًا", "fr": "Il est clair et précis"}},
+        {"id": "vague", "label": {"en": "It stays vague", "ar": "أن يبقى غامضًا", "fr": "Il reste vague"}}
+      ],
+      "answer_contract": {"correct_option_id": "clear"},
+      "explanation": {
+        "en": "A clear goal makes the next action visible.",
+        "ar": "الهدف الواضح يجعل الخطوة التالية معروفة.",
+        "fr": "Un objectif clair rend la prochaine action visible."
+      },
+      "maximum_score": 1
+    },
+    {
+      "id": "01J00000000000000000000012",
+      "curriculum_node_reference": "FIXTURE:TOPIC:STUDY-PLAN",
+      "content_version": 1,
+      "type": "short_text",
+      "prompt": {
+        "en": "Name the step used to check understanding.",
+        "ar": "اذكر الخطوة المستخدمة للتحقق من الفهم.",
+        "fr": "Nommez l'étape utilisée pour vérifier la compréhension."
+      },
+      "answer_contract": {"accepted_answers": ["review"], "case_sensitive": false},
+      "explanation": {
+        "en": "The step is review.",
+        "ar": "الخطوة هي المراجعة.",
+        "fr": "L'étape est la révision."
+      },
+      "maximum_score": 1
+    }
+  ],
+  "quizzes": [
+    {
+      "id": "01J00000000000000000000020",
+      "curriculum_node_reference": "FIXTURE:TOPIC:STUDY-PLAN",
+      "kind": "practice",
+      "blueprint_version": 1,
+      "title": {
+        "en": "Study plan practice",
+        "ar": "تدريب خطة المذاكرة",
+        "fr": "Exercice sur le plan d'étude"
+      },
+      "question_ids": [
+        "01J00000000000000000000010",
+        "01J00000000000000000000011",
+        "01J00000000000000000000012"
+      ]
+    }
+  ]
+}

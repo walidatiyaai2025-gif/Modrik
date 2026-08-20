@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.modrik.org/contracts/problem-details.schema.json",
+  "title": "MODRIK Problem Details",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "title", "status", "code", "request_id", "retryable"],
+  "properties": {
+    "type": {"type": "string", "format": "uri-reference"},
+    "title": {"type": "string", "minLength": 1, "maxLength": 160},
+    "status": {"type": "integer", "minimum": 400, "maximum": 599},
+    "detail": {"type": "string", "maxLength": 2000},
+    "instance": {"type": "string", "format": "uri-reference"},
+    "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+    "request_id": {"type": "string", "minLength": 16, "maxLength": 64},
+    "retryable": {"type": "boolean"},
+    "retry_after_seconds": {"type": "integer", "minimum": 1, "maximum": 86400},
+    "errors": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pointer", "code", "message"],
+        "properties": {
+          "pointer": {"type": "string", "pattern": "^/"},
+          "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+          "message": {"type": "string", "minLength": 1, "maxLength": 500}
+        }
+      }
+    }
+  }
+}

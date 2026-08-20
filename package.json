@@ -1,0 +1,27 @@
+{
+  "name": "modrik-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "22.23.2",
+    "npm": "10.9.8"
+  },
+  "packageManager": "npm@10.9.8",
+  "scripts": {
+    "contracts:check": "node scripts/validate-contracts.mjs",
+    "brand:icons": "node scripts/generate-mobile-icons.mjs",
+    "openapi:lint": "redocly lint docs/api/openapi.yaml",
+    "tokens:check": "npm --prefix packages/design-tokens test",
+    "web:build": "npm --prefix apps/web run build",
+    "web:lint": "npm --prefix apps/web run lint",
+    "web:test": "npm --prefix apps/web run test"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "@redocly/cli": "2.46.2",
+    "png-to-ico": "3.0.2",
+    "yaml": "2.9.0"
+  }
+}

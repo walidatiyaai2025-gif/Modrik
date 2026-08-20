@@ -1,0 +1,11 @@
+name: modrik_design_tokens
+description: Generated Flutter adapter for the canonical MODRIK design tokens.
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ">=3.12.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter

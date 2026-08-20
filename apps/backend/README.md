@@ -1,0 +1,16 @@
+# MODRIK Backend and Admin
+
+Laravel 13 API/domain application and Filament 5/Livewire 4 administration shell. MariaDB 10.11 is the Pilot persistence authority; SQLite memory is for fast tests only.
+
+From this directory with PHP 8.4.24 and Composer 2:
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+vendor/bin/pint --test
+vendor/bin/phpstan analyse --memory-limit=1G
+php artisan test
+```
+
+Business rules, authorization, attempt seeds/order, idempotency, content validation, and canonical state belong here rather than in Web or Mobile clients.

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.modrik.org/content-pack/v1/content-pack.schema.json",
+  "title": "MODRIK Content Pack v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pack_id", "schema_version", "academic_scope", "curriculum_nodes", "lessons", "questions", "quizzes"],
+  "properties": {
+    "pack_id": {"$ref": "#/$defs/ulid"},
+    "schema_version": {"type": "string", "const": "1.0.0"},
+    "academic_scope": {"$ref": "../../preparation/settings.schema.json#/$defs/academic_scope"},
+    "curriculum_nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reference", "type", "title"],
+        "properties": {
+          "reference": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{2,99}$"},
+          "parent_reference": {"type": ["string", "null"]},
+          "type": {"type": "string", "enum": ["subject", "unit", "topic"]},
+          "title": {"$ref": "localized-text.schema.json"}
+        }
+      }
+    },
+    "lessons": {"type": "array", "items": {"$ref": "lesson.schema.json"}},
+    "questions": {"type": "array", "items": {"$ref": "question.schema.json"}},
+    "quizzes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "curriculum_node_reference", "kind", "blueprint_version", "title", "question_ids"],
+        "properties": {
+          "id": {"$ref": "#/$defs/ulid"},
+          "curriculum_node_reference": {"type": "string"},
+          "kind": {"type": "string", "enum": ["practice", "quiz", "mock_exam"]},
+          "blueprint_version": {"type": "integer", "minimum": 1},
+          "title": {"$ref": "localized-text.schema.json"},
+          "question_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/ulid"}}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ulid": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"}
+  }
+}

@@ -1,0 +1,11 @@
+schema_version: 1.0.0
+fixtures:
+  - path: valid
+    expected: accepted_for_staging
+    notes: Synthetic multilingual lesson and three-question practice quiz; not real curriculum content.
+  - path: invalid-binding/manifest.json
+    expected: rejected
+    error_code: PREPARATION_BINDING_MISMATCH
+  - path: invalid-question.json
+    expected: rejected
+    error_code: CONTENT_REFERENCE_INVALID

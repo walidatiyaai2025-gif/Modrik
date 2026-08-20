@@ -1,0 +1,16 @@
+{
+  "locales": ["en", "ar", "fr"],
+  "academic_scope": {
+    "track_reference": "FIXTURE:TRACK:PENDING-BOARD",
+    "board_reference": null,
+    "syllabus_version": null,
+    "year_level": "FIXTURE-YEAR-6-7",
+    "subject_references": ["FIXTURE:SUBJECT:GENERAL-STUDY"]
+  },
+  "content_types": ["lesson", "practice_quiz"],
+  "generation": {
+    "include_answer_explanations": true,
+    "maximum_questions_per_quiz": 10,
+    "paid_ai_required": false
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.modrik.org/preparation/request.schema.json",
+  "title": "Create MODRIK Content Preparation Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "settings"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0.0"},
+    "settings": {"$ref": "settings.schema.json"}
+  }
+}

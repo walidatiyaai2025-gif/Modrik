@@ -1,0 +1,40 @@
+@import "tailwindcss";
+@import "@modrik/design-tokens/tokens.css";
+
+@theme inline {
+  --color-background: var(--modrik-background);
+  --color-ink: var(--modrik-ink);
+  --color-navy: var(--modrik-navy);
+  --color-blue: var(--modrik-blue);
+  --color-teal: var(--modrik-teal);
+  --color-sky: var(--modrik-sky);
+  --color-slate: var(--modrik-slate);
+  --font-sans: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: "Noto Kufi Arabic", "Noto Sans Arabic", ui-sans-serif, sans-serif;
+}
+
+html {
+  background: var(--modrik-background);
+}
+
+body {
+  background: var(--modrik-background);
+  color: var(--modrik-ink);
+  font-family: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--modrik-teal);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

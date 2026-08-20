@@ -1,0 +1,23 @@
+name: modrik
+
+services:
+  database:
+    image: mariadb:10.11.18
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MODRIK_DB_DATABASE:-modrik}
+      MARIADB_USER: ${MODRIK_DB_USERNAME:-modrik}
+      MARIADB_PASSWORD: ${MODRIK_DB_PASSWORD:-modrik_local_only}
+      MARIADB_ROOT_PASSWORD: ${MODRIK_DB_ROOT_PASSWORD:-modrik_root_local_only}
+    ports:
+      - "127.0.0.1:${MODRIK_DB_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - modrik_mariadb:/var/lib/mysql
+
+volumes:
+  modrik_mariadb:

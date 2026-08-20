@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.modrik.org/content-pack/v1/lesson.schema.json",
+  "title": "MODRIK Content Pack Lesson",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "curriculum_node_reference", "slug", "content_version", "title", "blocks"],
+  "properties": {
+    "id": {"$ref": "#/$defs/ulid"},
+    "curriculum_node_reference": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{2,99}$"},
+    "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 120},
+    "content_version": {"type": "integer", "minimum": 1},
+    "title": {"$ref": "localized-text.schema.json"},
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "position", "type", "content"],
+        "properties": {
+          "id": {"$ref": "#/$defs/ulid"},
+          "position": {"type": "integer", "minimum": 1},
+          "type": {"type": "string", "enum": ["heading", "rich_text", "callout", "worked_example", "media_reference"]},
+          "content": {"$ref": "localized-text.schema.json"},
+          "media_reference": {"type": "string", "pattern": "^media/[A-Za-z0-9._/-]+$", "maxLength": 240}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ulid": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"}
+  }
+}

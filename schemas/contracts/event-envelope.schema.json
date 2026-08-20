@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.modrik.org/contracts/event-envelope.schema.json",
+  "title": "MODRIK Domain Event Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "event_type", "schema_version", "occurred_at", "aggregate", "correlation_id", "payload", "metadata"],
+  "properties": {
+    "event_id": {"$ref": "#/$defs/ulid"},
+    "event_type": {"type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9]*)+$", "maxLength": 100},
+    "schema_version": {"type": "string", "pattern": "^[1-9][0-9]*\\.[0-9]+\\.[0-9]+$"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"},
+        "id": {"$ref": "#/$defs/ulid"},
+        "version": {"type": "integer", "minimum": 1}
+      }
+    },
+    "actor_user_id": {"$ref": "#/$defs/ulid"},
+    "correlation_id": {"type": "string", "minLength": 16, "maxLength": 64},
+    "causation_id": {"type": "string", "minLength": 16, "maxLength": 64},
+    "payload": {"type": "object"},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {"type": "string", "minLength": 16, "maxLength": 64},
+        "source": {"type": "string", "enum": ["api", "admin", "worker", "scheduler", "import"]},
+        "locale": {"type": "string", "enum": ["ar", "en", "fr"]}
+      }
+    }
+  },
+  "$defs": {
+    "ulid": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"}
+  }
+}

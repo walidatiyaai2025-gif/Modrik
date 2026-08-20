@@ -1,0 +1,14 @@
+{
+  "id": "01J00000000000000000000099",
+  "curriculum_node_reference": "FIXTURE:TOPIC:STUDY-PLAN",
+  "content_version": 1,
+  "type": "single_choice",
+  "prompt": {"en": "Synthetic invalid semantic fixture"},
+  "options": [
+    {"id": "one", "label": {"en": "One"}},
+    {"id": "two", "label": {"en": "Two"}}
+  ],
+  "answer_contract": {"correct_option_id": "missing-option"},
+  "explanation": {"en": "The correct option reference intentionally does not exist."},
+  "maximum_score": 1
+}
