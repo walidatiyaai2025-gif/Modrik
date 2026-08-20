@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\OutboxMessage;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -16,21 +17,21 @@ final class OutboxDispatchService
      */
     public function dispatchBatch(int $limit): array
     {
-        $maximumAttempts = (int) config('modrik.outbox.maximum_attempts', 5);
+        $maximumAttempts = max(1, (int) config('modrik.outbox.maximum_attempts', 5));
         $now = now();
+        $latestAttemptSql = '(select coalesce(max(attempt_state.attempt_number), 0) from outbox_delivery_attempts as attempt_state where attempt_state.outbox_event_id = outbox_events.id)';
+        $latestRedriveSql = '(select coalesce(max(redrive_state.exhausted_attempt_number), 0) from outbox_redrive_requests as redrive_state where redrive_state.outbox_event_id = outbox_events.id)';
+
         $eventIds = DB::table('outbox_events')
             ->whereNull('published_at')
-            ->whereNotExists(function ($query) use ($maximumAttempts, $now): void {
+            ->whereRaw("({$latestAttemptSql} - {$latestRedriveSql}) < ?", [$maximumAttempts])
+            ->whereNotExists(function ($query) use ($now): void {
                 $query->selectRaw('1')
-                    ->from('outbox_delivery_attempts as blocked_attempts')
-                    ->whereColumn('blocked_attempts.outbox_event_id', 'outbox_events.id')
-                    ->where(function ($blocked) use ($maximumAttempts, $now): void {
-                        $blocked->where('blocked_attempts.attempt_number', '>=', $maximumAttempts)
-                            ->orWhere(function ($deferred) use ($now): void {
-                                $deferred->where('blocked_attempts.status', 'failed')
-                                    ->where('blocked_attempts.next_attempt_at', '>', $now);
-                            });
-                    });
+                    ->from('outbox_delivery_attempts as deferred_attempts')
+                    ->whereColumn('deferred_attempts.outbox_event_id', 'outbox_events.id')
+                    ->where('deferred_attempts.status', 'failed')
+                    ->where('deferred_attempts.next_attempt_at', '>', $now)
+                    ->whereRaw('deferred_attempts.attempt_number > (select coalesce(max(deferred_redrive.exhausted_attempt_number), 0) from outbox_redrive_requests as deferred_redrive where deferred_redrive.outbox_event_id = deferred_attempts.outbox_event_id)');
             })
             ->orderBy('occurred_at')
             ->orderBy('id')
@@ -59,24 +60,30 @@ final class OutboxDispatchService
 
     private function blockedCount(int $maximumAttempts, bool $exhausted): int
     {
-        return DB::table('outbox_events')
-            ->whereNull('published_at')
-            ->whereExists(function ($query) use ($maximumAttempts, $exhausted): void {
-                $query->selectRaw('1')
-                    ->from('outbox_delivery_attempts as delivery_state')
-                    ->whereColumn('delivery_state.outbox_event_id', 'outbox_events.id')
-                    ->where('delivery_state.status', 'failed');
-                if ($exhausted) {
-                    $query->where('delivery_state.attempt_number', '>=', $maximumAttempts);
-                } else {
-                    $query->where('delivery_state.attempt_number', '<', $maximumAttempts)
-                        ->where('delivery_state.next_attempt_at', '>', now());
-                }
+        $latestAttemptSql = '(select coalesce(max(attempt_state.attempt_number), 0) from outbox_delivery_attempts as attempt_state where attempt_state.outbox_event_id = outbox_events.id)';
+        $latestRedriveSql = '(select coalesce(max(redrive_state.exhausted_attempt_number), 0) from outbox_redrive_requests as redrive_state where redrive_state.outbox_event_id = outbox_events.id)';
+        $query = DB::table('outbox_events')->whereNull('published_at');
+
+        if ($exhausted) {
+            return $query
+                ->whereRaw("({$latestAttemptSql} - {$latestRedriveSql}) >= ?", [$maximumAttempts])
+                ->count();
+        }
+
+        return $query
+            ->whereRaw("({$latestAttemptSql} - {$latestRedriveSql}) < ?", [$maximumAttempts])
+            ->whereExists(function ($deferred): void {
+                $deferred->selectRaw('1')
+                    ->from('outbox_delivery_attempts as deferred_attempts')
+                    ->whereColumn('deferred_attempts.outbox_event_id', 'outbox_events.id')
+                    ->where('deferred_attempts.status', 'failed')
+                    ->where('deferred_attempts.next_attempt_at', '>', now())
+                    ->whereRaw('deferred_attempts.attempt_number > (select coalesce(max(deferred_redrive.exhausted_attempt_number), 0) from outbox_redrive_requests as deferred_redrive where deferred_redrive.outbox_event_id = deferred_attempts.outbox_event_id)');
             })
             ->count();
     }
 
-    /** @return 'published'|'already_published'|'failed' */
+    /** @return 'published'|'already_published'|'failed'|'deferred'|'exhausted' */
     private function dispatchOne(string $eventId, int $maximumAttempts): string
     {
         return DB::transaction(function () use ($eventId, $maximumAttempts): string {
@@ -85,13 +92,31 @@ final class OutboxDispatchService
                 return 'already_published';
             }
 
-            $attemptNumber = (int) DB::table('outbox_delivery_attempts')
+            $latestAttemptNumber = (int) DB::table('outbox_delivery_attempts')
                 ->where('outbox_event_id', $eventId)
-                ->max('attempt_number') + 1;
-            if ($attemptNumber > $maximumAttempts) {
-                return 'already_published';
+                ->max('attempt_number');
+            $redriveBase = (int) DB::table('outbox_redrive_requests')
+                ->where('outbox_event_id', $eventId)
+                ->max('exhausted_attempt_number');
+            if ($redriveBase > $latestAttemptNumber) {
+                return 'exhausted';
             }
 
+            $currentCycleAttempts = $latestAttemptNumber - $redriveBase;
+            if ($currentCycleAttempts >= $maximumAttempts) {
+                return 'exhausted';
+            }
+            if (DB::table('outbox_delivery_attempts')
+                ->where('outbox_event_id', $eventId)
+                ->where('attempt_number', '>', $redriveBase)
+                ->where('status', 'failed')
+                ->where('next_attempt_at', '>', now())
+                ->exists()) {
+                return 'deferred';
+            }
+
+            $attemptNumber = $latestAttemptNumber + 1;
+            $cycleAttemptNumber = $currentCycleAttempts + 1;
             $attemptId = (string) Str::ulid();
             $startedAt = now();
             DB::table('outbox_delivery_attempts')->insert([
@@ -128,13 +153,14 @@ final class OutboxDispatchService
                     'finished_at' => $finishedAt,
                     'updated_at' => $finishedAt,
                 ]);
+                $this->markRedriveRecovered($eventId, $attemptNumber, $finishedAt);
 
                 return 'published';
             } catch (Throwable $exception) {
                 $finishedAt = now();
                 $backoffSeconds = min(
                     (int) config('modrik.outbox.maximum_backoff_seconds', 3600),
-                    (int) config('modrik.outbox.initial_backoff_seconds', 60) * (2 ** ($attemptNumber - 1)),
+                    (int) config('modrik.outbox.initial_backoff_seconds', 60) * (2 ** ($cycleAttemptNumber - 1)),
                 );
                 DB::table('outbox_delivery_attempts')->where('id', $attemptId)->update([
                     'status' => 'failed',
@@ -144,9 +170,43 @@ final class OutboxDispatchService
                     'next_attempt_at' => $finishedAt->copy()->addSeconds($backoffSeconds),
                     'updated_at' => $finishedAt,
                 ]);
+                if ($cycleAttemptNumber >= $maximumAttempts) {
+                    $this->markRedriveReexhausted($eventId, $finishedAt);
+                }
 
                 return 'failed';
             }
         }, 3);
+    }
+
+    private function markRedriveRecovered(string $eventId, int $attemptNumber, Carbon $finishedAt): void
+    {
+        $request = DB::table('outbox_redrive_requests')
+            ->where('outbox_event_id', $eventId)
+            ->where('status', 'requested')
+            ->orderByDesc('exhausted_attempt_number')
+            ->first();
+        if ($request === null || (int) $request->exhausted_attempt_number >= $attemptNumber) {
+            return;
+        }
+
+        DB::table('outbox_redrive_requests')->where('id', $request->id)->update([
+            'status' => 'recovered',
+            'resolved_at' => $finishedAt,
+            'successful_attempt_number' => $attemptNumber,
+            'updated_at' => $finishedAt,
+        ]);
+    }
+
+    private function markRedriveReexhausted(string $eventId, Carbon $finishedAt): void
+    {
+        DB::table('outbox_redrive_requests')
+            ->where('outbox_event_id', $eventId)
+            ->where('status', 'requested')
+            ->update([
+                'status' => 'reexhausted',
+                'resolved_at' => $finishedAt,
+                'updated_at' => $finishedAt,
+            ]);
     }
 }
