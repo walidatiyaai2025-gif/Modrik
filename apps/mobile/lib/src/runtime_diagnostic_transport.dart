@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'runtime_correlation.dart';
 import 'runtime_diagnostics.dart';
 
 class RuntimeDiagnosticTransportAttempt {
@@ -9,7 +10,7 @@ class RuntimeDiagnosticTransportAttempt {
   })  : _diagnostics = diagnostics,
         _started = Stopwatch()..start(),
         _correlationId = diagnostics?.enabled == true
-            ? diagnostics!.newCorrelationId()
+            ? createDiagnosticCorrelationId()
             : null;
 
   factory RuntimeDiagnosticTransportAttempt.start(
@@ -33,15 +34,16 @@ class RuntimeDiagnosticTransportAttempt {
   void attach(HttpClientRequest request) {
     final correlationId = _correlationId;
     if (correlationId != null) {
-      request.headers.set(mobileCorrelationHeader, correlationId);
+      request.headers.set(diagnosticCorrelationHeader, correlationId);
     }
   }
 
   void acceptResponse(HttpClientResponse response) {
-    final diagnostics = _diagnostics;
     final current = _correlationId;
-    if (diagnostics == null || current == null) return;
-    _correlationId = diagnostics.responseCorrelationId(response.headers, current);
+    if (current == null) return;
+    final candidate = response.headers.value(diagnosticCorrelationHeader) ??
+        response.headers.value(diagnosticFallbackCorrelationHeader);
+    _correlationId = validDiagnosticCorrelationId(candidate) ?? current;
   }
 
   void success({required int status}) {
