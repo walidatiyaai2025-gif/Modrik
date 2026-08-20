@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:modrik_mobile/src/issue14_sync_client.dart';
 import 'package:modrik_mobile/src/learning_gateway.dart';
 import 'package:modrik_mobile/src/offline_boundary.dart';
+import 'package:modrik_mobile/src/runtime_correlation.dart';
 import 'package:modrik_mobile/src/runtime_diagnostics.dart';
 
 const _config = RuntimeDiagnosticsConfig(
@@ -14,6 +15,11 @@ const _config = RuntimeDiagnosticsConfig(
   version: '1.0.0',
   commit: 'transport-test',
 );
+
+const _catalogueServerCorrelation = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const _reconnectFailureCorrelation = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+const _reconnectSuccessCorrelation = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+const _syncServerCorrelation = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
 void main() {
   test('learning request records backend-echoed correlation ID', () async {
@@ -25,10 +31,13 @@ void main() {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     String? clientCorrelation;
     server.listen((request) async {
-      clientCorrelation = request.headers.value(mobileCorrelationHeader);
-      expect(clientCorrelation, matches(RegExp(r'^mcr-[0-9a-f]{32}$')));
+      clientCorrelation = request.headers.value(diagnosticCorrelationHeader);
+      expect(validDiagnosticCorrelationId(clientCorrelation), clientCorrelation);
       expect(request.uri.path, '/api/v1/academic-tracks');
-      request.response.headers.set(mobileCorrelationHeader, 'srv-catalogue-42');
+      request.response.headers.set(
+        diagnosticCorrelationHeader,
+        _catalogueServerCorrelation,
+      );
       request.response.headers.contentType = ContentType.json;
       request.response.write(jsonEncode({
         'data': {'tracks': []},
@@ -49,10 +58,49 @@ void main() {
       final transportEvent = diagnostics.events.singleWhere(
         (event) => event.operation == 'learning.get.academic-tracks',
       );
-      expect(transportEvent.correlationId, 'srv-catalogue-42');
+      expect(transportEvent.correlationId, _catalogueServerCorrelation);
       expect(transportEvent.result, 'success');
       expect(transportEvent.connectivity, DiagnosticConnectivity.online);
       expect(transportEvent.correlationId, isNot(clientCorrelation));
+    } finally {
+      await server.close(force: true);
+    }
+  });
+
+  test('invalid backend correlation is ignored in favor of valid request ID', () async {
+    final diagnostics = RuntimeDiagnostics(
+      config: _config,
+      persistence: MemoryRuntimeDiagnosticsPersistence(),
+    );
+    await diagnostics.initialize();
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    String? requestCorrelation;
+    server.listen((request) async {
+      requestCorrelation = request.headers.value(diagnosticCorrelationHeader);
+      request.response.headers.set(
+        diagnosticCorrelationHeader,
+        'not-a-canonical-correlation-id',
+      );
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode({
+        'data': {'tracks': []},
+      }));
+      await request.response.close();
+    });
+
+    try {
+      final gateway = HttpLearningGateway(
+        baseUrl: Uri.parse(
+          'http://${server.address.address}:${server.port}/api/v1/',
+        ),
+        diagnostics: diagnostics,
+      );
+      expect(await gateway.academicTracks(), isEmpty);
+      final event = diagnostics.events.singleWhere(
+        (event) => event.operation == 'learning.get.academic-tracks',
+      );
+      expect(event.correlationId, requestCorrelation);
+      expect(validDiagnosticCorrelationId(event.correlationId), event.correlationId);
     } finally {
       await server.close(force: true);
     }
@@ -91,8 +139,10 @@ void main() {
       requestCount += 1;
       request.response.headers.contentType = ContentType.json;
       request.response.headers.set(
-        mobileCorrelationHeader,
-        requestCount == 1 ? 'srv-reconnect-failure' : 'srv-reconnect-success',
+        diagnosticCorrelationHeader,
+        requestCount == 1
+            ? _reconnectFailureCorrelation
+            : _reconnectSuccessCorrelation,
       );
       if (requestCount == 1) {
         request.response.statusCode = HttpStatus.serviceUnavailable;
@@ -132,7 +182,10 @@ void main() {
       ]);
       expect(
         transportEvents.map((event) => event.correlationId),
-        containsAll(['srv-reconnect-failure', 'srv-reconnect-success']),
+        containsAll([
+          _reconnectFailureCorrelation,
+          _reconnectSuccessCorrelation,
+        ]),
       );
     } finally {
       await server.close(force: true);
@@ -150,8 +203,8 @@ void main() {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     String? requestCorrelation;
     server.listen((request) async {
-      requestCorrelation = request.headers.value(mobileCorrelationHeader);
-      expect(requestCorrelation, matches(RegExp(r'^mcr-[0-9a-f]{32}$')));
+      requestCorrelation = request.headers.value(diagnosticCorrelationHeader);
+      expect(validDiagnosticCorrelationId(requestCorrelation), requestCorrelation);
       final raw = await utf8.decodeStream(request);
       final body = jsonDecode(raw) as Map<String, dynamic>;
       final operations = body['operations'] as List<dynamic>;
@@ -160,7 +213,10 @@ void main() {
       expect(operation['operation_id'], isNot(requestCorrelation));
       expect(operation['value'], answerSentinel);
 
-      request.response.headers.set(mobileCorrelationHeader, 'srv-sync-77');
+      request.response.headers.set(
+        diagnosticCorrelationHeader,
+        _syncServerCorrelation,
+      );
       request.response.headers.contentType = ContentType.json;
       request.response.write(jsonEncode({
         'data': {
@@ -205,7 +261,7 @@ void main() {
       final transportEvent = diagnostics.events.singleWhere(
         (event) => event.operation == 'sync.post.answers',
       );
-      expect(transportEvent.correlationId, 'srv-sync-77');
+      expect(transportEvent.correlationId, _syncServerCorrelation);
       final exported = diagnostics.exportSanitizedJson(
         locale: 'en',
         direction: 'ltr',
@@ -215,7 +271,7 @@ void main() {
       );
       expect(exported, isNot(contains(answerSentinel)));
       expect(exported, isNot(contains('fixture-session-not-diagnostic-output')));
-      expect(exported, contains('srv-sync-77'));
+      expect(exported, contains(_syncServerCorrelation));
       expect(requestCorrelation, isNot(logicalOperationId));
     } finally {
       await server.close(force: true);
