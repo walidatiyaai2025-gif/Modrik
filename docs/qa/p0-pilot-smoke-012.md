@@ -76,11 +76,11 @@ The generated report contains these release rows:
 | Admin prepare -> validate -> approve -> publish | Content preparation/publication Feature tests |
 | Runtime diagnostics / Inspector | Backend canonical correlation + Web/Mobile inspector tests after integration |
 | AR/EN/FR + RTL/LTR | Web copy/direction + Flutter locale/direction tests |
-| Compact/large text | integrated Web responsive + Flutter compact/large-text tests |
+| Compact/large text | Flutter compact/large-text tests plus integrated #108 real-browser responsive/200%-equivalent/keyboard-focus evidence |
 
 ## Integration-aware gates
 
-Two rows intentionally remain `BLOCKED` until their release-gap artifacts are present on the tested Git tree. The checks are repository-local and therefore activate automatically after integration; the harness never queries GitHub or trusts a PR number at runtime.
+Rows intentionally remain `BLOCKED` until their release-gap artifacts are present on the tested Git tree. The checks are repository-local and therefore activate automatically after integration; the harness never queries GitHub or trusts a PR number at runtime.
 
 ### Durable recovery gate
 
@@ -103,10 +103,21 @@ apps/mobile/test/runtime_diagnostics_test.dart
 
 plus a canonical `X-Correlation-ID` boundary in Backend source/tests. This prevents Web/Mobile diagnostic candidates from being counted as complete before the Backend-owned correlation/diagnostic contract is integrated.
 
+### Web browser runtime gate
+
+Required integrated #108 harness markers:
+
+```text
+qa/web-e2e/browser-runtime-acceptance.cjs
+.github/workflows/web-browser-runtime-e2e.yml
+```
+
+The gate keeps the compact/200% row blocked until Issue #108's real-browser acceptance lane is part of the tested repository tree. Presence of these files proves only that the browser harness is integrated; final #107 handoff must additionally cite a green #108 browser-runtime execution on the applicable final candidate/integrated baseline. The Pilot harness does not duplicate #108's Playwright installation or candidate-composition logic.
+
 ## Result semantics
 
 - `PASS` — every mapped executable suite passed and every required local integration gate is present.
 - `FAIL` — at least one mapped executable suite failed. This is always a failing command, including non-strict mode.
 - `BLOCKED` — executable evidence may be green, but an explicitly required release-gap artifact is not yet integrated. This fails only in strict/final mode.
 
-The final Issue #107 handoff must record the exact integrated Git SHA and attach the strict matrix summary. A green implementation PR for the harness itself is not sufficient to close #107 while required rows remain blocked on other authorized release-gap work.
+The final Issue #107 handoff must record the exact integrated Git SHA, attach the strict matrix summary, and cite the final green #108 browser-runtime evidence. A green implementation PR for the harness itself is not sufficient to close #107 while required rows remain blocked on other authorized release-gap work.
