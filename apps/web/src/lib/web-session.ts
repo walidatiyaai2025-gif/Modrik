@@ -38,6 +38,32 @@ export function webSessionClearCookie(): string {
   return `${WEB_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${cookieSecurityAttribute()}`;
 }
 
+function expectedBrowserOrigin(request: Request): string | null {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost ?? request.headers.get("host");
+  if (!host) return new URL(request.url).origin;
+
+  const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = forwardedProtocol || new URL(request.url).protocol.replace(":", "");
+  return `${protocol}://${host.split(",")[0]?.trim()}`;
+}
+
+export function isSameOriginMutation(request: Request): boolean {
+  if (["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) return true;
+
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") return false;
+
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+
+  try {
+    return new URL(origin).origin === expectedBrowserOrigin(request);
+  } catch {
+    return false;
+  }
+}
+
 export type SanitizedAuthEnvelope = {
   body: string;
   accessToken: string | null;

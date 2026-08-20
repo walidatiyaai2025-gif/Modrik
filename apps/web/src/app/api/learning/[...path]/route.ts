@@ -1,4 +1,4 @@
-import { readWebSessionToken } from "../../../../lib/web-session";
+import { isSameOriginMutation, readWebSessionToken } from "../../../../lib/web-session";
 
 const ulid = "[0-9A-HJKMNP-TV-Z]{26}";
 const allowedPaths = [
@@ -46,6 +46,9 @@ async function proxy(request: Request, context: RouteParameters) {
   const relativePath = path.join("/");
   if (!allowedPaths.some((pattern) => pattern.test(relativePath))) {
     return problem(404, "RESOURCE_NOT_FOUND", "The requested learning route is not available.");
+  }
+  if (!isSameOriginMutation(request)) {
+    return problem(403, "CSRF_CHECK_FAILED", "The learning request did not originate from this MODRIK Web application.");
   }
 
   const token = bearerToken(request);

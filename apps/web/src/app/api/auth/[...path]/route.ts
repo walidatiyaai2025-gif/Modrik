@@ -1,4 +1,5 @@
 import {
+  isSameOriginMutation,
   readWebSessionToken,
   sanitizeAuthEnvelope,
   webSessionClearCookie,
@@ -56,6 +57,9 @@ async function proxy(request: Request, context: RouteParameters) {
   const relativePath = path.join("/");
   if (!allowedPaths.some((pattern) => pattern.test(relativePath))) {
     return problem(404, "RESOURCE_NOT_FOUND", "The requested account route is not available.");
+  }
+  if (!isSameOriginMutation(request)) {
+    return problem(403, "CSRF_CHECK_FAILED", "The account request did not originate from this MODRIK Web application.");
   }
 
   const baseUrl = (process.env.MODRIK_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
