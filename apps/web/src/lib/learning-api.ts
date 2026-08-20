@@ -136,6 +136,7 @@ export const learningApi = {
   progress: () => requestData<Progress[]>("progress"),
   startAttempt: (quizId: string, idempotencyKey: string) =>
     requestData<Attempt>("attempts", command("POST", { quiz_id: quizId }, idempotencyKey)),
+  attempt: (attemptId: string) => requestData<Attempt>(`attempts/${attemptId}`),
   answer: (
     attemptId: string,
     attemptQuestionId: string,

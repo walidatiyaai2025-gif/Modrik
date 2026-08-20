@@ -6,10 +6,12 @@ use App\Http\Controllers\Api\AttemptController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentPreparationController;
 use App\Http\Controllers\Api\LearningController;
+use App\Http\Controllers\Api\OfflineAnswerSyncController;
 use App\Http\Controllers\Api\ProviderAuthController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', fn (): array => ['status' => 'ok'])->name('health');
+Route::get('/health', fn (): array => ['status' => 'ok'])
+    ->name('health');
 
 Route::prefix('/v1/auth')->group(function (): void {
     Route::post('/register', [AuthController::class, 'register'])->name('auth.register');
@@ -45,21 +47,24 @@ Route::prefix('/v1')->middleware('auth.modrik')->group(function (): void {
     Route::post('/academic-context/reset', [AcademicContextController::class, 'reset'])
         ->middleware('auth.verified-password')->name('academic-context.reset');
     Route::get('/lessons/{lessonId}', [LearningController::class, 'lesson'])->name('lessons.show');
-    Route::post('/attempts', [AttemptController::class, 'store'])
+    Route::get('/progress', [LearningController::class, 'progress'])->name('progress.index');
+    Route::get('/advertising/decisions/{placementCode}', [AdvertisingDecisionController::class, 'show'])
+        ->name('advertising-decisions.show');
+
+    Route::post('/attempts', [AttemptController::class, 'start'])
         ->middleware('auth.verified-password')->name('attempts.store');
     Route::get('/attempts/{attemptId}', [AttemptController::class, 'show'])->name('attempts.show');
     Route::put('/attempts/{attemptId}/answers/{attemptQuestionId}', [AttemptController::class, 'answer'])
-        ->middleware('auth.verified-password')->name('attempts.answers.put');
+        ->middleware('auth.verified-password')->name('attempts.answers.update');
     Route::post('/attempts/{attemptId}/submit', [AttemptController::class, 'submit'])
         ->middleware('auth.verified-password')->name('attempts.submit');
-    Route::get('/progress', [LearningController::class, 'progress'])->name('progress.show');
-    Route::get('/advertising/decisions/{placementCode}', [AdvertisingDecisionController::class, 'show'])
-        ->name('advertising.decisions.show');
+    Route::post('/sync/answers', [OfflineAnswerSyncController::class, 'store'])
+        ->middleware('auth.verified-password')->name('sync.answers.store');
 
     Route::prefix('/admin')->middleware(['auth.content', 'auth.verified-password'])->group(function (): void {
-        Route::post('/preparation-requests', [ContentPreparationController::class, 'store'])
-            ->name('admin.preparation-requests.store');
+        Route::post('/preparation-requests', [ContentPreparationController::class, 'create'])
+            ->name('preparation-requests.store');
         Route::post('/preparation-imports/validate', [ContentPreparationController::class, 'validateImport'])
-            ->name('admin.preparation-imports.validate');
+            ->name('preparation-imports.validate');
     });
 });

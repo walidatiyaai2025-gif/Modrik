@@ -11,6 +11,25 @@
 
 Use the exact versions in `.tool-versions`. Copy root and backend `.env.example` files to ignored `.env` files, change local-only passwords as needed, then run `scripts/setup.sh` or `scripts/setup.ps1`. `docker compose up -d database` is optional local MariaDB; SQLite is used only for fast tests.
 
+## Offline answer-sync triage
+
+`POST /v1/sync/answers` accepts 1–100 authenticated answer operations. Every logical operation must keep the same `operation_id` across transport retries until its acknowledgement is received. Never advise a client to mint a new operation ID merely because a request timed out: an exact retry is how the Backend returns the durable acknowledgement without creating another answer revision.
+
+For an incident, capture the request/correlation ID, release SHA, affected client operation ID in the user's own client log if available, and the returned stable acknowledgement `outcome`/`code`. Do not paste the answer value into an issue or server log. The database stores only a keyed operation-ID digest, canonical request hash, outcome/code, revision/timestamp metadata, and retryability.
+
+Safe operational inspection is aggregate-only unless a privacy-approved incident procedure explicitly requires more:
+
+```sql
+SELECT outcome, code, COUNT(*) AS operation_count
+FROM answer_sync_acknowledgements
+GROUP BY outcome, code
+ORDER BY outcome, code;
+```
+
+`SYNC_OPERATION_ID_REUSED` means the client reused one ID for a different canonical payload; the original durable acknowledgement remains authoritative and must not be edited or deleted to force a retry. `ANSWER_REVISION_CONFLICT` means the Backend revision won; resolve by refreshing authoritative attempt state before constructing a new logical operation. `RESOURCE_NOT_FOUND` intentionally does not distinguish absent from cross-user resources. Unexpected server errors leave no final acknowledgement for that failed operation because its reservation/domain/outbox transaction rolls back; retry the identical operation ID after the server condition is corrected.
+
+Do not manually update acknowledgement outcomes, answer revisions, request hashes, operation digests, or outbox rows. Recovery is replay/forward repair, not data surgery.
+
 ## cPanel worker/scheduler pattern
 
 Configure cron with the host's exact PHP 8.4 binary and absolute application path:

@@ -10,37 +10,39 @@ Required extensions:
 - `retryable`: whether retrying the same operation may succeed.
 - `retry_after_seconds`: present only when a bounded retry delay is known.
 
-The backend does not expose stack traces, SQL, file paths, provider tokens/assertions, account/session/one-time token material, attempt seeds, correct-answer contracts, or student PII in production errors.
+The backend does not expose stack traces, SQL, file paths, provider tokens, attempt seeds, correct-answer contracts, or student PII in production errors.
 
 ## Stable bootstrap codes
 
 | Code | HTTP | Meaning |
 | --- | ---: | --- |
 | `AUTHENTICATION_REQUIRED` | 401 | No valid user session. |
-| `INVALID_CREDENTIALS` | 401 | Public password authentication failed without disclosing whether the account exists. |
-| `PROVIDER_ASSERTION_INVALID` | 401 | Provider assertion failed the required cryptographic/provider/nonce boundary. |
 | `FORBIDDEN` | 403 | Authenticated actor lacks permission. |
-| `EMAIL_VERIFICATION_REQUIRED` | 403 | Password account must verify email before a protected learning mutation. |
-| `RECENT_AUTHENTICATION_REQUIRED` | 403 | Sensitive account action needs a fresher production authentication. |
 | `RESOURCE_NOT_FOUND` | 404 | Resource is absent or intentionally concealed. |
-| `PROVIDER_IDENTITY_NOT_FOUND` | 404 | Requested active provider link is absent. |
-| `EMAIL_UNAVAILABLE` | 409 | Email cannot be registered as a new password account. |
-| `PROVIDER_LINK_REQUIRED` | 409 | Provider sign-in cannot auto-link to an existing account; explicit authenticated linking is required. |
-| `PROVIDER_IDENTITY_CONFLICT` | 409 | Provider stable subject is already bound to another MODRIK profile. |
-| `LAST_RECOVERY_IDENTITY` | 409 | Provider unlink would remove the final usable recovery identity. |
-| `ACCOUNT_NOT_ACTIVE` | 409 | Account is no longer in an active lifecycle state. |
 | `VALIDATION_FAILED` | 422 | Request fields failed validation. |
-| `TOKEN_INVALID_OR_EXPIRED` | 422 | Verification/reset token is invalid, expired, consumed, or revoked. |
-| `PROVIDER_INTENT_INVALID` | 422 | Provider state/intent is invalid, consumed, or expired. |
 | `IDEMPOTENCY_KEY_REQUIRED` | 400 | Retryable mutation omitted its key. |
 | `IDEMPOTENCY_KEY_REUSED` | 409 | Key was reused with a different canonical request. |
 | `ATTEMPT_NOT_MUTABLE` | 409 | Attempt is no longer accepting answers. |
 | `ANSWER_REVISION_CONFLICT` | 409 | Client revision is behind authoritative state. |
 | `PREPARATION_BINDING_MISMATCH` | 422 | Returned pack does not match request ID, settings hash, or schema version. |
 | `PREPARATION_ARCHIVE_UNSAFE` | 422 | Archive violates path, size, type, or integrity policy. |
-| `TOO_MANY_ATTEMPTS` | 429 | Auth abuse/rate boundary reached. Public recovery intentionally suppresses this distinction and still returns accepted. |
-| `RATE_LIMITED` | 429 | Generic bounded request limit reached; retry metadata may be present. |
-| `PROVIDER_CONFIGURATION_PENDING` | 503 | Google/Apple transport is intentionally fail-closed until owner configuration/verifier deployment is supplied. |
+| `RATE_LIMITED` | 429 | Request limit reached; retry metadata may be present. |
 | `SERVICE_UNAVAILABLE` | 503 | Bounded dependency outage or maintenance. |
+
+## Offline answer-sync acknowledgement codes
+
+`POST /v1/sync/answers` returns HTTP 200 for a structurally valid authenticated batch and reports each logical operation independently. These per-operation acknowledgements intentionally contain no `detail`, exception message, or raw answer value. Clients branch on `outcome`, `code`, and `retryable` only.
+
+| Code | Outcome | Meaning |
+| --- | --- | --- |
+| `SYNC_ANSWER_APPLIED` | `applied` | Authoritative answer revision committed and the durable acknowledgement was stored atomically. |
+| `SYNC_OPERATION_ID_REUSED` | `conflict` | The actor already used this operation ID for a different canonical operation payload; the original acknowledgement remains authoritative. |
+| `SYNC_OPERATION_IN_PROGRESS` | `conflict` | A matching operation reservation is not yet final; retry the same operation ID. |
+| `ANSWER_REVISION_CONFLICT` | `conflict` | The supplied expected revision is stale relative to Backend authority. |
+| `RESOURCE_NOT_FOUND` | `rejected` | The attempt or attempt question is absent or outside the authenticated actor scope. |
+| `ATTEMPT_NOT_EDITABLE` | `conflict` | Existing attempt authority no longer accepts answer changes. |
+| `ANSWER_VALUE_INVALID` | `rejected` | Existing answer validation rejected the supplied value. |
+
+Batch-shape errors remain ordinary `422 VALIDATION_FAILED` Problem Details responses and authentication failures remain `401 AUTHENTICATION_REQUIRED`. Unexpected server failures are not converted to durable failure acknowledgements; their operation transaction rolls back so the same operation ID can be retried safely.
 
 New codes are backward-compatible additions. Removing or changing semantics requires a versioned API change.

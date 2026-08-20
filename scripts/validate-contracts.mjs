@@ -158,6 +158,22 @@ assert.equal(openapi.components.schemas.AcademicContextMutationRequest.additiona
 assert(openapi.components.schemas.Attempt.required.includes("academic_context_id"));
 assert(openapi.paths["/v1/academic-context/reset"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
 assert(openapi.paths["/v1/academic-context/reset"].post.responses["200"].headers["Idempotency-Replayed"]);
+assert.equal(openapi.paths["/v1/sync/answers"].post.operationId, "syncAttemptAnswers");
+assert.equal(openapi.paths["/v1/sync/answers"].post.parameters, undefined);
+assert.equal(openapi.components.schemas.AnswerSyncRequest.additionalProperties, false);
+assert.equal(openapi.components.schemas.AnswerSyncRequest.properties.operations.minItems, 1);
+assert.equal(openapi.components.schemas.AnswerSyncRequest.properties.operations.maxItems, 100);
+assert.equal(openapi.components.schemas.AnswerSyncOperation.additionalProperties, false);
+assert.deepEqual(
+  openapi.components.schemas.AnswerSyncOperation.required,
+  ["operation_id", "attempt_id", "attempt_question_id", "expected_revision", "value"],
+);
+assert.equal(openapi.components.schemas.AnswerSyncOperation.properties.operation_id.minLength, 16);
+assert.equal(openapi.components.schemas.AnswerSyncOperation.properties.operation_id.maxLength, 128);
+assert(openapi.components.schemas.AnswerSyncAcknowledgement.required.includes("replayed"));
+assert(openapi.components.schemas.AnswerSyncAcknowledgement.required.includes("answer_revision"));
+assert(openapi.components.schemas.AnswerSyncAcknowledgement.properties.code.enum.includes("SYNC_OPERATION_ID_REUSED"));
+assert(openapi.components.schemas.AnswerSyncAcknowledgement.properties.code.enum.includes("ANSWER_REVISION_CONFLICT"));
 assert(openapi.paths["/v1/admin/preparation-requests"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
 assert(openapi.paths["/v1/admin/preparation-requests"].post.responses["201"].headers["Idempotency-Replayed"]);
 assert(openapi.paths["/v1/admin/preparation-imports/validate"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
