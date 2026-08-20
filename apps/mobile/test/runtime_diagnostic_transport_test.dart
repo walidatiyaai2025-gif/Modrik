@@ -107,6 +107,67 @@ void main() {
     }
   });
 
+  test('secret-shaped backend problem code stays out of diagnostics', () async {
+    const secretCode = 'SENTINEL-password-value';
+    final persistence = MemoryRuntimeDiagnosticsPersistence();
+    final diagnostics = RuntimeDiagnostics(
+      config: _config,
+      persistence: persistence,
+    );
+    await diagnostics.initialize();
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      request.response.statusCode = HttpStatus.serviceUnavailable;
+      request.response.headers.set(
+        diagnosticCorrelationHeader,
+        _catalogueServerCorrelation,
+      );
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode({
+        'code': secretCode,
+        'detail': 'Temporary failure.',
+        'retryable': true,
+      }));
+      await request.response.close();
+    });
+
+    try {
+      final gateway = HttpLearningGateway(
+        baseUrl: Uri.parse(
+          'http://${server.address.address}:${server.port}/api/v1/',
+        ),
+        diagnostics: diagnostics,
+      );
+
+      await expectLater(
+        gateway.academicTracks(),
+        throwsA(
+          isA<LearningFailure>().having(
+            (failure) => failure.code,
+            'domain code remains unchanged',
+            secretCode,
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final event = diagnostics.events.singleWhere(
+        (candidate) => candidate.operation == 'learning.get.academic-tracks',
+      );
+      expect(event.stableCode, isNull);
+      final exported = diagnostics.exportSanitizedJson(
+        locale: 'en',
+        direction: 'ltr',
+        connectivity: DiagnosticConnectivity.online,
+        currentFlow: 'learning.dashboard',
+      );
+      expect(exported, isNot(contains(secretCode)));
+      expect(persistence.encoded ?? '', isNot(contains(secretCode)));
+    } finally {
+      await server.close(force: true);
+    }
+  });
+
   test('diagnostic persistence faults cannot alter a successful learning result', () async {
     final diagnostics = RuntimeDiagnostics(
       config: _config,
