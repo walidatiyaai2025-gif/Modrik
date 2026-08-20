@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-MOBILE-001 Android/iOS student learning shell
+
+- Implemented Issue #18 for REQ-P0-008/012 / AC-P0-014 as a production-shaped Android/iOS Flutter student application shell with onboarding/academic context, dashboard, study/lesson, practice/attempt and progress flows. Windows remains explicitly deferred.
+- Added complete AR/EN/FR shell and state copy, Arabic RTL and EN/FR LTR direction, screen-reader semantics/live regions, adequate touch targets, large-text-friendly scrollable layouts, canonical MODRIK token consumption, and explicit loading/empty/error/offline/stale/retry/permission UX.
+- Preserved Backend authority end to end: the client renders and caches attempt question/option arrays exactly as returned and never reshuffles them; it does not generate assessment seed/order, score locally, decide academic transitions, own age/ad policy, or publish curriculum. Academic activation/reset uses Backend lifecycle endpoints and stale local learning snapshots are cleared only after a successful server reset.
+- Added downloaded-content and exact-attempt snapshot cache boundaries plus durable pending answer-operation abstractions. Mobile consumes the merged Issue #14 `POST /v1/sync/answers` contract exactly, batches at 100 operations, keeps an operation ID/payload immutable after transport begins, handles canonical applied/conflict/rejected/retryable acknowledgements, and reloads the authoritative attempt snapshot before submission. No competing synchronization protocol exists.
+- Added unit/widget coverage for authoritative resume/order preservation, Issue #14 wire payload and operation immutability, offline/stale restoration, academic-reset cache invalidation, AR/EN/FR direction, screen-reader semantics, touch targets and permission/offline states. Clean code head `ef232a04032fee09307db0b2f382885c428789cd` passed Bootstrap CI run `32388953204` across all seven jobs: contracts/OpenAPI/tokens, Backend, MariaDB 10.11, integrated Web, Flutter dependency resolution/analyze/tests, Gitleaks and dependency review.
+- Known production boundary: real academic-track selection remains dependent on Backend-owned Issue #21 catalogue; production authentication, store identifiers/signing and provider configuration remain owner/domain inputs rather than Mobile-owned assumptions.
+
 ## 2026-08-20 — P0-SYNC-001 resumable offline answer synchronization
 
 - Implemented Issue #14 for REQ-P0-006 / AC-P0-009 / ADR-003 with authenticated `POST /v1/sync/answers` batches bounded to 1–100 ordered answer operations. The sync layer delegates all answer ownership, mutability, value validation, revision checks, and outbox creation to the existing Backend `AttemptService`.
@@ -62,7 +71,7 @@
 - Reset now serializes on the Backend-owned user, archives the old context/attempts/progress without deletion, marks in-progress attempts abandoned, activates the new context, and emits redacted transactional `academic.context_activated` / `academic.context_reset` events.
 - Updated OpenAPI, event catalog, ERD, data dictionary, contract validation, and the Next same-origin client/proxy for the new lifecycle endpoints and context identifiers.
 - Added integration coverage for onboarding, reset-required enforcement, exact idempotent replay, changed-payload conflict, historical preservation, active-context isolation, and outbox redaction. Local Backend gates pass 8 tests/165 assertions; contracts (9 events), OpenAPI, Web build, and a SQLite migration forward/rollback/forward round trip pass.
-- MariaDB CI first exposed error 1553 because the prior progress unique index also backed its user foreign key. The portable repair creates the replacement user-leading index before dropping the old one and restores the reverse order on rollback; Bootstrap CI run `32370143748` then passed all seven jobs, including MariaDB 10.11.
+- MariaDB CI first exposed error 1553 because the prior progress unique index also backed its user foreign key. The portable repair creates the replacement user-leading index before dropping the old composite index and restores the reverse order on rollback; Bootstrap CI run `32370143748` then passed all seven jobs, including MariaDB 10.11.
 - Known boundary: only synthetic tracks are exercised; exact real board/syllabus/version remains owner-blocked. Production account authentication remains REQ-P0-001.
 
 ## 2026-08-20 — BOOT-008 fixture-driven learning slice
@@ -95,7 +104,7 @@
 - Added QA matrix, threat model, cPanel/database-queue runbook, legal public-page matrix, release-input blockers, contract validator, Redocly lint, Larastan level 8, Web/Mobile smoke tests, and CI security/dependency gates.
 - Preserved `deploy/coming-soon/`. Public verification found DNS resolving but HTTPS reset and HTTP 503; WEB-PRE-002 remains externally blocked on hosting access.
 - Local results: contracts/OpenAPI/tokens passed; root/Web npm audits reported 0 vulnerabilities; Composer validation/audit passed; Pint and Larastan passed; Backend PHPUnit passed 3 tests/8 assertions; Web lint/typecheck/test/build passed; Flutter analyze/widget test passed.
-- Clean-checkout proof passed the same root/Backend/Web/Mobile gates after removing two hidden warm-workspace assumptions: Web now declares its layout children type without generated Next.js globals, and PHPUnit owns an explicit deterministic test-only application key.
+- Clean-checkout proof passed the same root, Backend, Web, and Mobile gate sequence after removing two hidden warm-workspace assumptions: Web now declares its layout children type without generated Next.js globals, and PHPUnit owns an explicit deterministic test-only application key.
 - Migrations: only the Laravel baseline users/cache/jobs migrations exist. P0 domain migrations are intentionally deferred until BOOT-007 clean-checkout and GitHub CI proof is green.
 - Next safe task: BOOT-007 branch publication/draft PR and CI repair; then BOOT-008.
 
