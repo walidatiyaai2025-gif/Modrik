@@ -163,9 +163,13 @@ class OutboxRedriveTest extends TestCase
             ->orderBy('exhausted_attempt_number')
             ->get();
         $this->assertCount(2, $requests);
-        $this->assertSame('reexhausted', $requests[0]->status);
-        $this->assertNotNull($requests[0]->resolved_at);
-        $this->assertSame('requested', $requests[1]->status);
+        $firstRequest = $requests->get(0);
+        $secondRequest = $requests->get(1);
+        $this->assertNotNull($firstRequest);
+        $this->assertNotNull($secondRequest);
+        $this->assertSame('reexhausted', $firstRequest->status);
+        $this->assertNotNull($firstRequest->resolved_at);
+        $this->assertSame('requested', $secondRequest->status);
         $this->assertSame([2, 4], $requests->pluck('exhausted_attempt_number')->map(fn (mixed $value): int => (int) $value)->all());
         $this->assertSame([1, 2, 3, 4], DB::table('outbox_delivery_attempts')->where('outbox_event_id', $eventId)->orderBy('attempt_number')->pluck('attempt_number')->map(fn (mixed $value): int => (int) $value)->all());
     }
