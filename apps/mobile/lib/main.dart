@@ -45,6 +45,7 @@ class ModrikApp extends StatefulWidget {
 }
 
 class _ModrikAppState extends State<ModrikApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   late MobileLearningController _controller;
   MobileAuthController? _authController;
   RuntimeDiagnostics? _diagnostics;
@@ -304,6 +305,7 @@ class _ModrikAppState extends State<ModrikApp> {
       builder: (context, _) {
         final locale = auth?.locale ?? _controller.locale;
         return MaterialApp(
+          navigatorKey: _navigatorKey,
           title: 'MODRIK | مُدرك',
           debugShowCheckedModeBanner: false,
           theme: _themeFor(locale),
@@ -312,9 +314,24 @@ class _ModrikAppState extends State<ModrikApp> {
             if (diagnostics == null || !diagnostics.enabled) {
               return child ?? const SizedBox.shrink();
             }
+            final snapshot = _runtimeInspectorSnapshot(auth);
             return RuntimeInspectorHost(
               diagnostics: diagnostics,
-              snapshot: _runtimeInspectorSnapshot(auth),
+              snapshot: snapshot,
+              onOpen: () {
+                final navigator = _navigatorKey.currentState;
+                if (navigator == null) return;
+                unawaited(
+                  navigator.push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => RuntimeInspectorScreen(
+                        diagnostics: diagnostics,
+                        snapshot: snapshot,
+                      ),
+                    ),
+                  ),
+                );
+              },
               child: child ?? const SizedBox.shrink(),
             );
           },
