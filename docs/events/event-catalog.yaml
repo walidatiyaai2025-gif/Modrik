@@ -13,6 +13,14 @@ privacy:
     - raw student answers
     - attempt seeds or correct-answer contracts
 events:
+  - type: academic.context_activated
+    aggregate: academic_context
+    payload_required: [academic_track_id, transition_id]
+    traceability: [REQ-P0-002, AC-P0-010]
+  - type: academic.context_reset
+    aggregate: academic_context
+    payload_required: [academic_track_id, transition_id, previous_context_id, archived_attempt_count, archived_progress_count]
+    traceability: [REQ-P0-002, AC-P0-010]
   - type: assessment.attempt_started
     aggregate: attempt
     payload_required: [quiz_id, question_count, ordering_algorithm]

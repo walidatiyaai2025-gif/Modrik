@@ -12,15 +12,16 @@ Updated: 2026-08-20
 - Six accepted ADRs, logical ERD/data dictionary, OpenAPI 3.1, RFC 9457 errors, event/outbox and idempotency contracts exist.
 - Content Pack/Preparation v1 schemas and synthetic multilingual golden valid/invalid fixtures exist and are hash/binding/semantic validated.
 - CI covers contract/OpenAPI/token validation, Backend Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fixture seeding plus the full Backend suite, Web audit/lint/typecheck/test/build, Flutter analyze/test, Gitleaks, and PR dependency review. GitHub Dependency Graph/Dependabot alerts are enabled so dependency review is enforceable.
-- BOOT-008 is implemented on `codex/boot-008-vertical-slice` at `8729d5eae79a98d344b8dc6d2659b75db9e6fd15`: portable learning/assessment migrations, a disabled-by-default synthetic fixture boundary, localized lesson reads, server-authoritative practice attempts, revision-safe answers, idempotent submit/progress, transactional outbox events, and a desktop-first AR/EN/FR Web workspace. Draft PR #3 is the integration vehicle.
+- BOOT-008 is integrated on `main` by merge commit `35453a885f41c14d6949bccf71903c28b4c29e15`: portable learning/assessment migrations, a disabled-by-default synthetic fixture boundary, localized lesson reads, server-authoritative practice attempts, revision-safe answers, idempotent submit/progress, transactional outbox events, and a desktop-first AR/EN/FR Web workspace.
 - Fixture authentication is deliberately not production authentication. It accepts one configured synthetic bearer token only while `MODRIK_FIXTURE_MODE=true`; full verified account/provider/session work remains outside this slice.
+- Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is implemented locally on `codex/req-p0-002-academic-reset`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. No real board/syllabus input is assumed.
 
 ## Verification evidence
 
 - `npm audit --audit-level=moderate` — 0 vulnerabilities.
-- `npm run contracts:check` — 9 schemas, 14 REQs, 20 ACs, 7 events, OpenAPI structure, and fixtures passed.
+- `npm run contracts:check` — 9 schemas, 14 REQs, 20 ACs, 9 events, OpenAPI structure, and fixtures passed.
 - `npm run openapi:lint` and `npm run tokens:check` — passed.
-- Backend: Composer strict validation/audit, Pint, Larastan level 8, and PHPUnit (6 tests, 100 assertions) — passed on PHP 8.4.24.
+- Backend: Composer strict validation/audit, Pint, Larastan level 8, and PHPUnit (8 tests, 165 assertions) — passed on PHP 8.4.24. The academic-context migration also passed a separate SQLite forward → rollback → forward round trip.
 - Web: npm audit, ESLint, TypeScript, Node test, and Next.js production build — passed on Node 22.23.2. The build contains the same-origin allowlisted learning proxy and no public fixture credential.
 - The reusable fixture smoke traversed the actual Next route handler into a live Laravel server: session → context → localized lesson → three revisioned answers → idempotent submit → progress.
 - Mobile: Flutter analyze and widget test — passed locally on Flutter 3.44.8; CI is pinned to the current stable 3.47.1 for authoritative proof.
@@ -35,4 +36,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Obtain green CI for this evidence-only handoff update, mark PR #3 ready, integrate it with an expected-head guard, then start the next unblocked P0 slice.
+Publish Issue #4 as one draft PR, obtain green GitHub CI including MariaDB 10.11 lifecycle tests, record the evidence, and integrate before selecting the next P0 gap.

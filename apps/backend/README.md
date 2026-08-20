@@ -17,3 +17,5 @@ php artisan test
 Business rules, authorization, attempt seeds/order, idempotency, content validation, and canonical state belong here rather than in Web or Mobile clients.
 
 BOOT-008 fixture mode is explicitly non-production and disabled unless `MODRIK_FIXTURE_MODE=true`. With the example local environment, `migrate --seed` imports the canonical synthetic Content Pack, and `MODRIK_FIXTURE_BEARER_TOKEN` authenticates only its fixture learner. Never enable this mode or token in a production environment.
+
+Issue #4 adds idempotent `POST /v1/academic-context/activate` and `/reset` lifecycle commands. Reset is the only path for changing an active track: it archives the prior context, its attempts, and its progress while preserving every historical row.

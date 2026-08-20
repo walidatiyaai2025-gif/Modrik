@@ -115,20 +115,21 @@ final class LearningReadService
     public function progress(User $user): array
     {
         return array_values(DB::table('progress_snapshots as progress')
-            ->join('curriculum_nodes as nodes', 'nodes.id', '=', 'progress.curriculum_node_id')
             ->join('user_academic_contexts as contexts', function ($join) use ($user): void {
-                $join->on('contexts.academic_track_id', '=', 'nodes.academic_track_id')
+                $join->on('contexts.id', '=', 'progress.academic_context_id')
                     ->where('contexts.user_id', '=', $user->getKey())
                     ->where('contexts.status', '=', 'active');
             })
             ->where('progress.user_id', $user->getKey())
+            ->whereNull('progress.archived_at')
             ->orderBy('progress.curriculum_node_id')
-            ->get(['progress.curriculum_node_id', 'progress.mastery', 'progress.source_version', 'progress.calculated_at'])
+            ->get(['progress.academic_context_id', 'progress.curriculum_node_id', 'progress.mastery', 'progress.source_version', 'progress.calculated_at'])
             ->map(function (object $progress): array {
-                /** @var array{curriculum_node_id: string, mastery: string|float, source_version: int, calculated_at: string} $row */
+                /** @var array{academic_context_id: string, curriculum_node_id: string, mastery: string|float, source_version: int, calculated_at: string} $row */
                 $row = (array) $progress;
 
                 return [
+                    'academic_context_id' => $row['academic_context_id'],
                     'curriculum_node_id' => $row['curriculum_node_id'],
                     'mastery' => (float) $row['mastery'],
                     'source_version' => (int) $row['source_version'],

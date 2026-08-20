@@ -21,6 +21,11 @@ final class AttemptService
      */
     public function start(User $user, string $quizId): array
     {
+        $lockedUser = DB::table('users')->where('id', $user->getKey())->lockForUpdate()->first(['id']);
+        if ($lockedUser === null) {
+            throw new ApiProblemException(401, 'AUTHENTICATION_REQUIRED', 'Authentication required', 'The authenticated user is unavailable.');
+        }
+
         $quiz = DB::table('quizzes')
             ->join('curriculum_nodes', 'curriculum_nodes.id', '=', 'quizzes.curriculum_node_id')
             ->join('user_academic_contexts', function ($join) use ($user): void {
@@ -30,14 +35,19 @@ final class AttemptService
             })
             ->where('quizzes.id', $quizId)
             ->where('quizzes.status', 'published')
-            ->select(['quizzes.id', 'quizzes.curriculum_node_id', 'quizzes.blueprint_version'])
+            ->select([
+                'quizzes.id',
+                'quizzes.curriculum_node_id',
+                'quizzes.blueprint_version',
+                'user_academic_contexts.id as academic_context_id',
+            ])
             ->first();
 
         if ($quiz === null) {
             throw new ApiProblemException(404, 'RESOURCE_NOT_FOUND', 'Resource not found', 'The published quiz is unavailable in the active academic context.');
         }
 
-        /** @var array{id: string, curriculum_node_id: string, blueprint_version: int} $quizRow */
+        /** @var array{id: string, curriculum_node_id: string, blueprint_version: int, academic_context_id: string} $quizRow */
         $quizRow = (array) $quiz;
         $sourceQuestions = array_values(DB::table('quiz_questions')
             ->join('questions', 'questions.id', '=', 'quiz_questions.question_id')
@@ -72,6 +82,7 @@ final class AttemptService
         DB::table('attempts')->insert([
             'id' => $attemptId,
             'user_id' => $user->getKey(),
+            'academic_context_id' => $quizRow['academic_context_id'],
             'quiz_id' => $quizId,
             'status' => 'in_progress',
             'seed_encrypted' => Crypt::encryptString(base64_encode($seed)),
@@ -144,12 +155,14 @@ final class AttemptService
 
         return [
             'id' => $attempt['id'],
+            'academic_context_id' => $attempt['academic_context_id'],
             'quiz_id' => $attempt['quiz_id'],
             'status' => $attempt['status'],
             'blueprint_version' => (int) $attempt['blueprint_version'],
             'ordering_algorithm' => $attempt['ordering_algorithm'],
             'started_at' => CarbonImmutable::parse($attempt['started_at'])->toIso8601String(),
             'completed_at' => $attempt['completed_at'] === null ? null : CarbonImmutable::parse($attempt['completed_at'])->toIso8601String(),
+            'archived_at' => $attempt['archived_at'] === null ? null : CarbonImmutable::parse($attempt['archived_at'])->toIso8601String(),
             'questions' => $questions,
         ];
     }
@@ -276,8 +289,13 @@ final class AttemptService
         /** @var array{curriculum_node_id: string, blueprint_version: int} $quizRow */
         $quizRow = (array) $quiz;
         $mastery = $maxScore > 0 ? $score / $maxScore : 0.0;
+        $academicContextId = $attempt['academic_context_id'];
+        if (! is_string($academicContextId)) {
+            throw new ApiProblemException(500, 'ATTEMPT_CONTEXT_MISSING', 'Attempt cannot update progress', 'The attempt academic context is unavailable.');
+        }
         $progressScope = [
             'user_id' => $user->getKey(),
+            'academic_context_id' => $academicContextId,
             'curriculum_node_id' => $quizRow['curriculum_node_id'],
             'source_version' => (int) $quizRow['blueprint_version'],
         ];
@@ -286,11 +304,13 @@ final class AttemptService
             'calculated_at' => $completedAt,
             'updated_at' => $completedAt,
         ];
-        if (DB::table('progress_snapshots')->where($progressScope)->exists()) {
-            DB::table('progress_snapshots')->where($progressScope)->update($progressValues);
+        $progressId = DB::table('progress_snapshots')->where($progressScope)->value('id');
+        if (is_string($progressId)) {
+            DB::table('progress_snapshots')->where('id', $progressId)->update($progressValues);
         } else {
+            $progressId = (string) Str::ulid();
             DB::table('progress_snapshots')->insert([
-                'id' => (string) Str::ulid(),
+                'id' => $progressId,
                 ...$progressScope,
                 ...$progressValues,
                 'created_at' => $completedAt,
@@ -301,7 +321,7 @@ final class AttemptService
             'submitted_at' => $completedAt->toIso8601String(),
             'answered_count' => $answeredCount,
         ]);
-        $this->outbox('progress_snapshot', $quizRow['curriculum_node_id'], 'progress.snapshot_updated', [
+        $this->outbox('progress_snapshot', $progressId, 'progress.snapshot_updated', [
             'curriculum_node_id' => $quizRow['curriculum_node_id'],
             'source_version' => (int) $quizRow['blueprint_version'],
         ]);

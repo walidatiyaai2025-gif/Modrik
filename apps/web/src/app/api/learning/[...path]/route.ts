@@ -2,6 +2,7 @@ const ulid = "[0-9A-HJKMNP-TV-Z]{26}";
 const allowedPaths = [
   /^session$/,
   /^academic-context$/,
+  /^academic-context\/(activate|reset)$/,
   new RegExp(`^lessons/${ulid}$`),
   /^progress$/,
   /^attempts$/,

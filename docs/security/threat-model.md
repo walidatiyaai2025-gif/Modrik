@@ -10,6 +10,7 @@ Canonical assets are student accounts, academic history, answers, attempts, prog
 | --- | --- | --- |
 | Account takeover/linking confusion | Verified provider subject plus provider, explicit authenticated linking, recent-auth checks for sensitive changes, session revocation, rate limits, no email-only auto-linking. | Auth abuse-case integration tests. |
 | Horizontal authorization | Backend derives actor from session and scopes every resource query; opaque IDs are not authorization. | Cross-user API tests. |
+| Academic-history loss or cross-track bleed | User-row serialization, reset-only track changes, explicit context IDs on attempts/progress, archive markers, transition audit, and active-context read filters. | REQ-P0-002 lifecycle/replay/preservation tests. |
 | Attempt manipulation | Server-only seed/order, persisted immutable positions and snapshots, state-machine guards, correct answers stripped from student payloads. | AC-P0-002..005 tests. |
 | Replay/duplicate offline writes | Scoped idempotency records, canonical request hash, optimistic answer revision, transactional domain write plus outbox. | Timeout/replay/conflict tests. |
 | Malicious returned ZIP | File count/size/ratio limits, normalized paths, no symlinks/traversal, media allowlist, per-file SHA-256, schema and semantic validation, staging before publication. | Golden malicious/invalid archives. |
