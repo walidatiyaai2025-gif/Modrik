@@ -1,5 +1,7 @@
 <?php
 
+$diagnosticRetentionDays = env('MODRIK_DIAGNOSTIC_RETENTION_DAYS');
+
 return [
     'fixture' => [
         'enabled' => (bool) env('MODRIK_FIXTURE_MODE', false),
@@ -52,6 +54,20 @@ return [
         'maximum_attempts' => 5,
         'initial_backoff_seconds' => 60,
         'maximum_backoff_seconds' => 3_600,
+    ],
+    'observability' => [
+        'enabled' => (bool) env('MODRIK_OBSERVABILITY_ENABLED', true),
+        'storage_enabled' => (bool) env('MODRIK_DIAGNOSTIC_STORAGE_ENABLED', true),
+        'inspector_enabled' => (bool) env('MODRIK_RUNTIME_INSPECTOR_ENABLED', true),
+        'maximum_metadata_bytes' => (int) env('MODRIK_DIAGNOSTIC_METADATA_MAX_BYTES', 4_096),
+        'maximum_query_events' => (int) env('MODRIK_DIAGNOSTIC_QUERY_MAX_EVENTS', 200),
+        'maximum_export_events' => (int) env('MODRIK_DIAGNOSTIC_EXPORT_MAX_EVENTS', 500),
+        'maximum_export_bytes' => (int) env('MODRIK_DIAGNOSTIC_EXPORT_MAX_BYTES', 262_144),
+        'retention_days' => $diagnosticRetentionDays === null || $diagnosticRetentionDays === ''
+            ? null
+            : max(1, (int) $diagnosticRetentionDays),
+        'build_ref' => (string) env('MODRIK_BUILD_REF', ''),
+        'release_version' => (string) env('MODRIK_RELEASE_VERSION', ''),
     ],
     'paid_ai' => [
         'enabled' => (bool) env('MODRIK_PAID_AI_ENABLED', false),
