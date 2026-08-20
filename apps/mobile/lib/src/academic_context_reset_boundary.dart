@@ -30,6 +30,7 @@ class _AcademicContextResetBoundaryState
   List<AcademicTrack> _tracks = const [];
   String? _selectedTrackId;
   String? _operationKey;
+  String? _transitionMessage;
   bool _transitionBusy = false;
 
   MobileLearningController get controller => widget.controller;
@@ -46,6 +47,7 @@ class _AcademicContextResetBoundaryState
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
       _operationKey = null;
+      _transitionMessage = null;
       scheduleMicrotask(_loadCatalogue);
     }
   }
@@ -61,10 +63,11 @@ class _AcademicContextResetBoundaryState
       setState(() => _state = _CatalogueState.permission);
       return;
     }
+    final AcademicTrackCatalogueGateway catalogueGateway = gateway;
 
     setState(() => _state = _CatalogueState.loading);
     try {
-      final tracks = await gateway.academicTracks();
+      final tracks = await catalogueGateway.academicTracks();
       if (!mounted) return;
       final currentTrackId = controller.academicContext?.academicTrackId;
       final selected = tracks.any((track) => track.id == currentTrackId)
@@ -157,7 +160,7 @@ class _AcademicContextResetBoundaryState
                       const SizedBox(height: 12),
                       Text(copy.onboardingBody),
                       const SizedBox(height: 20),
-                      _catalogueBody(context, isReset: false),
+                      _onboardingCatalogueBody(context),
                     ],
                   ),
                 ),
@@ -169,7 +172,7 @@ class _AcademicContextResetBoundaryState
     );
   }
 
-  Widget _catalogueBody(BuildContext context, {required bool isReset}) {
+  Widget _onboardingCatalogueBody(BuildContext context) {
     switch (_state) {
       case _CatalogueState.loading:
         return Semantics(
@@ -205,14 +208,13 @@ class _AcademicContextResetBoundaryState
           onAction: _loadCatalogue,
         );
       case _CatalogueState.ready:
-        final currentTrackId = controller.academicContext?.academicTrackId;
         final effectiveSelection = _selectedTrackId ?? _tracks.first.id;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DropdownButtonFormField<String>(
-              key: ValueKey('academic-track-$isReset'),
-              value: effectiveSelection,
+              key: const ValueKey('academic-track-onboarding'),
+              initialValue: effectiveSelection,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
                 for (final track in _tracks)
@@ -227,83 +229,201 @@ class _AcademicContextResetBoundaryState
                       setState(() {
                         _selectedTrackId = value;
                         _operationKey = null;
+                        _transitionMessage = null;
                       });
                     },
             ),
-            if (isReset) ...[
-              const SizedBox(height: 16),
-              Text(copy.resetBody),
-              const SizedBox(height: 8),
-              Text(copy.syncWarning),
-            ],
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: _transitionBusy ||
-                      controller.isBusy ||
-                      (isReset && effectiveSelection == currentTrackId)
+              onPressed: _transitionBusy || controller.isBusy
                   ? null
-                  : () => _applySelection(isReset: isReset),
+                  : _activateSelection,
               child: _transitionBusy
                   ? const SizedBox.square(
                       dimension: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text(isReset ? copy.confirm : copy.activate),
+                  : Text(copy.activate),
             ),
+            if (_transitionMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _transitionMessage!,
+                key: const ValueKey('academic-transition-error'),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
         );
     }
   }
 
-  Future<void> _showResetDialog(BuildContext context) async {
-    _selectedTrackId = controller.academicContext?.academicTrackId ??
-        _tracks.firstOrNull?.id;
-    _operationKey = null;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, refreshDialog) {
-          return AlertDialog(
-            scrollable: true,
-            title: Text(copy.resetTitle),
-            content: _catalogueBody(context, isReset: true),
-            actions: [
-              TextButton(
-                onPressed: _transitionBusy
-                    ? null
-                    : () => Navigator.of(dialogContext).pop(),
-                child: Text(copy.cancel),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _applySelection({required bool isReset}) async {
+  Future<void> _activateSelection() async {
     final selected = _selectedTrackId;
     if (selected == null) return;
-    setState(() => _transitionBusy = true);
+    setState(() {
+      _transitionBusy = true;
+      _transitionMessage = null;
+    });
     final key = _operationKey ??= newLogicalCommandKey();
-    if (isReset) {
-      await controller.resetAcademicContext(selected, idempotencyKey: key);
-    } else {
-      await controller.activateAcademicContext(selected, idempotencyKey: key);
-    }
+    await controller.activateAcademicContext(selected, idempotencyKey: key);
     if (!mounted) return;
     final succeeded = controller.academicContext?.academicTrackId == selected &&
         controller.academicContext?.state == 'active';
     setState(() {
       _transitionBusy = false;
-      if (succeeded) _operationKey = null;
-    });
-    if (succeeded) {
-      await _loadCatalogue();
-      if (isReset && mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
+      if (succeeded) {
+        _operationKey = null;
+      } else {
+        _transitionMessage = copy.transitionFailed;
       }
+    });
+    if (succeeded) await _loadCatalogue();
+  }
+
+  Future<void> _showResetDialog(BuildContext context) async {
+    final currentTrackId = controller.academicContext?.academicTrackId;
+    final alternatives = _tracks
+        .where((track) => track.id != currentTrackId)
+        .toList(growable: false);
+    if (alternatives.isEmpty) return;
+
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => _ResetDialog(
+        controller: controller,
+        tracks: alternatives,
+        copy: copy,
+      ),
+    );
+    if (changed == true && mounted) {
+      await _loadCatalogue();
     }
+  }
+}
+
+class _ResetDialog extends StatefulWidget {
+  const _ResetDialog({
+    required this.controller,
+    required this.tracks,
+    required this.copy,
+  });
+
+  final MobileLearningController controller;
+  final List<AcademicTrack> tracks;
+  final _CatalogueCopy copy;
+
+  @override
+  State<_ResetDialog> createState() => _ResetDialogState();
+}
+
+class _ResetDialogState extends State<_ResetDialog> {
+  late String _selectedTrackId;
+  String? _operationKey;
+  bool _confirmed = false;
+  bool _busy = false;
+  String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTrackId = widget.tracks.first.id;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = widget.copy;
+    final locale = widget.controller.locale;
+    return AlertDialog(
+      scrollable: true,
+      title: Text(copy.resetTitle),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButtonFormField<String>(
+            initialValue: _selectedTrackId,
+            decoration: InputDecoration(labelText: copy.trackLabel),
+            items: [
+              for (final track in widget.tracks)
+                DropdownMenuItem<String>(
+                  value: track.id,
+                  child: Text(track.label(locale), maxLines: 2),
+                ),
+            ],
+            onChanged: _busy
+                ? null
+                : (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _selectedTrackId = value;
+                      _operationKey = null;
+                      _confirmed = false;
+                      _message = null;
+                    });
+                  },
+          ),
+          const SizedBox(height: 16),
+          Text(copy.resetBody),
+          const SizedBox(height: 8),
+          Text(copy.syncWarning),
+          const SizedBox(height: 12),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _confirmed,
+            onChanged: _busy
+                ? null
+                : (value) => setState(() => _confirmed = value ?? false),
+            title: Text(copy.confirmConsequences),
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          if (_message != null)
+            Text(
+              _message!,
+              key: const ValueKey('academic-reset-error'),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+          child: Text(copy.cancel),
+        ),
+        FilledButton(
+          onPressed: _busy || !_confirmed ? null : _applyReset,
+          child: _busy
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(copy.confirm),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _applyReset() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    final key = _operationKey ??= newLogicalCommandKey();
+    await widget.controller.resetAcademicContext(
+      _selectedTrackId,
+      idempotencyKey: key,
+    );
+    if (!mounted) return;
+    final succeeded = widget.controller.academicContext?.academicTrackId ==
+            _selectedTrackId &&
+        widget.controller.academicContext?.state == 'active';
+    if (succeeded) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    setState(() {
+      _busy = false;
+      _message = widget.copy.transitionFailed;
+    });
   }
 }
 
@@ -353,8 +473,10 @@ class _CatalogueCopy {
       };
   String get onboardingBody => switch (locale) {
         ModrikLocale.ar => 'تظهر فقط المسارات التي صرّح بها الخادم لهذه الجلسة.',
-        ModrikLocale.en => 'Only tracks authorized by the backend for this learner are shown.',
-        ModrikLocale.fr => 'Seuls les parcours autorisés par le serveur pour cet élève sont affichés.',
+        ModrikLocale.en =>
+          'Only tracks authorized by the backend for this learner are shown.',
+        ModrikLocale.fr =>
+          'Seuls les parcours autorisés par le serveur pour cet élève sont affichés.',
       };
   String get trackLabel => switch (locale) {
         ModrikLocale.ar => 'المسار الأكاديمي',
@@ -377,34 +499,62 @@ class _CatalogueCopy {
         ModrikLocale.fr => 'Confirmer le changement de parcours',
       };
   String get resetBody => switch (locale) {
-        ModrikLocale.ar => 'سيؤرشف الخادم السياق السابق والمحاولات والتقدّم بدل حذفها، وقد تُنهى المحاولة الجارية.',
-        ModrikLocale.en => 'The backend archives the prior context, attempts, and progress instead of deleting them; in-progress work may be abandoned.',
-        ModrikLocale.fr => 'Le serveur archive l’ancien contexte, les tentatives et la progression au lieu de les supprimer ; un travail en cours peut être abandonné.',
+        ModrikLocale.ar =>
+          'سيؤرشف الخادم السياق السابق والمحاولات والتقدّم بدل حذفها، وقد تُنهى المحاولة الجارية.',
+        ModrikLocale.en =>
+          'The backend archives the prior context, attempts, and progress instead of deleting them; in-progress work may be abandoned.',
+        ModrikLocale.fr =>
+          'Le serveur archive l’ancien contexte, les tentatives et la progression au lieu de les supprimer ; un travail en cours peut être abandonné.',
       };
   String get syncWarning => switch (locale) {
-        ModrikLocale.ar => 'يجب مزامنة الإجابات والتغييرات المعلّقة قبل إعادة الضبط.',
-        ModrikLocale.en => 'Pending answers and changes must be synchronized before reset.',
-        ModrikLocale.fr => 'Les réponses et changements en attente doivent être synchronisés avant la réinitialisation.',
+        ModrikLocale.ar =>
+          'يجب مزامنة الإجابات والتغييرات المعلّقة قبل إعادة الضبط.',
+        ModrikLocale.en =>
+          'Pending answers and changes must be synchronized before reset.',
+        ModrikLocale.fr =>
+          'Les réponses et changements en attente doivent être synchronisés avant la réinitialisation.',
+      };
+  String get confirmConsequences => switch (locale) {
+        ModrikLocale.ar => 'أفهم نتائج الأرشفة وإعادة الضبط.',
+        ModrikLocale.en => 'I understand the archival reset consequences.',
+        ModrikLocale.fr =>
+          'Je comprends les conséquences de l’archivage et de la réinitialisation.',
       };
   String get empty => switch (locale) {
         ModrikLocale.ar => 'لا توجد مسارات أكاديمية مصرح بها حاليًا.',
         ModrikLocale.en => 'No academic tracks are currently authorized.',
-        ModrikLocale.fr => 'Aucun parcours académique n’est actuellement autorisé.',
+        ModrikLocale.fr =>
+          'Aucun parcours académique n’est actuellement autorisé.',
       };
   String get offline => switch (locale) {
-        ModrikLocale.ar => 'يلزم الاتصال لجلب قائمة المسارات المعتمدة أو تغيير السياق.',
-        ModrikLocale.en => 'Reconnect to load the authorized catalogue or change academic context.',
-        ModrikLocale.fr => 'Reconnectez-vous pour charger le catalogue autorisé ou changer de contexte.',
+        ModrikLocale.ar =>
+          'يلزم الاتصال لجلب قائمة المسارات المعتمدة أو تغيير السياق.',
+        ModrikLocale.en =>
+          'Reconnect to load the authorized catalogue or change academic context.',
+        ModrikLocale.fr =>
+          'Reconnectez-vous pour charger le catalogue autorisé ou changer de contexte.',
       };
   String get permission => switch (locale) {
         ModrikLocale.ar => 'لا تسمح الجلسة الحالية بقراءة قائمة المسارات.',
-        ModrikLocale.en => 'The current session cannot read the academic-track catalogue.',
-        ModrikLocale.fr => 'La session actuelle ne peut pas lire le catalogue des parcours.',
+        ModrikLocale.en =>
+          'The current session cannot read the academic-track catalogue.',
+        ModrikLocale.fr =>
+          'La session actuelle ne peut pas lire le catalogue des parcours.',
       };
   String get error => switch (locale) {
         ModrikLocale.ar => 'تعذر تحميل قائمة المسارات. حاول مرة أخرى.',
-        ModrikLocale.en => 'The academic-track catalogue could not be loaded. Retry.',
-        ModrikLocale.fr => 'Le catalogue des parcours n’a pas pu être chargé. Réessayez.',
+        ModrikLocale.en =>
+          'The academic-track catalogue could not be loaded. Retry.',
+        ModrikLocale.fr =>
+          'Le catalogue des parcours n’a pas pu être chargé. Réessayez.',
+      };
+  String get transitionFailed => switch (locale) {
+        ModrikLocale.ar =>
+          'لم يطبق الخادم الانتقال الأكاديمي. راجع الحالة وأعد المحاولة.',
+        ModrikLocale.en =>
+          'The backend did not apply the academic transition. Review the state and retry.',
+        ModrikLocale.fr =>
+          'Le serveur n’a pas appliqué la transition académique. Vérifiez l’état et réessayez.',
       };
   String get retry => switch (locale) {
         ModrikLocale.ar => 'إعادة المحاولة',
