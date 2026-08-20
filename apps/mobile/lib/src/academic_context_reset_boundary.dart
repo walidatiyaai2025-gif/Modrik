@@ -126,31 +126,31 @@ class _AcademicContextResetBoundaryState
       return widget.child;
     }
 
-    return Stack(
+    final lane = hasAlternative
+        ? Semantics(
+            button: true,
+            label: copy.change,
+            child: FilledButton.icon(
+              onPressed: controller.isBusy || _transitionBusy
+                  ? null
+                  : () => _showResetDialog(context),
+              icon: const Icon(Icons.swap_horiz_outlined),
+              label: Text(copy.change, textAlign: TextAlign.center),
+            ),
+          )
+        : _activeCatalogueStateCard();
+
+    return Column(
       children: [
-        widget.child,
-        PositionedDirectional(
-          start: 16,
-          end: 16,
-          bottom: 92,
-          child: SafeArea(
-            top: false,
+        Expanded(child: widget.child),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),
-                child: hasAlternative
-                    ? Semantics(
-                        button: true,
-                        label: copy.change,
-                        child: FilledButton.icon(
-                          onPressed: controller.isBusy || _transitionBusy
-                              ? null
-                              : () => _showResetDialog(context),
-                          icon: const Icon(Icons.swap_horiz_outlined),
-                          label: Text(copy.change, textAlign: TextAlign.center),
-                        ),
-                      )
-                    : _activeCatalogueStateCard(),
+                child: lane,
               ),
             ),
           ),
@@ -177,24 +177,23 @@ class _AcademicContextResetBoundaryState
     return Card(
       key: ValueKey('academic-catalogue-active-state-${_state.name}'),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Semantics(
           container: true,
           liveRegion: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
               if (loading)
                 const SizedBox.square(
-                  dimension: 28,
+                  dimension: 24,
                   child: CircularProgressIndicator(strokeWidth: 3),
                 )
               else
-                Icon(icon, size: 32),
-              const SizedBox(height: 8),
-              Text(message, textAlign: TextAlign.center),
+                Icon(icon, size: 28),
+              const SizedBox(width: 12),
+              Expanded(child: Text(message)),
               if (canRetry) ...[
-                const SizedBox(height: 12),
+                const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: _loadCatalogue,
                   icon: const Icon(Icons.refresh),
