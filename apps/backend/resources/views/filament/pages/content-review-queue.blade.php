@@ -25,8 +25,10 @@
             </div>
         </div>
 
-        @php($rows = $this->queueRows())
-        @php($pendingPublication = collect($rows)->firstWhere('id', $pendingPublicationImportId))
+        @php
+            $rows = $this->queueRows();
+            $pendingPublication = collect($rows)->firstWhere('id', $pendingPublicationImportId);
+        @endphp
         @if ($rows === [])
             <x-filament::section>
                 <div class="py-12 text-center">
@@ -191,7 +193,7 @@
                                         </div>
                                     @elseif ($status === 'imported')
                                         <div class="flex flex-wrap items-center gap-3">
-                                            <x-filament::button color="success" wire:click="requestPublication('{{ $row['id'] }}')" wire:loading.attr="disabled" wire:target="requestPublication('{{ $row['id'] }}')">
+                                            <x-filament::button color="success" wire:click="requestPublication('{{ $row['id'] }}')" wire:loading.attr="disabled">
                                                 {{ __('admin.actions.publish_official') }}
                                             </x-filament::button>
                                             <span class="text-xs text-gray-500">{{ __('admin.review.publish_help') }}</span>
