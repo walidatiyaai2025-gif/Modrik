@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   legalBlockers,
   publicHref,
@@ -108,7 +109,13 @@ export function PublicSite({ pageKey, locale }: { pageKey: PublicPageKey; locale
       <header className={styles.siteHeader}>
         <div className={styles.headerInner}>
           <a className={styles.brandLink} href={publicHref("landing", locale)} aria-label="MODRIK | مُدرك">
-            <img src="/brand/logo-horizontal.svg" alt="MODRIK | مُدرك" width="510" height="126" />
+            <Image
+              src="/brand/logo-horizontal.svg"
+              alt="MODRIK | مُدرك"
+              width={510}
+              height={126}
+              priority
+            />
           </a>
 
           <nav className={styles.primaryNav} aria-label={labels.primaryNavigation}>
