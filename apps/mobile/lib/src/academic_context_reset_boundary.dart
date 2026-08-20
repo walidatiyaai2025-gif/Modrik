@@ -63,7 +63,7 @@ class _AcademicContextResetBoundaryState
       setState(() => _state = _CatalogueState.permission);
       return;
     }
-    final AcademicTrackCatalogueGateway catalogueGateway = gateway;
+    final catalogueGateway = gateway as AcademicTrackCatalogueGateway;
 
     setState(() => _state = _CatalogueState.loading);
     try {
