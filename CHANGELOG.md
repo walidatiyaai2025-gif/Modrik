@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — BOOT-007 clean-checkout and CI proof
+
+- Proved exact commit `5fefa39897c45ce0816d3420f8b75fee535f41eb` from a fresh isolated clone installed only from committed Composer/npm/pub lockfiles; the checkout remained Git-clean after all gates.
+- Fixed two cold-start assumptions discovered by the proof: Web layout typing no longer depends on generated Next.js globals, and PHPUnit has an explicit deterministic test-only Laravel application key.
+- Opened draft PR #2 and passed GitHub Actions Bootstrap CI run `32365791153`: contracts, Backend, MariaDB 10.11.18 migrations, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review. Coming Soon Smoke run `32365791509` also passed.
+- Enabled GitHub Dependency Graph/Dependabot alerts after the dependency-review action correctly reported the repository feature was disabled; rerunning the unchanged dependency gate passed without weakening policy.
+- Migrations/contracts: no domain migrations or contract changes in BOOT-007; BOOT-008 domain implementation is now unblocked.
+- Next safe task: integrate PR #2 and execute the fixture-driven BOOT-008 vertical slice.
+
 ## 2026-08-20 — BOOT-001..006 bootstrap and contracts
 
 - Added Laravel 13.26.1 Backend with Filament 5.7.6/Livewire 4.4.1 Admin shell, Next.js 16.3.1 desktop-first Student Web shell, and Flutter Android/iOS Mobile shell. Production mobile identifiers remain explicit placeholders.
