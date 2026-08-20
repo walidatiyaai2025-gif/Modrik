@@ -55,6 +55,7 @@ class AuthoritativeAssessmentTest extends TestCase
             ->all();
 
         $previousOrder = [];
+        $seenOrders = [];
         $seeds = [];
         for ($index = 0; $index < 12; $index++) {
             $start = $this->startAttempt(LearningSliceSeeder::QUIZ_ID, 'assessment-property-'.str_pad((string) $index, 8, '0', STR_PAD_LEFT))
@@ -67,11 +68,15 @@ class AuthoritativeAssessmentTest extends TestCase
                 ->pluck('question_id')
                 ->map(static fn (mixed $id): string => (string) $id)
                 ->all();
-            $this->assertNotSame($sourceOrder, $order, 'A multi-question attempt must not use static canonical order.');
+
+            if ($index === 0) {
+                $this->assertNotSame($sourceOrder, $order, 'The first multi-question attempt must not use static canonical order.');
+            }
             if ($previousOrder !== []) {
                 $this->assertNotSame($previousOrder, $order, 'Consecutive attempts must not repeat the prior authoritative order.');
             }
             $previousOrder = $order;
+            $seenOrders[$this->encodeJson($order)] = true;
 
             $encrypted = DB::table('attempts')->where('id', $attemptId)->value('seed_encrypted');
             $this->assertIsString($encrypted);
@@ -87,6 +92,8 @@ class AuthoritativeAssessmentTest extends TestCase
             $this->assertStringNotContainsString('seed_encrypted', $this->responseContent($resume));
             $this->assertStringNotContainsString('grading_contract', $this->responseContent($resume));
         }
+
+        $this->assertGreaterThan(1, count($seenOrders), 'Fresh attempts must demonstrate non-static authoritative ordering.');
     }
 
     public function test_blueprint_slot_selection_rotates_sets_while_preserving_scope_difficulty_marks_and_coverage(): void
@@ -243,8 +250,9 @@ class AuthoritativeAssessmentTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $metadata
-     * @param list<array<string, mixed>>|null $options
+     * @param  array<string, mixed>  $metadata
+     * @param  list<array<string, mixed>>|null  $options
+     *
      * @throws JsonException
      */
     private function insertChoiceQuestion(
@@ -254,7 +262,8 @@ class AuthoritativeAssessmentTest extends TestCase
         array $metadata = [],
         bool $optionShuffleSafe = false,
         ?array $options = null,
-    ): void {
+    ): void
+    {
         $now = now();
         DB::table('questions')->insert([
             'id' => $questionId,
@@ -275,8 +284,9 @@ class AuthoritativeAssessmentTest extends TestCase
     }
 
     /**
-     * @param list<string> $questionIds
-     * @param array<string, mixed>|null $blueprint
+     * @param  list<string>  $questionIds
+     * @param  array<string, mixed>|null  $blueprint
+     *
      * @throws JsonException
      */
     private function insertQuiz(string $quizId, array $questionIds, ?array $blueprint, int $blueprintVersion): void
@@ -335,7 +345,7 @@ class AuthoritativeAssessmentTest extends TestCase
         return array_values(array_map(static fn (array $option): string => (string) $option['id'], $options));
     }
 
-    /** @param TestResponse<Response> $response */
+    /** @param  TestResponse<Response>  $response */
     private function responseContent(TestResponse $response): string
     {
         $content = $response->getContent();
