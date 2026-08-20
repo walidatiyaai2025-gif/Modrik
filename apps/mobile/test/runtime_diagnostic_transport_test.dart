@@ -20,6 +20,7 @@ const _catalogueServerCorrelation = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const _reconnectFailureCorrelation = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const _reconnectSuccessCorrelation = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const _syncServerCorrelation = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const _storageFailureCorrelation = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 
 void main() {
   test('learning request records backend-echoed correlation ID', () async {
@@ -101,6 +102,47 @@ void main() {
       );
       expect(event.correlationId, requestCorrelation);
       expect(validDiagnosticCorrelationId(event.correlationId), event.correlationId);
+    } finally {
+      await server.close(force: true);
+    }
+  });
+
+  test('diagnostic persistence faults cannot alter a successful learning result', () async {
+    final diagnostics = RuntimeDiagnostics(
+      config: _config,
+      persistence: _AlwaysThrowingDiagnosticsPersistence(),
+    );
+    await expectLater(diagnostics.initialize(), completes);
+
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      request.response.headers.set(
+        diagnosticCorrelationHeader,
+        _storageFailureCorrelation,
+      );
+      request.response.headers.contentType = ContentType.json;
+      request.response.write(jsonEncode({
+        'data': {'tracks': []},
+      }));
+      await request.response.close();
+    });
+
+    try {
+      final gateway = HttpLearningGateway(
+        baseUrl: Uri.parse(
+          'http://${server.address.address}:${server.port}/api/v1/',
+        ),
+        diagnostics: diagnostics,
+      );
+
+      expect(await gateway.academicTracks(), isEmpty);
+      await Future<void>.delayed(Duration.zero);
+
+      final event = diagnostics.events.singleWhere(
+        (candidate) => candidate.operation == 'learning.get.academic-tracks',
+      );
+      expect(event.result, 'success');
+      expect(event.correlationId, _storageFailureCorrelation);
     } finally {
       await server.close(force: true);
     }
@@ -277,4 +319,22 @@ void main() {
       await server.close(force: true);
     }
   });
+}
+
+class _AlwaysThrowingDiagnosticsPersistence
+    implements RuntimeDiagnosticsPersistence {
+  @override
+  Future<String?> read() async {
+    throw StateError('injected diagnostics read failure');
+  }
+
+  @override
+  Future<void> write(String encoded) async {
+    throw StateError('injected diagnostics write failure');
+  }
+
+  @override
+  Future<void> clear() async {
+    throw StateError('injected diagnostics clear failure');
+  }
 }
