@@ -12,6 +12,7 @@ use App\Support\Observability\RuntimeInspectorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -207,7 +208,7 @@ final class RuntimeObservabilityTest extends TestCase
         $timestamp = now('UTC')->addMilliseconds($index);
 
         return [
-            'id' => (string) \Illuminate\Support\Str::ulid(),
+            'id' => (string) Str::ulid(),
             'occurred_at' => $timestamp,
             'correlation_id' => sprintf('event-%02d-01J6MODRIK1234567', $index),
             'data_class' => 'application_log',
