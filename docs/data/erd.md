@@ -7,6 +7,9 @@ erDiagram
     users ||--o{ auth_identities : has
     users ||--o{ user_academic_contexts : selects
     academic_tracks ||--o{ user_academic_contexts : activates
+    users ||--o{ academic_context_transitions : changes
+    user_academic_contexts ||--o{ academic_context_transitions : transitions_from
+    user_academic_contexts ||--o{ academic_context_transitions : transitions_to
     academic_tracks ||--o{ curriculum_nodes : scopes
     curriculum_nodes ||--o{ curriculum_nodes : contains
     curriculum_nodes ||--o{ lessons : organizes
@@ -15,11 +18,13 @@ erDiagram
     quizzes ||--o{ quiz_questions : defines
     questions ||--o{ quiz_questions : includes
     users ||--o{ attempts : starts
+    user_academic_contexts ||--o{ attempts : scopes
     quizzes ||--o{ attempts : instantiates
     attempts ||--o{ attempt_questions : snapshots
     questions ||--o{ attempt_questions : sources
     attempt_questions ||--o{ attempt_answers : receives
     users ||--o{ progress_snapshots : owns
+    user_academic_contexts ||--o{ progress_snapshots : scopes
     curriculum_nodes ||--o{ progress_snapshots : measures
     users ||--o{ idempotency_keys : scopes
     preparation_requests ||--o{ preparation_imports : receives
@@ -58,6 +63,16 @@ erDiagram
       varchar status
       datetime activated_at
       datetime archived_at
+    }
+    academic_context_transitions {
+      char26 id PK
+      char26 user_id FK
+      char26 from_context_id FK_nullable
+      char26 to_context_id FK
+      varchar action
+      int archived_attempt_count
+      int archived_progress_count
+      datetime occurred_at
     }
     curriculum_nodes {
       char26 id PK
@@ -109,6 +124,7 @@ erDiagram
     attempts {
       char26 id PK
       char26 user_id FK
+      char26 academic_context_id FK
       char26 quiz_id FK
       binary32 seed_secret
       varchar ordering_algorithm
@@ -116,6 +132,7 @@ erDiagram
       varchar status
       datetime started_at
       datetime completed_at
+      datetime archived_at
     }
     attempt_questions {
       char26 id PK
@@ -135,10 +152,12 @@ erDiagram
     progress_snapshots {
       char26 id PK
       char26 user_id FK
+      char26 academic_context_id FK
       char26 curriculum_node_id FK
       decimal mastery
       int source_version
       datetime calculated_at
+      datetime archived_at
     }
     idempotency_keys {
       char26 id PK

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-ACADEMIC-001 academic-context archival reset
+
+- Added Issue #4 for REQ-P0-002 / AC-P0-010 and implemented idempotent onboarding activation plus reset-only changes to a different academic track.
+- Added a portable follow-up migration binding attempts and progress to the originating academic context, archive markers, a context-scoped progress uniqueness rule, safe backfill, and an immutable transition audit with archived-row counts.
+- Reset now serializes on the Backend-owned user, archives the old context/attempts/progress without deletion, marks in-progress attempts abandoned, activates the new context, and emits redacted transactional `academic.context_activated` / `academic.context_reset` events.
+- Updated OpenAPI, event catalog, ERD, data dictionary, contract validation, and the Next same-origin client/proxy for the new lifecycle endpoints and context identifiers.
+- Added integration coverage for onboarding, reset-required enforcement, exact idempotent replay, changed-payload conflicts, historical preservation, active-context isolation, and outbox redaction. Local Backend gates pass 8 tests/165 assertions; contracts (9 events), OpenAPI, Web build, and a SQLite migration forward/rollback/forward round trip pass.
+- MariaDB CI first exposed error 1553 because the prior progress unique index also backed its user foreign key. The portable repair creates the replacement user-leading index before dropping the old one and restores the reverse order on rollback; Bootstrap CI run `32370143748` then passed all seven jobs, including MariaDB 10.11.
+- Known boundary: only synthetic tracks are exercised; exact real board/syllabus/version remains owner-blocked. Production account authentication remains REQ-P0-001.
+
 ## 2026-08-20 — BOOT-008 fixture-driven learning slice
 
 - Added MariaDB-portable ULID domain migrations for academic context, curriculum, localized lessons/blocks, questions/quizzes, immutable attempts, revisioned answers, progress snapshots, keyed idempotency records, and transactional outbox events.

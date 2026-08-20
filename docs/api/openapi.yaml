@@ -74,6 +74,64 @@ paths:
               schema:
                 $ref: '#/components/schemas/AcademicContextResponse'
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/academic-context/activate:
+    post:
+      summary: Activate the first academic context after onboarding
+      operationId: activateAcademicContext
+      tags: [Academics]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcademicContextMutationRequest'
+      responses:
+        '201':
+          description: First active academic context. Existing active contexts require the reset endpoint.
+          headers:
+            Location:
+              schema: {type: string, format: uri-reference}
+            Idempotency-Replayed:
+              schema: {type: boolean}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicContextResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/academic-context/reset:
+    post:
+      summary: Archive the active academic context and activate a different track
+      operationId: resetAcademicContext
+      tags: [Academics]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcademicContextMutationRequest'
+      responses:
+        '200':
+          description: New active context; the prior context, attempts, and progress remain archived.
+          headers:
+            Idempotency-Replayed:
+              schema: {type: boolean}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicContextResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
   /v1/lessons/{lessonId}:
     parameters:
       - $ref: '#/components/parameters/LessonId'
@@ -385,6 +443,12 @@ components:
                 year_level: {type: string, minLength: 1, maxLength: 40}
                 activated_at: {type: string, format: date-time}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AcademicContextMutationRequest:
+      type: object
+      additionalProperties: false
+      required: [academic_track_id]
+      properties:
+        academic_track_id: {$ref: '#/components/schemas/Ulid'}
     LessonBlock:
       type: object
       additionalProperties: false
@@ -436,15 +500,18 @@ components:
     Attempt:
       type: object
       additionalProperties: false
-      required: [id, quiz_id, status, blueprint_version, ordering_algorithm, started_at, questions]
+      required: [id, academic_context_id, quiz_id, status, blueprint_version, ordering_algorithm, started_at, completed_at, archived_at, questions]
       properties:
         id: {$ref: '#/components/schemas/Ulid'}
+        academic_context_id: {$ref: '#/components/schemas/Ulid'}
         quiz_id: {$ref: '#/components/schemas/Ulid'}
         status: {type: string, enum: [in_progress, submitted, graded, abandoned]}
         blueprint_version: {type: integer, minimum: 1}
         ordering_algorithm: {type: string, const: modrik-fy-v1}
         started_at: {type: string, format: date-time}
         completed_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
+        archived_at:
           oneOf: [{type: 'null'}, {type: string, format: date-time}]
         questions:
           type: array
@@ -503,8 +570,9 @@ components:
           items:
             type: object
             additionalProperties: false
-            required: [curriculum_node_id, mastery, source_version, calculated_at]
+            required: [academic_context_id, curriculum_node_id, mastery, source_version, calculated_at]
             properties:
+              academic_context_id: {$ref: '#/components/schemas/Ulid'}
               curriculum_node_id: {$ref: '#/components/schemas/Ulid'}
               mastery: {type: number, minimum: 0, maximum: 1}
               source_version: {type: integer, minimum: 1}

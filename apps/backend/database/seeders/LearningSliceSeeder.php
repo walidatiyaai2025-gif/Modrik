@@ -22,6 +22,8 @@ class LearningSliceSeeder extends Seeder
 
     public const TOPIC_NODE_ID = '01J00000000000000000000034';
 
+    public const QUIZ_ID = '01J00000000000000000000020';
+
     /**
      * @throws JsonException
      */

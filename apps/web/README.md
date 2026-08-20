@@ -15,4 +15,6 @@ npm run build
 
 For the BOOT-008 local slice, migrate/seed and serve the Backend first. The same-origin `/api/learning/*` Route Handler reads the fixture bearer token only on the Next server and proxies the allowlisted learning endpoints. With the Backend running, `npm run smoke:fixture` proves session → context → lesson → answers → submit → progress over HTTP. Fixture credentials are never `NEXT_PUBLIC_` variables.
 
+The typed server proxy also allowlists academic-context activation/reset for the onboarding consumer. Real board/syllabus choices remain absent until owner-approved data exists.
+
 The application cannot depend on Vercel-only core behavior. Deployment remains target-neutral until cPanel capabilities are proven. Before Next.js changes, follow `AGENTS.md` and read the matching bundled guide in `node_modules/next/dist/docs/`.

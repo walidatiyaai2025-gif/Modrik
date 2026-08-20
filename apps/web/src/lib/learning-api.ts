@@ -47,17 +47,20 @@ export type AttemptQuestion = {
 
 export type Attempt = {
   id: string;
+  academic_context_id: string;
   quiz_id: string;
   status: "in_progress" | "submitted" | "graded" | "abandoned";
   blueprint_version: number;
   ordering_algorithm: "modrik-fy-v1";
   started_at: string;
   completed_at: string | null;
+  archived_at: string | null;
   questions: AttemptQuestion[];
 };
 
 export type AttemptResult = { attempt: Attempt; score: number; max_score: number };
 export type Progress = {
+  academic_context_id: string;
   curriculum_node_id: string;
   mastery: number;
   source_version: number;
@@ -119,6 +122,16 @@ function command(method: "POST" | "PUT", body: object | undefined, idempotencyKe
 export const learningApi = {
   session: () => requestData<Session>("session"),
   academicContext: () => requestData<AcademicContext>("academic-context"),
+  activateAcademicContext: (academicTrackId: string, idempotencyKey: string) =>
+    requestData<AcademicContext>(
+      "academic-context/activate",
+      command("POST", { academic_track_id: academicTrackId }, idempotencyKey),
+    ),
+  resetAcademicContext: (academicTrackId: string, idempotencyKey: string) =>
+    requestData<AcademicContext>(
+      "academic-context/reset",
+      command("POST", { academic_track_id: academicTrackId }, idempotencyKey),
+    ),
   lesson: (lessonId: string) => requestData<Lesson>(`lessons/${lessonId}`),
   progress: () => requestData<Progress[]>("progress"),
   startAttempt: (quizId: string, idempotencyKey: string) =>

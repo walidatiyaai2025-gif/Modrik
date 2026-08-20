@@ -154,10 +154,15 @@ assert.equal(openapi.components.parameters.IdempotencyKey.required, true);
 assert(openapi.components.schemas.LessonResponse.properties.data.required.includes("practice_quiz_id"));
 assert(openapi.components.schemas.AttemptResultResponse.properties.data.required.includes("attempt"));
 assert(openapi.paths["/v1/attempts/{attemptId}/submit"].post.responses["200"].headers["Idempotency-Replayed"]);
+assert.equal(openapi.components.schemas.AcademicContextMutationRequest.additionalProperties, false);
+assert(openapi.components.schemas.Attempt.required.includes("academic_context_id"));
+assert(openapi.paths["/v1/academic-context/reset"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
+assert(openapi.paths["/v1/academic-context/reset"].post.responses["200"].headers["Idempotency-Replayed"]);
 
 const eventCatalog = await readYaml("docs", "events", "event-catalog.yaml");
 assert.equal(eventCatalog.delivery.guarantee, "at_least_once");
 assertUnique(eventCatalog.events.map(({ type }) => type), "event types");
+assert(eventCatalog.events.some(({ type }) => type === "academic.context_reset"));
 
 const shell = await readFile(fromRoot("deploy", "coming-soon", "index.html"), "utf8");
 assert.match(shell, /https:\/\/modrik\.org\//);

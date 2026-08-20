@@ -21,4 +21,4 @@ Offline clients retain their logical command key until the server acknowledges t
 
 ## BOOT-008 implementation note
 
-Practice attempt creation and submission implement this contract. Storage contains only a keyed digest of the client key; submit reserves the key, grades and writes the outbox event in one transaction, stores the response, and returns an exact replay with `Idempotency-Replayed: true`. The Web workspace keeps one logical key in local storage across transport retries and clears it only after a recognized server response.
+Practice attempt creation/answers/submission and academic-context activation/reset implement this contract. Storage contains only a keyed digest of the client key; each command reserves the key, applies domain and outbox writes in one transaction, stores the response, and returns an exact replay with `Idempotency-Replayed: true`. The Web workspace keeps one logical key in local storage across transport retries and clears it only after a recognized server response.
