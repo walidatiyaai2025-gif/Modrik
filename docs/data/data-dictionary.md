@@ -1,11 +1,15 @@
 # P0 data dictionary
 
-Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offline-answer synchronization, and the P0-ASSESS-001 authoritative-assessment branch are physically represented for the synthetic fixture; unknown production curriculum, rights, and retention values intentionally remain unset.
+Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offline-answer synchronization, P0-ASSESS-001 authoritative assessment, and P0-AUTH-001 production account lifecycle are physically represented for the synthetic/test boundary; unknown production curriculum, rights, provider credentials, legal facts, and retention values intentionally remain unset.
 
 | Entity | Purpose | Required invariants and indexes |
 | --- | --- | --- |
-| `users` | Canonical account profile. | Unique normalized email when present; locale is `ar`, `en`, or `fr`; soft deletion triggers session revocation and future retention workflow. |
-| `auth_identities` | Provider identity linked to one user. | Unique `(provider, provider_subject)`; provider subject is never trusted as a MODRIK user ID. Production provider IDs remain configuration. |
+| `users` | Canonical MODRIK account profile. | `email_normalized` is the case-insensitive lookup/uniqueness key; `password_enabled` distinguishes password-capable vs provider-only accounts; `account_status` controls active/deleted lifecycle; `deleted_at` records logical deletion. Locale is `ar`, `en`, or `fr`. Logical deletion revokes Auth credentials while retaining the backend user ID for referential history. |
+| `auth_sessions` | Backend-owned opaque bearer sessions. | Raw bearer token is returned once; only SHA-256 `token_hash` is persisted and unique. User FK; expiry/revocation indexed; `authenticated_at` drives recent-auth; IP/user-agent context is HMAC-hashed, never stored raw. |
+| `auth_tokens` | One-time email-verification and password-reset credentials. | Unique SHA-256 `token_hash`; purpose + user indexed; expiry, consumption and revocation are authoritative; raw token is never persisted. Replacement/resend revokes prior unused tokens. |
+| `auth_provider_identities` | Google/Apple identity linked to one canonical user. | Unique `(provider, provider_subject)` is the binding key. Provider email/verified/Apple-relay flags are mutable metadata only. A subject cannot silently move between users; unlinking sets `revoked_at` and may not remove the last recovery identity. |
+| `auth_provider_intents` | One-time login/link handshake state for external identity providers. | Persists only SHA-256 `state_hash` and `nonce_hash`, provider, purpose, optional bound user, expiry/consumption. Link intents require an authenticated recent session; login intents are public but one-time/rate-limited. |
+| `auth_security_events` | Minimal Auth audit trail. | Opaque user/session IDs, stable `event_type`, optional HMAC `context_hash`, timestamp. No password, bearer, verification/reset token, provider assertion/subject, raw email, IP or user-agent. |
 | `academic_tracks` | Admin-managed curriculum/board/syllabus/year combination. | Unique stable `code`; board and syllabus may be null in fixtures only and cannot be guessed for real content. |
 | `user_academic_contexts` | Current and archived user track selections. | At most one `active` row per user, enforced transactionally; resets archive old rows. |
 | `academic_context_transitions` | Immutable activation/reset audit linking prior and new contexts. | Records actor-owned transition IDs and archived row counts; no attempt, answer, or PII payloads. |
@@ -31,6 +35,14 @@ Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offli
 | `outbox_events` | Transactional domain-event delivery. | Event ID is globally unique; unpublished rows indexed by `(published_at, occurred_at)`; payload excludes student PII, raw answers, seeds and grading contracts. |
 | `outbox_delivery_attempts` | Observable retry/checkpoint history for bounded outbox dispatch. | Unique `(outbox_event_id, attempt_number)`; status, timings, next retry, stable error code, and SHA-256 fingerprint only; no raw exception text. Published state remains on the outbox event. |
 
+## Production authentication lifecycle contract
+
+Laravel owns the canonical user, session and provider-link lifecycle. A password registration creates an active user with an unverified email and a backend-owned opaque session. Password-account learning mutations are gated until verification. Verification/recovery credentials are one-time and hashed at rest. Password reset revokes all active sessions; password change requires recent authentication and revokes other sessions plus outstanding reset tokens.
+
+Google/Apple login uses a one-time state/nonce intent and stable `provider_subject`. A verified provider email that matches an existing MODRIK account does not establish ownership and must return the explicit-link path. Apple private-relay email is metadata and can later disappear without creating another user. Production provider IDs, callbacks, issuer/audience values and Apple signing inputs are configuration/secret material outside repository data.
+
+Logical deletion is non-destructive to domain history: the canonical user ID remains, direct account identity is tombstoned, password auth disabled, sessions/tokens revoked, open provider intents consumed, and provider subject/email metadata scrubbed. Final hard-purge and retention periods remain owner/legal decisions.
+
 ## Authoritative assessment blueprint contract
 
 A quiz may omit `blueprint`, in which case every published `quiz_questions` row in the quiz curriculum scope is selected and the server shuffles question order when more than one question exists. A blueprint may instead provide `question_order` (`shuffle` or an explicit reviewed `fixed`) plus non-empty `slots`. Each slot has positive `count` and may constrain `section`, `difficulty`, numeric `marks`, and required concept `coverage`. The engine fails closed with a conflict when a published bank cannot satisfy the locked blueprint; it never relaxes scope, difficulty, marks, or coverage to fill a slot.
@@ -39,6 +51,9 @@ When more eligible candidates exist than a slot requires, consecutive new attemp
 
 ## Controlled status values
 
+- Account: `active`, `deleted` for current Auth P0 lifecycle.
+- Auth provider intent purpose: `login`, `link`; intent lifecycle is open until consumed or expired.
+- Auth provider identity: active when `revoked_at` is null; stable subject uniqueness remains even when revoked until explicit lifecycle handling.
 - Academic context: `active`, `archived`.
 - Publication: `draft`, `in_review`, `published`, `archived`.
 - Attempt: `in_progress`, `submitted`, `graded`, `abandoned`.
