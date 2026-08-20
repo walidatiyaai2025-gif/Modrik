@@ -89,17 +89,19 @@ class _ModrikAppState extends State<ModrikApp> {
     _tokenProvider = tokenProvider;
     _controller = _createProductionLearningController(config, tokenProvider);
     _ownsController = true;
+    final baseUrl = config.apiBaseUrl;
+    final AuthGateway authGateway = baseUrl != null
+        ? HttpAuthGateway(
+            baseUrl: baseUrl,
+            bearerTokenProvider: tokenProvider.call,
+          )
+        : const UnconfiguredAuthGateway();
     _authController = MobileAuthController(
-      gateway: config.apiBaseUrl case final baseUrl?
-          ? HttpAuthGateway(
-              baseUrl: baseUrl,
-              bearerTokenProvider: tokenProvider.call,
-            )
-          : const UnconfiguredAuthGateway(),
+      gateway: authGateway,
       credentialStore: const PlatformSecureAuthCredentialStore(),
       tokenProvider: tokenProvider,
       providerLauncher: const UnconfiguredProviderAuthLauncher(),
-      apiConfigured: config.apiBaseUrl != null,
+      apiConfigured: baseUrl != null,
       onSessionActivated: _onSessionActivated,
       canEndSession: _canEndCurrentSession,
       onExplicitSessionEnded: _onExplicitSessionEnded,
