@@ -144,14 +144,15 @@ final class RuntimeDiagnostics
                 $query->where('event_class', $normalized['event_class']);
             }
 
-            return $query
+            $events = $query
                 ->orderByDesc('recorded_at')
                 ->orderByDesc('id')
                 ->limit($boundedLimit)
                 ->get()
                 ->map(fn (object $row): array => $this->sanitizeStoredRow($row))
-                ->values()
                 ->all();
+
+            return array_values($events);
         } catch (Throwable) {
             return [];
         }
