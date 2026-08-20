@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -199,18 +198,23 @@ class RuntimeDiagnosticEvent {
   final String? fingerprint;
   final Map<String, Object> metadata;
 
-  Map<String, Object?> toJson() => {
-        'timestamp_utc': timestampUtc.toUtc().toIso8601String(),
-        'severity': severity.name,
-        'category': category,
-        'correlation_id': correlationId,
-        'operation': operation,
-        'result': result,
-        'connectivity': connectivity.name,
-        if (stableCode case final code?) 'stable_code': code,
-        if (fingerprint case final value?) 'fingerprint': value,
-        if (metadata.isNotEmpty) 'metadata': metadata,
-      };
+  Map<String, Object?> toJson() {
+    final json = <String, Object?>{
+      'timestamp_utc': timestampUtc.toUtc().toIso8601String(),
+      'severity': severity.name,
+      'category': category,
+      'correlation_id': correlationId,
+      'operation': operation,
+      'result': result,
+      'connectivity': connectivity.name,
+    };
+    final code = stableCode;
+    if (code != null) json['stable_code'] = code;
+    final safeFingerprint = fingerprint;
+    if (safeFingerprint != null) json['fingerprint'] = safeFingerprint;
+    if (metadata.isNotEmpty) json['metadata'] = metadata;
+    return json;
+  }
 }
 
 abstract interface class RuntimeDiagnosticsPersistence {
@@ -238,7 +242,7 @@ class FileRuntimeDiagnosticsPersistence implements RuntimeDiagnosticsPersistence
         await clear();
         return null;
       }
-      return file.readAsString();
+      return await file.readAsString();
     } on FileSystemException {
       return null;
     }
