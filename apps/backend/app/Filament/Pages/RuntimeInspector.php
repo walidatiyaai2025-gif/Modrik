@@ -79,7 +79,6 @@ final class RuntimeInspector extends Page
             $user instanceof User ? (string) $user->getAuthIdentifier() : null,
             [
                 'event_count' => $bundle['event_count'],
-                'filter_correlation_id' => $this->correlationId !== '' ? $this->correlationId : null,
             ],
             stableCode: 'DIAGNOSTIC_EXPORT',
         );
