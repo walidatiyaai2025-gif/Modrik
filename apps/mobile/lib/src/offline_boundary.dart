@@ -73,7 +73,7 @@ class MemoryAttemptSnapshotCache implements AttemptSnapshotCache {
 enum PendingLearningOperationType { answer }
 
 class PendingLearningOperation {
-  const PendingLearningOperation({
+  PendingLearningOperation({
     required this.localId,
     required this.type,
     required this.logicalCommandKey,
@@ -81,22 +81,22 @@ class PendingLearningOperation {
     required this.attemptId,
     required this.attemptQuestionId,
     required this.expectedRevision,
-    required this.value,
+    required Object? value,
     this.transportAttempted = false,
-  });
+  }) : value = freezeJsonValue(value);
 
   final String localId;
   final PendingLearningOperationType type;
 
   /// Stable random identifier mapped to Issue #14 `operation_id`.
-  /// Once transport is attempted, the operation payload becomes immutable and
-  /// the same identifier/payload pair is retained until acknowledgement.
+  /// Once transport is attempted, this frozen JSON payload and identifier are
+  /// retained together until acknowledgement.
   final String logicalCommandKey;
   final DateTime createdAt;
   final String attemptId;
   final String attemptQuestionId;
   final int expectedRevision;
-  final String value;
+  final Object? value;
   final bool transportAttempted;
 
   PendingLearningOperation markTransportAttempted() => PendingLearningOperation(
