@@ -1,6 +1,6 @@
 # P0 data dictionary
 
-Status: BOOT-008 physical slice implemented for the synthetic fixture; unknown production curriculum and retention values intentionally remain unset.
+Status: BOOT-008 learning and P0-CONTENT-001 preparation-staging slices are physically implemented for the synthetic fixture; unknown production curriculum, rights, and retention values intentionally remain unset.
 
 | Entity | Purpose | Required invariants and indexes |
 | --- | --- | --- |
@@ -20,9 +20,9 @@ Status: BOOT-008 physical slice implemented for the synthetic fixture; unknown p
 | `attempt_answers` | Revisioned answer state for one attempt question. | Unique `(attempt_question_id, revision)`; server validates attempt ownership/status and rejects stale conflicting revisions. |
 | `progress_snapshots` | Recomputable mastery/progress projection bound to an academic context. | Unique `(academic_context_id, curriculum_node_id, source_version)`; reset archives rather than deletes the projection, and canonical events/attempts remain the audit source. |
 | `idempotency_keys` | Exact-replay cache for retryable commands. | Unique actor/operation/key hash; request-hash mismatch is a conflict; never store secrets or raw authorization headers. |
-| `preparation_requests` | Immutable bundle-generation settings. | Unique request ID and SHA-256 hash of canonical normalized settings; schema version is explicit. |
-| `preparation_imports` | Validation/import run for a returned archive. | Unique request/archive hash or scoped idempotency key; no publishable write before validation succeeds. |
-| `preparation_import_files` | Resumable per-file checkpoint. | Unique `(preparation_import_id, path)`; declared and computed SHA-256 must match before processing. |
+| `preparation_requests` | Immutable, actor-owned bundle-generation settings and deterministic prompt. | ULID primary key; creator FK; SHA-256 of canonical normalized settings; explicit schema version; status indexed by creator. |
+| `preparation_imports` | Durable validation/staging result for a returned archive. | Uploader and archive SHA-256 are unique together; actual and untrusted claimed request IDs remain distinct; pack/rights metadata and structured validation summary are retained; `staged` never means published. |
+| `preparation_import_files` | Per-file validation checkpoint inside a staged import. | Unique `(preparation_import_id, path)`; allowed media type, byte count, and declared/computed SHA-256 are retained; only validated files receive rows. |
 | `outbox_events` | Transactional domain-event delivery. | Event ID is globally unique; unpublished rows indexed by `(published_at, occurred_at)`; payload excludes student PII by default. |
 
 ## Controlled status values
@@ -31,6 +31,6 @@ Status: BOOT-008 physical slice implemented for the synthetic fixture; unknown p
 - Publication: `draft`, `in_review`, `published`, `archived`.
 - Attempt: `in_progress`, `submitted`, `graded`, `abandoned`.
 - Preparation request: `ready`, `returned`, `expired`, `cancelled`.
-- Preparation import: `pending`, `validating`, `rejected`, `staged`, `imported`, `failed`.
+- Preparation import: `validating`, `rejected`, `staged`. Publication/import into curriculum tables is a separate, not-yet-implemented reviewed workflow.
 
 Enum changes are contract changes and require migrations, API/schema updates, and compatibility tests together.

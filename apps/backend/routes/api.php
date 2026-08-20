@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AcademicContextController;
 use App\Http\Controllers\Api\AttemptController;
+use App\Http\Controllers\Api\ContentPreparationController;
 use App\Http\Controllers\Api\LearningController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,4 +21,9 @@ Route::prefix('/v1')->middleware('auth.fixture')->group(function (): void {
     Route::get('/attempts/{attemptId}', [AttemptController::class, 'show'])->name('attempts.show');
     Route::put('/attempts/{attemptId}/answers/{attemptQuestionId}', [AttemptController::class, 'answer'])->name('attempts.answers.update');
     Route::post('/attempts/{attemptId}/submit', [AttemptController::class, 'submit'])->name('attempts.submit');
+
+    Route::prefix('/admin')->middleware('auth.content')->group(function (): void {
+        Route::post('/preparation-requests', [ContentPreparationController::class, 'create'])->name('preparation-requests.store');
+        Route::post('/preparation-imports/validate', [ContentPreparationController::class, 'validateImport'])->name('preparation-imports.validate');
+    });
 });

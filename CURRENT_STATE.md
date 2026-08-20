@@ -14,17 +14,18 @@ Updated: 2026-08-20
 - CI covers contract/OpenAPI/token validation, Backend Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fixture seeding plus the full Backend suite, Web audit/lint/typecheck/test/build, Flutter analyze/test, Gitleaks, and PR dependency review. GitHub Dependency Graph/Dependabot alerts are enabled so dependency review is enforceable.
 - BOOT-008 is integrated on `main` by merge commit `35453a885f41c14d6949bccf71903c28b4c29e15`: portable learning/assessment migrations, a disabled-by-default synthetic fixture boundary, localized lesson reads, server-authoritative practice attempts, revision-safe answers, idempotent submit/progress, transactional outbox events, and a desktop-first AR/EN/FR Web workspace.
 - Fixture authentication is deliberately not production authentication. It accepts one configured synthetic bearer token only while `MODRIK_FIXTURE_MODE=true`; full verified account/provider/session work remains outside this slice.
-- Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is implemented on `codex/req-p0-002-academic-reset` at `564cfbd270c8d300abf7515c5e466ef9070f426e`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. Draft PR #5 is the integration vehicle; no real board/syllabus input is assumed.
+- Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is integrated on `main` by merge commit `1512eabf0279cd0efc011b798e61e6850c171676`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. No real board/syllabus input is assumed.
+- Issue #6 (`P0-CONTENT-001`, REQ-P0-003/004 / AC-P0-006..008) is implemented on `codex/req-p0-004-content-staging`: Content Team/Admin authorization, deterministic preparation settings hash/prompt/bundle, file-aware idempotency, bounded returned-ZIP inspection, fixed v1 manifest/content schema and semantic validation, request/schema/hash/scope binding, fixture-only rights gating, durable rejected/staged audit/checkpoints, and transactional outbox events. The workflow deliberately stops before curriculum publication.
 
 ## Verification evidence
 
 - `npm audit --audit-level=moderate` — 0 vulnerabilities.
-- `npm run contracts:check` — 9 schemas, 14 REQs, 20 ACs, 9 events, OpenAPI structure, and fixtures passed.
+- `npm run contracts:check` — 9 schemas, 14 REQs, 20 ACs, 9 events, OpenAPI preparation contracts, and fixtures passed.
 - `npm run openapi:lint` and `npm run tokens:check` — passed.
-- Backend: Composer strict validation/audit, Pint, Larastan level 8, and PHPUnit (8 tests, 165 assertions) — passed on PHP 8.4.24. The academic-context migration also passed a separate SQLite forward → rollback → forward round trip.
+- Backend: Composer strict validation, Pint, Larastan level 8, and PHPUnit (13 tests, 382 assertions) — passed on PHP 8.4.24. The content-preparation migration passed a separate SQLite forward → rollback → forward round trip. The local Packagist advisory endpoint timed out twice during Composer audit; GitHub CI remains the authoritative dependency-audit proof for this branch.
 - Web: npm audit, ESLint, TypeScript, Node test, and Next.js production build — passed on Node 22.23.2. The build contains the same-origin allowlisted learning proxy and no public fixture credential.
 - The reusable fixture smoke traversed the actual Next route handler into a live Laravel server: session → context → localized lesson → three revisioned answers → idempotent submit → progress.
-- Mobile: Flutter analyze and widget test — passed locally on Flutter 3.44.8; CI is pinned to the current stable 3.47.1 for authoritative proof.
+- Mobile: Flutter 3.47.1 dependency resolution, analyze, and widget test — passed locally.
 - An isolated clone installed only from committed lockfiles and passed the complete root, Backend, Web, and Mobile gate sequence. The proof caught and fixed a generated Next.js type dependency and an implicit local Laravel `APP_KEY`; both cold-start assumptions are now explicit and test-only where appropriate.
 - Closing GitHub Actions runs `32366197749` (Bootstrap CI) and `32366197811` (Coming Soon Smoke) passed before PR #2 was merged. BOOT-008 Bootstrap CI run `32368815429` passed all seven jobs on 2026-08-20, including the strengthened MariaDB 10.11 fixture seed/full Backend suite, contracts, Backend, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
 - Issue #4 Bootstrap CI run `32370143748` passed all seven jobs. The first MariaDB attempt (`32369979913`) correctly caught index-order error 1553; commit `564cfbd` adds the replacement foreign-key-supporting index before dropping the old composite index, and the repaired MariaDB 10.11 migration/8-test suite is green.
@@ -37,4 +38,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Obtain green CI for this evidence-only handoff update, mark PR #5 ready, integrate it with an expected-head guard, then select the next unblocked P0 gap.
+Commit and publish Issue #6, obtain green MariaDB 10.11 and full repository CI, integrate with an expected-head guard, then select the next unblocked P0 gap from the REQ/AC index.

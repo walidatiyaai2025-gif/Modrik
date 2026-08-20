@@ -49,3 +49,4 @@ events:
     aggregate: preparation_import
     payload_required: [preparation_request_id, imported_file_count, imported_record_count]
     traceability: [REQ-P0-003, REQ-P0-004]
+    semantics: Returned archive was imported into validated staging only; this event never asserts curriculum publication.

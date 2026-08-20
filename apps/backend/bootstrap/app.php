@@ -2,6 +2,7 @@
 
 use App\Exceptions\ApiProblemException;
 use App\Http\Middleware\FixtureBearerAuthentication;
+use App\Http\Middleware\RequireContentRole;
 use App\Support\ApiResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'auth.fixture' => FixtureBearerAuthentication::class,
+            'auth.content' => RequireContentRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

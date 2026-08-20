@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-CONTENT-001 deterministic content preparation staging
+
+- Added Issue #6 for REQ-P0-003/004 and AC-P0-006..008, with Content Team/Admin-only preparation endpoints and explicit student-role denial.
+- Added immutable deterministic request persistence: canonical normalized settings, SHA-256 binding, fixed schema version, generated prompt, returned manifest bundle, scoped idempotency, and a redacted `content.preparation_requested` outbox event. Paid AI remains prohibited for the learning core.
+- Added durable returned-ZIP validation/staging with compressed/uncompressed size, entry/file-count and compression-ratio limits; normalized paths; traversal, symlink, duplicate, undeclared-file, media, byte-count, and SHA-256 checks; fixed Content Pack v1 schema/semantic checks; request/schema/settings/scope bindings; and synthetic-fixture-only automatic rights eligibility.
+- Rejected archives persist structured validation summaries and redacted rejection events for exact replay. Accepted files receive per-file validation checkpoints and a staging event, while curriculum row counts remain unchanged; publication is intentionally not implemented in this slice.
+- Updated OpenAPI, file-aware idempotency, event semantics, ERD/data dictionary, QA matrix, threat model, README, and contract assertions. Local Pint/Larastan and PHPUnit pass 13 tests/382 assertions; contracts/OpenAPI/tokens, SQLite migration forward/rollback/forward, root/Web npm audits, Web lint/typecheck/test/build, and Flutter 3.47.1 analyze/test pass. Composer strict validation passes; the local Packagist advisory endpoint timed out and remains subject to authoritative CI proof.
+- Known boundary: real content remains blocked on exact curriculum identifiers and rights evidence. Staging cannot publish curriculum, and production authentication remains REQ-P0-001.
+
 ## 2026-08-20 — P0-ACADEMIC-001 academic-context archival reset
 
 - Added Issue #4 for REQ-P0-002 / AC-P0-010 and implemented idempotent onboarding activation plus reset-only changes to a different academic track.
