@@ -1,8 +1,7 @@
 ---
 deployment:
   tasks:
-    # Copy this file to repository root as .cpanel.yml only after replacing
-    # CHANGE_ME_MODRIK_DOCROOT with the actual cPanel Document Root for modrik.org.
-    - export DEPLOYPATH=/home/solscool/CHANGE_ME_MODRIK_DOCROOT/
+    # Validated cPanel Document Root for modrik.org (2026-08-20)
+    - export DEPLOYPATH=/home/solscool/public_html/modrik.org/
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R deploy/coming-soon/. $DEPLOYPATH
