@@ -182,6 +182,26 @@ assert(eventCatalog.events.some(({ type }) => type === "academic.context_reset")
 assert(eventCatalog.events.some(({ type }) => type === "content.preparation_imported"));
 assert(eventCatalog.events.some(({ type }) => type === "safety.advertising_decision_evaluated"));
 
+const optionalAiBoundary = await readYaml("docs", "security", "optional-ai-boundary.yaml");
+assert.equal(optionalAiBoundary.enabled_by_default, false);
+assert.equal(optionalAiBoundary.core_dependency, "none");
+assert.equal(optionalAiBoundary.transport, "none");
+assert.deepEqual(optionalAiBoundary.providers, []);
+assertUnique(optionalAiBoundary.allowed_context_fields, "optional-AI allowed context fields");
+assertUnique(optionalAiBoundary.prohibited_context_fields, "optional-AI prohibited context fields");
+assert.equal(
+  optionalAiBoundary.allowed_context_fields.some((field) => optionalAiBoundary.prohibited_context_fields.includes(field)),
+  false,
+  "optional-AI allowed and prohibited context fields must not overlap",
+);
+for (const field of ["user_id", "email", "birth_date", "student_answer", "access_token", "session_cookie"]) {
+  assert(optionalAiBoundary.prohibited_context_fields.includes(field), `${field} must remain prohibited from optional-AI context`);
+}
+const modrikConfig = await readFile(fromRoot("apps", "backend", "config", "modrik.php"), "utf8");
+const backendEnvironment = await readFile(fromRoot("apps", "backend", ".env.example"), "utf8");
+assert.match(modrikConfig, /MODRIK_PAID_AI_ENABLED', false/);
+assert.match(backendEnvironment, /^MODRIK_PAID_AI_ENABLED=false$/m);
+
 const shell = await readFile(fromRoot("deploy", "coming-soon", "index.html"), "utf8");
 assert.match(shell, /https:\/\/modrik\.org\//);
 assert.doesNotMatch(shell, /eduomni|mizakra|toppers/i);
