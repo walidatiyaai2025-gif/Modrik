@@ -131,23 +131,22 @@ class HttpLearningGateway implements LearningGateway {
   HttpLearningGateway({
     required this.baseUrl,
     String? bearerToken,
-    String? Function()? bearerTokenProvider,
+    this.bearerTokenProvider,
     this.onAuthenticationRejected,
     this.onEmailVerificationRequired,
     HttpClient? client,
   })  : _staticBearerToken = bearerToken,
-        _bearerTokenProvider = bearerTokenProvider,
         _client = client ?? HttpClient();
 
   final Uri baseUrl;
   final String? _staticBearerToken;
-  final String? Function()? _bearerTokenProvider;
+  final String? Function()? bearerTokenProvider;
   final void Function()? onAuthenticationRejected;
   final void Function()? onEmailVerificationRequired;
   final HttpClient _client;
 
   String? get _bearerToken =>
-      _bearerTokenProvider?.call() ?? _staticBearerToken;
+      bearerTokenProvider?.call() ?? _staticBearerToken;
 
   @override
   Future<Session> session() async =>
