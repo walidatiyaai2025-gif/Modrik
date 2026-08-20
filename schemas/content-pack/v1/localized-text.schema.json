@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.modrik.org/content-pack/v1/localized-text.schema.json",
+  "title": "Localized text",
+  "type": "object",
+  "additionalProperties": false,
+  "minProperties": 1,
+  "properties": {
+    "ar": {"type": "string", "minLength": 1, "maxLength": 10000},
+    "en": {"type": "string", "minLength": 1, "maxLength": 10000},
+    "fr": {"type": "string", "minLength": 1, "maxLength": 10000}
+  }
+}

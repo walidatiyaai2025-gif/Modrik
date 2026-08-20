@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+.runtime/
 node_modules/
 vendor/
 .next/
@@ -8,5 +9,8 @@ out/
 build/
 .dart_tool/
 coverage/
+apps/backend/public/css/filament/
+apps/backend/public/fonts/filament/
+apps/backend/public/js/filament/
 .DS_Store
 *.log

@@ -1,0 +1,52 @@
+schema_version: 1.0.0
+updated: 2026-08-20
+completeness: kickoff_mirror_only
+locked_decisions:
+  - id: LOCK-P0-001
+    title: MODRIK implementation brand
+    decision: The implementation brand is MODRIK | مُدرك.
+    source_decision_ids: [D-051]
+  - id: LOCK-P0-002
+    title: Single canonical visual-token source
+    decision: packages/design-tokens/tokens.json is canonical across Student Web, Mobile, Admin, Landing, and Help.
+    source_decision_ids: [D-056]
+  - id: LOCK-P0-003
+    title: Canonical domain
+    decision: modrik.org is canonical; planned hosts are app, api, admin, and help.
+    source_decision_ids: [D-060]
+  - id: LOCK-P0-004
+    title: Pilot audience boundary
+    decision: The pilot is Kuwait, IG/British international pathway, Grade or Year 6–7; exact board, syllabus, version, and first real subjects remain owner inputs.
+    source_decision_ids: []
+  - id: LOCK-P0-005
+    title: Backend and administration stack
+    decision: PHP 8.4, Laravel 13, and Filament/Livewire own API, domain, and administration behavior.
+    source_decision_ids: []
+  - id: LOCK-P0-006
+    title: Pilot database
+    decision: Use portable Laravel behavior compatible with MariaDB 10.11.18; PostgreSQL is deferred.
+    source_decision_ids: []
+  - id: LOCK-P0-007
+    title: Student Web stack and experience
+    decision: Node.js 22.23.2, Next.js 16, TypeScript, and a first-class desktop/laptop UX; no Vercel-only core dependency.
+    source_decision_ids: []
+  - id: LOCK-P0-008
+    title: Mobile platform boundary
+    decision: Flutter stable targets Android and iOS; Windows is deferred.
+    source_decision_ids: []
+  - id: LOCK-P0-009
+    title: Canonical product data
+    decision: Laravel and MariaDB hold canonical product data; Firebase is auxiliary only.
+    source_decision_ids: []
+  - id: LOCK-P0-010
+    title: Paid AI independence
+    decision: The learning core has zero mandatory paid-AI dependency.
+    source_decision_ids: []
+  - id: LOCK-P0-011
+    title: Public-shell preservation
+    decision: deploy/coming-soon is the temporary public shell until the production Landing release is explicitly approved.
+    source_decision_ids: []
+  - id: LOCK-P0-012
+    title: Safe defaults for minors and community
+    decision: Ads, age-sensitive behavior, and community activation default safe when configuration is absent or stale; community is P1 activation with no direct messages.
+    source_decision_ids: []

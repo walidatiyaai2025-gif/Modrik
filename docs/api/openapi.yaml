@@ -1,0 +1,538 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: MODRIK API
+  version: 0.1.0
+  description: Bootstrap contract for the fixture-driven P0 vertical slice. Business rules and canonical state are backend-owned.
+  contact:
+    name: MODRIK Engineering
+    url: https://modrik.org/
+  license:
+    name: Proprietary
+servers:
+  - url: https://api.modrik.org
+    description: Planned production API; activation is owner-controlled.
+  - url: http://localhost:8000
+    description: Local development
+tags:
+  - name: System
+    description: Liveness and operational boundaries.
+  - name: Session
+    description: Current authenticated identity shell.
+  - name: Academics
+    description: Active academic context selected during onboarding.
+  - name: Lessons
+    description: Published lesson reads for the active context.
+  - name: Attempts
+    description: Server-authoritative practice and quiz attempts.
+  - name: Progress
+    description: Recomputable learning progress projections.
+  - name: Preparation
+    description: Admin-only deterministic content preparation and validation.
+paths:
+  /health:
+    get:
+      summary: Check API process health
+      operationId: getHealth
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Process is serving requests.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: {type: string, const: ok}
+        '400': {$ref: '#/components/responses/BadRequest'}
+  /v1/session:
+    get:
+      summary: Read the current session
+      operationId: getSession
+      tags: [Session]
+      responses:
+        '200':
+          description: Current authenticated session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/academic-context:
+    get:
+      summary: Read the active academic context
+      operationId: getAcademicContext
+      tags: [Academics]
+      responses:
+        '200':
+          description: Active academic context or an explicit onboarding state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicContextResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/lessons/{lessonId}:
+    parameters:
+      - $ref: '#/components/parameters/LessonId'
+    get:
+      summary: Read one published lesson
+      operationId: getPublishedLesson
+      tags: [Lessons]
+      responses:
+        '200':
+          description: Published lesson in the user's active academic context.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LessonResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+  /v1/attempts:
+    post:
+      summary: Start a new authoritative attempt
+      operationId: startAttempt
+      tags: [Attempts]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartAttemptRequest'
+      responses:
+        '201':
+          description: A new authoritative attempt. Seed is intentionally not exposed.
+          headers:
+            Location:
+              schema: {type: string, format: uri-reference}
+            Idempotency-Replayed:
+              schema: {type: boolean}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/attempts/{attemptId}:
+    parameters:
+      - $ref: '#/components/parameters/AttemptId'
+    get:
+      summary: Resume an existing attempt
+      operationId: getAttempt
+      tags: [Attempts]
+      responses:
+        '200':
+          description: Existing attempt with its immutable authoritative order.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+  /v1/attempts/{attemptId}/answers/{attemptQuestionId}:
+    parameters:
+      - $ref: '#/components/parameters/AttemptId'
+      - $ref: '#/components/parameters/AttemptQuestionId'
+    put:
+      summary: Record an answer revision
+      operationId: putAttemptAnswer
+      tags: [Attempts]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutAnswerRequest'
+      responses:
+        '200':
+          description: Authoritative answer revision.
+          headers:
+            Idempotency-Replayed:
+              schema: {type: boolean}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnswerResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/attempts/{attemptId}/submit:
+    parameters:
+      - $ref: '#/components/parameters/AttemptId'
+    post:
+      summary: Submit an attempt
+      operationId: submitAttempt
+      tags: [Attempts]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Submitted and synchronously graded fixture attempt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptResultResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+  /v1/progress:
+    get:
+      summary: Read active-context progress
+      operationId: getProgress
+      tags: [Progress]
+      responses:
+        '200':
+          description: Progress projection for the active academic context.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/admin/preparation-requests:
+    post:
+      summary: Create a content preparation request
+      operationId: createPreparationRequest
+      tags: [Preparation]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../../schemas/preparation/request.schema.json'
+      responses:
+        '201':
+          description: Immutable preparation request and bundle binding.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreparationRequestResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/admin/preparation-imports/validate:
+    post:
+      summary: Validate a returned preparation archive
+      operationId: validatePreparationImport
+      tags: [Preparation]
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [archive]
+              properties:
+                archive:
+                  type: string
+                  contentMediaType: application/zip
+                  contentEncoding: binary
+      responses:
+        '202':
+          description: Archive accepted for bounded validation; no content is published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreparationImportResponse'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+        pattern: '^[!-~]+$'
+    LessonId:
+      name: lessonId
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Ulid'}
+    AttemptId:
+      name: attemptId
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Ulid'}
+    AttemptQuestionId:
+      name: attemptQuestionId
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Ulid'}
+  responses:
+    BadRequest:
+      description: Missing idempotency key or malformed request.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    AuthenticationRequired:
+      description: Authentication is required.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    Forbidden:
+      description: Actor lacks permission.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    ResourceNotFound:
+      description: Resource is unavailable in the actor's scope.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    Conflict:
+      description: Authoritative state or idempotency conflict.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    ValidationFailed:
+      description: Semantic or field validation failed.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+  schemas:
+    Ulid:
+      type: string
+      pattern: '^[0-9A-HJKMNP-TV-Z]{26}$'
+      example: 01J00000000000000000000001
+    Locale:
+      type: string
+      enum: [ar, en, fr]
+    LocalizedText:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        ar: {type: string, minLength: 1, maxLength: 1000}
+        en: {type: string, minLength: 1, maxLength: 1000}
+        fr: {type: string, minLength: 1, maxLength: 1000}
+    ResponseMeta:
+      type: object
+      additionalProperties: false
+      required: [request_id]
+      properties:
+        request_id: {type: string, minLength: 16, maxLength: 64}
+    ProblemDetails:
+      $ref: '../../schemas/contracts/problem-details.schema.json'
+    SessionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [user_id, locale, roles]
+          properties:
+            user_id: {$ref: '#/components/schemas/Ulid'}
+            locale: {$ref: '#/components/schemas/Locale'}
+            roles:
+              type: array
+              uniqueItems: true
+              items: {type: string, enum: [student, guardian, content_team, admin]}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AcademicContextResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [state]
+              properties:
+                state: {type: string, const: onboarding_required}
+            - type: object
+              additionalProperties: false
+              required: [state, context_id, academic_track_id, year_level, activated_at]
+              properties:
+                state: {type: string, const: active}
+                context_id: {$ref: '#/components/schemas/Ulid'}
+                academic_track_id: {$ref: '#/components/schemas/Ulid'}
+                year_level: {type: string, minLength: 1, maxLength: 40}
+                activated_at: {type: string, format: date-time}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    LessonBlock:
+      type: object
+      additionalProperties: false
+      required: [id, position, type, content]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        position: {type: integer, minimum: 1}
+        type: {type: string, enum: [heading, rich_text, callout, worked_example, media_reference]}
+        content: {type: object}
+    LessonResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [id, curriculum_node_id, content_version, title, blocks]
+          properties:
+            id: {$ref: '#/components/schemas/Ulid'}
+            curriculum_node_id: {$ref: '#/components/schemas/Ulid'}
+            content_version: {type: integer, minimum: 1}
+            title: {$ref: '#/components/schemas/LocalizedText'}
+            blocks:
+              type: array
+              items: {$ref: '#/components/schemas/LessonBlock'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    StartAttemptRequest:
+      type: object
+      additionalProperties: false
+      required: [quiz_id]
+      properties:
+        quiz_id: {$ref: '#/components/schemas/Ulid'}
+    AttemptQuestion:
+      type: object
+      additionalProperties: false
+      required: [attempt_question_id, position, type, prompt, response_contract]
+      properties:
+        attempt_question_id: {$ref: '#/components/schemas/Ulid'}
+        position: {type: integer, minimum: 1}
+        type: {type: string, enum: [single_choice, multiple_choice, short_text, numeric]}
+        prompt: {$ref: '#/components/schemas/LocalizedText'}
+        response_contract: {type: object}
+        current_answer:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Answer'
+    Attempt:
+      type: object
+      additionalProperties: false
+      required: [id, quiz_id, status, blueprint_version, ordering_algorithm, started_at, questions]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        quiz_id: {$ref: '#/components/schemas/Ulid'}
+        status: {type: string, enum: [in_progress, submitted, graded, abandoned]}
+        blueprint_version: {type: integer, minimum: 1}
+        ordering_algorithm: {type: string, const: modrik-fy-v1}
+        started_at: {type: string, format: date-time}
+        completed_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
+        questions:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/AttemptQuestion'}
+    AttemptResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: {$ref: '#/components/schemas/Attempt'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    Answer:
+      type: object
+      additionalProperties: false
+      required: [revision, value, answered_at]
+      properties:
+        revision: {type: integer, minimum: 1}
+        value: {}
+        answered_at: {type: string, format: date-time}
+    PutAnswerRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_revision, value]
+      properties:
+        expected_revision: {type: integer, minimum: 0}
+        value: {}
+    AnswerResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: {$ref: '#/components/schemas/Answer'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AttemptResultResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Attempt'
+            - type: object
+              required: [score, max_score]
+              properties:
+                score: {type: number, minimum: 0}
+                max_score: {type: number, exclusiveMinimum: 0}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    ProgressResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [curriculum_node_id, mastery, source_version, calculated_at]
+            properties:
+              curriculum_node_id: {$ref: '#/components/schemas/Ulid'}
+              mastery: {type: number, minimum: 0, maximum: 1}
+              source_version: {type: integer, minimum: 1}
+              calculated_at: {type: string, format: date-time}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    PreparationRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [preparation_request_id, schema_version, settings_hash, status]
+          properties:
+            preparation_request_id: {$ref: '#/components/schemas/Ulid'}
+            schema_version: {type: string}
+            settings_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+            status: {type: string, enum: [ready, returned, expired, cancelled]}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    PreparationImportResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [preparation_import_id, status]
+          properties:
+            preparation_import_id: {$ref: '#/components/schemas/Ulid'}
+            status: {type: string, enum: [pending, validating, rejected, staged, imported, failed]}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+security:
+  - bearerAuth: []

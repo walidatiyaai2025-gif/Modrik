@@ -1,0 +1,14 @@
+{
+  "name": "@modrik/design-tokens",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./tokens.json",
+    "./tokens.css": "./tokens.css",
+    "./tokens.json": "./tokens.json"
+  },
+  "scripts": {
+    "test": "node scripts/validate.mjs"
+  }
+}

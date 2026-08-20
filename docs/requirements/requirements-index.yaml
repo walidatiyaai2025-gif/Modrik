@@ -1,0 +1,107 @@
+schema_version: 1.0.0
+updated: 2026-08-20
+completeness: kickoff_mirror_only
+sources:
+  - AGENTS.md
+  - docs/product/MASTER_PLAN_START_HERE.md
+  - docs/brand/BRAND_SYSTEM.md
+  - https://github.com/walidatiyaai2025-gif/Modrik/issues/1
+requirements:
+  - id: REQ-P0-001
+    title: Unified identity and account lifecycle
+    statement: Email/password, Google, and Apple identities attach safely to one backend-owned user profile with verification, recovery, deletion, and session revocation.
+    area: auth
+    priority: P0
+    acceptance_criteria: [AC-P0-013]
+    status: indexed
+  - id: REQ-P0-002
+    title: Locked active academic context
+    statement: Onboarding establishes an active academic track; a full reset archives historical mastery and attempts rather than deleting them.
+    area: academics
+    priority: P0
+    acceptance_criteria: [AC-P0-010]
+    status: indexed
+  - id: REQ-P0-003
+    title: Official curriculum governance
+    statement: Official curriculum content is managed by Admin or Content Team only and remains separate from student UGC.
+    area: content
+    priority: P0
+    acceptance_criteria: [AC-P0-006]
+    status: indexed
+  - id: REQ-P0-004
+    title: Deterministic content preparation workflow
+    statement: The Content Preparation Wizard creates a versioned prompt and preparation bundle, and returned ZIP imports are schema-bound and backend validated.
+    area: content
+    priority: P0
+    acceptance_criteria: [AC-P0-007, AC-P0-008]
+    status: indexed
+  - id: REQ-P0-005
+    title: Authoritative variable attempts
+    statement: The backend owns quiz and exam attempt selection, seeding, ordering, persistence, and immutable resume behavior.
+    area: assessment
+    priority: P0
+    acceptance_criteria: [AC-P0-002, AC-P0-003, AC-P0-004, AC-P0-005]
+    status: indexed
+  - id: REQ-P0-006
+    title: Offline-first learning workflows
+    statement: Downloaded study, practice, and mock content works offline and synchronizes answers and progress idempotently without data loss.
+    area: sync
+    priority: P0
+    acceptance_criteria: [AC-P0-009]
+    status: indexed
+  - id: REQ-P0-007
+    title: Desktop-first Student Web
+    statement: Student Web is a first-class desktop and laptop experience built with Next.js rather than a stretched mobile shell.
+    area: web
+    priority: P0
+    acceptance_criteria: [AC-P0-014, AC-P0-020]
+    status: indexed
+  - id: REQ-P0-008
+    title: Android and iOS student application
+    statement: A Flutter application serves Android and iOS while Windows remains deferred.
+    area: mobile
+    priority: P0
+    acceptance_criteria: [AC-P0-014]
+    status: indexed
+  - id: REQ-P0-009
+    title: Backend-owned business rules and administration
+    statement: Laravel owns domain rules and API state while Filament and Livewire provide the administration surface.
+    area: backend
+    priority: P0
+    acceptance_criteria: [AC-P0-001, AC-P0-016]
+    status: indexed
+  - id: REQ-P0-010
+    title: Safe advertising controls
+    statement: Advertising is backend controlled, defaults safe or off for under-13 or unknown age, preserves immutable no-ad zones, and has a global kill switch.
+    area: safety
+    priority: P0
+    acceptance_criteria: [AC-P0-011, AC-P0-012]
+    status: indexed
+  - id: REQ-P0-011
+    title: Public trust and guidance surfaces
+    statement: Professional landing, Help, user and admin guidance, and public legal pages are P0 release deliverables; final legal wording requires owner review.
+    area: release
+    priority: P0
+    acceptance_criteria: [AC-P0-018, AC-P0-019]
+    status: indexed
+  - id: REQ-P0-012
+    title: Multilingual accessible experience
+    statement: Arabic, English, and French; RTL and LTR; accessibility; and large-text behavior are product requirements across applicable surfaces.
+    area: experience
+    priority: P0
+    acceptance_criteria: [AC-P0-014]
+    status: indexed
+  - id: REQ-P0-013
+    title: Zero mandatory paid-AI core dependency
+    statement: Learning-core operation cannot require a paid AI API, and optional AI assistance cannot receive student PII by default.
+    area: architecture
+    priority: P0
+    acceptance_criteria: [AC-P0-015]
+    status: indexed
+  - id: REQ-P0-014
+    title: cPanel-compatible pilot operation
+    statement: P0 supports MariaDB, database-backed queues, and cron-compatible workers without Redis or a daemon hard dependency.
+    area: operations
+    priority: P0
+    acceptance_criteria: [AC-P0-016, AC-P0-017]
+    status: indexed

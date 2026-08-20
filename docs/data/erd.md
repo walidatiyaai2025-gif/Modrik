@@ -1,0 +1,196 @@
+# P0 logical ERD
+
+Status: bootstrap contract, 2026-08-20. Physical migrations must preserve this intent and MariaDB 10.11 portability.
+
+```mermaid
+erDiagram
+    users ||--o{ auth_identities : has
+    users ||--o{ user_academic_contexts : selects
+    academic_tracks ||--o{ user_academic_contexts : activates
+    academic_tracks ||--o{ curriculum_nodes : scopes
+    curriculum_nodes ||--o{ curriculum_nodes : contains
+    curriculum_nodes ||--o{ lessons : organizes
+    lessons ||--o{ lesson_blocks : contains
+    curriculum_nodes ||--o{ questions : classifies
+    quizzes ||--o{ quiz_questions : defines
+    questions ||--o{ quiz_questions : includes
+    users ||--o{ attempts : starts
+    quizzes ||--o{ attempts : instantiates
+    attempts ||--o{ attempt_questions : snapshots
+    questions ||--o{ attempt_questions : sources
+    attempt_questions ||--o{ attempt_answers : receives
+    users ||--o{ progress_snapshots : owns
+    curriculum_nodes ||--o{ progress_snapshots : measures
+    users ||--o{ idempotency_keys : scopes
+    preparation_requests ||--o{ preparation_imports : receives
+    preparation_imports ||--o{ preparation_import_files : checkpoints
+    outbox_events }o--|| users : actor_optional
+
+    users {
+      char26 id PK
+      varchar email UK
+      varchar password_hash
+      varchar locale
+      datetime email_verified_at
+      datetime deleted_at
+      datetime created_at
+      datetime updated_at
+    }
+    auth_identities {
+      char26 id PK
+      char26 user_id FK
+      varchar provider
+      varchar provider_subject
+      datetime linked_at
+    }
+    academic_tracks {
+      char26 id PK
+      varchar code UK
+      varchar board_code_nullable
+      varchar syllabus_version_nullable
+      varchar year_level
+      varchar status
+    }
+    user_academic_contexts {
+      char26 id PK
+      char26 user_id FK
+      char26 academic_track_id FK
+      varchar status
+      datetime activated_at
+      datetime archived_at
+    }
+    curriculum_nodes {
+      char26 id PK
+      char26 academic_track_id FK
+      char26 parent_id FK_nullable
+      varchar type
+      varchar code
+      json title_i18n
+      varchar publication_status
+    }
+    lessons {
+      char26 id PK
+      char26 curriculum_node_id FK
+      varchar slug
+      json title_i18n
+      varchar publication_status
+      int content_version
+    }
+    lesson_blocks {
+      char26 id PK
+      char26 lesson_id FK
+      int position
+      varchar type
+      json content
+    }
+    questions {
+      char26 id PK
+      char26 curriculum_node_id FK
+      varchar type
+      json prompt_i18n
+      json answer_contract
+      int content_version
+      varchar publication_status
+    }
+    quizzes {
+      char26 id PK
+      char26 curriculum_node_id FK
+      varchar kind
+      json title_i18n
+      int blueprint_version
+      varchar publication_status
+    }
+    quiz_questions {
+      char26 quiz_id FK
+      char26 question_id FK
+      int source_position
+      decimal weight
+    }
+    attempts {
+      char26 id PK
+      char26 user_id FK
+      char26 quiz_id FK
+      binary32 seed_secret
+      varchar ordering_algorithm
+      int blueprint_version
+      varchar status
+      datetime started_at
+      datetime completed_at
+    }
+    attempt_questions {
+      char26 id PK
+      char26 attempt_id FK
+      char26 question_id FK
+      int position
+      json question_snapshot
+    }
+    attempt_answers {
+      char26 id PK
+      char26 attempt_question_id FK
+      int revision
+      json answer
+      decimal awarded_score
+      datetime answered_at
+    }
+    progress_snapshots {
+      char26 id PK
+      char26 user_id FK
+      char26 curriculum_node_id FK
+      decimal mastery
+      int source_version
+      datetime calculated_at
+    }
+    idempotency_keys {
+      char26 id PK
+      char26 user_id FK
+      varchar operation
+      varchar key_hash
+      char64 request_hash
+      smallint response_status
+      json response_body
+      datetime expires_at
+    }
+    preparation_requests {
+      char26 id PK
+      varchar schema_version
+      char64 settings_hash
+      json normalized_settings
+      varchar status
+      datetime created_at
+    }
+    preparation_imports {
+      char26 id PK
+      char26 preparation_request_id FK
+      varchar idempotency_key_hash
+      char64 archive_hash
+      varchar status
+      json validation_summary
+    }
+    preparation_import_files {
+      char26 id PK
+      char26 preparation_import_id FK
+      varchar path
+      char64 sha256
+      varchar status
+      int imported_records
+    }
+    outbox_events {
+      char26 id PK
+      char26 actor_user_id FK_nullable
+      varchar event_type
+      varchar aggregate_type
+      char26 aggregate_id
+      json payload
+      datetime occurred_at
+      datetime published_at
+    }
+```
+
+## Physical-design rules
+
+- All timestamps are UTC with application-level ISO 8601 serialization.
+- ULIDs are generated by the backend and stored as `char(26)` with ASCII-compatible collation.
+- Foreign keys and tenant/actor scopes are explicit. No client identifier establishes ownership.
+- JSON is used for versioned snapshots and localized value maps, not as a substitute for columns used by authorization, status filtering, joins, or ordering.
+- Published content is immutable by version. Updates create a new content version; attempts retain snapshots.
+- Soft deletion or archival is used where history is product-significant. Retention periods remain owner input.
