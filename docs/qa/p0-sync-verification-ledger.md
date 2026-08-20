@@ -55,8 +55,18 @@ flutter analyze
 flutter test
 ```
 
-Gitleaks and dependency review remain separate CI jobs. The final PR evidence section below must be updated with the exact green run before Issue #14 is declared merge-ready.
+Gitleaks and dependency review remain separate CI jobs.
 
-## Final CI evidence
+## Full green implementation CI evidence
 
-Pending focused PR run. Do not mark Issue #14 complete until every required job is green and the exact run/head SHA is recorded here.
+Focused PR #25 head `b9adb1f912f4be6cb0a5481acfbf389ef0a1f17a` passed Bootstrap CI run `32379996303` on 2026-08-20 with all seven required jobs green:
+
+- `contracts`: npm audit, JSON/schema/traceability contract validation, OpenAPI lint, and Brand token drift checks passed.
+- `backend`: PHP 8.4.24 Composer strict validation/audit, Pint, Larastan level 8, and the full SQLite Backend suite passed. The suite reports 604 assertions; repository-wide PHP deprecation warnings remain warnings rather than test failures.
+- `backend-mariadb`: MariaDB image `10.11.18` became healthy; `php artisan migrate:fresh --seed --force` successfully applied `2026_08_20_170000_create_answer_sync_acknowledgements_table`, then the same full 604-assertion Backend suite passed, including all four `OfflineAnswerSyncTest` scenarios.
+- `web`: npm audit, ESLint, TypeScript, Node tests, and Next.js production build passed without modifying Issue #17 presentation ownership.
+- `mobile`: Flutter dependency resolution, analyzer, and tests passed without modifying Issue #18 presentation ownership.
+- `secret-scan`: Gitleaks passed.
+- `dependency-review`: dependency review passed.
+
+This implementation run proves the functional/contract/database/security changes. The status/changelog evidence commits that follow it change documentation only; PR #25 must still have a green CI run on its final head before it is marked ready for review.
