@@ -29,4 +29,20 @@ The backend does not expose stack traces, SQL, file paths, provider tokens, atte
 | `RATE_LIMITED` | 429 | Request limit reached; retry metadata may be present. |
 | `SERVICE_UNAVAILABLE` | 503 | Bounded dependency outage or maintenance. |
 
+## Offline answer-sync acknowledgement codes
+
+`POST /v1/sync/answers` returns HTTP 200 for a structurally valid authenticated batch and reports each logical operation independently. These per-operation acknowledgements intentionally contain no `detail`, exception message, or raw answer value. Clients branch on `outcome`, `code`, and `retryable` only.
+
+| Code | Outcome | Meaning |
+| --- | --- | --- |
+| `SYNC_ANSWER_APPLIED` | `applied` | Authoritative answer revision committed and the durable acknowledgement was stored atomically. |
+| `SYNC_OPERATION_ID_REUSED` | `conflict` | The actor already used this operation ID for a different canonical operation payload; the original acknowledgement remains authoritative. |
+| `SYNC_OPERATION_IN_PROGRESS` | `conflict` | A matching operation reservation is not yet final; retry the same operation ID. |
+| `ANSWER_REVISION_CONFLICT` | `conflict` | The supplied expected revision is stale relative to Backend authority. |
+| `RESOURCE_NOT_FOUND` | `rejected` | The attempt or attempt question is absent or outside the authenticated actor scope. |
+| `ATTEMPT_NOT_EDITABLE` | `conflict` | Existing attempt authority no longer accepts answer changes. |
+| `ANSWER_VALUE_INVALID` | `rejected` | Existing answer validation rejected the supplied value. |
+
+Batch-shape errors remain ordinary `422 VALIDATION_FAILED` Problem Details responses and authentication failures remain `401 AUTHENTICATION_REQUIRED`. Unexpected server failures are not converted to durable failure acknowledgements; their operation transaction rolls back so the same operation ID can be retried safely.
+
 New codes are backward-compatible additions. Removing or changing semantics requires a versioned API change.
