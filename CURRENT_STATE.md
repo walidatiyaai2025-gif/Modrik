@@ -16,7 +16,7 @@ Updated: 2026-08-20
 - Fixture authentication is deliberately not production authentication. It accepts one configured synthetic bearer token only while `MODRIK_FIXTURE_MODE=true`; full verified account/provider/session work remains outside this slice.
 - Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is integrated on `main` by merge commit `1512eabf0279cd0efc011b798e61e6850c171676`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. No real board/syllabus input is assumed.
 - Issue #6 (`P0-CONTENT-001`, REQ-P0-003/004 / AC-P0-006..008) is integrated on `main` by merge commit `4effa22904c0f196e04eab6f377f2357eeb7cc67`: Content Team/Admin authorization, deterministic preparation settings hash/prompt/bundle, file-aware idempotency, bounded returned-ZIP inspection, fixed v1 manifest/content schema and semantic validation, request/schema/hash/scope binding, fixture-only rights gating, durable rejected/staged audit/checkpoints, and transactional outbox events. The workflow deliberately stops before curriculum publication.
-- Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is implemented on `codex/req-p0-010-safe-ads`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. No default policy, ad SDK/network, targeting profile, or production activation exists.
+- Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is implemented on `codex/req-p0-010-safe-ads` at `5de7f2dd980b95b8d4e6ed4776ab665783ac4a27`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. Draft PR #9 is the integration vehicle. No default policy, ad SDK/network, targeting profile, or production activation exists.
 
 ## Verification evidence
 
@@ -32,6 +32,7 @@ Updated: 2026-08-20
 - Issue #4 Bootstrap CI run `32370143748` passed all seven jobs. The first MariaDB attempt (`32369979913`) correctly caught index-order error 1553; commit `564cfbd` adds the replacement foreign-key-supporting index before dropping the old composite index, and the repaired MariaDB 10.11 migration/8-test suite is green.
 - Issue #6 Bootstrap CI run `32372077739` passed all seven jobs: contracts/OpenAPI/tokens, Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fresh fixture seed plus the full 13-test suite, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
 - Issue #6 evidence commit Bootstrap CI run `32372203529` also passed all seven jobs before PR #7 was merged with the expected-head guard.
+- Issue #8 Bootstrap CI run `32373180861` passed all seven jobs: contracts/OpenAPI/tokens, Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fresh fixture seed plus the full 16-test suite, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
 
 ## External blockers
 
@@ -41,4 +42,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Commit and publish Issue #8, obtain green MariaDB 10.11 and full repository CI, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.
+Obtain green CI for the Issue #8 evidence commit, mark PR #9 ready, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.
