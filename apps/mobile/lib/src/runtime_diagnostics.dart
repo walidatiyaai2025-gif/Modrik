@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+
+import 'runtime_correlation.dart';
 
 enum DiagnosticSeverity { debug, info, warn, error, critical }
 
 enum DiagnosticConnectivity { unknown, online, offline }
 
-const mobileCorrelationHeader = 'X-Correlation-ID';
-const _fallbackCorrelationHeader = 'X-Request-ID';
+const mobileCorrelationHeader = diagnosticCorrelationHeader;
+const _fallbackCorrelationHeader = diagnosticFallbackCorrelationHeader;
 
 final RegExp _safeIdentifierPattern = RegExp(r'^[A-Za-z0-9._:/-]{1,128}$');
 final RegExp _emailPattern = RegExp(
@@ -24,7 +25,6 @@ const Set<String> _safeMetadataKeys = {
   'operation_count',
   'pending_count',
   'retryable',
-  'source',
   'status_class',
 };
 
@@ -319,46 +319,58 @@ class RuntimeDiagnostics extends ChangeNotifier {
 
   Future<void> initialize() async {
     if (!enabled || _initialized) return;
+    var recoveredStorage = false;
     try {
       final encoded = await _persistence.read();
       if (encoded != null && encoded.isNotEmpty) {
         final decoded = jsonDecode(encoded);
-        if (decoded is List) {
-          final restored = <RuntimeDiagnosticEvent>[];
-          for (final item in decoded.whereType<Map>()) {
-            try {
-              restored.add(
-                RuntimeDiagnosticEvent.fromJson(Map<String, dynamic>.from(item)),
-              );
-            } on FormatException {
-              // Drop malformed historical diagnostic entries individually.
-            }
-          }
-          if (_events.isEmpty) {
-            _events.addAll(restored);
-          } else {
-            _events.insertAll(0, restored);
-          }
-          _enforceBounds();
+        if (decoded is! List) {
+          throw const FormatException('Invalid runtime diagnostic timeline.');
         }
+        final restored = <RuntimeDiagnosticEvent>[];
+        for (final item in decoded.whereType<Map>()) {
+          try {
+            restored.add(
+              RuntimeDiagnosticEvent.fromJson(Map<String, dynamic>.from(item)),
+            );
+          } on FormatException {
+            recoveredStorage = true;
+          }
+        }
+        if (_events.isEmpty) {
+          _events.addAll(restored);
+        } else {
+          _events.insertAll(0, restored);
+        }
+        _enforceBounds();
       }
     } on Object {
       await _persistence.clear();
       _events.clear();
+      recoveredStorage = true;
     } finally {
       _initialized = true;
+      if (recoveredStorage) {
+        _events.add(
+          RuntimeDiagnosticEvent(
+            timestampUtc: DateTime.now().toUtc(),
+            severity: DiagnosticSeverity.warn,
+            category: 'storage',
+            correlationId: 'local',
+            operation: 'diagnostics.restore',
+            result: 'recovered',
+            connectivity: DiagnosticConnectivity.unknown,
+            stableCode: 'MOBILE_DIAGNOSTICS_STORAGE_RECOVERED',
+          ),
+        );
+        _enforceBounds();
+        _schedulePersist();
+      }
       if (!_disposed) notifyListeners();
     }
   }
 
-  String newCorrelationId() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    final encoded = bytes
-        .map((value) => value.toRadixString(16).padLeft(2, '0'))
-        .join();
-    return 'mcr-$encoded';
-  }
+  String newCorrelationId() => createDiagnosticCorrelationId();
 
   void record({
     required DiagnosticSeverity severity,
@@ -487,10 +499,9 @@ class RuntimeDiagnostics extends ChangeNotifier {
   String responseCorrelationId(HttpHeaders headers, String fallback) {
     final candidate = headers.value(mobileCorrelationHeader) ??
         headers.value(_fallbackCorrelationHeader);
-    if (candidate == null || !_safeIdentifierPattern.hasMatch(candidate)) {
-      return sanitizeCorrelationId(fallback);
-    }
-    return sanitizeCorrelationId(candidate);
+    return validDiagnosticCorrelationId(candidate) ??
+        validDiagnosticCorrelationId(fallback) ??
+        createDiagnosticCorrelationId();
   }
 
   void _enforceBounds() {
@@ -511,7 +522,13 @@ class RuntimeDiagnostics extends ChangeNotifier {
     final snapshot = jsonEncode(
       _events.map((event) => event.toJson()).toList(growable: false),
     );
-    _writeTail = _writeTail.then((_) => _persistence.write(snapshot));
+    _writeTail = _writeTail.then((_) async {
+      try {
+        await _persistence.write(snapshot);
+      } on Object {
+        // A custom persistence adapter must not make diagnostics fatal.
+      }
+    });
   }
 
   @override
@@ -522,6 +539,9 @@ class RuntimeDiagnostics extends ChangeNotifier {
 }
 
 String sanitizeCorrelationId(String value) {
+  final valid = validDiagnosticCorrelationId(value);
+  if (valid != null) return valid;
+  if (value == 'local') return value;
   return sanitizeDiagnosticIdentifier(value, fallback: 'unknown');
 }
 
@@ -547,12 +567,8 @@ Map<String, Object> sanitizeDiagnosticMetadata(Map<String, Object?> metadata) {
       safe[key] = value as Object;
     } else if (value is double && value.isFinite) {
       safe[key] = value;
-    } else if (value is String) {
-      if (_emailPattern.hasMatch(value) || _looksSensitiveValue(value)) {
-        safe[key] = 'redacted';
-      } else {
-        safe[key] = sanitizeDiagnosticIdentifier(value);
-      }
+    } else if (value is String && key == 'status_class') {
+      safe[key] = sanitizeDiagnosticIdentifier(value);
     }
   }
   return Map.unmodifiable(safe);
