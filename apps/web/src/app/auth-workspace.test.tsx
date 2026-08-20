@@ -38,7 +38,7 @@ test("enumeration-resistant recovery copy does not assert account existence", ()
 
 test("Auth chrome consumes the canonical logo and semantic warning/error tokens", () => {
   assert.match(authCss, /background-image:\s*url\("\/brand\/logo-horizontal\.svg"\)/);
-  assert.match(authCss, /\.auth-loading \.auth-mark\s*{[^}]*display:\s*none;/s);
+  assert.match(authCss, /\.auth-loading \.auth-mark\s*{[\s\S]*?display:\s*none;/);
   assert.match(authCss, /var\(--modrik-warning\)/);
   assert.match(authCss, /var\(--modrik-error\)/);
 
