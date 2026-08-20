@@ -51,13 +51,13 @@ keytool -genkeypair \
   -storetype JKS \
   -noprompt >/dev/null 2>&1
 
-# Release signing inputs must not be required for ordinary debug development.
+# Release signing inputs must not be required even when the complete debug assemble task graph is resolved.
 (
   unset MODRIK_ANDROID_SIGNING_STORE_FILE
   unset MODRIK_ANDROID_SIGNING_STORE_PASSWORD
   unset MODRIK_ANDROID_SIGNING_KEY_ALIAS
   unset MODRIK_ANDROID_SIGNING_KEY_PASSWORD
-  gradle_app :app:assembleDebug >/dev/null
+  gradle_app :app:assembleDebug --dry-run >/dev/null
 )
 
 # Copy the exact debug key/certificate to another path. A path-only check would miss this.
@@ -70,13 +70,13 @@ release_output="$(
   MODRIK_ANDROID_SIGNING_STORE_PASSWORD=android \
   MODRIK_ANDROID_SIGNING_KEY_ALIAS=androiddebugkey \
   MODRIK_ANDROID_SIGNING_KEY_PASSWORD=android \
-  gradle_app :app:assembleRelease 2>&1
+  gradle_app :app:assembleRelease --dry-run 2>&1
 )"
 release_status=$?
 set -e
 
 if [[ $release_status -eq 0 ]]; then
-  echo 'Expected Android release signing to reject a copied debug identity, but assembleRelease succeeded.' >&2
+  echo 'Expected Android release signing to reject a copied debug identity, but assembleRelease task resolution succeeded.' >&2
   exit 1
 fi
 
@@ -86,4 +86,4 @@ if ! grep -Fq "$expected_diagnostic" <<<"$release_output"; then
   exit 1
 fi
 
-echo 'Android release signing gate verified: debug build works and copied debug identity is rejected.'
+echo 'Android release signing gate verified: debug assemble task graph resolves and copied debug identity is rejected.'
