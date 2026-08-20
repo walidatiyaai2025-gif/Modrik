@@ -27,7 +27,9 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ModrikSecureSession")
+    guard let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ModrikSecureSession") else {
+      return
+    }
     configureSecureSessionChannel(messenger: registrar.messenger())
     configureLearningRecoveryChannel(messenger: registrar.messenger())
   }
@@ -79,11 +81,13 @@ import UIKit
     )
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self else {
-        result(self?.recoveryStorageError() ?? FlutterError(
-          code: "MOBILE_RECOVERY_STORAGE_UNAVAILABLE",
-          message: "iOS learning recovery storage is unavailable.",
-          details: nil
-        ))
+        result(
+          FlutterError(
+            code: "MOBILE_RECOVERY_STORAGE_UNAVAILABLE",
+            message: "iOS learning recovery storage is unavailable.",
+            details: nil
+          )
+        )
         return
       }
 
