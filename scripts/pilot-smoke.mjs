@@ -4,8 +4,9 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), "..");
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeRoot = join(repoRoot, ".runtime");
 const reportPath = join(runtimeRoot, "pilot-smoke-report.json");
 const args = new Set(process.argv.slice(2));
@@ -59,6 +60,13 @@ const gates = {
       existsSync(join(repoRoot, "apps/mobile/test/runtime_diagnostics_test.dart")) &&
       backendContainsCanonicalCorrelationBoundary(),
     evidence: "Web runtime diagnostics test + Mobile runtime diagnostics test + Backend canonical X-Correlation-ID boundary",
+  },
+  browserRuntime: {
+    label: "Web browser runtime acceptance harness integrated",
+    check: () =>
+      existsSync(join(repoRoot, "qa/web-e2e/browser-runtime-acceptance.cjs")) &&
+      existsSync(join(repoRoot, ".github/workflows/web-browser-runtime-e2e.yml")),
+    evidence: "qa/web-e2e/browser-runtime-acceptance.cjs + .github/workflows/web-browser-runtime-e2e.yml; final handoff must additionally cite green #108 browser CI",
   },
 };
 
@@ -148,7 +156,8 @@ const acceptanceRows = [
     id: "compact-large-text",
     label: "Compact and 200%/large-text client evidence",
     suites: ["web", "mobile"],
-    evidence: "Responsive Web tests plus Flutter compact/large-text widget coverage on the integrated client tree.",
+    gates: ["browserRuntime"],
+    evidence: "Flutter compact/large-text widget coverage plus integrated Issue #108 real-browser responsive/200%-equivalent/keyboard-focus acceptance.",
   },
 ];
 
