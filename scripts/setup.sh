@@ -24,6 +24,9 @@ php apps/backend/artisan key:generate --force
 
 npm ci
 npm --prefix apps/web ci
+if [[ ! -f apps/web/.env.local ]]; then
+  cp apps/web/.env.example apps/web/.env.local
+fi
 
 if [[ "${SKIP_MOBILE:-0}" != "1" ]]; then
   assert_version Flutter "$(flutter --version --machine | php -r '$v=json_decode(stream_get_contents(STDIN), true); echo $v["frameworkVersion"];')" 3.47.1

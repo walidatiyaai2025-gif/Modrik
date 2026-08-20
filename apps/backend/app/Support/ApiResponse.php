@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Support;
+
+use App\Exceptions\ApiProblemException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+final class ApiResponse
+{
+    /**
+     * @param  array<string, mixed>|list<mixed>  $data
+     */
+    public static function success(Request $request, array $data, int $status = 200): JsonResponse
+    {
+        return response()->json(self::body($request, $data), $status);
+    }
+
+    /**
+     * @param  array<string, mixed>|list<mixed>  $data
+     * @return array{data: array<string, mixed>|list<mixed>, meta: array{request_id: string}}
+     */
+    public static function body(Request $request, array $data): array
+    {
+        return [
+            'data' => $data,
+            'meta' => ['request_id' => self::requestId($request)],
+        ];
+    }
+
+    public static function problem(Request $request, ApiProblemException $exception): JsonResponse
+    {
+        $body = [
+            'type' => 'https://modrik.org/problems/'.strtolower($exception->problemCode),
+            'title' => $exception->problemTitle,
+            'status' => $exception->status,
+            'detail' => $exception->getMessage(),
+            'instance' => '/'.$request->path(),
+            'code' => $exception->problemCode,
+            'request_id' => self::requestId($request),
+            'retryable' => $exception->retryable,
+        ];
+
+        if ($exception->errors !== []) {
+            $body['errors'] = $exception->errors;
+        }
+
+        return response()->json(
+            $body,
+            $exception->status,
+            ['Content-Type' => 'application/problem+json'],
+        );
+    }
+
+    public static function requestId(Request $request): string
+    {
+        $existing = $request->attributes->get('modrik_request_id');
+        if (is_string($existing) && strlen($existing) >= 16) {
+            return $existing;
+        }
+
+        $requestId = (string) Str::ulid();
+        $request->attributes->set('modrik_request_id', $requestId);
+
+        return $requestId;
+    }
+}

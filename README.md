@@ -2,7 +2,7 @@
 
 MODRIK is an education platform for structured study, practice, exam preparation, and progress tracking across Student Web and Mobile, with a Laravel/Filament administration backend.
 
-Status: bootstrap contracts and application skeleton. `deploy/coming-soon/` remains the public-shell release artifact; the Student Web scaffold does not replace it.
+Status: bootstrap contracts are green and the synthetic BOOT-008 learning slice is in progress. `deploy/coming-soon/` remains the public-shell release artifact; Student Web does not replace it.
 
 ## Read first
 

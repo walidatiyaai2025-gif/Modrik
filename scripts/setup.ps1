@@ -26,6 +26,9 @@ try {
 
     npm ci
     npm --prefix apps/web ci
+    if (-not (Test-Path 'apps/web/.env.local')) {
+        Copy-Item 'apps/web/.env.example' 'apps/web/.env.local'
+    }
 
     if (-not $SkipMobile) {
         $flutterVersion = ((flutter --version --machine | ConvertFrom-Json).frameworkVersion)
