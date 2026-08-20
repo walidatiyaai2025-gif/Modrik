@@ -425,6 +425,14 @@ class MobileLearningController extends ChangeNotifier {
     });
   }
 
+  /// Session/account UX uses this read-only refresh before ending an opaque
+  /// backend session. It does not mutate, replace, or re-key Issue #14
+  /// operations; it only prevents explicit logout/deletion from discarding
+  /// pending authoritative-sync work.
+  Future<void> requestPendingCountRefresh() async {
+    await _refreshPendingCount();
+  }
+
   Future<bool> _flushPendingOperations() async {
     var operations = await pendingOperationStore.list();
     if (operations.isEmpty) {
@@ -508,13 +516,14 @@ class MobileLearningController extends ChangeNotifier {
         messageCode = 'sync_rejected';
         return false;
       }
-      messageCode = null;
+      messageCode = 'sync_complete';
       return true;
-    } on SyncContractUnavailable {
-      messageCode = 'sync_contract_pending';
-      return false;
     } on LearningFailure catch (failure) {
       await _handleFailure(failure);
+      return false;
+    } on SyncContractUnavailable {
+      messageCode = 'sync_contract_unavailable';
+      await _refreshPendingCount();
       return false;
     }
   }
