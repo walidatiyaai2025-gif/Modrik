@@ -281,6 +281,7 @@ async function runFixtureSmoke() {
       env: {
         ...process.env,
         MODRIK_API_BASE_URL: baseUrl,
+        MODRIK_FIXTURE_MODE: "true",
         MODRIK_FIXTURE_BEARER_TOKEN: fixtureToken,
       },
       stdio: "inherit",
