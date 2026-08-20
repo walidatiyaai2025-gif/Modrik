@@ -39,6 +39,7 @@ class _AcademicContextResetBoundaryState
   @override
   void initState() {
     super.initState();
+    controller.addListener(_handleControllerChanged);
     scheduleMicrotask(_loadCatalogue);
   }
 
@@ -46,10 +47,22 @@ class _AcademicContextResetBoundaryState
   void didUpdateWidget(covariant AcademicContextResetBoundary oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller.removeListener(_handleControllerChanged);
+      controller.addListener(_handleControllerChanged);
       _operationKey = null;
       _transitionMessage = null;
       scheduleMicrotask(_loadCatalogue);
     }
+  }
+
+  @override
+  void dispose() {
+    controller.removeListener(_handleControllerChanged);
+    super.dispose();
+  }
+
+  void _handleControllerChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadCatalogue() async {
@@ -94,14 +107,24 @@ class _AcademicContextResetBoundaryState
 
   @override
   Widget build(BuildContext context) {
-    if (controller.academicContext?.requiresOnboarding ?? false) {
-      return _buildOnboarding(context);
-    }
+    final body = controller.academicContext?.requiresOnboarding ?? false
+        ? _buildOnboarding(context)
+        : _buildActiveContext(context);
+    return Directionality(
+      textDirection: controller.locale == ModrikLocale.ar
+          ? TextDirection.rtl
+          : TextDirection.ltr,
+      child: body,
+    );
+  }
 
+  Widget _buildActiveContext(BuildContext context) {
     final currentTrack = controller.academicContext?.academicTrackId;
     final hasAlternative = _state == _CatalogueState.ready &&
         _tracks.any((track) => track.id != currentTrack);
-    if (!hasAlternative) return widget.child;
+    if (_state == _CatalogueState.ready && !hasAlternative) {
+      return widget.child;
+    }
 
     return Stack(
       children: [
@@ -114,23 +137,74 @@ class _AcademicContextResetBoundaryState
             top: false,
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Semantics(
-                  button: true,
-                  label: copy.change,
-                  child: FilledButton.icon(
-                    onPressed: controller.isBusy || _transitionBusy
-                        ? null
-                        : () => _showResetDialog(context),
-                    icon: const Icon(Icons.swap_horiz_outlined),
-                    label: Text(copy.change, textAlign: TextAlign.center),
-                  ),
-                ),
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: hasAlternative
+                    ? Semantics(
+                        button: true,
+                        label: copy.change,
+                        child: FilledButton.icon(
+                          onPressed: controller.isBusy || _transitionBusy
+                              ? null
+                              : () => _showResetDialog(context),
+                          icon: const Icon(Icons.swap_horiz_outlined),
+                          label: Text(copy.change, textAlign: TextAlign.center),
+                        ),
+                      )
+                    : _activeCatalogueStateCard(),
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _activeCatalogueStateCard() {
+    final (icon, message, canRetry, loading) = switch (_state) {
+      _CatalogueState.loading =>
+        (Icons.sync_outlined, copy.loading, false, true),
+      _CatalogueState.empty =>
+        (Icons.inbox_outlined, copy.empty, true, false),
+      _CatalogueState.offline =>
+        (Icons.cloud_off_outlined, copy.offline, true, false),
+      _CatalogueState.permission =>
+        (Icons.lock_outline, copy.permission, true, false),
+      _CatalogueState.error =>
+        (Icons.error_outline, copy.error, true, false),
+      _CatalogueState.ready =>
+        (Icons.check_circle_outline, copy.empty, false, false),
+    };
+    return Card(
+      key: ValueKey('academic-catalogue-active-state-${_state.name}'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Semantics(
+          container: true,
+          liveRegion: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (loading)
+                const SizedBox.square(
+                  dimension: 28,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                )
+              else
+                Icon(icon, size: 32),
+              const SizedBox(height: 8),
+              Text(message, textAlign: TextAlign.center),
+              if (canRetry) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _loadCatalogue,
+                  icon: const Icon(Icons.refresh),
+                  label: Text(copy.retry),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -152,9 +226,10 @@ class _AcademicContextResetBoundaryState
                         header: true,
                         child: Text(
                           copy.onboardingTitle,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -177,7 +252,13 @@ class _AcademicContextResetBoundaryState
       case _CatalogueState.loading:
         return Semantics(
           liveRegion: true,
-          child: const Center(child: CircularProgressIndicator()),
+          child: Column(
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 12),
+              Text(copy.loading, textAlign: TextAlign.center),
+            ],
+          ),
         );
       case _CatalogueState.empty:
         return _StateMessage(
@@ -213,7 +294,7 @@ class _AcademicContextResetBoundaryState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DropdownButtonFormField<String>(
-              key: const ValueKey('academic-track-onboarding'),
+              key: ValueKey('academic-track-onboarding-${controller.locale.name}'),
               initialValue: effectiveSelection,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
@@ -293,7 +374,6 @@ class _AcademicContextResetBoundaryState
       builder: (dialogContext) => _ResetDialog(
         controller: controller,
         tracks: alternatives,
-        copy: copy,
       ),
     );
     if (changed == true && mounted) {
@@ -306,12 +386,10 @@ class _ResetDialog extends StatefulWidget {
   const _ResetDialog({
     required this.controller,
     required this.tracks,
-    required this.copy,
   });
 
   final MobileLearningController controller;
   final List<AcademicTrack> tracks;
-  final _CatalogueCopy copy;
 
   @override
   State<_ResetDialog> createState() => _ResetDialogState();
@@ -328,77 +406,93 @@ class _ResetDialogState extends State<_ResetDialog> {
   void initState() {
     super.initState();
     _selectedTrackId = widget.tracks.first.id;
+    widget.controller.addListener(_handleControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleControllerChanged);
+    super.dispose();
+  }
+
+  void _handleControllerChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final copy = widget.copy;
+    final copy = _CatalogueCopy(widget.controller.locale);
     final locale = widget.controller.locale;
-    return AlertDialog(
-      scrollable: true,
-      title: Text(copy.resetTitle),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DropdownButtonFormField<String>(
-            initialValue: _selectedTrackId,
-            decoration: InputDecoration(labelText: copy.trackLabel),
-            items: [
-              for (final track in widget.tracks)
-                DropdownMenuItem<String>(
-                  value: track.id,
-                  child: Text(track.label(locale), maxLines: 2),
-                ),
-            ],
-            onChanged: _busy
-                ? null
-                : (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _selectedTrackId = value;
-                      _operationKey = null;
-                      _confirmed = false;
-                      _message = null;
-                    });
-                  },
-          ),
-          const SizedBox(height: 16),
-          Text(copy.resetBody),
-          const SizedBox(height: 8),
-          Text(copy.syncWarning),
-          const SizedBox(height: 12),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _confirmed,
-            onChanged: _busy
-                ? null
-                : (value) => setState(() => _confirmed = value ?? false),
-            title: Text(copy.confirmConsequences),
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-          if (_message != null)
-            Text(
-              _message!,
-              key: const ValueKey('academic-reset-error'),
+    return Directionality(
+      textDirection:
+          locale == ModrikLocale.ar ? TextDirection.rtl : TextDirection.ltr,
+      child: AlertDialog(
+        scrollable: true,
+        title: Text(copy.resetTitle),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              key: ValueKey('academic-track-reset-${locale.name}'),
+              initialValue: _selectedTrackId,
+              decoration: InputDecoration(labelText: copy.trackLabel),
+              items: [
+                for (final track in widget.tracks)
+                  DropdownMenuItem<String>(
+                    value: track.id,
+                    child: Text(track.label(locale), maxLines: 2),
+                  ),
+              ],
+              onChanged: _busy
+                  ? null
+                  : (value) {
+                      if (value == null) return;
+                      setState(() {
+                        _selectedTrackId = value;
+                        _operationKey = null;
+                        _confirmed = false;
+                        _message = null;
+                      });
+                    },
             ),
+            const SizedBox(height: 16),
+            Text(copy.resetBody),
+            const SizedBox(height: 8),
+            Text(copy.syncWarning),
+            const SizedBox(height: 12),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _confirmed,
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() => _confirmed = value ?? false),
+              title: Text(copy.confirmConsequences),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+            if (_message != null)
+              Text(
+                _message!,
+                key: const ValueKey('academic-reset-error'),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+            child: Text(copy.cancel),
+          ),
+          FilledButton(
+            onPressed: _busy || !_confirmed ? null : _applyReset,
+            child: _busy
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(copy.confirm),
+          ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(false),
-          child: Text(copy.cancel),
-        ),
-        FilledButton(
-          onPressed: _busy || !_confirmed ? null : _applyReset,
-          child: _busy
-              ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(copy.confirm),
-        ),
-      ],
     );
   }
 
@@ -422,7 +516,7 @@ class _ResetDialogState extends State<_ResetDialog> {
     }
     setState(() {
       _busy = false;
-      _message = widget.copy.transitionFailed;
+      _message = _CatalogueCopy(widget.controller.locale).transitionFailed;
     });
   }
 }
@@ -519,6 +613,11 @@ class _CatalogueCopy {
         ModrikLocale.en => 'I understand the archival reset consequences.',
         ModrikLocale.fr =>
           'Je comprends les conséquences de l’archivage et de la réinitialisation.',
+      };
+  String get loading => switch (locale) {
+        ModrikLocale.ar => 'جارٍ تحميل المسارات الأكاديمية المصرح بها.',
+        ModrikLocale.en => 'Loading authorized academic tracks.',
+        ModrikLocale.fr => 'Chargement des parcours académiques autorisés.',
       };
   String get empty => switch (locale) {
         ModrikLocale.ar => 'لا توجد مسارات أكاديمية مصرح بها حاليًا.',
