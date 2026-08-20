@@ -13,6 +13,8 @@ const mobileCorrelationHeader = diagnosticCorrelationHeader;
 const _fallbackCorrelationHeader = diagnosticFallbackCorrelationHeader;
 
 final RegExp _safeIdentifierPattern = RegExp(r'^[A-Za-z0-9._:/-]{1,128}$');
+final RegExp _stableCodePattern = RegExp(r'^[A-Z][A-Z0-9_]{2,63}$');
+final RegExp _fingerprintPattern = RegExp(r'^fp-[0-9a-f]{8,64}$');
 final RegExp _emailPattern = RegExp(
   r'\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b',
   caseSensitive: false,
@@ -179,8 +181,8 @@ class RuntimeDiagnosticEvent {
         json['result'] as String? ?? 'unknown',
       ),
       connectivity: connectivity.first,
-      stableCode: _nullableSafeIdentifier(json['stable_code']),
-      fingerprint: _nullableSafeIdentifier(json['fingerprint']),
+      stableCode: _nullableStableCode(json['stable_code']),
+      fingerprint: _nullableFingerprint(json['fingerprint']),
       metadata: rawMetadata is Map
           ? sanitizeDiagnosticMetadata(Map<String, dynamic>.from(rawMetadata))
           : const {},
@@ -397,8 +399,8 @@ class RuntimeDiagnostics extends ChangeNotifier {
         operation: sanitizeDiagnosticIdentifier(operation),
         result: sanitizeDiagnosticIdentifier(result),
         connectivity: connectivity,
-        stableCode: _nullableSafeIdentifier(stableCode),
-        fingerprint: _nullableSafeIdentifier(fingerprint),
+        stableCode: _nullableStableCode(stableCode),
+        fingerprint: _nullableFingerprint(fingerprint),
         metadata: sanitizeDiagnosticMetadata(metadata),
       ),
     );
@@ -550,7 +552,7 @@ String sanitizeCorrelationId(String value) {
   final valid = validDiagnosticCorrelationId(value);
   if (valid != null) return valid;
   if (value == 'local') return value;
-  return sanitizeDiagnosticIdentifier(value, fallback: 'unknown');
+  return 'unknown';
 }
 
 String sanitizeDiagnosticIdentifier(String value, {String fallback = 'unknown'}) {
@@ -582,9 +584,16 @@ Map<String, Object> sanitizeDiagnosticMetadata(Map<String, Object?> metadata) {
   return Map.unmodifiable(safe);
 }
 
-String? _nullableSafeIdentifier(Object? value) {
-  if (value is! String || value.trim().isEmpty) return null;
-  return sanitizeDiagnosticIdentifier(value);
+String? _nullableStableCode(Object? value) {
+  if (value is! String) return null;
+  final candidate = value.trim();
+  return _stableCodePattern.hasMatch(candidate) ? candidate : null;
+}
+
+String? _nullableFingerprint(Object? value) {
+  if (value is! String) return null;
+  final candidate = value.trim();
+  return _fingerprintPattern.hasMatch(candidate) ? candidate : null;
 }
 
 bool _isSensitiveKey(String key) =>
