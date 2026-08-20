@@ -18,7 +18,7 @@ Updated: 2026-08-20
 - Issue #6 (`P0-CONTENT-001`, REQ-P0-003/004 / AC-P0-006..008) is integrated on `main` by merge commit `4effa22904c0f196e04eab6f377f2357eeb7cc67`: Content Team/Admin authorization, deterministic preparation settings hash/prompt/bundle, file-aware idempotency, bounded returned-ZIP inspection, fixed v1 manifest/content schema and semantic validation, request/schema/hash/scope binding, fixture-only rights gating, durable rejected/staged audit/checkpoints, and transactional outbox events. The workflow deliberately stops before curriculum publication.
 - Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is integrated on `main` by merge commit `328820f30448cdec05af0e1ff241a2dc99a966fb`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. No default policy, ad SDK/network, targeting profile, or production activation exists.
 - Issue #10 (`P0-OPS-001`, REQ-P0-009/014 / AC-P0-016..017) is integrated on `main` by merge commit `c1b7a833fc36c844065b92598f7285fe095f29ff`: a scheduled bounded outbox command, per-event overlap-safe locks/rechecks, typed same-ID at-least-once dispatch, attempt checkpoints, capped exponential retry, sanitized error fingerprints, and explicit deferred/exhausted operator signals. Redis and permanent daemons remain unnecessary.
-- Issue #12 (`P0-AI-001`, REQ-P0-013 / AC-P0-015) is implemented on `codex/ac-p0-015-paid-ai-off`: paid AI defaults off, the full synthetic learning core is tested with outbound HTTP forbidden, and a backend-only allowlist excludes student identity, answers, progress, and credentials from future optional context. No provider transport or production activation is introduced.
+- Issue #12 (`P0-AI-001`, REQ-P0-013 / AC-P0-015) is implemented on `codex/ac-p0-015-paid-ai-off` at `b5ed37d952c6ad39114e9b74b1e6c446aef04243`: paid AI defaults off, the full synthetic learning core is tested with outbound HTTP forbidden, and a backend-only allowlist excludes student identity, answers, progress, and credentials from future optional context. Draft PR #13 is the integration vehicle; no provider transport or production activation is introduced.
 
 ## Verification evidence
 
@@ -39,6 +39,7 @@ Updated: 2026-08-20
 - Issue #10 Bootstrap CI run `32374020760` passed all seven jobs, including MariaDB 10.11 fresh migrations and the complete 19-test worker suite.
 - Issue #10 evidence commit Bootstrap CI run `32374163906` also passed all seven jobs before PR #11 was merged with the expected-head guard.
 - Issue #12 local gates pass: Composer and npm audits report no vulnerabilities; Pint/Larastan and PHPUnit pass 22 tests/513 assertions; contracts/OpenAPI/tokens, Web lint/type/test/build, and Flutter analyze/test are green.
+- Issue #12 Bootstrap CI run `32374885883` passed all seven jobs, including MariaDB 10.11 fresh migrations and the complete 22-test suite, contracts, audits, Web, Mobile, Gitleaks, and dependency review.
 
 ## External blockers
 
@@ -48,4 +49,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Run the complete local and GitHub gate set for Issue #12, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.
+Obtain green CI for the Issue #12 evidence commit, mark PR #13 ready, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.

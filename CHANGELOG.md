@@ -7,6 +7,7 @@
 - Added a complete session → context → lesson → authoritative attempt → answers → submit → progress integration test with Laravel outbound HTTP forbidden, along with disabled-boundary and context-minimization tests.
 - Added ADR-008, a machine-readable optional-AI security contract, drift checks in the repository contract gate, and threat-model/QA evidence. Provider selection, endpoints, keys, privacy approval, and production activation remain deliberately absent.
 - Local Composer/npm audits, Pint/Larastan, PHPUnit (22 tests/513 assertions), contracts/OpenAPI/tokens, Web, and Flutter gates pass.
+- Bootstrap CI run `32374885883` passed all seven jobs, including MariaDB 10.11, Composer/npm audits, Gitleaks, and dependency review.
 
 ## 2026-08-20 — P0-OPS-001 bounded resumable outbox worker
 
