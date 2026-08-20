@@ -179,6 +179,16 @@ assert.equal(openapi.components.parameters.IdempotencyKey.required, true);
 assert(openapi.components.schemas.LessonResponse.properties.data.required.includes("practice_quiz_id"));
 assert(openapi.components.schemas.AttemptResultResponse.properties.data.required.includes("attempt"));
 assert(openapi.paths["/v1/attempts/{attemptId}/submit"].post.responses["200"].headers["Idempotency-Replayed"]);
+assert.equal(openapi.paths["/v1/academic-tracks"].get.operationId, "listAuthorizedAcademicTracks");
+assert.equal(openapi.paths["/v1/academic-tracks"].get.parameters, undefined);
+assert.equal(openapi.paths["/v1/academic-tracks"].get.responses["200"].headers["Cache-Control"].schema.const, "no-store, private");
+assert.equal(openapi.components.schemas.AcademicTrackCatalogueItem.additionalProperties, false);
+assert.deepEqual(openapi.components.schemas.AcademicTrackCatalogueItem.required, ["id", "labels"]);
+assert.deepEqual(openapi.components.schemas.AcademicTrackLabels.required, ["ar", "en", "fr"]);
+assert.equal(openapi.components.schemas.AcademicTrackLabels.additionalProperties, false);
+for (const internalField of ["code", "board_reference", "syllabus_version", "year_level", "is_fixture", "sort_order"]) {
+  assert(!Object.hasOwn(openapi.components.schemas.AcademicTrackCatalogueItem.properties, internalField));
+}
 assert.equal(openapi.components.schemas.AcademicContextMutationRequest.additionalProperties, false);
 assert(openapi.components.schemas.Attempt.required.includes("academic_context_id"));
 assert(openapi.paths["/v1/academic-context/reset"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));

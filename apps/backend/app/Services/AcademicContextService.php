@@ -11,12 +11,14 @@ use JsonException;
 
 final class AcademicContextService
 {
+    public function __construct(private readonly AcademicTrackCatalogueService $catalogue) {}
+
     /** @return array<string, mixed> */
     public function activate(User $user, string $academicTrackId): array
     {
         return DB::transaction(function () use ($user, $academicTrackId): array {
             $this->lockUser($user);
-            $track = $this->track($academicTrackId);
+            $track = $this->catalogue->requireAuthorizedTrack($user, $academicTrackId);
             $current = $this->activeContext($user);
             if ($current !== null) {
                 $code = $current['academic_track_id'] === $academicTrackId
@@ -37,7 +39,7 @@ final class AcademicContextService
     {
         return DB::transaction(function () use ($user, $academicTrackId): array {
             $this->lockUser($user);
-            $track = $this->track($academicTrackId);
+            $track = $this->catalogue->requireAuthorizedTrack($user, $academicTrackId);
             $current = $this->activeContext($user);
             if ($current === null) {
                 throw new ApiProblemException(409, 'ACADEMIC_CONTEXT_ONBOARDING_REQUIRED', 'Academic context reset unavailable', 'Activate an academic context before requesting a reset.');
@@ -98,20 +100,6 @@ final class AcademicContextService
         if ($locked === null) {
             throw new ApiProblemException(401, 'AUTHENTICATION_REQUIRED', 'Authentication required', 'The authenticated user is unavailable.');
         }
-    }
-
-    /** @return array{id: string, year_level: string} */
-    private function track(string $academicTrackId): array
-    {
-        $track = DB::table('academic_tracks')->where('id', $academicTrackId)->first(['id', 'year_level']);
-        if ($track === null) {
-            throw new ApiProblemException(404, 'RESOURCE_NOT_FOUND', 'Resource not found', 'The requested academic track is unavailable.');
-        }
-
-        /** @var array{id: string, year_level: string} $row */
-        $row = (array) $track;
-
-        return $row;
     }
 
     /** @return null|array{id: string, academic_track_id: string} */
