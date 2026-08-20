@@ -45,7 +45,8 @@ The harness runs each broad product suite once and reuses its result across acce
 - complete Backend feature test suite;
 - complete Student Web/Public/Auth test suite;
 - complete Flutter Mobile test suite;
-- live Student Web Learning BFF -> Laravel synthetic fixture smoke.
+- live Student Web Learning BFF -> Laravel synthetic fixture smoke;
+- after Issue #108 is integrated, its repository-owned current-tree browser wrapper for responsive, 200%-equivalent, keyboard/focus, session-security and Runtime Inspector browser evidence.
 
 The live fixture smoke creates an ignored temporary SQLite database under `.runtime/`, runs `migrate:fresh --seed`, starts a local Laravel fixture server, and executes the existing `apps/web/scripts/fixture-smoke.mts`. That path proves session -> academic context -> published lesson -> authoritative attempt -> answers -> submit -> progress through the real Next route handler into Laravel.
 
@@ -76,7 +77,7 @@ The generated report contains these release rows:
 | Admin prepare -> validate -> approve -> publish | Content preparation/publication Feature tests |
 | Runtime diagnostics / Inspector | Backend canonical correlation + Web/Mobile inspector tests after integration |
 | AR/EN/FR + RTL/LTR | Web copy/direction + Flutter locale/direction tests |
-| Compact/large text | Flutter compact/large-text tests plus integrated #108 real-browser responsive/200%-equivalent/keyboard-focus evidence |
+| Compact/large text | Flutter compact/large-text tests plus executed #108 current-tree browser responsive/200%-equivalent/keyboard-focus evidence |
 
 ## Integration-aware gates
 
@@ -105,14 +106,18 @@ plus a canonical `X-Correlation-ID` boundary in Backend source/tests. This preve
 
 ### Web browser runtime gate
 
-Required integrated #108 harness markers:
+Required integrated #108 artifacts:
 
 ```text
 qa/web-e2e/browser-runtime-acceptance.cjs
+qa/web-e2e/runtime-inspector-acceptance.cjs
+qa/web-e2e/run-browser-runtime.sh
 .github/workflows/web-browser-runtime-e2e.yml
 ```
 
-The gate keeps the compact/200% row blocked until Issue #108's real-browser acceptance lane is part of the tested repository tree. Presence of these files proves only that the browser harness is integrated; final #107 handoff must additionally cite a green #108 browser-runtime execution on the applicable final candidate/integrated baseline. The Pilot harness does not duplicate #108's Playwright installation or candidate-composition logic.
+Until all four are on the tested Git tree, the browser suite is recorded as `BLOCKED` and is not invoked. Once integrated, the Pilot harness executes `qa/web-e2e/run-browser-runtime.sh` against the exact current repository tree. A non-zero browser result becomes a real Pilot `FAIL`; file presence alone can no longer promote the compact/200% row to `PASS`.
+
+The wrapper remains owned by Issue #108. #107 consumes that stable command without duplicating its Playwright profiles, privacy rules, browser installation, or Runtime Inspector assertions.
 
 ## Result semantics
 
@@ -120,4 +125,4 @@ The gate keeps the compact/200% row blocked until Issue #108's real-browser acce
 - `FAIL` — at least one mapped executable suite failed. This is always a failing command, including non-strict mode.
 - `BLOCKED` — executable evidence may be green, but an explicitly required release-gap artifact is not yet integrated. This fails only in strict/final mode.
 
-The final Issue #107 handoff must record the exact integrated Git SHA, attach the strict matrix summary, and cite the final green #108 browser-runtime evidence. A green implementation PR for the harness itself is not sufficient to close #107 while required rows remain blocked on other authorized release-gap work.
+The final Issue #107 handoff must record the exact integrated Git SHA and strict matrix summary. A green implementation PR for the harness itself is not sufficient to close #107 while required rows remain blocked on other authorized release-gap work.
