@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/solscool/public_html/modrik.org/
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R deploy/coming-soon/. $DEPLOYPATH
