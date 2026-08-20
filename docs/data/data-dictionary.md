@@ -28,6 +28,7 @@ Status: BOOT-008 learning and P0-CONTENT-001 preparation-staging slices are phys
 | `user_age_assurances` | Minimum user-scoped age eligibility evidence without birth dates. | One current row per user; controlled band/source plus assurance and expiry timestamps; missing, invalid, future, stale, or non-adult evidence denies advertising. |
 | `advertising_decision_audits` | Minimal durable record of an evaluated eligibility decision. | User/policy/placement/reason/version/time only; no birth date, age band, assurance source, contact data, tracking ID, or targeting profile. |
 | `outbox_events` | Transactional domain-event delivery. | Event ID is globally unique; unpublished rows indexed by `(published_at, occurred_at)`; payload excludes student PII by default. |
+| `outbox_delivery_attempts` | Observable retry/checkpoint history for bounded outbox dispatch. | Unique `(outbox_event_id, attempt_number)`; status, timings, next retry, stable error code, and SHA-256 fingerprint only; no raw exception text. Published state remains on the outbox event. |
 
 ## Controlled status values
 
@@ -38,5 +39,6 @@ Status: BOOT-008 learning and P0-CONTENT-001 preparation-staging slices are phys
 - Preparation import: `validating`, `rejected`, `staged`. Publication/import into curriculum tables is a separate, not-yet-implemented reviewed workflow.
 - Age assurance band: `under_13`, `minor`, `adult`; only a current `adult` row can pass the age gate.
 - Advertising reason: `PLACEMENT_UNKNOWN`, `NO_AD_ZONE`, `CONFIG_MISSING`, `GLOBAL_KILL_SWITCH`, `CONFIG_INVALID`, `CONFIG_NOT_EFFECTIVE`, `CONFIG_STALE`, `PLACEMENT_DISABLED`, `AGE_UNKNOWN`, `AGE_ASSURANCE_INVALID`, `AGE_ASSURANCE_STALE`, `AGE_NOT_ADULT`, `ELIGIBLE`.
+- Outbox delivery attempt: `started`, `published`, `failed`; five failed attempts are observable as exhausted until an explicit forward repair/redrive.
 
 Enum changes are contract changes and require migrations, API/schema updates, and compatibility tests together.

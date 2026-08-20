@@ -20,4 +20,9 @@ return [
         'maximum_manifest_bytes' => 1_048_576,
         'maximum_compression_ratio' => 100,
     ],
+    'outbox' => [
+        'maximum_attempts' => 5,
+        'initial_backoff_seconds' => 60,
+        'maximum_backoff_seconds' => 3_600,
+    ],
 ];

@@ -174,6 +174,9 @@ assert.equal(openapi.paths["/v1/advertising/decisions/{placementCode}"].get.resp
 
 const eventCatalog = await readYaml("docs", "events", "event-catalog.yaml");
 assert.equal(eventCatalog.delivery.guarantee, "at_least_once");
+assert.equal(eventCatalog.delivery.worker_command, "php artisan modrik:outbox-dispatch --limit=100");
+assert.deepEqual(eventCatalog.delivery.batch_limit_range, [1, 500]);
+assert.equal(eventCatalog.delivery.retry.maximum_attempts, 5);
 assertUnique(eventCatalog.events.map(({ type }) => type), "event types");
 assert(eventCatalog.events.some(({ type }) => type === "academic.context_reset"));
 assert(eventCatalog.events.some(({ type }) => type === "content.preparation_imported"));

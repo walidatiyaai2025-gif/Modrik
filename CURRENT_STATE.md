@@ -16,14 +16,15 @@ Updated: 2026-08-20
 - Fixture authentication is deliberately not production authentication. It accepts one configured synthetic bearer token only while `MODRIK_FIXTURE_MODE=true`; full verified account/provider/session work remains outside this slice.
 - Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is integrated on `main` by merge commit `1512eabf0279cd0efc011b798e61e6850c171676`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. No real board/syllabus input is assumed.
 - Issue #6 (`P0-CONTENT-001`, REQ-P0-003/004 / AC-P0-006..008) is integrated on `main` by merge commit `4effa22904c0f196e04eab6f377f2357eeb7cc67`: Content Team/Admin authorization, deterministic preparation settings hash/prompt/bundle, file-aware idempotency, bounded returned-ZIP inspection, fixed v1 manifest/content schema and semantic validation, request/schema/hash/scope binding, fixture-only rights gating, durable rejected/staged audit/checkpoints, and transactional outbox events. The workflow deliberately stops before curriculum publication.
-- Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is implemented on `codex/req-p0-010-safe-ads` at `5de7f2dd980b95b8d4e6ed4776ab665783ac4a27`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. Draft PR #9 is the integration vehicle. No default policy, ad SDK/network, targeting profile, or production activation exists.
+- Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is integrated on `main` by merge commit `328820f30448cdec05af0e1ff241a2dc99a966fb`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. No default policy, ad SDK/network, targeting profile, or production activation exists.
+- Issue #10 (`P0-OPS-001`, REQ-P0-009/014 / AC-P0-016..017) is implemented on `codex/ac-p0-017-outbox-worker` at `0ccb0c942bfd634c7275a42f8a901a4e51cdb291`: a scheduled bounded outbox command, per-event overlap-safe locks/rechecks, typed same-ID at-least-once dispatch, attempt checkpoints, capped exponential retry, sanitized error fingerprints, and explicit deferred/exhausted operator signals. Draft PR #11 is the integration vehicle. Redis and permanent daemons remain unnecessary.
 
 ## Verification evidence
 
 - `npm audit --audit-level=moderate` — 0 vulnerabilities.
 - `npm run contracts:check` — 9 schemas, 14 REQs, 20 ACs, 10 events, OpenAPI preparation/safety contracts, and fixtures passed.
 - `npm run openapi:lint` and `npm run tokens:check` — passed.
-- Backend: Composer strict validation/audit, Pint, Larastan level 8, and PHPUnit (16 tests, 451 assertions) — passed on PHP 8.4.24. The advertising-safety migration passed a separate SQLite forward → rollback → forward round trip.
+- Backend: Composer strict validation/audit, Pint, Larastan level 8, and PHPUnit (19 tests, 493 assertions) — passed on PHP 8.4.24. The outbox-delivery-attempt migration passed a separate SQLite forward → rollback → forward round trip.
 - Web: npm audit, ESLint, TypeScript, Node test, and Next.js production build — passed on Node 22.23.2. The build contains the same-origin allowlisted learning proxy and no public fixture credential.
 - The reusable fixture smoke traversed the actual Next route handler into a live Laravel server: session → context → localized lesson → three revisioned answers → idempotent submit → progress.
 - Mobile: Flutter 3.47.1 dependency resolution, analyze, and widget test — passed locally.
@@ -33,6 +34,8 @@ Updated: 2026-08-20
 - Issue #6 Bootstrap CI run `32372077739` passed all seven jobs: contracts/OpenAPI/tokens, Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fresh fixture seed plus the full 13-test suite, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
 - Issue #6 evidence commit Bootstrap CI run `32372203529` also passed all seven jobs before PR #7 was merged with the expected-head guard.
 - Issue #8 Bootstrap CI run `32373180861` passed all seven jobs: contracts/OpenAPI/tokens, Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fresh fixture seed plus the full 16-test suite, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
+- Issue #8 evidence commit Bootstrap CI run `32373329320` also passed all seven jobs before PR #9 was merged with the expected-head guard.
+- Issue #10 Bootstrap CI run `32374020760` passed all seven jobs, including MariaDB 10.11 fresh migrations and the complete 19-test worker suite.
 
 ## External blockers
 
@@ -42,4 +45,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Obtain green CI for the Issue #8 evidence commit, mark PR #9 ready, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.
+Obtain green CI for the Issue #10 evidence commit, mark PR #11 ready, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.

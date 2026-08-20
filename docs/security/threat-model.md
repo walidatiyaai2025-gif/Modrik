@@ -18,7 +18,7 @@ Canonical assets are student accounts, academic history, answers, attempts, prog
 | Minor targeting or unsafe ads/community | Backend-owned placement/zone mapping; missing/invalid/stale/non-adult age assurance defaults off; versioned configuration defaults absent/off; global kill switch; immutable no-ad zones; no birth date/tracking profile; community disabled until P1 approval, no DMs. | AC-P0-011/012 precedence, cross-user scoping, audit-redaction, and config-off tests. |
 | PII/secrets leakage | Structured allowlisted logging, opaque identifiers, no raw answers/tokens/emails by default, secret scanning, synthetic fixtures. | Log inspection and repository scans. |
 | Dependency/build compromise | Lockfiles, exact runtime pins, Composer/npm audits, dependency review, minimal CI permissions. | CI gates and periodic update PRs. |
-| Availability/job duplication | Database queue, bounded retries/backoff, unique jobs/idempotency, chunk checkpoints, outbox, dead-letter visibility. | Worker interruption and retry tests. |
+| Availability/job duplication | Database queue, 1–500 bounded cron batches, per-event row locks/published recheck, stable event IDs, exponential retries, five-attempt cap, sanitized failure fingerprints, and explicit deferred/exhausted counters. | Overlap-safe completed replay, interruption/retry, backoff, exhaustion, redaction, and MariaDB worker tests. |
 
 ## Data minimization
 

@@ -35,6 +35,7 @@ erDiagram
     preparation_imports ||--o{ preparation_import_files : checkpoints
     advertising_policies ||--o{ advertising_placements : enables
     advertising_policies ||--o{ advertising_decision_audits : evaluated_under
+    outbox_events ||--o{ outbox_delivery_attempts : dispatches
 
     users {
       char26 id PK
@@ -262,6 +263,17 @@ erDiagram
       datetime occurred_at
       datetime published_at
     }
+    outbox_delivery_attempts {
+      char26 id PK
+      char26 outbox_event_id FK
+      smallint attempt_number
+      varchar status
+      varchar error_code_nullable
+      char64 error_fingerprint_nullable
+      datetime started_at
+      datetime finished_at_nullable
+      datetime next_attempt_at_nullable
+    }
 ```
 
 ## Physical-design rules
@@ -273,4 +285,5 @@ erDiagram
 - Published content is immutable by version. Updates create a new content version; attempts retain snapshots.
 - Preparation imports end at a validated `staged` boundary. They do not insert, update, or publish curriculum rows; real-content review/publication requires a later explicit workflow.
 - Advertising configuration absence is meaningful canonical state and resolves off. Placement-to-zone mappings and no-ad zones are code-owned; clients and mutable rows cannot redefine them.
+- Outbox publication is at least once. Per-event row locks prevent overlapping workers from republishing a row already completed; a failure keeps it unpublished and preserves the event ID for idempotent consumer retry.
 - Soft deletion or archival is used where history is product-significant. Retention periods remain owner input.
