@@ -135,7 +135,7 @@ class LearningSliceTest extends TestCase
             ->orderBy('position')
             ->pluck('question_id')
             ->all();
-        $this->assertNotSame($sourceOrder, $secondOrder);
+        $this->assertNotSame($orderedQuestionIds, $secondOrder);
         $this->assertNotSame(
             DB::table('attempts')->where('id', $attemptId)->value('seed_encrypted'),
             DB::table('attempts')->where('id', $secondAttemptId)->value('seed_encrypted'),

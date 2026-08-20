@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-ASSESS-001 authoritative immutable assessment attempts
+
+- Implemented Issue #16 for REQ-P0-005 / AC-P0-002..005 with a cryptographically secure 32-byte server-generated seed for every new attempt. Client-controlled seed, question-selection, ordering, selection and blueprint fields are rejected, while only a SHA-256 seed fingerprint is retained for audit/event correlation and the encrypted seed remains internal.
+- Added blueprint-constrained variable selection using section, difficulty, marks, coverage and count slots, with alternate-set rotation when the eligible bank permits. Multi-question attempts use persisted authoritative non-static ordering, avoid consecutive order repetition, and support an explicit fixed-order policy without reshuffling a resumed attempt.
+- Added opt-in option shuffling only for explicitly safe questions. Fixed, sequence/ordered, image-letter and all/none semantics remain in source order, including EN/AR/FR all/none phrase safeguards.
+- Bound response rendering, grading and progress scope to immutable `attempt_questions`/attempt snapshots. Mutating or retiring the live question bank or changing the quiz blueprint after attempt creation cannot alter the resumed prompt/options, correctness contract, marks, blueprint version or progress source version for that attempt.
+- Added the Assessment-owned portable migration, OpenAPI/event/data/QA/security documentation, plus property-style, integration and abuse coverage for authority rejection, seed uniqueness, order variation, blueprint set rotation, immutable resume/scoring and option-order safety.
+- Focused PR #23 implementation head `5c56887cd257bf887bda7ff4f8e750c753d0450e` passed Bootstrap CI run `32389967525` across all seven required jobs: contracts/OpenAPI/tokens; PHP 8.4.24 Composer validation/audit, Pint, Larastan and the full SQLite Backend suite with 911 assertions; MariaDB 10.11.18 fresh migration/seed plus the full Backend suite; Web; Flutter Mobile; Gitleaks; and dependency review.
+
 ## 2026-08-20 — P0-SYNC-001 resumable offline answer synchronization
 
 - Implemented Issue #14 for REQ-P0-006 / AC-P0-009 / ADR-003 with authenticated `POST /v1/sync/answers` batches bounded to 1–100 ordered answer operations. The sync layer delegates all answer ownership, mutability, value validation, revision checks, and outbox creation to the existing Backend `AttemptService`.
@@ -95,7 +104,7 @@
 - Added QA matrix, threat model, cPanel/database-queue runbook, legal public-page matrix, release-input blockers, contract validator, Redocly lint, Larastan level 8, Web/Mobile smoke tests, and CI security/dependency gates.
 - Preserved `deploy/coming-soon/`. Public verification found DNS resolving but HTTPS reset and HTTP 503; WEB-PRE-002 remains externally blocked on hosting access.
 - Local results: contracts/OpenAPI/tokens passed; root/Web npm audits reported 0 vulnerabilities; Composer validation/audit passed; Pint and Larastan passed; Backend PHPUnit passed 3 tests/8 assertions; Web lint/typecheck/test/build passed; Flutter analyze/widget test passed.
-- Clean-checkout proof passed the same root/Backend/Web/Mobile gates after removing two hidden warm-workspace assumptions: Web now declares its layout children type without generated Next.js globals, and PHPUnit owns an explicit deterministic test-only application key.
+- Clean-checkout proof passed the same root/Backend/Web/Mobile gate sequence after removing two hidden warm-workspace assumptions: Web now declares its layout children type without generated Next.js globals, and PHPUnit owns an explicit deterministic test-only application key.
 - Migrations: only the Laravel baseline users/cache/jobs migrations exist. P0 domain migrations are intentionally deferred until BOOT-007 clean-checkout and GitHub CI proof is green.
 - Next safe task: BOOT-007 branch publication/draft PR and CI repair; then BOOT-008.
 
