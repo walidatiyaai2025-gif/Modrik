@@ -57,7 +57,7 @@ class AuthoritativeAssessmentTest extends TestCase
         $previousOrder = [];
         $seenOrders = [];
         $seeds = [];
-        for ($index = 0; $index < 12; $index++) {
+        for ($index = 0; $index < 12; $index += 1) {
             $start = $this->startAttempt(LearningSliceSeeder::QUIZ_ID, 'assessment-property-'.str_pad((string) $index, 8, '0', STR_PAD_LEFT))
                 ->assertCreated()
                 ->assertJsonPath('data.ordering_algorithm', AssessmentEngine::ALGORITHM);
@@ -100,7 +100,7 @@ class AuthoritativeAssessmentTest extends TestCase
     {
         $quizId = (string) Str::ulid();
         $questionIds = [];
-        for ($index = 0; $index < 4; $index++) {
+        for ($index = 0; $index < 4; $index += 1) {
             $questionId = (string) Str::ulid();
             $questionIds[] = $questionId;
             $this->insertChoiceQuestion(
@@ -121,7 +121,7 @@ class AuthoritativeAssessmentTest extends TestCase
         ], 7);
 
         $previousSet = [];
-        for ($index = 0; $index < 8; $index++) {
+        for ($index = 0; $index < 8; $index += 1) {
             $start = $this->startAttempt($quizId, 'blueprint-rotation-'.str_pad((string) $index, 8, '0', STR_PAD_LEFT))->assertCreated();
             $attemptId = (string) $start->json('data.id');
             $selected = DB::table('attempt_questions')
@@ -262,8 +262,7 @@ class AuthoritativeAssessmentTest extends TestCase
         array $metadata = [],
         bool $optionShuffleSafe = false,
         ?array $options = null,
-    ): void
-    {
+    ): void {
         $now = now();
         DB::table('questions')->insert([
             'id' => $questionId,
@@ -349,7 +348,7 @@ class AuthoritativeAssessmentTest extends TestCase
     private function responseContent(TestResponse $response): string
     {
         $content = $response->getContent();
-        if (! is_string($content)) {
+        if (is_string($content) === false) {
             $this->fail('Expected a buffered response body.');
         }
 
