@@ -152,7 +152,7 @@ void main() {
     server.listen((request) async {
       requestCorrelation = request.headers.value(mobileCorrelationHeader);
       expect(requestCorrelation, matches(RegExp(r'^mcr-[0-9a-f]{32}$')));
-      final raw = await request.transform(utf8.decoder).join();
+      final raw = await utf8.decodeStream(request);
       final body = jsonDecode(raw) as Map<String, dynamic>;
       final operations = body['operations'] as List<dynamic>;
       final operation = operations.single as Map<String, dynamic>;
