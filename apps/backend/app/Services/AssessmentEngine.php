@@ -26,7 +26,9 @@ final class AssessmentEngine
 
         $policy = $this->questionOrderPolicy($blueprint);
         [$selected, $selectionCanVary] = $this->selectQuestions($questions, $blueprint, $seed);
-        $selectionVaried = false;
+        $selectionVaried = $selectionCanVary
+            && $previousQuestionIds !== []
+            && ! $this->sameSet($this->ids($selected), $previousQuestionIds);
 
         if ($selectionCanVary && $previousQuestionIds !== [] && $this->sameSet($this->ids($selected), $previousQuestionIds)) {
             $selected = $this->forceAlternateSelection($questions, $selected, $blueprint, $seed);
