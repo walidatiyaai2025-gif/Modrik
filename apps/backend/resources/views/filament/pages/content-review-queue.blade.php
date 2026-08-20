@@ -26,6 +26,7 @@
         </div>
 
         @php($rows = $this->queueRows())
+        @php($pendingPublication = collect($rows)->firstWhere('id', $pendingPublicationImportId))
         @if ($rows === [])
             <x-filament::section>
                 <div class="py-12 text-center">
@@ -190,7 +191,7 @@
                                         </div>
                                     @elseif ($status === 'imported')
                                         <div class="flex flex-wrap items-center gap-3">
-                                            <x-filament::button color="success" wire:click="publishOfficial('{{ $row['id'] }}')" wire:loading.attr="disabled">
+                                            <x-filament::button color="success" wire:click="requestPublication('{{ $row['id'] }}')" wire:loading.attr="disabled" wire:target="requestPublication('{{ $row['id'] }}')">
                                                 {{ __('admin.actions.publish_official') }}
                                             </x-filament::button>
                                             <span class="text-xs text-gray-500">{{ __('admin.review.publish_help') }}</span>
@@ -244,6 +245,67 @@
                 @endforeach
             </div>
         @endif
+
+        <x-filament::modal
+            id="confirm-content-publication"
+            width="2xl"
+            icon="heroicon-o-exclamation-triangle"
+            icon-color="danger"
+            :close-by-clicking-away="false"
+            :close-by-escaping="false"
+            :close-button="false"
+        >
+            <x-slot name="heading">
+                {{ __('admin.confirmations.publication_title') }}
+            </x-slot>
+            <x-slot name="description">
+                {{ __('admin.confirmations.publication_description') }}
+            </x-slot>
+
+            <div class="space-y-4 text-sm">
+                <div class="rounded-xl border border-danger-300 p-4" role="alert">
+                    <strong>{{ __('admin.confirmations.publication_consequence_title') }}</strong>
+                    <p class="mt-1">{{ __('admin.confirmations.publication_consequence_body') }}</p>
+                </div>
+                <dl class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <dt class="font-medium">{{ __('admin.fields.import_id') }}</dt>
+                        <dd class="break-all font-mono text-xs">{{ $pendingPublication['id'] ?? $pendingPublicationImportId ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">{{ __('admin.fields.status') }}</dt>
+                        <dd>{{ isset($pendingPublication['status']) ? __('admin.status.'.$pendingPublication['status']) : '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">{{ __('admin.fields.request_id') }}</dt>
+                        <dd class="break-all font-mono text-xs">{{ $pendingPublication['preparation_request_id'] ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">{{ __('admin.fields.rights_status') }}</dt>
+                        <dd>{{ $pendingPublication['rights_status'] ?? '—' }}</dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="font-medium">{{ __('admin.review.dry_run') }}</dt>
+                        <dd>
+                            @if (is_array($pendingPublication['dry_run_summary'] ?? null))
+                                {{ ($pendingPublication['dry_run_summary']['publishable'] ?? false) ? __('admin.review.publishable') : __('admin.review.blocked') }}
+                            @else
+                                —
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <x-slot name="footerActions">
+                <x-filament::button color="gray" wire:click="cancelPublication" wire:loading.attr="disabled" wire:target="confirmPublication,cancelPublication">
+                    {{ __('admin.actions.cancel') }}
+                </x-filament::button>
+                <x-filament::button color="danger" wire:click="confirmPublication" wire:loading.attr="disabled" wire:target="confirmPublication">
+                    {{ __('admin.actions.confirm_publication') }}
+                </x-filament::button>
+            </x-slot>
+        </x-filament::modal>
 
         <div wire:loading.flex class="items-center gap-2 text-sm" aria-live="polite">
             <x-filament::loading-indicator class="h-5 w-5" />
