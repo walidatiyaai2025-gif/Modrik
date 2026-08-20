@@ -180,6 +180,8 @@ void main() {
 
           final retry = find.widgetWithText(OutlinedButton, copy.retry);
           expect(retry, findsOneWidget);
+          await tester.ensureVisible(retry);
+          await tester.pumpAndSettle();
           final retryRect = tester.getRect(retry);
           expect(retryRect.left, greaterThanOrEqualTo(0));
           expect(retryRect.right, lessThanOrEqualTo(320));
@@ -227,16 +229,26 @@ void main() {
         expect(find.text(copy.sync), findsOneWidget);
         expect(tester.takeException(), isNull);
 
-        final confirmation = find.text(copy.confirm);
-        await tester.ensureVisible(confirmation);
+        final confirmationTile = find.ancestor(
+          of: find.text(copy.confirm),
+          matching: find.byType(CheckboxListTile),
+        );
+        expect(confirmationTile, findsOneWidget);
+        final confirmationCheckbox = find.descendant(
+          of: confirmationTile,
+          matching: find.byType(Checkbox),
+        );
+        expect(confirmationCheckbox, findsOneWidget);
+        await tester.ensureVisible(confirmationCheckbox);
         await tester.pumpAndSettle();
-        await tester.tap(confirmation);
+        await tester.tap(confirmationCheckbox);
         await tester.pump();
 
         final submit = find.descendant(
           of: dialog,
           matching: find.widgetWithText(FilledButton, copy.change),
         );
+        expect(submit, findsOneWidget);
         await tester.ensureVisible(submit);
         await tester.pumpAndSettle();
         await tester.tap(submit);
