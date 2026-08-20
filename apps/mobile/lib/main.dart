@@ -53,8 +53,8 @@ class _ModrikAppState extends State<ModrikApp> {
   bool _ownsDiagnostics = false;
   MobileBootstrapConfig? _config;
   MutableBearerToken? _tokenProvider;
-  FlutterExceptionHandler? _previousFlutterErrorHandler;
-  FlutterExceptionHandler? _installedFlutterErrorHandler;
+  void Function(FlutterErrorDetails)? _previousFlutterErrorHandler;
+  void Function(FlutterErrorDetails)? _installedFlutterErrorHandler;
   bool Function(Object, StackTrace)? _previousPlatformErrorHandler;
   bool Function(Object, StackTrace)? _installedPlatformErrorHandler;
 
@@ -94,26 +94,28 @@ class _ModrikAppState extends State<ModrikApp> {
 
   void _installGlobalErrorCapture(RuntimeDiagnostics diagnostics) {
     _previousFlutterErrorHandler = FlutterError.onError;
-    final flutterHandler = (FlutterErrorDetails details) {
+    void flutterHandler(FlutterErrorDetails details) {
       diagnostics.recordUnexpected(
         details.exception,
         details.stack ?? StackTrace.current,
         operation: 'flutter.framework',
       );
       _previousFlutterErrorHandler?.call(details);
-    };
+    }
+
     _installedFlutterErrorHandler = flutterHandler;
     FlutterError.onError = flutterHandler;
 
     _previousPlatformErrorHandler = PlatformDispatcher.instance.onError;
-    final platformHandler = (Object error, StackTrace stack) {
+    bool platformHandler(Object error, StackTrace stack) {
       diagnostics.recordUnexpected(
         error,
         stack,
         operation: 'flutter.platform',
       );
       return _previousPlatformErrorHandler?.call(error, stack) ?? false;
-    };
+    }
+
     _installedPlatformErrorHandler = platformHandler;
     PlatformDispatcher.instance.onError = platformHandler;
   }
