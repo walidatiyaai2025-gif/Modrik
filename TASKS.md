@@ -13,7 +13,7 @@
 
 ## READY — P0 implementation backlog
 
-- [ ] P0-ACADEMIC-001 / Issue #4 / REQ-P0-002 / AC-P0-010 — implement onboarding activation and the explicit full academic-context reset that archives, rather than deletes, historical attempts and progress. Local implementation, contracts, 8 Backend tests/165 assertions, Web build, and migration round-trip are green; MariaDB CI/integration remain.
+- [x] P0-ACADEMIC-001 / Issue #4 / REQ-P0-002 / AC-P0-010 — implement onboarding activation and the explicit full academic-context reset that archives, rather than deletes, historical attempts and progress. Local gates and all seven Bootstrap CI jobs are green in run `32370143748`, including MariaDB 10.11 lifecycle tests.
 
 ## Public shell
 

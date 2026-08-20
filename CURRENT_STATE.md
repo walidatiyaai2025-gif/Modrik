@@ -14,7 +14,7 @@ Updated: 2026-08-20
 - CI covers contract/OpenAPI/token validation, Backend Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fixture seeding plus the full Backend suite, Web audit/lint/typecheck/test/build, Flutter analyze/test, Gitleaks, and PR dependency review. GitHub Dependency Graph/Dependabot alerts are enabled so dependency review is enforceable.
 - BOOT-008 is integrated on `main` by merge commit `35453a885f41c14d6949bccf71903c28b4c29e15`: portable learning/assessment migrations, a disabled-by-default synthetic fixture boundary, localized lesson reads, server-authoritative practice attempts, revision-safe answers, idempotent submit/progress, transactional outbox events, and a desktop-first AR/EN/FR Web workspace.
 - Fixture authentication is deliberately not production authentication. It accepts one configured synthetic bearer token only while `MODRIK_FIXTURE_MODE=true`; full verified account/provider/session work remains outside this slice.
-- Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is implemented locally on `codex/req-p0-002-academic-reset`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. No real board/syllabus input is assumed.
+- Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is implemented on `codex/req-p0-002-academic-reset` at `564cfbd270c8d300abf7515c5e466ef9070f426e`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. Draft PR #5 is the integration vehicle; no real board/syllabus input is assumed.
 
 ## Verification evidence
 
@@ -27,6 +27,7 @@ Updated: 2026-08-20
 - Mobile: Flutter analyze and widget test — passed locally on Flutter 3.44.8; CI is pinned to the current stable 3.47.1 for authoritative proof.
 - An isolated clone installed only from committed lockfiles and passed the complete root, Backend, Web, and Mobile gate sequence. The proof caught and fixed a generated Next.js type dependency and an implicit local Laravel `APP_KEY`; both cold-start assumptions are now explicit and test-only where appropriate.
 - Closing GitHub Actions runs `32366197749` (Bootstrap CI) and `32366197811` (Coming Soon Smoke) passed before PR #2 was merged. BOOT-008 Bootstrap CI run `32368815429` passed all seven jobs on 2026-08-20, including the strengthened MariaDB 10.11 fixture seed/full Backend suite, contracts, Backend, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
+- Issue #4 Bootstrap CI run `32370143748` passed all seven jobs. The first MariaDB attempt (`32369979913`) correctly caught index-order error 1553; commit `564cfbd` adds the replacement foreign-key-supporting index before dropping the old composite index, and the repaired MariaDB 10.11 migration/8-test suite is green.
 
 ## External blockers
 
@@ -36,4 +37,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Publish Issue #4 as one draft PR, obtain green GitHub CI including MariaDB 10.11 lifecycle tests, record the evidence, and integrate before selecting the next P0 gap.
+Obtain green CI for this evidence-only handoff update, mark PR #5 ready, integrate it with an expected-head guard, then select the next unblocked P0 gap.
