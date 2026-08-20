@@ -214,6 +214,19 @@ void main() {
 
     expect(find.text('فاحص التشغيل'), findsOneWidget);
     expect(find.text('ملخص التشغيل'), findsOneWidget);
+
+    for (final label in ['نسخ JSON', 'تصدير JSON', 'مسح التشخيصات']) {
+      final text = find.text(label);
+      await tester.dragUntilVisible(
+        text,
+        find.byType(ListView),
+        const Offset(0, -220),
+      );
+      final button = find.ancestor(of: text, matching: find.byType(OutlinedButton));
+      expect(button, findsOneWidget);
+      expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+    }
+
     final timeline = find.text('سجل التشخيصات الأخيرة');
     await tester.dragUntilVisible(
       timeline,
@@ -221,6 +234,13 @@ void main() {
       const Offset(0, -300),
     );
     expect(timeline, findsOneWidget);
+    final supportReference = find.textContaining(_supportCorrelation);
+    await tester.dragUntilVisible(
+      supportReference,
+      find.byType(ListView),
+      const Offset(0, -220),
+    );
+    expect(supportReference, findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -274,14 +294,22 @@ void main() {
       'Effacer les diagnostics',
     ]) {
       final text = find.text(label);
-      await tester.ensureVisible(text);
+      await tester.dragUntilVisible(
+        text,
+        find.byType(ListView),
+        const Offset(0, -220),
+      );
       final button = find.ancestor(of: text, matching: find.byType(OutlinedButton));
       expect(button, findsOneWidget);
       expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
     }
 
     final correlationFilter = find.text('ID de corrélation');
-    await tester.ensureVisible(correlationFilter);
+    await tester.dragUntilVisible(
+      correlationFilter,
+      find.byType(ListView),
+      const Offset(0, -220),
+    );
     expect(correlationFilter, findsOneWidget);
 
     final timeline = find.text('Chronologie récente des diagnostics');
