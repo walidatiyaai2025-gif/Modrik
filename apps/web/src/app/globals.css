@@ -27,22 +27,57 @@ body {
 
 [lang="ar"],
 [lang="ar"] button,
-[lang="ar"] input {
+[lang="ar"] input,
+[lang="ar"] select,
+[lang="ar"] textarea {
   font-family: "Noto Kufi Arabic", "Noto Sans Arabic", "Poppins", ui-sans-serif, system-ui, sans-serif;
 }
 
 button,
 input,
+select,
+textarea,
 summary {
   font: inherit;
 }
 
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
 summary:focus-visible,
 a:focus-visible {
   outline: 3px solid var(--modrik-teal);
   outline-offset: 3px;
+}
+
+select,
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 3.2rem;
+  padding: 0.75rem 0.9rem;
+  color: var(--modrik-ink);
+  line-height: 1.5;
+  background: var(--modrik-white);
+  border: 2px solid color-mix(in srgb, var(--modrik-blue) 20%, transparent);
+  border-radius: var(--modrik-radius-sm);
+}
+
+textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+select:disabled,
+textarea:disabled {
+  color: var(--modrik-slate);
+  background: var(--modrik-background);
+  border-color: color-mix(in srgb, var(--modrik-slate) 28%, transparent);
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
