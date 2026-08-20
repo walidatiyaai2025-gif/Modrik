@@ -2,7 +2,7 @@
 
 MODRIK is an education platform for structured study, practice, exam preparation, and progress tracking across Student Web and Mobile, with a Laravel/Filament administration backend.
 
-Status: BOOT-001..008, archival academic-context reset, deterministic Content Preparation staging, and fail-closed advertising eligibility are integrated and green. Issue #10 implements AC-P0-017's bounded, resumable outbox worker for the database/cron Pilot topology. `deploy/coming-soon/` remains the public-shell release artifact; Student Web does not replace it.
+Status: BOOT-001..008, archival academic-context reset, deterministic Content Preparation staging, fail-closed advertising eligibility, and the bounded resumable outbox worker are integrated and green. Issue #12 makes the paid-AI-off learning-core boundary executable without adding a provider. `deploy/coming-soon/` remains the public-shell release artifact; Student Web does not replace it.
 
 ## Read first
 

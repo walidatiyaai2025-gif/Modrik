@@ -1,0 +1,28 @@
+schema_version: 1.0.0
+traceability: [REQ-P0-013, AC-P0-015]
+enabled_by_default: false
+core_dependency: none
+transport: none
+providers: []
+allowed_context_fields:
+  - locale
+  - subject_reference
+  - lesson_reference
+prohibited_context_fields:
+  - user_id
+  - email
+  - name
+  - birth_date
+  - age_assurance
+  - academic_context_id
+  - attempt_id
+  - student_answer
+  - progress
+  - mastery
+  - access_token
+  - session_cookie
+activation_requirements:
+  - owner-approved use case
+  - provider and privacy review
+  - explicit transport implementation
+  - no-student-PII integration tests

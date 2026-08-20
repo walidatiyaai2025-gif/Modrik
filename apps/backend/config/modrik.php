@@ -25,4 +25,12 @@ return [
         'initial_backoff_seconds' => 60,
         'maximum_backoff_seconds' => 3_600,
     ],
+    'paid_ai' => [
+        'enabled' => (bool) env('MODRIK_PAID_AI_ENABLED', false),
+        'allowed_context_fields' => [
+            'locale',
+            'subject_reference',
+            'lesson_reference',
+        ],
+    ],
 ];

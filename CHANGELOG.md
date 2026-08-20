@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-AI-001 paid-AI-off learning core boundary
+
+- Added Issue #12 for REQ-P0-013 / AC-P0-015 and made the paid-AI-off architecture boundary executable instead of relying on documentation alone.
+- Added an explicit default-off runtime switch with no provider transport, plus a backend-only optional-context gateway that admits only locale and synthetic content references while discarding identity, answers, progress, and credentials.
+- Added a complete session → context → lesson → authoritative attempt → answers → submit → progress integration test with Laravel outbound HTTP forbidden, along with disabled-boundary and context-minimization tests.
+- Added ADR-008, a machine-readable optional-AI security contract, drift checks in the repository contract gate, and threat-model/QA evidence. Provider selection, endpoints, keys, privacy approval, and production activation remain deliberately absent.
+- Local Composer/npm audits, Pint/Larastan, PHPUnit (22 tests/513 assertions), contracts/OpenAPI/tokens, Web, and Flutter gates pass.
+- Bootstrap CI run `32374885883` passed all seven jobs, including MariaDB 10.11, Composer/npm audits, Gitleaks, and dependency review.
+
 ## 2026-08-20 — P0-OPS-001 bounded resumable outbox worker
 
 - Added Issue #10 for REQ-P0-009/014 and AC-P0-016/017, turning the database-queue/cron/outbox operational contract into an executable scheduled command.
