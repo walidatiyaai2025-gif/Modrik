@@ -29,6 +29,7 @@ const evidence = {
   source_shas: sourceShas || null,
   generated_at: new Date().toISOString(),
   browser: "chromium",
+  keyboard_open_method: "Tab-to-launcher-then-Enter",
   security: {
     traces_recorded: false,
     screenshots_recorded: false,
@@ -62,18 +63,6 @@ async function runCase(name, metadata, fn) {
   }
 }
 
-function problem(requestId) {
-  return {
-    type: "https://modrik.org/problems/authentication_required",
-    title: "Authentication required",
-    status: 401,
-    code: "AUTHENTICATION_REQUIRED",
-    detail: "Authentication required.",
-    request_id: requestId,
-    retryable: false,
-  };
-}
-
 function json(res, status, payload, headers = {}) {
   const body = JSON.stringify(payload);
   res.writeHead(status, {
@@ -85,6 +74,18 @@ function json(res, status, payload, headers = {}) {
   res.end(body);
 }
 
+function authenticationProblem(requestId) {
+  return {
+    type: "https://modrik.org/problems/authentication_required",
+    title: "Authentication required",
+    status: 401,
+    code: "AUTHENTICATION_REQUIRED",
+    detail: "Authentication required.",
+    request_id: requestId,
+    retryable: false,
+  };
+}
+
 async function handleMockRequest(req, res) {
   const url = new URL(req.url, `http://127.0.0.1:${mockPort}`);
   if (url.pathname === "/v1/session") {
@@ -92,7 +93,7 @@ async function handleMockRequest(req, res) {
     const safeCorrelation = typeof requested === "string" && /^[0-9a-f-]{36}$/i.test(requested)
       ? requested
       : correlationId;
-    return json(res, 401, problem(safeCorrelation), { "X-Correlation-ID": safeCorrelation });
+    return json(res, 401, authenticationProblem(safeCorrelation), { "X-Correlation-ID": safeCorrelation });
   }
   return json(res, 404, {
     type: "https://modrik.org/problems/resource_not_found",
@@ -126,7 +127,7 @@ async function waitForHttp(url, timeoutMs = 60000) {
       const response = await fetch(url, { redirect: "manual" });
       if (response.status > 0) return;
     } catch {
-      // Retry within the bounded deadline.
+      // Retry only within the bounded deadline.
     }
     await delay(250);
   }
@@ -155,10 +156,7 @@ function startNext() {
 async function stopChild(child) {
   if (!child || child.exitCode !== null) return;
   child.kill("SIGTERM");
-  await Promise.race([
-    new Promise((resolve) => child.once("exit", resolve)),
-    delay(4000),
-  ]);
+  await Promise.race([new Promise((resolve) => child.once("exit", resolve)), delay(4000)]);
   if (child.exitCode === null) child.kill("SIGKILL");
 }
 
@@ -170,7 +168,6 @@ async function setLocale(page, locale) {
   const button = page.locator(".auth-locale button").filter({ hasText: locale.toUpperCase() }).first();
   await button.click();
   const shell = page.locator(".auth-shell");
-  await shell.waitFor({ state: "visible", timeout: 5000 });
   check(await shell.getAttribute("lang") === locale, "E2E_INSPECTOR_AUTH_LOCALE");
   check(await shell.getAttribute("dir") === (locale === "ar" ? "rtl" : "ltr"), "E2E_INSPECTOR_AUTH_DIRECTION");
 }
@@ -185,51 +182,43 @@ async function setTextScale(page, scale) {
 
 function diagnosticSeed(locale) {
   const direction = locale === "ar" ? "rtl" : "ltr";
-  const rows = [];
-  for (let index = 0; index < 70; index += 1) {
-    rows.push({
-      timestamp: new Date(Date.UTC(2026, 7, 21, 0, 0, index % 60)).toISOString(),
-      severity: index % 7 === 0 ? "warn" : "info",
-      surface: "web",
-      category: "request",
-      operation: index === 69 ? "e2e:correlation" : "e2e:bounded",
-      correlationId,
-      supportReference: correlationId,
-      resultClass: index % 7 === 0 ? "4xx" : "2xx",
-      status: index % 7 === 0 ? 401 : 200,
-      errorCode: index % 7 === 0 ? "AUTHENTICATION_REQUIRED" : null,
-      durationMs: 12,
-      route: "/",
-      locale,
-      direction,
-      online: true,
-      retryState: "none",
-      authorization: privacySentinel,
-      cookie: privacySentinel,
-      password: privacySentinel,
-      provider_secret: privacySentinel,
-      learner_answer: privacySentinel,
-      question_text: privacySentinel,
-      email: privacySentinel,
-      request_body: privacySentinel,
-      response_body: privacySentinel,
-    });
-  }
-  return rows;
+  return Array.from({ length: 70 }, (_, index) => ({
+    timestamp: new Date(Date.UTC(2026, 7, 21, 0, 0, index % 60)).toISOString(),
+    severity: index % 7 === 0 ? "warn" : "info",
+    surface: "web",
+    category: "request",
+    operation: index === 69 ? "e2e:correlation" : "e2e:bounded",
+    correlationId,
+    supportReference: correlationId,
+    resultClass: index % 7 === 0 ? "4xx" : "2xx",
+    status: index % 7 === 0 ? 401 : 200,
+    errorCode: index % 7 === 0 ? "AUTHENTICATION_REQUIRED" : null,
+    durationMs: 12,
+    route: "/",
+    locale,
+    direction,
+    online: true,
+    retryState: "none",
+    authorization: privacySentinel,
+    cookie: privacySentinel,
+    password: privacySentinel,
+    provider_secret: privacySentinel,
+    learner_answer: privacySentinel,
+    question_text: privacySentinel,
+    email: privacySentinel,
+    request_body: privacySentinel,
+    response_body: privacySentinel,
+  }));
 }
 
 async function seedDiagnostics(page, locale) {
-  await page.evaluate(({ key, rows }) => {
-    window.sessionStorage.setItem(key, JSON.stringify(rows));
-  }, { key: diagnosticStorageKey, rows: diagnosticSeed(locale) });
+  await page.evaluate(({ key, rows }) => window.sessionStorage.setItem(key, JSON.stringify(rows)), {
+    key: diagnosticStorageKey,
+    rows: diagnosticSeed(locale),
+  });
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForLogin(page);
   await setLocale(page, locale);
-}
-
-async function noHorizontalOverflow(locator, code) {
-  const okay = await locator.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
-  check(okay, code);
 }
 
 async function reachable(locator, page, code) {
@@ -242,6 +231,10 @@ async function reachable(locator, page, code) {
   check(box.x >= -1 && box.x + box.width <= viewport.width + 1, `${code}_HORIZONTAL_CLIP`);
 }
 
+async function noHorizontalOverflow(locator, code) {
+  check(await locator.evaluate((element) => element.scrollWidth <= element.clientWidth + 1), code);
+}
+
 async function focusIsVisible(page, code) {
   const visible = await page.evaluate(() => {
     const element = document.activeElement;
@@ -252,21 +245,19 @@ async function focusIsVisible(page, code) {
   check(visible, code);
 }
 
-function copyBundlePattern() {
-  return /copy diagnostic json|نسخ json التشخيصي|copier le json de diagnostic/i;
+async function tabToInspectorLauncher(page) {
+  for (let index = 0; index < 32; index += 1) {
+    await page.keyboard.press("Tab");
+    const reached = await page.evaluate(() => document.activeElement?.getAttribute("aria-haspopup") === "dialog");
+    if (reached) return;
+  }
+  throw new Error("E2E_INSPECTOR_KEYBOARD_LAUNCHER_UNREACHABLE");
 }
 
-function downloadPattern() {
-  return /download diagnostic json|تنزيل json التشخيصي|télécharger le json de diagnostic/i;
-}
-
-function clearPattern() {
-  return /clear diagnostics|مسح التشخيصات|effacer les diagnostics/i;
-}
-
-function correlationPattern() {
-  return /copy correlation id|نسخ معرّف الارتباط|copier l.identifiant de corrélation/i;
-}
+const copyBundlePattern = /copy diagnostic json|نسخ json التشخيصي|copier le json de diagnostic/i;
+const downloadPattern = /download diagnostic json|تنزيل json التشخيصي|télécharger le json de diagnostic/i;
+const clearPattern = /clear diagnostics|مسح التشخيصات|effacer les diagnostics/i;
+const correlationPattern = /copy correlation id|نسخ معرّف الارتباط|copier l.identifiant de corrélation/i;
 
 async function testPilotCase(browser, spec) {
   const context = await browser.newContext({ viewport: { width: spec.width, height: spec.height } });
@@ -286,16 +277,14 @@ async function testPilotCase(browser, spec) {
 
     const launcher = host.locator('button[aria-haspopup="dialog"]');
     await reachable(launcher, page, "E2E_INSPECTOR_LAUNCHER");
-    await launcher.focus();
+    await tabToInspectorLauncher(page);
     await focusIsVisible(page, "E2E_INSPECTOR_LAUNCHER_FOCUS_NOT_VISIBLE");
-    await launcher.click();
+    await page.keyboard.press("Enter");
 
     const dialog = page.locator('[role="dialog"][aria-modal="true"]');
     await dialog.waitFor({ state: "visible", timeout: 5000 });
     await noHorizontalOverflow(dialog, spec.textScale === 2 ? "E2E_INSPECTOR_200_HORIZONTAL_OVERFLOW" : "E2E_INSPECTOR_HORIZONTAL_OVERFLOW");
-
-    const initialFocusInside = await page.evaluate(() => document.activeElement?.closest('[role="dialog"]') !== null);
-    check(initialFocusInside, "E2E_INSPECTOR_INITIAL_FOCUS");
+    check(await page.evaluate(() => document.activeElement?.closest('[role="dialog"]') !== null), "E2E_INSPECTOR_INITIAL_FOCUS");
     await focusIsVisible(page, "E2E_INSPECTOR_INITIAL_FOCUS_NOT_VISIBLE");
 
     const focusables = dialog.locator('button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
@@ -311,17 +300,15 @@ async function testPilotCase(browser, spec) {
     const visibleText = (await dialog.innerText()) || "";
     check(visibleText.includes(correlationId), "E2E_INSPECTOR_CORRELATION_NOT_VISIBLE");
     check(!visibleText.includes(privacySentinel), "E2E_INSPECTOR_PRIVACY_DOM_LEAK");
-
     const timelineCount = await dialog.locator("ol > li").count();
     check(timelineCount > 0 && timelineCount <= 50, "E2E_INSPECTOR_TIMELINE_BOUND");
 
-    const correlationCopy = dialog.locator("button").filter({ hasText: correlationPattern() }).first();
+    const correlationCopy = dialog.locator("button").filter({ hasText: correlationPattern }).first();
     await reachable(correlationCopy, page, "E2E_INSPECTOR_CORRELATION_COPY");
     await correlationCopy.click();
-    const copiedCorrelation = await page.evaluate(() => navigator.clipboard.readText());
-    check(copiedCorrelation === correlationId, "E2E_INSPECTOR_CORRELATION_COPY_VALUE");
+    check(await page.evaluate(() => navigator.clipboard.readText()) === correlationId, "E2E_INSPECTOR_CORRELATION_COPY_VALUE");
 
-    const copyBundle = dialog.locator("button").filter({ hasText: copyBundlePattern() }).first();
+    const copyBundle = dialog.locator("button").filter({ hasText: copyBundlePattern }).first();
     await reachable(copyBundle, page, "E2E_INSPECTOR_COPY_BUNDLE");
     await copyBundle.click();
     const copiedBundle = await page.evaluate(() => navigator.clipboard.readText());
@@ -332,7 +319,7 @@ async function testPilotCase(browser, spec) {
       check(!copiedBundle.toLowerCase().includes(forbidden), "E2E_INSPECTOR_FORBIDDEN_FIELD");
     }
 
-    const downloadButton = dialog.locator("button").filter({ hasText: downloadPattern() }).first();
+    const downloadButton = dialog.locator("button").filter({ hasText: downloadPattern }).first();
     await reachable(downloadButton, page, "E2E_INSPECTOR_DOWNLOAD");
     const downloadPromise = page.waitForEvent("download", { timeout: 5000 });
     await downloadButton.click();
@@ -340,7 +327,7 @@ async function testPilotCase(browser, spec) {
     check(download.suggestedFilename() === "modrik-runtime-diagnostics.json", "E2E_INSPECTOR_DOWNLOAD_FILENAME");
     await download.cancel().catch(() => {});
 
-    const clearButton = dialog.locator("button").filter({ hasText: clearPattern() }).first();
+    const clearButton = dialog.locator("button").filter({ hasText: clearPattern }).first();
     await reachable(clearButton, page, "E2E_INSPECTOR_CLEAR");
     await clearButton.click();
     check((await dialog.locator("ol > li").count()) === 0, "E2E_INSPECTOR_CLEAR_FAILED");
@@ -365,8 +352,7 @@ async function testProductionOff(browser) {
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitForLogin(page);
     check((await page.locator('[data-runtime-inspector="enabled"]').count()) === 0, "E2E_INSPECTOR_PRODUCTION_RELOAD_HOST_VISIBLE");
-    const stored = await page.evaluate((key) => window.sessionStorage.getItem(key), diagnosticStorageKey);
-    check(stored === null, "E2E_INSPECTOR_PRODUCTION_STORAGE_NOT_CLEARED");
+    check(await page.evaluate((key) => window.sessionStorage.getItem(key), diagnosticStorageKey) === null, "E2E_INSPECTOR_PRODUCTION_STORAGE_NOT_CLEARED");
   } finally {
     await context.close();
   }
@@ -391,16 +377,14 @@ async function main() {
     app = startNext();
     await waitForHttp(baseURL);
     browser = await chromium.launch({ headless: true });
-
     if (mode === "production") {
       await runCase("runtime-inspector:production-default-off", { width: 390, height: 844, locale: "en", text_scale: 1 }, () => testProductionOff(browser));
     } else {
-      const cases = [
+      for (const spec of [
         { name: "desktop-en", width: 1440, height: 1000, locale: "en", textScale: 1 },
         { name: "mobile-fr-360-200", width: 360, height: 800, locale: "fr", textScale: 2 },
         { name: "mobile-ar-320-200", width: 320, height: 720, locale: "ar", textScale: 2 },
-      ];
-      for (const spec of cases) {
+      ]) {
         await runCase(`runtime-inspector:${spec.name}`, {
           width: spec.width,
           height: spec.height,
