@@ -10,7 +10,7 @@ Missing inputs block only their affected release/workflow. Safe fixtures and pla
 | Google/Apple production IDs and secrets | BLOCKED — owner/provider | Production social sign-in | Keep provider configuration absent/off; never invent IDs. |
 | Firebase production project/credentials | BLOCKED — owner/provider | Optional FCM/Remote Config/Crashlytics/Analytics | Core remains functional without Firebase. |
 | Android/iOS bundle IDs, store IDs, and signing | BLOCKED — owner/provider | Store builds/submission | Use `org.modrik.placeholder` only in the non-production scaffold. |
-| Age/ad/community activation policy | BLOCKED — owner/legal/safety | Production ads or community activation | Default safe/off; community remains P1 disabled. |
+| Age/ad/community activation policy | BLOCKED — owner/legal/safety | Production policy row, ad SDK/network, or community activation | No policy row is seeded; the Backend decision defaults off for missing/stale/invalid/non-adult state and immutable no-ad zones. Community remains P1 disabled. |
 | RPO, RTO, backup retention, and data retention | BLOCKED — owner/ops/legal | Production disaster-recovery and retention sign-off | Do not claim values; preserve auditable archival/deletion capability. |
 | cPanel/hosting access and confirmed deploy paths | BLOCKED — owner/ops | WEB-PRE-002 and public service deployment | Preserve deployable artifacts and recorded smoke commands. |
 | Full formatted master-plan DOCX | PENDING — owner/repository | Completeness reconciliation of REQ/AC/decision indexes | Mark indexes `kickoff_mirror_only`; continue explicit Issue #1 bootstrap. |

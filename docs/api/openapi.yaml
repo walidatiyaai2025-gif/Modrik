@@ -29,6 +29,8 @@ tags:
     description: Recomputable learning progress projections.
   - name: Preparation
     description: Admin-only deterministic content preparation and validation.
+  - name: Safety
+    description: Backend-owned fail-closed safety decisions; no advertising network is activated.
 paths:
   /health:
     get:
@@ -261,6 +263,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProgressResponse'
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/advertising/decisions/{placementCode}:
+    parameters:
+      - name: placementCode
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-z][a-z0-9_]{2,63}$'
+    get:
+      summary: Evaluate backend-owned advertising eligibility
+      operationId: getAdvertisingDecision
+      tags: [Safety]
+      responses:
+        '200':
+          description: Fail-closed eligibility decision. A true value does not activate or render an ad network.
+          headers:
+            Cache-Control:
+              description: Safety decisions must not be reused after policy or assurance changes.
+              schema: {type: string, const: 'no-store, private'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdvertisingDecisionResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
   /v1/admin/preparation-requests:
     post:
       summary: Create a content preparation request
@@ -598,6 +625,30 @@ components:
               mastery: {type: number, minimum: 0, maximum: 1}
               source_version: {type: integer, minimum: 1}
               calculated_at: {type: string, format: date-time}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AdvertisingDecisionResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [placement_code, zone_code, advertising_allowed, reason_code, policy_version, evaluated_at]
+          properties:
+            placement_code: {type: string, pattern: '^[a-z][a-z0-9_]{2,63}$'}
+            zone_code:
+              oneOf:
+                - type: 'null'
+                - type: string
+                  enum: [account, assessment, dashboard, help, lesson, onboarding, progress]
+            advertising_allowed: {type: boolean}
+            reason_code:
+              type: string
+              enum: [PLACEMENT_UNKNOWN, NO_AD_ZONE, CONFIG_MISSING, GLOBAL_KILL_SWITCH, CONFIG_INVALID, CONFIG_NOT_EFFECTIVE, CONFIG_STALE, PLACEMENT_DISABLED, AGE_UNKNOWN, AGE_ASSURANCE_INVALID, AGE_ASSURANCE_STALE, AGE_NOT_ADULT, ELIGIBLE]
+            policy_version:
+              oneOf: [{type: 'null'}, {type: integer, minimum: 1}]
+            evaluated_at: {type: string, format: date-time}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     PreparationRequestResponse:
       type: object
