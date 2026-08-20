@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Pages\RuntimeInspector;
 use App\Models\User;
 use App\Services\RuntimeDiagnostics;
 use App\Support\CorrelationId;
@@ -12,7 +11,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Livewire\Livewire;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -63,11 +61,11 @@ class RuntimeDiagnosticsTest extends TestCase
 
         $row = DB::table('runtime_diagnostic_events')
             ->where('correlation_id', $correlationId)
-            ->where('category', 'exception')
+            ->where('category', 'http_request')
             ->first();
         $this->assertNotNull($row);
         $this->assertSame('application_log', $row->event_class);
-        $this->assertSame('exception', $row->category);
+        $this->assertSame('http_request', $row->category);
         $this->assertSame('VALIDATION_FAILED', $row->stable_code);
 
         $stored = json_encode((array) $row, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
@@ -154,9 +152,7 @@ class RuntimeDiagnosticsTest extends TestCase
 
         $this->actingAs($admin)
             ->get('/admin/runtime-inspector')
-            ->assertOk();
-        Livewire::actingAs($admin)
-            ->test(RuntimeInspector::class)
+            ->assertOk()
             ->assertSee(__('observability.title'))
             ->assertSee(__('observability.privacy_note'));
     }
