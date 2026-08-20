@@ -20,7 +20,6 @@ return new class extends Migration
         });
 
         Schema::table('progress_snapshots', function (Blueprint $table): void {
-            $table->dropUnique('progress_source_unique');
             $table->foreignUlid('academic_context_id')
                 ->nullable()
                 ->after('user_id')
@@ -32,6 +31,11 @@ return new class extends Migration
                 'progress_context_source_unique',
             );
             $table->index(['user_id', 'archived_at']);
+        });
+        Schema::table('progress_snapshots', function (Blueprint $table): void {
+            // MariaDB used the original composite unique index for the user FK.
+            // Add its replacement first so dropping the old index remains portable.
+            $table->dropUnique('progress_source_unique');
         });
 
         $attemptBindings = DB::table('attempts as attempts')
@@ -91,11 +95,14 @@ return new class extends Migration
         Schema::dropIfExists('academic_context_transitions');
 
         Schema::table('progress_snapshots', function (Blueprint $table): void {
+            // Restore the user-leading index before removing its replacement.
+            $table->unique(['user_id', 'curriculum_node_id', 'source_version'], 'progress_source_unique');
+        });
+        Schema::table('progress_snapshots', function (Blueprint $table): void {
             $table->dropUnique('progress_context_source_unique');
             $table->dropIndex(['user_id', 'archived_at']);
             $table->dropConstrainedForeignId('academic_context_id');
             $table->dropColumn('archived_at');
-            $table->unique(['user_id', 'curriculum_node_id', 'source_version'], 'progress_source_unique');
         });
 
         Schema::table('attempts', function (Blueprint $table): void {
