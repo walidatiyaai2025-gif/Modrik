@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 2026-08-20 — BOOT-008 fixture-driven learning slice (CI pending)
+## 2026-08-20 — BOOT-008 fixture-driven learning slice
 
 - Added MariaDB-portable ULID domain migrations for academic context, curriculum, localized lessons/blocks, questions/quizzes, immutable attempts, revisioned answers, progress snapshots, keyed idempotency records, and transactional outbox events.
 - Added a canonical synthetic multilingual fixture seeder sourced from the validated Content Pack. Fixture mode and its single bearer boundary are disabled by default and explicitly unsuitable for production authentication.
@@ -8,7 +8,7 @@
 - Implemented the desktop-first Next.js learning workspace with AR/EN/FR and RTL/LTR support; explicit loading, empty, error, offline, permission, retry, focus, and large-text behavior; a server-only allowlisted Backend proxy; and stable mutation keys across transport retries.
 - Updated OpenAPI/data contracts and added contract assertions for practice quiz discovery, nested attempt results, and replay response headers.
 - Added a reusable end-to-end fixture smoke through the actual Next route handler and live Laravel HTTP server. Local Backend gates pass 6 tests/100 assertions; Web lint/typecheck/test/build and the full repository gates pass.
-- Strengthened GitHub CI so MariaDB 10.11 performs a fresh fixture seed and the full Backend test suite. BOOT-008 remains open until that authoritative branch run is green and integrated.
+- Strengthened GitHub CI so MariaDB 10.11 performs a fresh fixture seed and the full Backend test suite. Bootstrap CI run `32368815429` passed all seven jobs, including MariaDB 10.11, Flutter 3.47.1, Gitleaks, and dependency review; draft PR #3 is the integration vehicle.
 
 ## 2026-08-20 — BOOT-007 clean-checkout and CI proof
 

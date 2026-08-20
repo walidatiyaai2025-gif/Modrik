@@ -12,7 +12,7 @@ Updated: 2026-08-20
 - Six accepted ADRs, logical ERD/data dictionary, OpenAPI 3.1, RFC 9457 errors, event/outbox and idempotency contracts exist.
 - Content Pack/Preparation v1 schemas and synthetic multilingual golden valid/invalid fixtures exist and are hash/binding/semantic validated.
 - CI covers contract/OpenAPI/token validation, Backend Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fixture seeding plus the full Backend suite, Web audit/lint/typecheck/test/build, Flutter analyze/test, Gitleaks, and PR dependency review. GitHub Dependency Graph/Dependabot alerts are enabled so dependency review is enforceable.
-- BOOT-008 is implemented locally on `codex/boot-008-vertical-slice`: portable learning/assessment migrations, a disabled-by-default synthetic fixture boundary, localized lesson reads, server-authoritative practice attempts, revision-safe answers, idempotent submit/progress, transactional outbox events, and a desktop-first AR/EN/FR Web workspace.
+- BOOT-008 is implemented on `codex/boot-008-vertical-slice` at `8729d5eae79a98d344b8dc6d2659b75db9e6fd15`: portable learning/assessment migrations, a disabled-by-default synthetic fixture boundary, localized lesson reads, server-authoritative practice attempts, revision-safe answers, idempotent submit/progress, transactional outbox events, and a desktop-first AR/EN/FR Web workspace. Draft PR #3 is the integration vehicle.
 - Fixture authentication is deliberately not production authentication. It accepts one configured synthetic bearer token only while `MODRIK_FIXTURE_MODE=true`; full verified account/provider/session work remains outside this slice.
 
 ## Verification evidence
@@ -25,7 +25,7 @@ Updated: 2026-08-20
 - The reusable fixture smoke traversed the actual Next route handler into a live Laravel server: session → context → localized lesson → three revisioned answers → idempotent submit → progress.
 - Mobile: Flutter analyze and widget test — passed locally on Flutter 3.44.8; CI is pinned to the current stable 3.47.1 for authoritative proof.
 - An isolated clone installed only from committed lockfiles and passed the complete root, Backend, Web, and Mobile gate sequence. The proof caught and fixed a generated Next.js type dependency and an implicit local Laravel `APP_KEY`; both cold-start assumptions are now explicit and test-only where appropriate.
-- Closing GitHub Actions runs `32366197749` (Bootstrap CI) and `32366197811` (Coming Soon Smoke) passed before PR #2 was merged. BOOT-008 still requires its branch CI run, including the strengthened MariaDB 10.11 seed-and-test job, before integration.
+- Closing GitHub Actions runs `32366197749` (Bootstrap CI) and `32366197811` (Coming Soon Smoke) passed before PR #2 was merged. BOOT-008 Bootstrap CI run `32368815429` passed all seven jobs on 2026-08-20, including the strengthened MariaDB 10.11 fixture seed/full Backend suite, contracts, Backend, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
 
 ## External blockers
 
@@ -35,4 +35,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Publish BOOT-008 as one draft PR, obtain green GitHub CI including MariaDB 10.11 fixture seed/full Backend tests, reconcile this handoff to the green commit, and integrate it before starting the next P0 slice.
+Obtain green CI for this evidence-only handoff update, mark PR #3 ready, integrate it with an expected-head guard, then start the next unblocked P0 slice.
