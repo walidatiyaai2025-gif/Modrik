@@ -8,31 +8,47 @@ class MobileBootstrapConfig {
   const MobileBootstrapConfig({
     required this.apiBaseUrl,
     this.bearerToken,
+    this.fixtureMode = false,
     this.initialLessonId,
     this.academicTrackId,
   });
 
   factory MobileBootstrapConfig.fromEnvironment() {
     const rawBase = String.fromEnvironment('MODRIK_API_BASE_URL');
-    const token = String.fromEnvironment('MODRIK_API_BEARER_TOKEN');
+    const fixtureMode = bool.fromEnvironment('MODRIK_FIXTURE_MODE');
+    const fixtureToken = String.fromEnvironment('MODRIK_FIXTURE_BEARER_TOKEN');
+    const legacyFixtureToken = String.fromEnvironment('MODRIK_API_BEARER_TOKEN');
     const lessonId = String.fromEnvironment('MODRIK_INITIAL_LESSON_ID');
     const trackId = String.fromEnvironment('MODRIK_ACADEMIC_TRACK_ID');
+    final selectedFixtureToken = fixtureToken.isNotEmpty
+        ? fixtureToken
+        : legacyFixtureToken;
     return MobileBootstrapConfig(
       apiBaseUrl: rawBase.isEmpty
           ? null
           : Uri.parse(rawBase.endsWith('/') ? rawBase : '$rawBase/'),
-      bearerToken: token.isEmpty ? null : token,
+      bearerToken: fixtureMode && selectedFixtureToken.isNotEmpty
+          ? selectedFixtureToken
+          : null,
+      fixtureMode: fixtureMode,
       initialLessonId: lessonId.isEmpty ? null : lessonId,
       academicTrackId: trackId.isEmpty ? null : trackId,
     );
   }
 
   final Uri? apiBaseUrl;
+
+  /// Synthetic fixture credential only. Production startup never consumes a
+  /// compile-time bearer token; it is obtained from the backend Auth lifecycle
+  /// and stored through the platform secure-session boundary.
   final String? bearerToken;
+  final bool fixtureMode;
   final String? initialLessonId;
   final String? academicTrackId;
 
   bool get isConfigured => apiBaseUrl != null;
+  bool get hasFixtureCredential =>
+      fixtureMode && bearerToken != null && bearerToken!.isNotEmpty;
 }
 
 class LearningFailure implements Exception {
@@ -114,13 +130,23 @@ String newLogicalCommandKey() {
 class HttpLearningGateway implements LearningGateway {
   HttpLearningGateway({
     required this.baseUrl,
-    this.bearerToken,
+    String? bearerToken,
+    this.bearerTokenProvider,
+    this.onAuthenticationRejected,
+    this.onEmailVerificationRequired,
     HttpClient? client,
-  }) : _client = client ?? HttpClient();
+  })  : _staticBearerToken = bearerToken,
+        _client = client ?? HttpClient();
 
   final Uri baseUrl;
-  final String? bearerToken;
+  final String? _staticBearerToken;
+  final String? Function()? bearerTokenProvider;
+  final void Function()? onAuthenticationRejected;
+  final void Function()? onEmailVerificationRequired;
   final HttpClient _client;
+
+  String? get _bearerToken =>
+      bearerTokenProvider?.call() ?? _staticBearerToken;
 
   @override
   Future<Session> session() async =>
@@ -267,7 +293,7 @@ class HttpLearningGateway implements LearningGateway {
         HttpHeaders.acceptHeader,
         'application/json, application/problem+json',
       );
-      final token = bearerToken;
+      final token = _bearerToken;
       if (token != null && token.isNotEmpty) {
         request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
       }
@@ -285,12 +311,19 @@ class HttpLearningGateway implements LearningGateway {
         final problem = payload is Map
             ? Map<String, dynamic>.from(payload)
             : <String, dynamic>{};
-        throw LearningFailure(
+        final failure = LearningFailure(
           status: response.statusCode,
           code: problem['code'] as String? ?? 'LEARNING_REQUEST_FAILED',
           message: problem['detail'] as String? ?? 'The learning request failed.',
           retryable: problem['retryable'] as bool? ?? response.statusCode >= 500,
         );
+        if (failure.status == 401 && failure.code == 'AUTHENTICATION_REQUIRED') {
+          onAuthenticationRejected?.call();
+        } else if (failure.status == 403 &&
+            failure.code == 'EMAIL_VERIFICATION_REQUIRED') {
+          onEmailVerificationRequired?.call();
+        }
+        throw failure;
       }
       if (payload is! Map) {
         throw const LearningFailure(

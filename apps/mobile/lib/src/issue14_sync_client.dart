@@ -15,13 +15,21 @@ Map<String, dynamic> issue14OperationPayload(PendingLearningOperation operation)
 class HttpIssue14PendingSyncClient implements PendingSyncClient {
   HttpIssue14PendingSyncClient({
     required this.baseUrl,
-    this.bearerToken,
+    String? bearerToken,
+    this.bearerTokenProvider,
+    this.onAuthenticationRejected,
     HttpClient? client,
-  }) : _client = client ?? HttpClient();
+  })  : _staticBearerToken = bearerToken,
+        _client = client ?? HttpClient();
 
   final Uri baseUrl;
-  final String? bearerToken;
+  final String? _staticBearerToken;
+  final String? Function()? bearerTokenProvider;
+  final void Function()? onAuthenticationRejected;
   final HttpClient _client;
+
+  String? get _bearerToken =>
+      bearerTokenProvider?.call() ?? _staticBearerToken;
 
   @override
   Future<PendingSyncOutcome> flush(List<PendingLearningOperation> operations) async {
@@ -49,7 +57,7 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
         'application/json, application/problem+json',
       );
       request.headers.contentType = ContentType.json;
-      final token = bearerToken;
+      final token = _bearerToken;
       if (token != null && token.isNotEmpty) {
         request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
       }
@@ -66,12 +74,16 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
         final problem = payload is Map
             ? Map<String, dynamic>.from(payload)
             : <String, dynamic>{};
-        throw LearningFailure(
+        final failure = LearningFailure(
           status: response.statusCode,
           code: problem['code'] as String? ?? 'SYNC_REQUEST_FAILED',
           message: problem['detail'] as String? ?? 'The answer sync request failed.',
           retryable: problem['retryable'] as bool? ?? response.statusCode >= 500,
         );
+        if (failure.status == 401 && failure.code == 'AUTHENTICATION_REQUIRED') {
+          onAuthenticationRejected?.call();
+        }
+        throw failure;
       }
       if (payload is! Map) {
         throw const LearningFailure(
