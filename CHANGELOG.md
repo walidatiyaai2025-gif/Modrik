@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-AUTH-001 production account lifecycle and provider linking
+
+- Implemented Issue #15 for REQ-P0-001 / AC-P0-013 with production-shaped email/password registration and login, normalized-email uniqueness, framework password hashing, email verification plus authenticated resend/rate limiting, enumeration-resistant password recovery, one-time reset tokens, password changes, and explicit recent-authentication gates for sensitive actions.
+- Added backend-owned opaque sessions whose raw bearer credential is returned once while only its SHA-256 digest is persisted. Active-session listing exposes no credential material; logout-current, revoke-others, revoke-all, password reset, password change, provider unlink and account deletion apply the required revocation semantics.
+- Added safe logical account deletion that atomically tombstones direct identity material, disables password authentication, revokes sessions/tokens, consumes pending provider intents, scrubs provider email/subject data, preserves referential history, and emits only redacted Auth security events.
+- Added Google/Apple provider intent and linking architecture keyed by stable `provider + subject`, with hashed one-time state/nonce, explicit login-vs-link purpose, collision denial instead of email-only auto-linking, subject ownership conflict handling, Apple private-relay-safe metadata, last-recovery-identity protection, and a fail-closed provider-verifier adapter. Production provider IDs, secrets, callback URLs and signing material remain external owner inputs and were not invented.
+- Kept BOOT-008 fixture authentication isolated and disabled outside fixture mode. Production Auth endpoints use a separate `auth.production` boundary and never accept the synthetic fixture bearer as a production session.
+- Added Auth-owned migrations, OpenAPI paths/schemas, RFC 9457 stable codes, contract assertions, ADR/data/ERD/security/QA traceability, and abuse/integration coverage for verification, recovery, session revocation, deletion, provider login/link/collision/relay behavior and cross-account denial on SQLite and MariaDB 10.11.
+- Closure candidate head `507a25558e9bf114b99a0ce12781c7eb178a3300`, reconciled onto Assessment-integrated `main` `370939f5f8aba6b1b8d3e3a0459453f56f375b31`, passed Bootstrap CI run `32393926820` across all seven required jobs: contracts/OpenAPI/tokens; Composer validation/audit, Pint, Larastan and full SQLite Backend tests; MariaDB 10.11.18 fresh migration/seed plus full Backend tests; Web; Flutter Mobile; Gitleaks; and dependency review. This documentation reconciliation changes the tree, so the final PR head requires a fresh complete seven-job CI pass before merge.
+
 ## 2026-08-20 — P0-ASSESS-001 authoritative immutable assessment attempts
 
 - Implemented Issue #16 for REQ-P0-005 / AC-P0-002..005 with a cryptographically secure 32-byte server-generated seed for every new attempt. Client-controlled seed, question-selection, ordering, selection and blueprint fields are rejected, while only a SHA-256 seed fingerprint is retained for audit/event correlation and the encrypted seed remains internal.
