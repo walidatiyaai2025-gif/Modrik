@@ -211,15 +211,15 @@ class AuthLifecycleTest extends TestCase
         $linkIntent = $this->withToken($firstToken)->postJson('/v1/auth/providers/google/link-intents')->assertCreated();
         $linkState = (string) $linkIntent->json('data.state');
         $linkNonce = (string) $linkIntent->json('data.nonce');
-        $fake->claims['google-link'] = $this->claims('google', 'google-subject-1', $linkNonce, 'linked@example.test', true);
-        $this->postJson('/v1/auth/providers/google/callback', ['state' => $linkState, 'id_token' => 'google-link'])
+        $fake->claims['google-link-token-0001'] = $this->claims('google', 'google-subject-1', $linkNonce, 'linked@example.test', true);
+        $this->postJson('/v1/auth/providers/google/callback', ['state' => $linkState, 'id_token' => 'google-link-token-0001'])
             ->assertOk()->assertJsonPath('data.account_id', (string) $firstUser->getKey());
 
         $appleLinkIntent = $this->withToken($firstToken)->postJson('/v1/auth/providers/apple/link-intents')->assertCreated();
         $appleState = (string) $appleLinkIntent->json('data.state');
         $appleNonce = (string) $appleLinkIntent->json('data.nonce');
-        $fake->claims['apple-link'] = $this->claims('apple', 'apple-stable-subject', $appleNonce, 'relay-token@privaterelay.appleid.com', true);
-        $this->postJson('/v1/auth/providers/apple/callback', ['state' => $appleState, 'id_token' => 'apple-link'])->assertOk();
+        $fake->claims['apple-link-token-0001'] = $this->claims('apple', 'apple-stable-subject', $appleNonce, 'relay-token@privaterelay.appleid.com', true);
+        $this->postJson('/v1/auth/providers/apple/callback', ['state' => $appleState, 'id_token' => 'apple-link-token-0001'])->assertOk();
         $this->assertDatabaseHas('auth_provider_identities', [
             'user_id' => $firstUser->getKey(),
             'provider' => 'apple',
@@ -242,7 +242,7 @@ class AuthLifecycleTest extends TestCase
         $this->assertSame(2, User::query()->count());
 
         $secondLink = $this->withToken($secondToken)->postJson('/v1/auth/providers/apple/link-intents')->assertCreated();
-        $fake->claims['apple-conflict'] = $this->claims(
+        $fake->claims['apple-conflict-token-0001'] = $this->claims(
             'apple',
             'apple-stable-subject',
             (string) $secondLink->json('data.nonce'),
@@ -251,7 +251,7 @@ class AuthLifecycleTest extends TestCase
         );
         $this->postJson('/v1/auth/providers/apple/callback', [
             'state' => (string) $secondLink->json('data.state'),
-            'id_token' => 'apple-conflict',
+            'id_token' => 'apple-conflict-token-0001',
         ])->assertConflict()->assertJsonPath('code', 'PROVIDER_IDENTITY_CONFLICT');
         $this->assertSame((string) $firstUser->getKey(), (string) DB::table('auth_provider_identities')->where('provider', 'apple')->value('user_id'));
         $this->assertNotSame((string) $firstUser->getKey(), (string) $secondUser->getKey());
