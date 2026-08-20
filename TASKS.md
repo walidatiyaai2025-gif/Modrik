@@ -19,6 +19,17 @@
 - [x] P0-OPS-001 / Issue #10 / REQ-P0-009/014 / AC-P0-016..017 — implement a database/cron-compatible bounded, overlap-safe, resumable, idempotent-by-event-ID, observable outbox worker with capped backoff and redacted failure history. Local Backend (19 tests/493 assertions), full repository gates, migration round trip, and all seven GitHub jobs—including MariaDB 10.11—pass in run `32374020760`.
 - [x] P0-AI-001 / Issue #12 / REQ-P0-013 / AC-P0-015 — enforce a default-off paid-AI boundary, prove the complete learning core with outbound HTTP forbidden, and allowlist optional context without student identity, answers, progress, or credentials. Local Backend (22 tests/513 assertions), contracts, Web, Mobile, and audit gates pass; all seven GitHub jobs, including MariaDB 10.11, are green in run `32374885883`. Provider transport and production activation remain absent.
 
+## READY — Parallel Wave 1 (six bounded agents)
+
+Shared rule: each issue owns its declared domain/contracts. Do not independently edit another issue owner's migrations/OpenAPI/domain authority. UI agents consume backend contracts. Each agent uses a separate branch/PR and must keep the full repository CI green.
+
+- [ ] P0-SYNC-001 / Issue #14 / REQ-P0-006 / AC-P0-009 — resumable idempotent offline answer sync; owns sync acknowledgements, operation IDs and sync-owned backend contract.
+- [ ] P0-AUTH-001 / Issue #15 / REQ-P0-001 / AC-P0-013 — production email/password lifecycle, verification/recovery, session revocation, account deletion and safe Google/Apple provider linking.
+- [ ] P0-ASSESS-001 / Issue #16 / REQ-P0-005 / AC-P0-002..005 — authoritative quiz/exam randomization, server seeds, variable selection/order and immutable resume.
+- [ ] P0-WEB-001 / Issue #17 / REQ-P0-007/012 / AC-P0-014 — desktop-first multilingual accessible Student Web; consumes backend authority and owns `apps/web` presentation/client work.
+- [ ] P0-MOBILE-001 / Issue #18 / REQ-P0-008/012 / AC-P0-014 — Flutter Android/iOS learning flows, accessibility and offline client boundary; consumes Issue #14 sync contract.
+- [ ] P0-ADMIN-001 / Issue #19 / REQ-P0-003/004/009 / AC-P0-001/006..008 — Filament Preparation Wizard, review, dry-run and controlled official-content publication workflow.
+
 ## Public shell
 
 - [x] BRAND-001 Lock Pilot Brand v1 palette/logo/tokens.
