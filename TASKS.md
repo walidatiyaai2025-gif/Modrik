@@ -40,6 +40,10 @@ Shared rule remains: each issue owns its declared domain/contracts; clients cons
 
 Final issue-state closure and the consolidated evidence report are tracked in Issue #26 rather than as a repository code task. Issue #21 must remain open. Wave 2 has not started.
 
+## Public release candidate
+
+- [x] P0-RELEASE-001 / Issue #32 / REQ-P0-011/012 / AC-P0-014/018/019 — implement the release-candidate MODRIK Landing, learner Help, Admin/Content guide, About/Goal/Vision/Mission, educational/AI disclaimer, Privacy/Terms/child-safety/cookie/content-reporting templates, account-deletion/support/contact guidance, AR/EN/FR + RTL/LTR, keyboard/large-text/reduced-motion responsive presentation, SEO metadata and explicit legal blocker integrity. Code head `dbaaf247d3710309351aeeabfd3188231c52acce` passed all seven Bootstrap CI jobs in run `32405723626`; Coming Soon Smoke run `32405723725` also passed. PR #37 is the integration vehicle. `/landing` is a candidate application route only; no production cutover is included.
+
 ## Public shell
 
 - [x] BRAND-001 Lock Pilot Brand v1 palette/logo/tokens.
@@ -54,6 +58,6 @@ Final issue-state closure and the consolidated evidence report are tracked in Is
 
 - [ ] P0-ACADEMIC-CONTRACT-002 / Issue #21 — expose a Backend-owned, authorized, localized/display-safe academic-track catalogue for Student Web/Mobile onboarding/reset selection. The client must not invent real board/syllabus/version values or eligibility rules. Admin publication consumes an existing track and does not close this issue.
 - [ ] CONTENT-REAL-001 Real curriculum import/publication — BLOCKED on exact board/syllabus/version, real subject identifiers, and content-rights evidence.
-- [ ] RELEASE-LEGAL-001 Final legal publication — BLOCKED on legal entity/controller/contact and approved wording.
+- [ ] RELEASE-LEGAL-001 Final legal publication — BLOCKED on approved legal entity/controller/public contacts, jurisdiction, processing bases, vendor/transfer facts, retention, age/guardian policy, safety/copyright escalation contacts, policy versions/effective dates and final AR/EN/FR legal wording. P0-RELEASE-001 supplies tested non-final templates only.
 - [ ] AUTH-PROD-001 Production Google/Apple identity — BLOCKED on provider accounts, IDs, secrets, callback configuration, and store identifiers/signing. The P0 Auth architecture and fail-closed provider adapter are complete without inventing these values.
 - [ ] OPS-DR-001 Production backup/retention/DR sign-off — BLOCKED on owner-approved RPO, RTO, backup retention, and data-retention decisions.
