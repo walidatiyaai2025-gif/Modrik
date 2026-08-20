@@ -16,6 +16,7 @@ final class AssessmentEngine
      * @param  list<array<string, mixed>>  $questions
      * @param  array<string, mixed>|null  $blueprint
      * @param  list<string>  $previousQuestionIds
+     *
      * @return array{questions: list<array<string, mixed>>, question_order_policy: string, selection_varied: bool}
      */
     public function buildPlan(array $questions, ?array $blueprint, string $seed, array $previousQuestionIds = []): array
@@ -42,12 +43,10 @@ final class AssessmentEngine
             usort($sourceSelected, static fn (array $left, array $right): int => ((int) $left['source_position']) <=> ((int) $right['source_position']));
             $selected = $this->shuffle($selected, $seed, 'question-order');
 
-            if (count($selected) > 1 && $this->ids($selected) === $this->ids($sourceSelected)) {
-                $selected = $this->rotate($selected, $seed, 'avoid-source-order');
-            }
-
             if (count($selected) > 1 && $previousQuestionIds !== [] && $this->ids($selected) === $previousQuestionIds) {
                 $selected = $this->rotate($selected, $seed, 'avoid-previous-order');
+            } elseif (count($selected) > 1 && $previousQuestionIds === [] && $this->ids($selected) === $this->ids($sourceSelected)) {
+                $selected = $this->rotate($selected, $seed, 'avoid-initial-source-order');
             }
         }
 
@@ -61,6 +60,7 @@ final class AssessmentEngine
     /**
      * @param  list<array<string, mixed>>  $options
      * @param  array<string, mixed>  $metadata
+     *
      * @return list<array<string, mixed>>
      */
     public function orderOptions(array $options, bool $explicitlySafe, array $metadata, string $seed, string $questionId): array
@@ -93,6 +93,7 @@ final class AssessmentEngine
     /**
      * @param  list<array<string, mixed>>  $questions
      * @param  array<string, mixed>|null  $blueprint
+     *
      * @return array{0: list<array<string, mixed>>, 1: bool}
      */
     private function selectQuestions(array $questions, ?array $blueprint, string $seed): array
@@ -149,6 +150,7 @@ final class AssessmentEngine
      * @param  list<array<string, mixed>>  $allQuestions
      * @param  list<array<string, mixed>>  $selected
      * @param  array<string, mixed>|null  $blueprint
+     *
      * @return list<array<string, mixed>>
      */
     private function forceAlternateSelection(array $allQuestions, array $selected, ?array $blueprint, string $seed): array
@@ -177,6 +179,7 @@ final class AssessmentEngine
                     $replacement = $alternatives[0];
                     $replacement['_slot_index'] = $slotIndex;
                     $selected[$index] = $replacement;
+
                     return array_values($selected);
                 }
             }
@@ -271,7 +274,9 @@ final class AssessmentEngine
 
     /**
      * @template T of array<string, mixed>
+     *
      * @param  list<T>  $items
+     *
      * @return list<T>
      */
     private function shuffle(array $items, string $seed, string $domain): array
@@ -289,7 +294,9 @@ final class AssessmentEngine
 
     /**
      * @template T of array<string, mixed>
+     *
      * @param  list<T>  $items
+     *
      * @return list<T>
      */
     private function rotate(array $items, string $seed, string $domain): array
@@ -313,6 +320,7 @@ final class AssessmentEngine
 
     /**
      * @param  list<array<string, mixed>>  $questions
+     *
      * @return list<string>
      */
     private function ids(array $questions): array
@@ -322,6 +330,7 @@ final class AssessmentEngine
 
     /**
      * @param  list<array<string, mixed>>  $options
+     *
      * @return list<string>
      */
     private function optionIds(array $options): array
