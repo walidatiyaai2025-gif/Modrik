@@ -53,10 +53,14 @@ void main() {
     final controller = _readyController()..section = StudentSection.practice;
     await tester.pumpWidget(ModrikApp(controller: controller, autoInitialize: false));
 
+    await tester.ensureVisible(find.text('Choice C'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Choice C'));
     await tester.pump();
     expect(controller.answers['attempt-question-3'], ['option-c']);
 
+    await tester.ensureVisible(find.text('Choice A'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Choice A'));
     await tester.pump();
     expect(
@@ -65,6 +69,8 @@ void main() {
       reason: 'array order follows the backend option snapshot, not tap order',
     );
 
+    await tester.ensureVisible(find.text('Choice C'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Choice C'));
     await tester.pump();
     expect(controller.answers['attempt-question-3'], ['option-a']);
