@@ -8,6 +8,7 @@ import 'src/academic_context_reset_boundary.dart';
 import 'src/app_shell.dart';
 import 'src/auth_gateway.dart';
 import 'src/auth_shell.dart';
+import 'src/durable_learning_store.dart';
 import 'src/issue14_sync_client.dart';
 import 'src/learning_gateway.dart';
 import 'src/mobile_auth_controller.dart';
@@ -54,6 +55,8 @@ class _ModrikAppState extends State<ModrikApp> {
   bool _ownsDiagnostics = false;
   MobileBootstrapConfig? _config;
   MutableBearerToken? _tokenProvider;
+  LearningRecoveryScope? _learningRecoveryScope;
+  LearningRecoveryStorage? _learningRecoveryStorage;
   void Function(FlutterErrorDetails)? _previousFlutterErrorHandler;
   void Function(FlutterErrorDetails)? _installedFlutterErrorHandler;
   bool Function(Object, StackTrace)? _previousPlatformErrorHandler;
@@ -146,8 +149,17 @@ class _ModrikAppState extends State<ModrikApp> {
     }
 
     final tokenProvider = MutableBearerToken();
+    final recoveryScope = LearningRecoveryScope();
+    const recoveryStorage = PlatformLearningRecoveryStorage();
     _tokenProvider = tokenProvider;
-    _controller = _createProductionLearningController(config, tokenProvider);
+    _learningRecoveryScope = recoveryScope;
+    _learningRecoveryStorage = recoveryStorage;
+    _controller = _createProductionLearningController(
+      config,
+      tokenProvider,
+      recoveryScope,
+      recoveryStorage,
+    );
     _ownsController = true;
     final baseUrl = config.apiBaseUrl;
     final AuthGateway authGateway = baseUrl != null
@@ -201,6 +213,8 @@ class _ModrikAppState extends State<ModrikApp> {
   MobileLearningController _createProductionLearningController(
     MobileBootstrapConfig config,
     MutableBearerToken tokenProvider,
+    LearningRecoveryScope recoveryScope,
+    LearningRecoveryStorage recoveryStorage,
   ) {
     final baseUrl = config.apiBaseUrl;
     final LearningGateway gateway;
@@ -226,6 +240,18 @@ class _ModrikAppState extends State<ModrikApp> {
     return MobileLearningController(
       gateway: gateway,
       config: config,
+      downloadedContentCache: DurableDownloadedContentCache(
+        storage: recoveryStorage,
+        scope: recoveryScope,
+      ),
+      attemptSnapshotCache: DurableAttemptSnapshotCache(
+        storage: recoveryStorage,
+        scope: recoveryScope,
+      ),
+      pendingOperationStore: DurablePendingOperationStore(
+        storage: recoveryStorage,
+        scope: recoveryScope,
+      ),
       pendingSyncClient: pendingSyncClient,
     );
   }
@@ -234,7 +260,14 @@ class _ModrikAppState extends State<ModrikApp> {
     String? previousAccountId,
     String currentAccountId,
   ) async {
+    final recoveryScope = _learningRecoveryScope;
+    if (recoveryScope != null) {
+      recoveryScope.bind(currentAccountId);
+    }
     if (previousAccountId != null && previousAccountId != currentAccountId) {
+      // The replacement controller shares only the newly bound account scope;
+      // the old account's persisted state remains inaccessible and can be
+      // recovered only if that same account authenticates again.
       _replaceLearningController();
     }
     await _controller.initialize();
@@ -247,17 +280,46 @@ class _ModrikAppState extends State<ModrikApp> {
   }
 
   Future<void> _onExplicitSessionEnded() async {
-    _replaceLearningController();
+    final recoveryScope = _learningRecoveryScope;
+    final recoveryStorage = _learningRecoveryStorage;
+    final accountId = recoveryScope?.accountId;
+    try {
+      if (accountId != null && recoveryStorage != null) {
+        await _controller.requestPendingCountRefresh();
+        // Logout/deletion already uses the existing pending/draft guard. The
+        // extra condition protects recovery data if another Auth path ends a
+        // session without first invoking that guard (for example reset flow).
+        if (_controller.pendingOperationCount == 0 &&
+            !_controller.hasUnsavedAnswers) {
+          await recoveryStorage.clearAccount(accountId);
+        }
+      }
+    } finally {
+      recoveryScope?.unbind();
+      _replaceLearningController();
+    }
   }
 
   void _replaceLearningController() {
     final config = _config;
     final tokenProvider = _tokenProvider;
-    if (config == null || tokenProvider == null) return;
+    final recoveryScope = _learningRecoveryScope;
+    final recoveryStorage = _learningRecoveryStorage;
+    if (config == null ||
+        tokenProvider == null ||
+        recoveryScope == null ||
+        recoveryStorage == null) {
+      return;
+    }
     if (_ownsController) {
       _controller.dispose();
     }
-    _controller = _createProductionLearningController(config, tokenProvider);
+    _controller = _createProductionLearningController(
+      config,
+      tokenProvider,
+      recoveryScope,
+      recoveryStorage,
+    );
     _ownsController = true;
     if (mounted) setState(() {});
   }
@@ -360,8 +422,8 @@ class _ModrikAppState extends State<ModrikApp> {
     final flow = auth != null && !auth.isAuthenticated
         ? 'auth.${auth.state.name}'
         : 'learning.${_controller.section.name}';
-    final cacheCount = (_controller.hasLesson ? 1 : 0) +
-        (_controller.hasAttempt ? 1 : 0);
+    final cacheCount =
+        (_controller.hasLesson ? 1 : 0) + (_controller.hasAttempt ? 1 : 0);
     return RuntimeInspectorSnapshot(
       locale: (auth?.locale ?? _controller.locale).code,
       direction: (auth?.locale ?? _controller.locale) == ModrikLocale.ar
