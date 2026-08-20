@@ -87,6 +87,70 @@ void main() {
     expect(stableCode, findsOneWidget);
   });
 
+  testWidgets('sensitive sentinels never render in inspector widgets', (tester) async {
+    const bearer = 'Bearer SENTINEL-BEARER-CREDENTIAL';
+    const password = 'SENTINEL-password-value';
+    const providerSecret = 'fake-provider-secret-never-log';
+    const learnerAnswer = 'SENTINEL-answer-text';
+    const question = 'SENTINEL-question-text';
+    const email = 'sentinel.student@example.test';
+    const name = 'SENTINEL Learner Name';
+    final diagnostics = _diagnostics();
+    diagnostics.record(
+      severity: DiagnosticSeverity.error,
+      category: 'transport',
+      correlationId: email,
+      operation: 'learning.answer',
+      result: 'backend_failure',
+      stableCode: password,
+      fingerprint: learnerAnswer,
+      metadata: {
+        'authorization': bearer,
+        'password': password,
+        'secret': providerSecret,
+        'answer': learnerAnswer,
+        'question': question,
+        'email': email,
+        'name': name,
+        'pending_count': 1,
+      },
+      connectivity: DiagnosticConnectivity.online,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RuntimeInspectorHost(
+          diagnostics: diagnostics,
+          snapshot: _snapshotEn,
+          child: const Scaffold(body: Text('Normal learning surface')),
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.monitor_heart_outlined));
+    await tester.pumpAndSettle();
+
+    final eventOperation = find.text('learning.answer');
+    await tester.dragUntilVisible(
+      eventOperation,
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    expect(eventOperation, findsOneWidget);
+
+    for (final sentinel in [
+      bearer,
+      password,
+      providerSecret,
+      learnerAnswer,
+      question,
+      email,
+      name,
+    ]) {
+      expect(find.textContaining(sentinel), findsNothing);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('app root navigator opens inspector from MaterialApp builder overlay', (tester) async {
     final diagnostics = _diagnostics();
     final controller = MobileLearningController(
