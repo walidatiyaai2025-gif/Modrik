@@ -174,6 +174,20 @@ class _AcademicContextResetBoundaryState
       _CatalogueState.ready =>
         (Icons.check_circle_outline, copy.empty, false, false),
     };
+    final leading = loading
+        ? const SizedBox.square(
+            dimension: 24,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          )
+        : Icon(icon, size: 28);
+    final retryButton = canRetry
+        ? OutlinedButton.icon(
+            onPressed: _loadCatalogue,
+            icon: const Icon(Icons.refresh),
+            label: Text(copy.retry),
+          )
+        : null;
+
     return Card(
       key: ValueKey('academic-catalogue-active-state-${_state.name}'),
       child: Padding(
@@ -181,26 +195,44 @@ class _AcademicContextResetBoundaryState
         child: Semantics(
           container: true,
           liveRegion: true,
-          child: Row(
-            children: [
-              if (loading)
-                const SizedBox.square(
-                  dimension: 24,
-                  child: CircularProgressIndicator(strokeWidth: 3),
-                )
-              else
-                Icon(icon, size: 28),
-              const SizedBox(width: 12),
-              Expanded(child: Text(message)),
-              if (canRetry) ...[
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: _loadCatalogue,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(copy.retry),
-                ),
-              ],
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final largeText =
+                  MediaQuery.textScalerOf(context).scale(16) >= 24;
+              final stackContent = constraints.maxWidth < 360 || largeText;
+              if (stackContent) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: leading,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(message),
+                    if (retryButton != null) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: retryButton,
+                      ),
+                    ],
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  leading,
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(message)),
+                  if (retryButton != null) ...[
+                    const SizedBox(width: 8),
+                    retryButton,
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -295,6 +327,7 @@ class _AcademicContextResetBoundaryState
             DropdownButtonFormField<String>(
               key: ValueKey('academic-track-onboarding-${controller.locale.name}'),
               initialValue: effectiveSelection,
+              isExpanded: true,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
                 for (final track in _tracks)
@@ -435,6 +468,7 @@ class _ResetDialogState extends State<_ResetDialog> {
             DropdownButtonFormField<String>(
               key: ValueKey('academic-track-reset-${locale.name}'),
               initialValue: _selectedTrackId,
+              isExpanded: true,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
                 for (final track in widget.tracks)
