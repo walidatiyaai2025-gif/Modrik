@@ -118,6 +118,11 @@ class ContentAdminPublicationWorkflowTest extends TestCase
             'to_status' => 'published',
         ]);
         $this->assertSame(1, DB::table('outbox_events')->where('aggregate_id', $importId)->where('event_type', 'content.official_content_published')->count());
+        $this->assertDatabaseHas('academic_tracks', [
+            'code' => 'FIXTURE:TRACK:PENDING-BOARD',
+            'board_reference' => null,
+            'syllabus_version' => null,
+        ]);
 
         $replayed = $workflow->publish($operator, $importId);
         $this->assertTrue($replayed['replayed']);
@@ -192,6 +197,37 @@ class ContentAdminPublicationWorkflowTest extends TestCase
         }
     }
 
+    public function test_imported_nonpublished_work_is_superseded_deterministically_when_settings_change(): void
+    {
+        $operator = $this->operator('content_team');
+        $workflow = app(ContentAdminWorkflowService::class);
+        [$importId, $requestId] = $this->stagedAndValidatedImport($workflow, $operator);
+        $workflow->review($operator, $importId, 'approved');
+        $imported = $workflow->importReviewed($operator, $importId);
+
+        $changed = $this->requestPayload();
+        $changed['settings']['generation']['maximum_questions_per_quiz'] = 9;
+        $replacement = $workflow->regenerateRequest($operator, $requestId, $changed);
+
+        $this->assertDatabaseHas('preparation_imports', [
+            'id' => $importId,
+            'status' => 'superseded',
+            'operation_state' => 'stale',
+            'operation_checkpoint' => 'settings_regenerated',
+        ]);
+        $this->assertDatabaseHas('content_publications', [
+            'id' => $imported['publication_id'],
+            'preparation_import_id' => $importId,
+            'status' => 'superseded',
+            'checkpoint' => 'settings_regenerated',
+        ]);
+        $this->assertDatabaseHas('preparation_requests', [
+            'id' => $requestId,
+            'status' => 'superseded',
+            'superseded_by_request_id' => $replacement['preparation_request_id'],
+        ]);
+    }
+
     public function test_reject_and_request_fix_require_operator_reason_and_cannot_publish(): void
     {
         $operator = $this->operator('admin');
@@ -258,6 +294,129 @@ class ContentAdminPublicationWorkflowTest extends TestCase
         $this->assertSame('imported', $retried['status']);
         $this->assertGreaterThanOrEqual(2, $retried['attempt_count']);
         $this->assertNull($retried['last_error_code']);
+    }
+
+    public function test_changed_snapshot_after_canonical_import_cannot_mutate_publication_and_retry_is_safe(): void
+    {
+        $operator = $this->operator('content_team');
+        $workflow = app(ContentAdminWorkflowService::class);
+        [$importId] = $this->stagedAndValidatedImport($workflow, $operator);
+        $workflow->review($operator, $importId, 'approved');
+        $imported = $workflow->importReviewed($operator, $importId);
+        $originalHash = (string) DB::table('preparation_imports')->where('id', $importId)->value('content_hash');
+        $curriculumCounts = $this->curriculumCounts();
+
+        DB::table('preparation_imports')->where('id', $importId)->update(['content_hash' => str_repeat('f', 64)]);
+        try {
+            $workflow->publish($operator, $importId);
+            $this->fail('A changed validated snapshot must not mutate canonical published state.');
+        } catch (ApiProblemException $exception) {
+            $this->assertSame('CONTENT_SNAPSHOT_HASH_MISMATCH', $exception->problemCode);
+        }
+
+        $this->assertSame($curriculumCounts, $this->curriculumCounts());
+        $this->assertDatabaseHas('preparation_imports', [
+            'id' => $importId,
+            'status' => 'imported',
+            'operation_state' => 'failed',
+            'operation_checkpoint' => 'publish_failed',
+            'last_error_code' => 'CONTENT_SNAPSHOT_HASH_MISMATCH',
+        ]);
+        $this->assertDatabaseHas('content_publications', [
+            'id' => $imported['publication_id'],
+            'status' => 'failed',
+            'checkpoint' => 'publish_failed',
+            'last_error_code' => 'CONTENT_SNAPSHOT_HASH_MISMATCH',
+        ]);
+        $this->assertSame(0, DB::table('outbox_events')->where('aggregate_id', $importId)->where('event_type', 'content.official_content_published')->count());
+
+        DB::table('preparation_imports')->where('id', $importId)->update(['content_hash' => $originalHash]);
+        $published = $workflow->publish($operator, $importId);
+        $this->assertSame('published', $published['status']);
+        $this->assertGreaterThanOrEqual(2, $published['attempt_count']);
+        $this->assertSame(1, DB::table('outbox_events')->where('aggregate_id', $importId)->where('event_type', 'content.official_content_published')->count());
+    }
+
+    public function test_publication_failure_rolls_back_atomically_and_retry_publishes_once(): void
+    {
+        $operator = $this->operator('admin');
+        $workflow = app(ContentAdminWorkflowService::class);
+        [$importId] = $this->stagedAndValidatedImport($workflow, $operator);
+        $workflow->review($operator, $importId, 'approved');
+        $imported = $workflow->importReviewed($operator, $importId);
+        $item = DB::table('content_publication_items')->where('content_publication_id', $imported['publication_id'])->first();
+        $this->assertNotNull($item);
+        $originalType = (string) $item->entity_type;
+        $originalAction = (string) $item->action;
+
+        DB::table('content_publication_items')->where('id', $item->id)->update([
+            'entity_type' => 'unsupported-test-entity',
+            'action' => 'created',
+        ]);
+
+        try {
+            $workflow->publish($operator, $importId);
+            $this->fail('An invalid publication item must roll back the publication transaction.');
+        } catch (ApiProblemException $exception) {
+            $this->assertSame('CONTENT_PUBLICATION_ITEM_INVALID', $exception->problemCode);
+        }
+
+        $this->assertDatabaseHas('preparation_imports', [
+            'id' => $importId,
+            'status' => 'imported',
+            'operation_state' => 'failed',
+            'operation_checkpoint' => 'publish_failed',
+        ]);
+        $this->assertDatabaseHas('content_publications', [
+            'id' => $imported['publication_id'],
+            'status' => 'failed',
+            'checkpoint' => 'publish_failed',
+            'published_at' => null,
+        ]);
+        $this->assertSame(0, DB::table('outbox_events')->where('aggregate_id', $importId)->where('event_type', 'content.official_content_published')->count());
+
+        DB::table('content_publication_items')->where('id', $item->id)->update([
+            'entity_type' => $originalType,
+            'action' => $originalAction,
+        ]);
+        $published = $workflow->publish($operator, $importId);
+        $this->assertSame('published', $published['status']);
+        $this->assertSame(1, DB::table('outbox_events')->where('aggregate_id', $importId)->where('event_type', 'content.official_content_published')->count());
+        $replayed = $workflow->publish($operator, $importId);
+        $this->assertTrue($replayed['replayed']);
+        $this->assertSame(1, DB::table('outbox_events')->where('aggregate_id', $importId)->where('event_type', 'content.official_content_published')->count());
+    }
+
+    public function test_missing_backend_owned_academic_track_blocks_dry_run_without_synthesizing_scope(): void
+    {
+        $operator = $this->operator('admin');
+        $workflow = app(ContentAdminWorkflowService::class);
+        $created = $workflow->createRequest($operator, $this->requestPayload());
+        $requestId = (string) $created['preparation_request_id'];
+        $stage = $workflow->stageReturnedArchive(
+            $operator,
+            $requestId,
+            $this->archiveUpload($requestId, (string) $created['settings_hash']),
+        );
+        $importId = (string) $stage['data']['preparation_import_id'];
+        $trackCount = DB::table('academic_tracks')->count();
+
+        DB::table('academic_tracks')->where('code', 'FIXTURE:TRACK:PENDING-BOARD')->update([
+            'code' => 'FIXTURE:TRACK:RENAMED-FOR-TEST',
+        ]);
+
+        $dryRun = $workflow->dryRun($operator, $importId);
+        $this->assertFalse($dryRun['publishable']);
+        $this->assertContains('CONTENT_TARGET_TRACK_MISSING', $dryRun['blocking_codes']);
+        $this->assertSame('staged', $dryRun['status']);
+        $this->assertSame($trackCount, DB::table('academic_tracks')->count());
+        $this->assertSame(0, DB::table('academic_tracks')->where('code', 'FIXTURE:TRACK:PENDING-BOARD')->count());
+        $this->assertDatabaseHas('academic_tracks', [
+            'code' => 'FIXTURE:TRACK:RENAMED-FOR-TEST',
+            'board_reference' => null,
+            'syllabus_version' => null,
+        ]);
+        $this->assertDatabaseCount('content_publications', 0);
     }
 
     public function test_arbitrary_or_ugc_identifier_has_no_path_to_official_publication(): void
