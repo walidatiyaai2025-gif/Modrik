@@ -56,20 +56,20 @@ class LearningFailure implements Exception {
 }
 
 class SavedAnswer {
-  const SavedAnswer({
+  SavedAnswer({
     required this.revision,
-    required this.value,
+    required Object? value,
     required this.answeredAt,
-  });
+  }) : value = freezeJsonValue(value);
 
   factory SavedAnswer.fromJson(Map<String, dynamic> json) => SavedAnswer(
         revision: (json['revision'] as num).toInt(),
-        value: json['value'] as String,
+        value: json['value'],
         answeredAt: json['answered_at'] as String,
       );
 
   final int revision;
-  final String value;
+  final Object? value;
   final String answeredAt;
 }
 
@@ -92,7 +92,7 @@ abstract interface class LearningGateway {
     required String attemptId,
     required String attemptQuestionId,
     required int expectedRevision,
-    required String value,
+    required Object? value,
     required String idempotencyKey,
   });
   Future<AttemptResult> submit(String attemptId, String idempotencyKey);
@@ -203,7 +203,7 @@ class HttpLearningGateway implements LearningGateway {
     required String attemptId,
     required String attemptQuestionId,
     required int expectedRevision,
-    required String value,
+    required Object? value,
     required String idempotencyKey,
   }) async {
     return SavedAnswer.fromJson(
@@ -212,7 +212,7 @@ class HttpLearningGateway implements LearningGateway {
         method: 'PUT',
         body: {
           'expected_revision': expectedRevision,
-          'value': value,
+          'value': freezeJsonValue(value),
         },
         idempotencyKey: idempotencyKey,
       ),
@@ -361,7 +361,7 @@ class UnconfiguredLearningGateway implements LearningGateway {
     required String attemptId,
     required String attemptQuestionId,
     required int expectedRevision,
-    required String value,
+    required Object? value,
     required String idempotencyKey,
   }) =>
       Future.error(_failure);
