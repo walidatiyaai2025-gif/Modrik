@@ -8,25 +8,24 @@ Integration authority: #34
 
 This harness supplies real Chromium runtime evidence for the MODRIK Student Web without changing Auth, Academic, Learning, form-control, session-security, Runtime Inspector, or other owner-controlled production implementation files.
 
-The harness uses the production Next.js build and BFF routes against a process-local synthetic upstream. It does not assert source text as a substitute for browser behavior.
+The harness uses production Next.js builds and same-origin BFF routes against a process-local synthetic upstream. It does not assert source text as a substitute for browser behavior.
 
-## Exact candidate snapshot
+## Candidate resolution and exact-head evidence
 
-The workflow pins the candidate heads used for this evidence cycle:
+The GitHub Actions workflow does **not** hardcode candidate commit SHAs. At the start of each run it resolves the current Git refs and records the exact values in a sanitized `candidate-manifest.json` artifact:
 
-- PR #93 / Issue #80 — `3f7e97dc9ea82349354163f9cefae2938c06ec32`
-- PR #103 / Issue #96 — `715a690c8f5fc39dd93f7825147dc6f90db41ced`
-- PR #73 / Issue #66 — `0ec6f386f1859d675b808630958da64a069d7c75`
-- PR #59 / Issue #55 — `1b35e5ae82a1ed87db6901b244db3e0a57847ea0`
-- PR #63 / Issue #56 — `294bcec0efc9353f62fc05f49243d9170f3e0e43`
-- PR #79 / Issue #69 — `82d0850c659245a120bd3610dc5c97001eb3be1a`
-- PR #89 / Issue #78 — `305cf77eae6a8c7fc567e3f77fef7a8a0102d0c0`
+- `refs/pull/93/head` — Issue #80 stale-session cleanup;
+- `refs/pull/103/head` — Issue #96 Runtime Inspector candidate, including its current stacked dependency state;
+- current `main` for the compatibility-composition baseline;
+- current heads of PRs #93, #103, #73, #59, #63, #79 and #89 for the temporary Web release-gap composition.
 
-The `release-gap-web-composite` job creates a temporary local merge tree from those exact heads for compatibility testing only. That merge tree is never pushed and is not an integration decision.
+The composition fetches each PR ref once, records that resolved SHA, then merges by that exact detached SHA. It never pushes the test-only merge tree and carries no integration authority.
+
+This avoids treating stale slot comments or stale CI as browser evidence. If a PR head changes, the next run automatically tests and records that new exact head.
 
 ## Browser acceptance matrix
 
-The composite profile exercises Auth and Learning at:
+The current-tree/composite command exercises Auth and Learning at:
 
 | Case | Width | Locale | Direction | Text scale |
 | --- | ---: | --- | --- | ---: |
@@ -43,7 +42,7 @@ The 200% test uses a root-font-size override and verifies the computed root size
 
 ## Session-security evidence
 
-The exact PR #93 profile verifies through a real browser request that:
+The exact PR #93 profile and the PR #103/composite compatibility paths verify through real browser requests that:
 
 - a Learning BFF upstream `401` preserves status and RFC9457 body semantics;
 - the stale HttpOnly Web session cookie is cleared;
@@ -54,42 +53,82 @@ No session value is written to source, logs, screenshots, traces, or evidence ar
 
 ## Runtime Inspector evidence
 
-The exact PR #103 profile and composite profile verify:
+Runtime Inspector acceptance uses **separate production builds** because the root-layout gate can be evaluated during Next.js build/prerender:
 
-- explicit Pilot/staging-style gating and production-default-off behavior;
-- EN/LTR, FR/LTR, and AR/RTL browser rendering;
-- 320/360 narrow widths and 200% text stress;
-- dialog keyboard focus containment, Escape close, and launcher focus return;
-- correlation-copy control availability;
+1. Pilot build: `MODRIK_RUNTIME_INSPECTOR_ENABLED=true` and `MODRIK_RUNTIME_ENVIRONMENT=pilot`.
+2. Production fail-closed build: the enable flag remains true while `MODRIK_RUNTIME_ENVIRONMENT=production`.
+
+This prevents a false result where a Pilot launcher is expected from an application that was already built with the Inspector disabled.
+
+The Pilot profile verifies:
+
+- explicit gated visibility;
+- EN/LTR, FR/LTR and AR/RTL rendering;
+- 360/320 narrow widths and 200% text stress;
+- launcher and dialog visible focus;
+- logical focus containment with forward/backward Tab wrapping;
+- Escape close and launcher focus return;
+- visible/copyable correlation ID;
 - bounded diagnostic timeline;
 - clear diagnostics;
-- JSON clipboard export and download action;
-- diagnostic output excludes runtime-generated question/answer sentinels and forbidden credential/body field classes.
+- sanitized JSON clipboard export and download;
+- a 32 KiB export bound and 50-event timeline bound;
+- injected password/provider/cookie/token/answer/question/email/request-body/response-body sentinels do not survive hydration into visible DOM or exported JSON.
+
+The Production profile verifies that the Inspector host/launcher is absent and diagnostic session storage is cleared/fails closed.
 
 The harness records no Playwright trace, screenshot, video, request/response body log, DOM dump, password, bearer/session value, cookie value, provider secret, learner answer, question/option text, assessment snapshot, curriculum body, or direct PII.
 
-## Evidence artifact
+## Stable clean-checkout command
 
-Each workflow job uploads a small JSON artifact containing only:
+From a repository checkout that contains the integrated Runtime Inspector candidate, run:
 
-- candidate/profile identifier;
-- expected and observed commit SHA;
-- browser and text-scale method;
-- case name;
-- viewport, locale, direction-relevant metadata and scale;
+```bash
+bash qa/web-e2e/run-browser-runtime.sh
+```
+
+The command requires no GitHub API query and contains no PR/head SHA. It:
+
+1. installs the committed Web dependencies and pinned Playwright `1.62.1`/Chromium when dependencies are not already prepared;
+2. builds the exact checked-out tree as Pilot;
+3. runs responsive/Auth/Academic/Learning acceptance;
+4. runs Learning BFF session-security acceptance;
+5. runs Pilot Runtime Inspector browser acceptance;
+6. rebuilds the same checked-out tree as Production;
+7. verifies Runtime Inspector production-default-off behavior;
+8. exits nonzero on any browser assertion failure.
+
+This is the stable command that downstream Pilot-smoke Issue #107 can consume from an integrated Git tree without querying GitHub or hardcoding a PR/head SHA.
+
+## Evidence artifacts
+
+Each workflow job uploads only bounded JSON evidence:
+
+- candidate/build-mode identifier;
+- exact harness SHA;
+- exact current `main` and/or resolved PR source SHAs;
+- observed temporary composition SHA where applicable;
+- browser/text-scale method;
+- case name, viewport, locale, direction and scale;
 - PASS/FAIL plus a bounded failure code;
 - duration.
 
 Raw Playwright exceptions are intentionally not serialized because browser error text can include DOM or network context.
 
-## Repeatability
+## Dependency discipline
 
-The workflow installs pinned `playwright@1.62.1` in runner temporary storage and installs Chromium there. No Web package manifest or lockfile is modified.
+- #83 owns the final Web/Mobile accessibility release matrix.
+- #107 owns the cross-surface Pilot smoke.
+- #96 / PR #103 owns Runtime Inspector production implementation.
+- #78 / PR #89 owns academic learner copy/layout behavior.
+- #69 / PR #79 owns global native form-control styling.
+- #80 / PR #93 owns Learning BFF stale-session cleanup.
+- #34 alone owns integration/merge authority.
 
-The application candidate is installed with its committed `apps/web/package-lock.json`, built with `npm run build`, then started with `next start` against the synthetic upstream.
-
-When any owner candidate head changes, the pinned SHA matrix must be reconciled before that newer head can be cited as browser evidence.
+A real browser product defect is reproduced and routed to its owning Issue plus #34. Issue #108 does not edit those owners' production files merely to make E2E pass.
 
 ## Results
 
-Results are published from the exact Issue #108 PR head after GitHub Actions completes. A failing browser assertion is treated as either a harness defect owned by #108 or, after reliable reproduction, a product defect routed to its owning Issue and #34. Failures are not converted to weak assertions or hidden behind `continue-on-error`.
+The prior `6176522cc36d11f20ccfe919fcd02864033cc061` harness cycle established two useful but **historical-only** facts: the exact then-current PR #93 session-security browser path passed, and the governed Bootstrap matrix was green. The same cycle exposed that the original Inspector workflow compiled the Pilot gate out by setting its environment only at `next start`; those Inspector failures are superseded by the build-aware harness above and are not product-defect evidence.
+
+Final #108 results must be taken only from the exact final PR #114 head after the live-ref browser workflow and complete governed repository CI are both green. Failures are never converted to weak assertions or hidden behind `continue-on-error`.
