@@ -98,7 +98,7 @@ final class RuntimeObservabilityTest extends TestCase
 
     public function test_learning_correlation_is_echoed_and_queryable_through_runtime_inspector(): void
     {
-        (new LearningSliceSeeder)->run();
+        $this->seed(LearningSliceSeeder::class);
         $token = 'modrik-observability-fixture-token';
         config([
             'modrik.fixture.enabled' => true,
@@ -143,7 +143,7 @@ final class RuntimeObservabilityTest extends TestCase
             ->assertJsonPath('code', 'AUTHENTICATION_REQUIRED')
             ->assertJsonPath('request_id', $authCorrelation);
 
-        (new LearningSliceSeeder)->run();
+        $this->seed(LearningSliceSeeder::class);
         $token = 'modrik-observability-fixture-token';
         config([
             'modrik.fixture.enabled' => true,
