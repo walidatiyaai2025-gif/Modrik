@@ -170,6 +170,9 @@ final class OutboxDispatchService
                     'next_attempt_at' => $finishedAt->copy()->addSeconds($backoffSeconds),
                     'updated_at' => $finishedAt,
                 ]);
+                if ($cycleAttemptNumber >= $maximumAttempts) {
+                    $this->markRedriveReexhausted($eventId, $finishedAt);
+                }
 
                 return 'failed';
             }
@@ -193,5 +196,17 @@ final class OutboxDispatchService
             'successful_attempt_number' => $attemptNumber,
             'updated_at' => $finishedAt,
         ]);
+    }
+
+    private function markRedriveReexhausted(string $eventId, Carbon $finishedAt): void
+    {
+        DB::table('outbox_redrive_requests')
+            ->where('outbox_event_id', $eventId)
+            ->where('status', 'requested')
+            ->update([
+                'status' => 'reexhausted',
+                'resolved_at' => $finishedAt,
+                'updated_at' => $finishedAt,
+            ]);
     }
 }
