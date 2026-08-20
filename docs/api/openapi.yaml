@@ -277,6 +277,11 @@ paths:
       responses:
         '201':
           description: Immutable preparation request and bundle binding.
+          headers:
+            Location:
+              schema: {type: string, format: uri-reference}
+            Idempotency-Replayed:
+              schema: {type: boolean}
           content:
             application/json:
               schema:
@@ -308,7 +313,10 @@ paths:
                   contentEncoding: binary
       responses:
         '202':
-          description: Archive accepted for bounded validation; no content is published.
+          description: Archive passed bounded validation and was imported into staging; no curriculum content is published.
+          headers:
+            Idempotency-Replayed:
+              schema: {type: boolean}
           content:
             application/json:
               schema:
@@ -317,7 +325,15 @@ paths:
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
         '403': {$ref: '#/components/responses/Forbidden'}
         '409': {$ref: '#/components/responses/Conflict'}
-        '422': {$ref: '#/components/responses/ValidationFailed'}
+        '413': {$ref: '#/components/responses/PayloadTooLarge'}
+        '422':
+          description: Multipart validation failed, or the archive was persistently rejected before publication.
+          headers:
+            Idempotency-Replayed:
+              schema: {type: boolean}
+          content:
+            application/problem+json:
+              schema: {$ref: '#/components/schemas/ProblemDetails'}
 components:
   securitySchemes:
     bearerAuth:
@@ -377,6 +393,11 @@ components:
           schema: {$ref: '#/components/schemas/ProblemDetails'}
     ValidationFailed:
       description: Semantic or field validation failed.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetails'}
+    PayloadTooLarge:
+      description: The uploaded archive exceeds a configured compressed or uncompressed byte limit.
       content:
         application/problem+json:
           schema: {$ref: '#/components/schemas/ProblemDetails'}
@@ -586,12 +607,27 @@ components:
         data:
           type: object
           additionalProperties: false
-          required: [preparation_request_id, schema_version, settings_hash, status]
+          required: [preparation_request_id, schema_version, settings_hash, status, prompt, bundle]
           properties:
             preparation_request_id: {$ref: '#/components/schemas/Ulid'}
-            schema_version: {type: string}
+            schema_version: {type: string, const: 1.0.0}
             settings_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
-            status: {type: string, enum: [ready, returned, expired, cancelled]}
+            status: {type: string, const: ready}
+            prompt: {type: string, minLength: 1}
+            bundle:
+              type: object
+              additionalProperties: false
+              required: [manifest_binding, settings]
+              properties:
+                manifest_binding:
+                  type: object
+                  additionalProperties: false
+                  required: [preparation_request_id, schema_version, settings_hash]
+                  properties:
+                    preparation_request_id: {$ref: '#/components/schemas/Ulid'}
+                    schema_version: {type: string, const: 1.0.0}
+                    settings_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+                settings: {$ref: '../../schemas/preparation/settings.schema.json'}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     PreparationImportResponse:
       type: object
@@ -601,10 +637,23 @@ components:
         data:
           type: object
           additionalProperties: false
-          required: [preparation_import_id, status]
+          required: [preparation_import_id, preparation_request_id, pack_id, status, validated_file_count, validated_record_count, validation_summary]
           properties:
             preparation_import_id: {$ref: '#/components/schemas/Ulid'}
-            status: {type: string, enum: [pending, validating, rejected, staged, imported, failed]}
+            preparation_request_id: {$ref: '#/components/schemas/Ulid'}
+            pack_id: {$ref: '#/components/schemas/Ulid'}
+            status: {type: string, const: staged}
+            validated_file_count: {type: integer, minimum: 1, maximum: 5000}
+            validated_record_count: {type: integer, minimum: 1}
+            validation_summary:
+              type: object
+              additionalProperties: false
+              required: [valid, errors]
+              properties:
+                valid: {type: boolean, const: true}
+                errors:
+                  type: array
+                  maxItems: 0
         meta: {$ref: '#/components/schemas/ResponseMeta'}
 security:
   - bearerAuth: []

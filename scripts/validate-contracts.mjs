@@ -158,11 +158,20 @@ assert.equal(openapi.components.schemas.AcademicContextMutationRequest.additiona
 assert(openapi.components.schemas.Attempt.required.includes("academic_context_id"));
 assert(openapi.paths["/v1/academic-context/reset"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
 assert(openapi.paths["/v1/academic-context/reset"].post.responses["200"].headers["Idempotency-Replayed"]);
+assert(openapi.paths["/v1/admin/preparation-requests"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
+assert(openapi.paths["/v1/admin/preparation-requests"].post.responses["201"].headers["Idempotency-Replayed"]);
+assert(openapi.paths["/v1/admin/preparation-imports/validate"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
+assert(openapi.paths["/v1/admin/preparation-imports/validate"].post.responses["202"].headers["Idempotency-Replayed"]);
+assert(openapi.paths["/v1/admin/preparation-imports/validate"].post.responses["422"].headers["Idempotency-Replayed"]);
+assert(openapi.components.schemas.PreparationRequestResponse.properties.data.required.includes("prompt"));
+assert(openapi.components.schemas.PreparationRequestResponse.properties.data.required.includes("bundle"));
+assert.equal(openapi.components.schemas.PreparationImportResponse.properties.data.properties.status.const, "staged");
 
 const eventCatalog = await readYaml("docs", "events", "event-catalog.yaml");
 assert.equal(eventCatalog.delivery.guarantee, "at_least_once");
 assertUnique(eventCatalog.events.map(({ type }) => type), "event types");
 assert(eventCatalog.events.some(({ type }) => type === "academic.context_reset"));
+assert(eventCatalog.events.some(({ type }) => type === "content.preparation_imported"));
 
 const shell = await readFile(fromRoot("deploy", "coming-soon", "index.html"), "utf8");
 assert.match(shell, /https:\/\/modrik\.org\//);

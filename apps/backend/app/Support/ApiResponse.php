@@ -31,6 +31,16 @@ final class ApiResponse
 
     public static function problem(Request $request, ApiProblemException $exception): JsonResponse
     {
+        return response()->json(
+            self::problemBody($request, $exception),
+            $exception->status,
+            ['Content-Type' => 'application/problem+json'],
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public static function problemBody(Request $request, ApiProblemException $exception): array
+    {
         $body = [
             'type' => 'https://modrik.org/problems/'.strtolower($exception->problemCode),
             'title' => $exception->problemTitle,
@@ -46,11 +56,7 @@ final class ApiResponse
             $body['errors'] = $exception->errors;
         }
 
-        return response()->json(
-            $body,
-            $exception->status,
-            ['Content-Type' => 'application/problem+json'],
-        );
+        return $body;
     }
 
     public static function requestId(Request $request): string

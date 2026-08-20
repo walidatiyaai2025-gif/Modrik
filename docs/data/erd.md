@@ -27,6 +27,8 @@ erDiagram
     user_academic_contexts ||--o{ progress_snapshots : scopes
     curriculum_nodes ||--o{ progress_snapshots : measures
     users ||--o{ idempotency_keys : scopes
+    users ||--o{ preparation_requests : creates
+    users ||--o{ preparation_imports : uploads
     preparation_requests ||--o{ preparation_imports : receives
     preparation_imports ||--o{ preparation_import_files : checkpoints
     outbox_events }o--|| users : actor_optional
@@ -171,27 +173,41 @@ erDiagram
     }
     preparation_requests {
       char26 id PK
+      char26 created_by FK
       varchar schema_version
       char64 settings_hash
       json normalized_settings
+      text prompt
       varchar status
       datetime created_at
+      datetime updated_at
     }
     preparation_imports {
       char26 id PK
-      char26 preparation_request_id FK
-      varchar idempotency_key_hash
+      char26 preparation_request_id FK_nullable
+      char26 claimed_preparation_request_id_nullable
+      char26 uploaded_by FK
       char64 archive_hash
+      char26 pack_id_nullable
+      varchar rights_status_nullable
       varchar status
       json validation_summary
+      int imported_file_count
+      int imported_record_count
+      datetime created_at
+      datetime updated_at
     }
     preparation_import_files {
       char26 id PK
       char26 preparation_import_id FK
       varchar path
+      varchar media_type
       char64 sha256
+      bigint bytes
       varchar status
       int imported_records
+      datetime created_at
+      datetime updated_at
     }
     outbox_events {
       char26 id PK
@@ -212,4 +228,5 @@ erDiagram
 - Foreign keys and tenant/actor scopes are explicit. No client identifier establishes ownership.
 - JSON is used for versioned snapshots and localized value maps, not as a substitute for columns used by authorization, status filtering, joins, or ordering.
 - Published content is immutable by version. Updates create a new content version; attempts retain snapshots.
+- Preparation imports end at a validated `staged` boundary. They do not insert, update, or publish curriculum rows; real-content review/publication requires a later explicit workflow.
 - Soft deletion or archival is used where history is product-significant. Retention periods remain owner input.

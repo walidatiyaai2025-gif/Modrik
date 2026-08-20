@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use JsonException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class IdempotencyService
 {
@@ -64,11 +65,12 @@ final class IdempotencyService
                 /** @var array<string, mixed> $body */
                 $body = json_decode($stored['response_body'], true, flags: JSON_THROW_ON_ERROR);
 
-                return response()->json(
-                    $body,
-                    (int) $stored['response_status'],
-                    ['Idempotency-Replayed' => 'true'],
-                );
+                $headers = ['Idempotency-Replayed' => 'true'];
+                if (isset($body['type'], $body['code'], $body['status'])) {
+                    $headers['Content-Type'] = 'application/problem+json';
+                }
+
+                return response()->json($body, (int) $stored['response_status'], $headers);
             }
 
             $id = (string) Str::ulid();
@@ -110,7 +112,10 @@ final class IdempotencyService
             'method' => strtoupper($request->method()),
             'path' => '/'.$request->path(),
             'media_type' => strtolower(trim(explode(';', (string) $request->header('Content-Type', 'application/json'))[0])),
-            'body' => $this->canonicalize($request->json()->all()),
+            'body' => $request->isJson()
+                ? $this->canonicalize($request->json()->all())
+                : $this->canonicalize($request->request->all()),
+            'files' => $this->canonicalFiles($request->allFiles()),
         ];
 
         return hash('sha256', json_encode($canonical, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -127,5 +132,33 @@ final class IdempotencyService
         }
 
         return array_map(fn (mixed $item): mixed => $this->canonicalize($item), $value);
+    }
+
+    /**
+     * @param  array<string, UploadedFile|array<array-key, UploadedFile>>  $files
+     * @return array<string, mixed>
+     */
+    private function canonicalFiles(array $files): array
+    {
+        $canonical = [];
+        foreach ($files as $field => $file) {
+            if (is_array($file)) {
+                $canonical[$field] = $this->canonicalFiles(array_combine(array_map('strval', array_keys($file)), array_values($file)) ?: []);
+
+                continue;
+            }
+
+            $path = $file->getRealPath();
+            if ($path === false) {
+                throw new ApiProblemException(400, 'UPLOAD_UNREADABLE', 'Upload unreadable', 'The uploaded file could not be read.');
+            }
+            $canonical[$field] = [
+                'bytes' => $file->getSize(),
+                'sha256' => hash_file('sha256', $path),
+            ];
+        }
+        ksort($canonical, SORT_STRING);
+
+        return $canonical;
     }
 }
