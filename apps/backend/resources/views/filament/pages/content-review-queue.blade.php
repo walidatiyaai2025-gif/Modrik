@@ -28,6 +28,18 @@
         @php
             $rows = $this->queueRows();
             $pendingPublication = collect($rows)->firstWhere('id', $pendingPublicationImportId);
+            $lifecycleStatuses = ['staged', 'validated', 'reviewed', 'imported', 'published'];
+            $remediationFor = static function (?string $code): string {
+                if (! is_string($code) || $code === '') {
+                    return '';
+                }
+
+                $key = 'admin.review.remediation.'.$code;
+
+                return \Illuminate\Support\Facades\Lang::has($key)
+                    ? __($key)
+                    : __('admin.review.remediation.default');
+            };
         @endphp
         @if ($rows === [])
             <x-filament::section>
@@ -56,6 +68,14 @@
                             'reviewed', 'imported', 'validated' => 'warning',
                             default => 'gray',
                         };
+                        $lifecyclePosition = array_search($status, $lifecycleStatuses, true);
+                        $nextLifecycleStatus = null;
+                        if ($lifecyclePosition !== false && $lifecyclePosition < count($lifecycleStatuses) - 1) {
+                            if ($status !== 'reviewed' || $decision === 'approved') {
+                                $nextLifecycleStatus = $lifecycleStatuses[$lifecyclePosition + 1];
+                            }
+                        }
+                        $reasonReady = trim((string) ($reasons[$row['id']] ?? '')) !== '';
                     @endphp
                     <x-filament::section wire:key="content-import-{{ $row['id'] }}">
                         <div class="space-y-5">
@@ -95,6 +115,36 @@
                                 </div>
                             @endif
 
+                            @if ($lifecyclePosition !== false)
+                                <div class="rounded-xl border p-4 text-sm" role="group" aria-label="{{ __('admin.review.lifecycle_title') }}">
+                                    <div class="flex flex-wrap items-start justify-between gap-2">
+                                        <div>
+                                            <strong>{{ __('admin.review.lifecycle_title') }}</strong>
+                                            <p class="mt-1 text-xs text-gray-500">{{ __('admin.review.lifecycle_help') }}</p>
+                                        </div>
+                                        <div class="text-xs">
+                                            <span>{{ __('admin.review.current_step', ['status' => __('admin.status.'.$status)]) }}</span>
+                                            @if ($nextLifecycleStatus !== null)
+                                                <span class="mx-1" aria-hidden="true">·</span>
+                                                <span>{{ __('admin.review.next_step', ['status' => __('admin.status.'.$nextLifecycleStatus)]) }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <ol class="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5" aria-label="{{ __('admin.review.lifecycle_title') }}">
+                                        @foreach ($lifecycleStatuses as $stepIndex => $stepStatus)
+                                            <li
+                                                class="min-w-0 rounded-lg border p-2"
+                                                @if ($stepIndex === $lifecyclePosition) aria-current="step" @endif
+                                            >
+                                                <x-filament::badge :color="$stepIndex < $lifecyclePosition ? 'success' : ($stepIndex === $lifecyclePosition ? 'primary' : 'gray')">
+                                                    {{ __('admin.status.'.$stepStatus) }}
+                                                </x-filament::badge>
+                                            </li>
+                                        @endforeach
+                                    </ol>
+                                </div>
+                            @endif
+
                             <dl class="grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
                                 <div><dt class="font-medium">{{ __('admin.fields.request_id') }}</dt><dd class="break-all font-mono text-xs">{{ $row['preparation_request_id'] ?? '—' }}</dd></div>
                                 <div><dt class="font-medium">{{ __('admin.fields.schema_version') }}</dt><dd>{{ $row['schema_version'] ?? '—' }}</dd></div>
@@ -107,8 +157,9 @@
 
                             @if ($row['last_error_code'] !== null)
                                 <div role="alert" class="rounded-xl border border-danger-300 p-4 text-sm">
-                                    <strong>{{ __('admin.review.last_error') }}: {{ $row['last_error_code'] }}</strong>
-                                    <p>{{ __('admin.review.failure_help') }}</p>
+                                    <strong>{{ __('admin.review.last_error') }}: <code dir="ltr">{{ $row['last_error_code'] }}</code></strong>
+                                    <p class="mt-2"><span class="font-medium">{{ __('admin.review.remediation_label') }}:</span> {{ $remediationFor($row['last_error_code']) }}</p>
+                                    <p class="mt-2 text-xs text-gray-500">{{ __('admin.review.failure_help') }}</p>
                                     @if ($row['last_error_at'] !== null)
                                         <p class="mt-1 text-xs text-gray-500">{{ $row['last_error_at'] }}</p>
                                     @endif
@@ -119,9 +170,11 @@
                                 <div class="space-y-2" role="alert">
                                     <strong>{{ __('admin.preparation.validation_result') }}</strong>
                                     @foreach (($validation['errors'] ?? []) as $error)
+                                        @php($validationCode = is_string($error['code'] ?? null) ? $error['code'] : 'VALIDATION_ERROR')
                                         <div class="rounded-lg border p-3 text-sm">
-                                            <strong>{{ $error['code'] ?? 'VALIDATION_ERROR' }}</strong>
+                                            <strong><code dir="ltr">{{ $validationCode }}</code></strong>
                                             <span>{{ $error['message'] ?? '' }}</span>
+                                            <p class="mt-1 text-xs text-gray-500">{{ $remediationFor($validationCode) }}</p>
                                         </div>
                                     @endforeach
                                 </div>
@@ -148,11 +201,14 @@
                                         @endforeach
                                     </div>
                                     @if (($dryRun['blocking_codes'] ?? []) !== [])
-                                        <div class="mt-3 flex flex-wrap gap-2">
+                                        <ul class="mt-3 space-y-2" aria-label="{{ __('admin.review.blocking_guidance') }}">
                                             @foreach ($dryRun['blocking_codes'] as $code)
-                                                <x-filament::badge color="danger">{{ $code }}</x-filament::badge>
+                                                <li class="rounded-lg border border-danger-300 p-3 text-sm">
+                                                    <x-filament::badge color="danger"><span dir="ltr">{{ $code }}</span></x-filament::badge>
+                                                    <p class="mt-2 text-xs text-gray-600 dark:text-gray-300">{{ $remediationFor(is_string($code) ? $code : null) }}</p>
+                                                </li>
                                             @endforeach
-                                        </div>
+                                        </ul>
                                     @endif
                                 </div>
                             @endif
@@ -164,19 +220,38 @@
                                             {{ __('admin.actions.run_dry_run') }}
                                         </x-filament::button>
                                     @elseif ($status === 'validated')
-                                        <label class="block space-y-2">
+                                        <label class="block space-y-2" for="review-reason-{{ $row['id'] }}">
                                             <span class="font-medium text-sm">{{ __('admin.review.reason') }}</span>
+                                            <span class="block text-xs text-gray-500">{{ __('admin.review.reason_requirement') }}</span>
                                             <textarea
+                                                id="review-reason-{{ $row['id'] }}"
                                                 rows="3"
-                                                wire:model="reasons.{{ $row['id'] }}"
+                                                maxlength="2000"
+                                                aria-describedby="review-reason-help-{{ $row['id'] }}"
+                                                wire:model.live.debounce.150ms="reasons.{{ $row['id'] }}"
                                                 class="block w-full rounded-xl border-gray-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-white/10 dark:bg-white/5"
                                                 placeholder="{{ __('admin.review.reason_placeholder') }}"
                                             ></textarea>
+                                            <span id="review-reason-help-{{ $row['id'] }}" class="block text-xs text-gray-500">
+                                                {{ $reasonReady ? __('admin.review.reason_ready_help') : __('admin.review.reason_required_help') }}
+                                            </span>
                                         </label>
                                         <div class="flex flex-wrap gap-3">
                                             <x-filament::button color="success" wire:click="approve('{{ $row['id'] }}')" wire:loading.attr="disabled">{{ __('admin.actions.approve') }}</x-filament::button>
-                                            <x-filament::button color="warning" wire:click="requestFix('{{ $row['id'] }}')" wire:loading.attr="disabled">{{ __('admin.actions.request_fix') }}</x-filament::button>
-                                            <x-filament::button color="danger" wire:click="reject('{{ $row['id'] }}')" wire:loading.attr="disabled">{{ __('admin.actions.reject') }}</x-filament::button>
+                                            <x-filament::button
+                                                color="warning"
+                                                wire:click="requestFix('{{ $row['id'] }}')"
+                                                wire:loading.attr="disabled"
+                                                :disabled="! $reasonReady"
+                                                :aria-disabled="$reasonReady ? 'false' : 'true'"
+                                            >{{ __('admin.actions.request_fix') }}</x-filament::button>
+                                            <x-filament::button
+                                                color="danger"
+                                                wire:click="reject('{{ $row['id'] }}')"
+                                                wire:loading.attr="disabled"
+                                                :disabled="! $reasonReady"
+                                                :aria-disabled="$reasonReady ? 'false' : 'true'"
+                                            >{{ __('admin.actions.reject') }}</x-filament::button>
                                         </div>
                                     @elseif ($status === 'reviewed' && $decision === 'approved')
                                         <div class="flex flex-wrap items-center gap-3">
@@ -192,11 +267,17 @@
                                             <p class="mt-2 text-gray-500">{{ __('admin.review.return_new_zip') }}</p>
                                         </div>
                                     @elseif ($status === 'imported')
-                                        <div class="flex flex-wrap items-center gap-3">
-                                            <x-filament::button color="success" wire:click="requestPublication('{{ $row['id'] }}')" wire:loading.attr="disabled">
-                                                {{ __('admin.actions.publish_official') }}
-                                            </x-filament::button>
-                                            <span class="text-xs text-gray-500">{{ __('admin.review.publish_help') }}</span>
+                                        <div class="space-y-3">
+                                            <div class="rounded-xl border-2 border-warning-400 bg-warning-50/70 p-4 text-sm dark:bg-warning-400/10" role="note">
+                                                <strong>{{ __('admin.review.imported_draft_title') }}</strong>
+                                                <p class="mt-1">{{ __('admin.review.imported_draft_body') }}</p>
+                                            </div>
+                                            <div class="flex flex-wrap items-center gap-3">
+                                                <x-filament::button color="success" wire:click="requestPublication('{{ $row['id'] }}')" wire:loading.attr="disabled">
+                                                    {{ __('admin.actions.publish_official') }}
+                                                </x-filament::button>
+                                                <span class="text-xs text-gray-500">{{ __('admin.review.publish_help') }}</span>
+                                            </div>
                                         </div>
                                     @elseif ($status === 'published')
                                         <div class="rounded-xl border p-4 text-sm" role="status">
