@@ -3,6 +3,7 @@ import { isSameOriginMutation, readWebSessionToken } from "../../../../lib/web-s
 const ulid = "[0-9A-HJKMNP-TV-Z]{26}";
 const allowedPaths = [
   /^session$/,
+  /^academic-tracks$/,
   /^academic-context$/,
   /^academic-context\/(activate|reset)$/,
   new RegExp(`^lessons/${ulid}$`),

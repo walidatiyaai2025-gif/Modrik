@@ -99,16 +99,23 @@ return new class extends Migration
             $table->unique(['user_id', 'curriculum_node_id', 'source_version'], 'progress_source_unique');
         });
         Schema::table('progress_snapshots', function (Blueprint $table): void {
+            // MariaDB requires the foreign key to be removed before an index that
+            // currently supports that key can be dropped.
+            $table->dropForeign(['academic_context_id']);
+        });
+        Schema::table('progress_snapshots', function (Blueprint $table): void {
             $table->dropUnique('progress_context_source_unique');
             $table->dropIndex(['user_id', 'archived_at']);
-            $table->dropConstrainedForeignId('academic_context_id');
-            $table->dropColumn('archived_at');
+            $table->dropColumn(['academic_context_id', 'archived_at']);
         });
 
         Schema::table('attempts', function (Blueprint $table): void {
+            // Keep the same FK-before-index rollback ordering for attempts.
+            $table->dropForeign(['academic_context_id']);
+        });
+        Schema::table('attempts', function (Blueprint $table): void {
             $table->dropIndex(['academic_context_id', 'archived_at']);
-            $table->dropConstrainedForeignId('academic_context_id');
-            $table->dropColumn('archived_at');
+            $table->dropColumn(['academic_context_id', 'archived_at']);
         });
     }
 };
