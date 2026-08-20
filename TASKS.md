@@ -8,7 +8,7 @@
 - [x] BOOT-004 Produce ADRs, ERD/Data Dictionary, OpenAPI 3.1, RFC 9457 error model, and event/idempotency contracts.
 - [x] BOOT-005 Produce Content Pack + Preparation v1 schemas and synthetic valid/invalid golden fixtures.
 - [x] BOOT-006 Add CI quality gates for backend/MariaDB/web/mobile/contracts plus audit, secret, and dependency checks.
-- [ ] BOOT-007 Prove clean-checkout Backend + Web setup/build/test and green GitHub CI. Local source-tree gates are green; clean clone/CI remain.
+- [ ] BOOT-007 Prove clean-checkout Backend + Web setup/build/test and green GitHub CI. Isolated clean-checkout root/Backend/Web/Mobile gates are green; branch publication and GitHub CI remain.
 - [ ] BOOT-008 Implement the thinnest fixture-driven vertical slice only after BOOT-007 is green: auth shell → academic context → one fixture-backed published lesson → practice/quiz → attempt persistence → progress.
 
 ## Public shell
