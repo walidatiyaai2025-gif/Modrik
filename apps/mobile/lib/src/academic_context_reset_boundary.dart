@@ -204,12 +204,14 @@ class _AcademicContextResetBoundaryState
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: leading,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        leading,
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(message)),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(message),
                     if (retryButton != null) ...[
                       const SizedBox(height: 12),
                       Align(
