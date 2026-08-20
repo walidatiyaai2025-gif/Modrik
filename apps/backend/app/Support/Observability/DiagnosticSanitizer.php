@@ -2,8 +2,6 @@
 
 namespace App\Support\Observability;
 
-use App\Support\CorrelationId;
-
 final class DiagnosticSanitizer
 {
     /** @var list<string> */
@@ -20,7 +18,6 @@ final class DiagnosticSanitizer
         'retryable',
         'replayed',
         'operation_reference',
-        'filter_correlation_id',
     ];
 
     /**
@@ -37,14 +34,6 @@ final class DiagnosticSanitizer
             }
 
             $value = $metadata[$key];
-            if ($key === 'filter_correlation_id') {
-                if (is_string($value) && CorrelationId::isValid($value)) {
-                    $sanitized[$key] = $value;
-                }
-
-                continue;
-            }
-
             if (is_string($value)) {
                 $sanitized[$key] = mb_substr($value, 0, 256);
             } elseif (is_int($value) || is_float($value) || is_bool($value) || $value === null) {
