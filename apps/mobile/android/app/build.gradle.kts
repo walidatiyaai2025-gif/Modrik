@@ -200,13 +200,6 @@ gradle.taskGraph.whenReady {
             "release",
         )
 
-    if (releaseIdentity.isCanonicalAndroidDebugIdentity()) {
-        throw GradleException(
-            "MODRIK Android release signing resolved to the Android debug signing identity. " +
-                "A production release artifact must use an external non-debug signing identity.",
-        )
-    }
-
     val debugStoreFile = debugSigningConfig.storeFile
     if (debugStoreFile?.isFile == true) {
         val debugIdentity =
@@ -227,6 +220,14 @@ gradle.taskGraph.whenReady {
                     "A production release artifact must use an external non-debug signing identity.",
             )
         }
+    }
+
+    // Defense in depth when no local debug keystore exists for a direct fingerprint comparison.
+    if (releaseIdentity.isCanonicalAndroidDebugIdentity()) {
+        throw GradleException(
+            "MODRIK Android release signing resolved to the Android debug signing identity. " +
+                "A production release artifact must use an external non-debug signing identity.",
+        )
     }
 }
 
