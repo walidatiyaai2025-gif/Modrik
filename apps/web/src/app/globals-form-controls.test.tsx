@@ -36,10 +36,7 @@ test("native select and textarea use tokenized large-text-safe control geometry"
   assert.match(controls, /background: var\(--modrik-white\);/);
   assert.match(controls, /border: 2px solid color-mix\(in srgb, var\(--modrik-blue\) 20%, transparent\);/);
   assert.match(controls, /border-radius: var\(--modrik-radius-sm\);/);
-
-  const textarea = ruleBody(/textarea/);
-  assert.match(textarea, /min-height: 7\.5rem;/);
-  assert.match(textarea, /resize: vertical;/);
+  assert.match(css, /\ntextarea\s*\{\s*min-height: 7\.5rem;\s*resize: vertical;\s*\}/);
 });
 
 test("disabled native controls remain legible and visibly unavailable", () => {
