@@ -139,7 +139,7 @@ final class ContentReviewQueue extends Page
         App::setLocale($locale);
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return array<int, array<string, mixed>> */
     public function queueRows(): array
     {
         $allowed = ['validating', 'rejected', 'staged', 'validated', 'reviewed', 'imported', 'published', 'superseded'];
@@ -208,7 +208,7 @@ final class ContentReviewQueue extends Page
         })->values()->all();
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return array<int, array<string, mixed>> */
     public function auditRows(string $importId): array
     {
         return DB::table('content_workflow_audits')
