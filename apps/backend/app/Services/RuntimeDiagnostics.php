@@ -150,6 +150,7 @@ final class RuntimeDiagnostics
                 ->limit($boundedLimit)
                 ->get()
                 ->map(fn (object $row): array => $this->sanitizeStoredRow($row))
+                ->values()
                 ->all();
         } catch (Throwable) {
             return [];
