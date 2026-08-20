@@ -47,6 +47,8 @@ final class ContentPreparationWizard extends Page
 
     public ?string $preparationRequestId = null;
 
+    public ?string $pendingRegenerationRequestId = null;
+
     /** @var array<string, mixed> */
     public array $requestResult = [];
 
@@ -132,22 +134,63 @@ final class ContentPreparationWizard extends Page
 
     public function generate(): void
     {
+        if ($this->preparationRequestId !== null) {
+            $this->requestRegeneration();
+
+            return;
+        }
+
         $this->validateAllSettings();
         $payload = $this->payload();
-        $workflow = app(ContentAdminWorkflowService::class);
 
         try {
-            if ($this->preparationRequestId === null) {
-                $result = $workflow->createRequest($this->operator(), $payload);
-            } else {
-                $result = $workflow->regenerateRequest($this->operator(), $this->preparationRequestId, $payload);
-            }
-            $this->requestResult = $result;
-            $this->preparationRequestId = (string) $result['preparation_request_id'];
-            $this->validationResult = [];
-            $this->returnedZip = null;
-            $this->step = 4;
-            Notification::make()->title(__('admin.messages.preparation_ready'))->success()->send();
+            $result = app(ContentAdminWorkflowService::class)->createRequest($this->operator(), $payload);
+            $this->applyPreparationResult($result);
+        } catch (ApiProblemException $exception) {
+            $this->notifyProblem($exception);
+        } catch (Throwable) {
+            Notification::make()->title(__('admin.messages.operation_failed'))->danger()->send();
+        }
+    }
+
+    public function requestRegeneration(): void
+    {
+        if ($this->preparationRequestId === null) {
+            $this->generate();
+
+            return;
+        }
+
+        $this->validateAllSettings();
+        $this->pendingRegenerationRequestId = $this->preparationRequestId;
+        $this->dispatch('open-modal', id: 'confirm-content-regeneration');
+    }
+
+    public function cancelRegeneration(): void
+    {
+        $this->pendingRegenerationRequestId = null;
+        $this->dispatch('close-modal', id: 'confirm-content-regeneration');
+    }
+
+    public function confirmRegeneration(): void
+    {
+        $requestId = $this->pendingRegenerationRequestId;
+        if ($requestId === null || $this->preparationRequestId === null || ! hash_equals($this->preparationRequestId, $requestId)) {
+            $this->pendingRegenerationRequestId = null;
+            $this->dispatch('close-modal', id: 'confirm-content-regeneration');
+            Notification::make()->title(__('admin.messages.confirmation_stale'))->warning()->send();
+
+            return;
+        }
+
+        $this->validateAllSettings();
+        $payload = $this->payload();
+        $this->pendingRegenerationRequestId = null;
+        $this->dispatch('close-modal', id: 'confirm-content-regeneration');
+
+        try {
+            $result = app(ContentAdminWorkflowService::class)->regenerateRequest($this->operator(), $requestId, $payload);
+            $this->applyPreparationResult($result);
         } catch (ApiProblemException $exception) {
             $this->notifyProblem($exception);
         } catch (Throwable) {
@@ -246,6 +289,17 @@ final class ContentPreparationWizard extends Page
         } catch (ApiProblemException $exception) {
             $this->notifyProblem($exception);
         }
+    }
+
+    /** @param array<string, mixed> $result */
+    private function applyPreparationResult(array $result): void
+    {
+        $this->requestResult = $result;
+        $this->preparationRequestId = (string) $result['preparation_request_id'];
+        $this->validationResult = [];
+        $this->returnedZip = null;
+        $this->step = 4;
+        Notification::make()->title(__('admin.messages.preparation_ready'))->success()->send();
     }
 
     /** @param array<string, mixed> $settings */
