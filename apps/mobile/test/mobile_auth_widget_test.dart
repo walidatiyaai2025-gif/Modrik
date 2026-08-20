@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:modrik_mobile/main.dart';
+import 'package:modrik_mobile/src/academic_track_catalogue.dart';
 import 'package:modrik_mobile/src/auth_gateway.dart';
 import 'package:modrik_mobile/src/auth_models.dart';
 import 'package:modrik_mobile/src/learning_gateway.dart';
@@ -131,6 +132,79 @@ void main() {
     expect(tester.getSize(logoutButton).height, greaterThanOrEqualTo(48));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'authenticated account and change-track actions remain independent at compact width and 200 percent text',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+      });
+
+      final auth = _authController()
+        ..state = MobileAuthState.authenticated
+        ..credential = _credential();
+      final learning = _catalogueLearningController();
+
+      await tester.pumpWidget(
+        ModrikApp(
+          controller: learning,
+          authController: auth,
+          autoInitialize: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      void expectIndependentControls(String changeLabel, TextDirection direction) {
+        final accountIcon = find.byIcon(Icons.manage_accounts_outlined);
+        final accountButton = find.ancestor(
+          of: accountIcon,
+          matching: find.byType(IconButton),
+        );
+        final changeButton = find.widgetWithText(FilledButton, changeLabel);
+        final navigation = find.byType(NavigationBar);
+
+        expect(accountButton, findsOneWidget);
+        expect(changeButton, findsOneWidget);
+        expect(navigation, findsOneWidget);
+        expect(tester.getSize(accountButton).width, greaterThanOrEqualTo(48));
+        expect(tester.getSize(accountButton).height, greaterThanOrEqualTo(48));
+        expect(tester.getSize(changeButton).height, greaterThanOrEqualTo(48));
+        expect(
+          tester.getRect(accountButton).overlaps(tester.getRect(changeButton)),
+          isFalse,
+        );
+        expect(
+          tester.getRect(changeButton).overlaps(tester.getRect(navigation)),
+          isFalse,
+        );
+        expect(
+          Directionality.of(tester.element(changeButton)),
+          direction,
+        );
+        expect(tester.takeException(), isNull);
+      }
+
+      expectIndependentControls('Change academic track', TextDirection.ltr);
+
+      auth.setLocale(ModrikLocale.ar);
+      learning.setLocale(ModrikLocale.ar);
+      await tester.pumpAndSettle();
+      expectIndependentControls('تغيير المسار الأكاديمي', TextDirection.rtl);
+
+      auth.setLocale(ModrikLocale.fr);
+      learning.setLocale(ModrikLocale.fr);
+      await tester.pumpAndSettle();
+      expectIndependentControls('Changer de parcours académique', TextDirection.ltr);
+
+      semantics.dispose();
+    },
+  );
 }
 
 MobileLearningController _learningController() => MobileLearningController(
@@ -139,6 +213,22 @@ MobileLearningController _learningController() => MobileLearningController(
         apiBaseUrl: Uri.parse('https://example.invalid/api/v1/'),
       ),
     );
+
+MobileLearningController _catalogueLearningController() =>
+    MobileLearningController(
+      gateway: _WidgetLearningGateway(),
+      config: MobileBootstrapConfig(
+        apiBaseUrl: Uri.parse('https://example.invalid/api/v1/'),
+      ),
+    )
+      ..status = MobileViewStatus.ready
+      ..academicContext = AcademicContext.fromJson({
+        'state': 'active',
+        'context_id': 'context-current',
+        'academic_track_id': '01J000000000000000000000A1',
+        'year_level': 'fixture-year',
+        'activated_at': '2026-08-20T10:00:00Z',
+      });
 
 MobileAuthController _authController() => MobileAuthController(
       gateway: _WidgetAuthGateway(),
@@ -168,6 +258,75 @@ StoredAuthCredential _credential({bool emailVerified = true}) =>
         isCurrent: true,
       ),
     );
+
+class _WidgetLearningGateway implements LearningGateway, AcademicTrackCatalogueGateway {
+  @override
+  Future<List<AcademicTrack>> academicTracks() async => [
+        AcademicTrack(
+          id: '01J000000000000000000000A1',
+          labels: {
+            ModrikLocale.ar: 'المسار الأول',
+            ModrikLocale.en: 'First track',
+            ModrikLocale.fr: 'Premier parcours',
+          },
+        ),
+        AcademicTrack(
+          id: '01J000000000000000000000B2',
+          labels: {
+            ModrikLocale.ar: 'المسار الثاني',
+            ModrikLocale.en: 'Second track',
+            ModrikLocale.fr: 'Deuxième parcours',
+          },
+        ),
+      ];
+
+  @override
+  Future<AcademicContext> academicContext() => throw UnimplementedError();
+
+  @override
+  Future<AcademicContext> activateAcademicContext(
+    String academicTrackId,
+    String idempotencyKey,
+  ) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AcademicContext> resetAcademicContext(
+    String academicTrackId,
+    String idempotencyKey,
+  ) =>
+      throw UnimplementedError();
+
+  @override
+  Future<SavedAnswer> answer({
+    required String attemptId,
+    required String attemptQuestionId,
+    required int expectedRevision,
+    required Object? value,
+    required String idempotencyKey,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<Lesson> lesson(String lessonId) => throw UnimplementedError();
+
+  @override
+  Future<List<ProgressSnapshot>> progress() async => const [];
+
+  @override
+  Future<Attempt> resumeAttempt(String attemptId) => throw UnimplementedError();
+
+  @override
+  Future<Session> session() => throw UnimplementedError();
+
+  @override
+  Future<Attempt> startAttempt(String quizId, String idempotencyKey) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AttemptResult> submit(String attemptId, String idempotencyKey) =>
+      throw UnimplementedError();
+}
 
 class _WidgetAuthGateway implements AuthGateway {
   @override

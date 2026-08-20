@@ -88,10 +88,8 @@ jobs:
           coverage: none
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - name: Seed and test the learning slice on MariaDB 10.11
-        run: |
-          php artisan migrate:fresh --seed --force
-          php artisan test
+      - name: Verify MariaDB 10.11 migration round trip and full Backend suite
+        run: bash ../../scripts/verify-mariadb-migration-roundtrip.sh
 
   web:
     runs-on: ubuntu-latest
