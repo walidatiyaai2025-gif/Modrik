@@ -18,7 +18,8 @@ Updated: 2026-08-20
 - Issue #6 (`P0-CONTENT-001`, REQ-P0-003/004 / AC-P0-006..008) is integrated on `main` by merge commit `4effa22904c0f196e04eab6f377f2357eeb7cc67`: Content Team/Admin authorization, deterministic preparation settings hash/prompt/bundle, file-aware idempotency, bounded returned-ZIP inspection, fixed v1 manifest/content schema and semantic validation, request/schema/hash/scope binding, fixture-only rights gating, durable rejected/staged audit/checkpoints, and transactional outbox events. The workflow deliberately stops before curriculum publication.
 - Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is integrated on `main` by merge commit `328820f30448cdec05af0e1ff241a2dc99a966fb`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. No default policy, ad SDK/network, targeting profile, or production activation exists.
 - Issue #10 (`P0-OPS-001`, REQ-P0-009/014 / AC-P0-016..017) is integrated on `main` by merge commit `c1b7a833fc36c844065b92598f7285fe095f29ff`: a scheduled bounded outbox command, per-event overlap-safe locks/rechecks, typed same-ID at-least-once dispatch, attempt checkpoints, capped exponential retry, sanitized error fingerprints, and explicit deferred/exhausted operator signals. Redis and permanent daemons remain unnecessary.
-- Issue #12 (`P0-AI-001`, REQ-P0-013 / AC-P0-015) is implemented on `codex/ac-p0-015-paid-ai-off` at `b5ed37d952c6ad39114e9b74b1e6c446aef04243`: paid AI defaults off, the full synthetic learning core is tested with outbound HTTP forbidden, and a backend-only allowlist excludes student identity, answers, progress, and credentials from future optional context. Draft PR #13 is the integration vehicle; no provider transport or production activation is introduced.
+- Issue #12 (`P0-AI-001`, REQ-P0-013 / AC-P0-015) is integrated on `main` by merge commit `3cc4c4c09301673787dc6179273e3c42c9b676ce`: paid AI defaults off, the full synthetic learning core is tested with outbound HTTP forbidden, and a backend-only allowlist excludes student identity, answers, progress, and credentials from future optional context. No provider transport or production activation is introduced.
+- Parallel Wave 1 is open with bounded ownership: Issue #14 Sync, #15 Auth, #16 Assessment, #17 Student Web, #18 Mobile, and #19 Admin/Content. Shared migrations/OpenAPI/domain authority must remain with the declared issue owner; UI agents consume backend contracts instead of redefining them.
 
 ## Verification evidence
 
@@ -38,15 +39,14 @@ Updated: 2026-08-20
 - Issue #8 evidence commit Bootstrap CI run `32373329320` also passed all seven jobs before PR #9 was merged with the expected-head guard.
 - Issue #10 Bootstrap CI run `32374020760` passed all seven jobs, including MariaDB 10.11 fresh migrations and the complete 19-test worker suite.
 - Issue #10 evidence commit Bootstrap CI run `32374163906` also passed all seven jobs before PR #11 was merged with the expected-head guard.
-- Issue #12 local gates pass: Composer and npm audits report no vulnerabilities; Pint/Larastan and PHPUnit pass 22 tests/513 assertions; contracts/OpenAPI/tokens, Web lint/type/test/build, and Flutter analyze/test are green.
-- Issue #12 Bootstrap CI run `32374885883` passed all seven jobs, including MariaDB 10.11 fresh migrations and the complete 22-test suite, contracts, audits, Web, Mobile, Gitleaks, and dependency review.
+- Issue #12 Bootstrap CI runs `32374885883` and `32375021456` passed all seven jobs before PR #13 was merged; the complete paid-AI-off learning core, MariaDB 10.11 migrations, contracts, Web, Mobile, Gitleaks and dependency review were green.
 
 ## External blockers
 
-- WEB-PRE-002: DNS resolves `modrik.org` to `65.21.208.232`, but 2026-08-20 checks found HTTPS connection resets and HTTP 503; CSS/logo HTTPS checks were unreachable. Publishing and public smoke verification require cPanel/hosting access.
+- WEB-PRE-002: DNS resolves `modrik.org` to `65.21.208.232`, but repository-side checks saw HTTPS connection resets / HTTP 503. Owner browser evidence shows the Coming Soon page has been published; remaining HTTPS/public smoke reconciliation requires hosting-side verification.
 - DOC-IMPORT-001: the formatted master-plan DOCX referenced by `AGENTS.md` is absent. Owner must add it before indexes can claim complete extraction.
 - Exact board/syllabus/version; real subject/content rights; production legal facts; provider/Firebase/store identifiers and signing; age/ad/community activation; and RPO/RTO/retention remain owner-controlled blockers only for their affected production work.
 
 ## Next safe task
 
-Obtain green CI for the Issue #12 evidence commit, mark PR #13 ready, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.
+Execute Parallel Wave 1 through Issues #14–#19 on separate branches/PRs. Preserve domain ownership, keep checkpoint pushes frequent, require full green CI for each PR, and integrate only after conflict/contract review.
