@@ -10,7 +10,7 @@ final class EmailVerificationTokenNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(private readonly string $token) {}
+    public function __construct(public readonly string $token) {}
 
     /** @return list<string> */
     public function via(object $notifiable): array
