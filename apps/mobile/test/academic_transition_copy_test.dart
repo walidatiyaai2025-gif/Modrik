@@ -141,7 +141,6 @@ void main() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
         tester.platformDispatcher.clearTextScaleFactorTestValue();
-        semantics.dispose();
       });
 
       for (final copy in cases.where((item) => item.locale != ModrikLocale.en)) {
@@ -196,6 +195,7 @@ void main() {
           expect(tester.takeException(), isNull);
         }
       }
+      semantics.dispose();
     },
   );
 
@@ -210,7 +210,6 @@ void main() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
         tester.platformDispatcher.clearTextScaleFactorTestValue();
-        semantics.dispose();
       });
 
       for (final copy in cases.where((item) => item.locale != ModrikLocale.en)) {
@@ -269,6 +268,7 @@ void main() {
         await tester.tap(find.text(copy.cancel));
         await tester.pumpAndSettle();
       }
+      semantics.dispose();
     },
   );
 }
