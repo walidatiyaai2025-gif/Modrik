@@ -1,6 +1,6 @@
 # P0 logical ERD
 
-Status: Wave 1 contract, 2026-08-20. Physical migrations must preserve this intent and MariaDB 10.11 portability. Production Google/Apple credentials and real curriculum values are external configuration, not persisted design defaults.
+Status: Wave 1 contract, 2026-08-20. Physical migrations must preserve this intent and MariaDB 10.11 portability. Production Google/Apple credentials, real curriculum values, rights and legal facts are external inputs, not persisted design defaults.
 
 ```mermaid
 erDiagram
@@ -34,10 +34,15 @@ erDiagram
     users ||--o{ answer_sync_acknowledgements : acknowledges
     users ||--o{ preparation_requests : creates
     users ||--o{ preparation_imports : uploads
-    users ||--o| user_age_assurances : has_current
-    users ||--o{ advertising_decision_audits : receives
     preparation_requests ||--o{ preparation_imports : receives
     preparation_imports ||--o{ preparation_import_files : checkpoints
+    preparation_imports ||--o| content_publications : controls
+    content_publications ||--o{ content_publication_items : contains
+    preparation_requests ||--o{ content_workflow_audits : audits
+    preparation_imports ||--o{ content_workflow_audits : audits
+    users ||--o{ content_workflow_audits : acts
+    users ||--o| user_age_assurances : has_current
+    users ||--o{ advertising_decision_audits : receives
     advertising_policies ||--o{ advertising_placements : enables
     advertising_policies ||--o{ advertising_decision_audits : evaluated_under
     outbox_events ||--o{ outbox_delivery_attempts : dispatches
@@ -118,10 +123,10 @@ erDiagram
     academic_tracks {
       char26 id PK
       varchar code UK
-      varchar board_code_nullable
+      varchar board_reference_nullable
       varchar syllabus_version_nullable
       varchar year_level
-      varchar status
+      json title_i18n
     }
     user_academic_contexts {
       char26 id PK
@@ -157,6 +162,7 @@ erDiagram
       json title_i18n
       varchar publication_status
       int content_version
+      datetime published_at_nullable
     }
     lesson_blocks {
       char26 id PK
@@ -186,7 +192,6 @@ erDiagram
       char26 quiz_id FK
       char26 question_id FK
       int source_position
-      decimal weight
     }
     attempts {
       char26 id PK
@@ -260,6 +265,8 @@ erDiagram
       json normalized_settings
       text prompt
       varchar status
+      char26 superseded_by_request_id_nullable
+      datetime superseded_at_nullable
       datetime created_at
       datetime updated_at
     }
@@ -275,6 +282,22 @@ erDiagram
       json validation_summary
       int imported_file_count
       int imported_record_count
+      longtext validated_content_nullable
+      char64 content_hash_nullable
+      json dry_run_summary_nullable
+      char64 dry_run_hash_nullable
+      varchar review_decision_nullable
+      text review_reason_nullable
+      char26 reviewed_by_nullable
+      datetime reviewed_at_nullable
+      char26 published_by_nullable
+      datetime published_at_nullable
+      varchar operation_state
+      varchar operation_checkpoint_nullable
+      int operation_attempts
+      varchar last_error_code_nullable
+      char64 last_error_fingerprint_nullable
+      datetime last_error_at_nullable
       datetime created_at
       datetime updated_at
     }
@@ -289,6 +312,41 @@ erDiagram
       int imported_records
       datetime created_at
       datetime updated_at
+    }
+    content_publications {
+      char26 id PK
+      char26 preparation_import_id FK_UK
+      char26 initiated_by
+      varchar status
+      varchar checkpoint_nullable
+      int attempt_count
+      varchar last_error_code_nullable
+      char64 last_error_fingerprint_nullable
+      datetime last_error_at_nullable
+      datetime published_at_nullable
+      datetime created_at
+      datetime updated_at
+    }
+    content_publication_items {
+      char26 id PK
+      char26 content_publication_id FK
+      varchar entity_type
+      char26 entity_id
+      varchar action
+      datetime created_at
+      datetime updated_at
+    }
+    content_workflow_audits {
+      char26 id PK
+      char26 preparation_request_id_nullable
+      char26 preparation_import_id_nullable
+      char26 actor_id_nullable
+      varchar action
+      varchar from_status_nullable
+      varchar to_status_nullable
+      text reason_nullable
+      json metadata
+      datetime created_at
     }
     advertising_policies {
       char26 id PK
@@ -364,7 +422,9 @@ erDiagram
 - Published content is immutable by version. Updates create a new content version; attempts retain snapshots.
 - Offline answer operation IDs are persisted only as actor-scoped domain-separated HMAC digests. Their canonical request hashes and final acknowledgements are durable synchronization state without a TTL; no raw answer value is duplicated into acknowledgement rows.
 - Each offline answer operation atomically commits its authoritative answer revision, redacted outbox event, and final acknowledgement. Operations in the same batch are transactionally isolated from one another.
-- Preparation imports end at a validated `staged` boundary. They do not insert, update, or publish curriculum rows; real-content review/publication requires a later explicit workflow.
+- Preparation staging and official publication are separate authority steps. A returned archive must remain bound to its originating request/settings/schema and pass validation. Only a fresh approved reviewed snapshot may enter canonical draft import and later official publication.
+- `content_publications` is unique per preparation import; `content_publication_items` fixes the operation/entity set so exact replay cannot duplicate canonical writes. Failed import/publication transactions roll back canonical state before sanitized recovery checkpoints are persisted.
+- Issue #19 consumes a pre-existing Backend-owned academic track. Admin does not create or guess real board/syllabus/version/rights values and UGC identifiers cannot become official curriculum through this workflow.
 - Advertising configuration absence is meaningful canonical state and resolves off. Placement-to-zone mappings and no-ad zones are code-owned; clients and mutable rows cannot redefine them.
 - Outbox publication is at least once. Per-event row locks prevent overlapping workers from republishing a row already completed; a failure keeps it unpublished and preserves the event ID for idempotent consumer retry.
-- Soft deletion or archival is used where history is product-significant. Retention periods remain owner input.
+- Soft deletion, archival or explicit supersession is used where history is product-significant. Retention periods remain owner input.
