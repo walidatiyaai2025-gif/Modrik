@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
-Updated: 2026-08-20
-Control baseline main SHA: `d37497cb5bc8546cf703c8b2f7991d64903d0201`
+Updated: 2026-08-21
+Control baseline main SHA: `83ed1486d24d55872cf90c7f7110e82bc8e19232`
 Active integration issue: #34 (`P0-INTEGRATION-002`)
 
 This file is the repository-level operational control plane for MODRIK. It does not replace locked product decisions, requirements, ADRs, OpenAPI, schemas, migrations, tests, `CURRENT_STATE.md`, or `TASKS.md`. It defines who may decide what, what may run in parallel, and what must be gated.
@@ -153,22 +153,31 @@ Never merge red CI.
 
 ## Parallel Wave 2 control
 
-### Already integrated in Wave 2
+### Integrated Wave 2 core
 - #32 / PR #37 — Public Landing/Help/guides/legal-trust engineering surfaces, merged at `fa9c4b38c8d33f3b4fc38c6b202dd38db9b8382e`. `deploy/coming-soon/` remains preserved and owner/legal facts remain blocked.
 - #21 / PR #35 — Backend authorized academic-track catalogue, merged at `021db64ca59a6fff23896efc5eab2231d1367c58`. The Backend/OpenAPI catalogue contract is stable; real board/syllabus/version values remain blocked.
 - #30 / PR #36 — Student Web production Auth/account/session UX, merged at `7d6d2f10b5d82528939254f42792a08d228f8202`, preserving Auth #15 authority and Wave governance.
 - #31 / PR #39 — Flutter production Auth/account/session UX, merged at `d37497cb5bc8546cf703c8b2f7991d64903d0201`, preserving Auth #15, Assessment, Sync and current governance boundaries.
+- #33 / PR #44 — Web/Mobile authorized academic-track catalogue consumption, merged at `fc2c528d9b43c3d6e03e8ce869f4d1f67228b17f` after post-#60 reconciliation and full governed exact-head CI. Clients consume the merged #21 contract and do not invent real board/syllabus/version values.
 
-### Wave 2B — dependency released, sequencing controlled
-- #33 — Web/Mobile academic-track catalogue consumption.
+The dependency-gated Wave 2 implementation path is integrated. Wave 2 closure still requires final-main verification plus reconciliation of shared state documents and explicit remaining owner-controlled blockers under Issue #34.
 
-#33 may begin only when explicitly authorized by the Integration Captain against the merged #21 contract and current Web/Mobile baselines. It must consume that exact contract and may not hardcode real board/syllabus/version values.
+### Post-Wave-2 / release-gap P0 integration queue
+- #52 / PR #60 — Academic migration rollback-order repair, integrated at `132215c024c8e07f6c0ce8ca8755314e7846a679` after MariaDB round-trip regression exposure.
+- #65 / PR #74 — Admin destructive regeneration/publication confirmations, integrated at `83ed1486d24d55872cf90c7f7110e82bc8e19232` after deterministic Blade-control-flow repair and full governed CI.
+- #48 / PR #51 — MariaDB 10.11 migration round-trip verification; current-main reconciliation and fresh exact-head CI required before merge.
+- #53 / PR #57 — exhausted outbox recovery/redrive drill; current-main reconciliation plus independent QA required before merge.
+- #55 / PR #59 — Web Auth canonical brand/token polish; current-main reconciliation and fresh exact-head CI required before merge.
+- #56 / PR #63 — learner-first Public/Landing hierarchy; current-main reconciliation, full governed CI and Coming Soon Smoke required before merge.
+- #64 / PR #72 — Android release-signing fail-closed gate; must resolve the current debug-signing identity/certificate verification finding, reconcile to current main and pass full governed CI.
+- #66 / PR #73 — repository-enforced browser security headers; current-main reconciliation, independent security preflight and fresh exact-head CI required before merge.
+- #69 — global Web select/textarea canonical visual language; Slot 9 overflow implementation, isolated from managed Slots 1–8.
+- #75 — independent read-only security preflight for PR #72/#73; no implementation or merge authority.
+
+Rolling slot dispatch is authoritative in Issue #43. This section is a repository checkpoint, not a substitute for the latest #43/#34 comments after `main` advances.
 
 ### Integration
-- #34 — exclusive Wave 2 Integration/QA Captain.
-
-Preferred integration behavior:
-- #33 integrates after the merged #21/#30/#31 baselines, followed by final Web/Mobile and repository revalidation.
+- #34 — exclusive Wave 2 / release-gap Integration/QA Captain.
 
 ## Wave 1 frozen authority
 

@@ -7,6 +7,11 @@ export type Session = {
   roles: string[];
 };
 
+export type AcademicTrack = {
+  id: string;
+  labels: Record<Locale, string>;
+};
+
 export type AcademicContext =
   | { state: "onboarding_required" }
   | {
@@ -121,6 +126,7 @@ function command(method: "POST" | "PUT", body: object | undefined, idempotencyKe
 
 export const learningApi = {
   session: () => requestData<Session>("session"),
+  academicTracks: () => requestData<{ tracks: AcademicTrack[] }>("academic-tracks").then(({ tracks }) => tracks),
   academicContext: () => requestData<AcademicContext>("academic-context"),
   activateAcademicContext: (academicTrackId: string, idempotencyKey: string) =>
     requestData<AcademicContext>(
