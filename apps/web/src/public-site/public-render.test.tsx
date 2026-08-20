@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { PublicSite } from "./public-site";
+import { PublicSiteView } from "./public-site-view";
+
+const testStyles = new Proxy<Record<string, string>>(
+  {},
+  { get: (_target, property) => String(property) },
+);
+
+function render(pageKey: Parameters<typeof PublicSiteView>[0]["pageKey"], locale: Parameters<typeof PublicSiteView>[0]["locale"]) {
+  return renderToStaticMarkup(<PublicSiteView pageKey={pageKey} locale={locale} styles={testStyles} />);
+}
 
 test("landing renders semantic keyboard-first public navigation", () => {
-  const markup = renderToStaticMarkup(<PublicSite pageKey="landing" locale="en" />);
+  const markup = render("landing", "en");
 
   assert.match(markup, /lang="en"/);
   assert.match(markup, /dir="ltr"/);
@@ -16,11 +25,11 @@ test("landing renders semantic keyboard-first public navigation", () => {
   assert.match(markup, /Learn More\. Achieve More\./);
   assert.match(markup, /href="\/help"/);
   assert.match(markup, /href="\/about"/);
-  assert.match(markup, /\/brand\/logo-horizontal\.svg/);
+  assert.match(markup, /brand\/logo-horizontal\.svg/);
 });
 
 test("Arabic legal template renders RTL with explicit non-final and blocker semantics", () => {
-  const markup = renderToStaticMarkup(<PublicSite pageKey="privacy" locale="ar" />);
+  const markup = render("privacy", "ar");
 
   assert.match(markup, /lang="ar"/);
   assert.match(markup, /dir="rtl"/);
@@ -33,7 +42,7 @@ test("Arabic legal template renders RTL with explicit non-final and blocker sema
 });
 
 test("French learner guide remains LTR and exposes reconnect and support guidance", () => {
-  const markup = renderToStaticMarkup(<PublicSite pageKey="help" locale="fr" />);
+  const markup = render("help", "fr");
 
   assert.match(markup, /lang="fr"/);
   assert.match(markup, /dir="ltr"/);
