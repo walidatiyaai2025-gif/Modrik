@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-SYNC-001 resumable offline answer synchronization
+
+- Implemented Issue #14 for REQ-P0-006 / AC-P0-009 / ADR-003 with authenticated `POST /v1/sync/answers` batches bounded to 1–100 ordered answer operations. The sync layer delegates all answer ownership, mutability, value validation, revision checks, and outbox creation to the existing Backend `AttemptService`.
+- Added durable `answer_sync_acknowledgements` persistence scoped by authenticated actor plus a domain-separated HMAC of the opaque client operation ID. The Backend stores a canonical request SHA-256, final outcome/code, retryability, and authoritative answer revision/timestamp when applied; it stores neither raw operation IDs nor duplicated answer values and applies no acknowledgement TTL.
+- Exact operation replay returns the stored acknowledgement with `replayed: true` and creates no additional answer revision or outbox event. Reusing an operation ID with a changed canonical payload returns `SYNC_OPERATION_ID_REUSED` without replacing the original acknowledgement or mutating domain state.
+- Each operation has an independent transaction, with a nested savepoint around the existing authoritative answer write. Expected revision/resource/value conflicts become durable stable-code acknowledgements without rolling back successful siblings; unexpected server failures roll back reservation, answer, and outbox work so the same operation ID can be retried safely.
+- Added integration coverage for authentication and 1–100 bounds, interrupted-batch resume, exact replay, same-ID changed-payload conflicts, stale-revision isolation, cross-user resource concealment, acknowledgement persistence redaction, and outbox answer redaction. Updated OpenAPI/contract assertions, idempotency/errors, ERD/data dictionary, QA ledger/matrix, threat model, and operations runbook.
+- Focused draft PR #25 implementation head `b9adb1f912f4be6cb0a5481acfbf389ef0a1f17a` passed Bootstrap CI run `32379996303` across all seven jobs: contracts/OpenAPI/tokens; PHP 8.4.24 Composer validation/audit, Pint, Larastan and SQLite Backend tests; MariaDB 10.11.18 fresh migration/seed plus the full 604-assertion Backend suite; Web; Flutter Mobile; Gitleaks; and dependency review. No Auth, Assessment, Student Web, Mobile presentation, Admin/Content publication, or Brand-token ownership was changed, and no owner-controlled production value was invented.
+
 ## 2026-08-20 — P0-AI-001 paid-AI-off learning core boundary
 
 - Added Issue #12 for REQ-P0-013 / AC-P0-015 and made the paid-AI-off architecture boundary executable instead of relying on documentation alone.
