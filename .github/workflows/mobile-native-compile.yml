@@ -1,0 +1,86 @@
+name: Mobile Native Compile Proof
+
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'scripts/verify-mobile-native-placeholders.sh'
+      - 'docs/qa/p0-mobile-build-001-verification.md'
+      - '.github/workflows/mobile-native-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-native-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-debug:
+    name: Android debug compile
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+      - name: Record pinned Flutter and Android environment
+        run: |
+          flutter --version
+          java -version
+          flutter doctor -v
+      - name: Verify non-production native identifiers
+        run: bash scripts/verify-mobile-native-placeholders.sh
+      - name: Resolve Flutter dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+      - name: Compile Android debug APK without production signing
+        working-directory: apps/mobile
+        run: flutter build apk --debug --no-pub
+
+  ios-debug-no-codesign:
+    name: iOS debug no-codesign compile
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+      - name: Record pinned Flutter and hosted Xcode environment
+        run: |
+          flutter --version
+          xcodebuild -version
+          flutter doctor -v
+      - name: Verify non-production native identifiers
+        run: bash scripts/verify-mobile-native-placeholders.sh
+      - name: Resolve Flutter dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+      - name: Compile iOS Debug without code signing
+        working-directory: apps/mobile
+        run: flutter build ios --debug --no-codesign --no-pub
+
+  native-compile-proof:
+    name: Android + iOS native compile proof
+    if: ${{ always() }}
+    needs:
+      - android-debug
+      - ios-debug-no-codesign
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require both non-production native compiles
+        env:
+          ANDROID_RESULT: ${{ needs.android-debug.result }}
+          IOS_RESULT: ${{ needs.ios-debug-no-codesign.result }}
+        run: |
+          test "$ANDROID_RESULT" = "success"
+          test "$IOS_RESULT" = "success"
