@@ -345,9 +345,13 @@ class RuntimeDiagnostics extends ChangeNotifier {
         _enforceBounds();
       }
     } on Object {
-      await _persistence.clear();
       _events.clear();
       recoveredStorage = true;
+      try {
+        await _persistence.clear();
+      } on Object {
+        // Recovery cleanup is best-effort; diagnostics must never fail startup.
+      }
     } finally {
       _initialized = true;
       if (recoveredStorage) {
@@ -493,7 +497,11 @@ class RuntimeDiagnostics extends ChangeNotifier {
   Future<void> clear() async {
     _events.clear();
     if (!_disposed) notifyListeners();
-    await _persistence.clear();
+    try {
+      await _persistence.clear();
+    } on Object {
+      // Clearing diagnostic storage is best-effort and never domain-fatal.
+    }
   }
 
   String responseCorrelationId(HttpHeaders headers, String fallback) {
