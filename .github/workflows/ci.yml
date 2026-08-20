@@ -127,6 +127,30 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
+  pilot-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+      - name: Prepare pinned clean-checkout dependencies
+        run: bash scripts/setup.sh
+      - name: Execute repository Pilot acceptance matrix
+        run: npm run pilot:smoke
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
@@ -157,6 +181,7 @@ jobs:
       - backend-mariadb
       - web
       - mobile
+      - pilot-smoke
       - secret-scan
       - dependency-review
     runs-on: ubuntu-latest
@@ -168,6 +193,7 @@ jobs:
           BACKEND_MARIADB_RESULT: ${{ needs.backend-mariadb.result }}
           WEB_RESULT: ${{ needs.web.result }}
           MOBILE_RESULT: ${{ needs.mobile.result }}
+          PILOT_SMOKE_RESULT: ${{ needs.pilot-smoke.result }}
           SECRET_SCAN_RESULT: ${{ needs.secret-scan.result }}
           DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
         run: |
@@ -176,5 +202,6 @@ jobs:
           test "$BACKEND_MARIADB_RESULT" = "success"
           test "$WEB_RESULT" = "success"
           test "$MOBILE_RESULT" = "success"
+          test "$PILOT_SMOKE_RESULT" = "success"
           test "$SECRET_SCAN_RESULT" = "success"
           test "$DEPENDENCY_REVIEW_RESULT" = "success" || test "$DEPENDENCY_REVIEW_RESULT" = "skipped"
