@@ -30,11 +30,13 @@ class RuntimeInspectorHost extends StatelessWidget {
     required this.diagnostics,
     required this.snapshot,
     required this.child,
+    this.onOpen,
   });
 
   final RuntimeDiagnostics diagnostics;
   final RuntimeInspectorSnapshot snapshot;
   final Widget child;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -59,14 +61,15 @@ class RuntimeInspectorHost extends StatelessWidget {
                   shape: const CircleBorder(),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => RuntimeInspectorScreen(
-                          diagnostics: diagnostics,
-                          snapshot: snapshot,
-                        ),
-                      ),
-                    ),
+                    onTap: onOpen ??
+                        () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => RuntimeInspectorScreen(
+                                  diagnostics: diagnostics,
+                                  snapshot: snapshot,
+                                ),
+                              ),
+                            ),
                     child: const SizedBox(
                       width: 52,
                       height: 52,
