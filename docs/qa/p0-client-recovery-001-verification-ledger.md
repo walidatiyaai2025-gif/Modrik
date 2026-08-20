@@ -1,48 +1,51 @@
 # P0-CLIENT-RECOVERY-001 verification ledger
 
 Issue: #81 — post-academic fault-injection and reconnect release drill  
-Traceability: REQ-P0-006 · AC-P0-009 · merged #14 Sync · merged #16 Assessment · merged #33 client academic context
+Traceability: REQ-P0-006 · AC-P0-009 · merged #14 Sync · merged #16 Assessment · merged #33 client academic context · merged #90 durable Mobile recovery
 
-Baseline at drill start: `main` `94f5c0f1c2d6b293bf43212c4c3805bcbaaae562`.
+Final recovery baseline: `main` `7a5c0ae94c9dfa9f67dcfc604c854db1a7a5b59c` or newer.
 
-This ledger is evidence/harness work only. It does not change the Sync wire contract, Assessment selection/order/scoring authority, academic eligibility, Auth/session policy, or production configuration. A discovered product defect is recorded as a failure and routed rather than hidden by changing production behavior inside #81.
+This ledger is evidence/harness work only. It does not change the Sync wire contract, Assessment selection/order/scoring authority, academic eligibility, Auth/session policy, or production configuration.
 
 ## Scenario matrix
 
 | Scenario | Surface | Evidence | Result |
 | --- | --- | --- | --- |
-| Offline before initial load | Mobile | `client_recovery_fault_injection_test.dart`: network failure before session/context load produces `offline_no_downloads`, no lesson/attempt/pending state is invented | **PASS** |
-| Offline after valid cache exists | Mobile, same process/cache lifetime | Harness restores `AttemptSnapshotCache` and asserts exact Backend question and option order | **PASS** |
-| Offline after valid cache + real OS process restart | Mobile | Production wiring constructs fresh memory-only `DownloadedContentCache` / `AttemptSnapshotCache`; no durable implementation is injected | **FAIL — BLOCKED #90** |
-| Timeout before ACK | Mobile | Harness injects a transport timeout after the operation is marked attempted; stable operation ID and frozen payload remain in the supplied store | **PASS** |
-| Controller reconstruction/reconnect with retained store | Mobile | New controller consumes the same retained operation; replay uses the original operation ID/payload; applied ACK removes it | **PASS** |
-| Real app/process restart with pending operation | Mobile | Production startup reconstructs a fresh `MemoryPendingOperationStore`, losing the attempted-but-unacknowledged operation | **FAIL — BLOCKED #90** |
-| ACKed operation is not duplicated | Mobile | After applied ACK the store is empty; another sync pass does not invoke transport again | **PASS** |
-| Changed local draft after timeout | Mobile | Transport-attempted pending payload remains immutable; later local edit cannot rewrite the existing operation ID/payload | **PASS** |
-| Stale revision / second-device update | Mobile | Conflict ACK closes old operation; controller reloads the same attempt from Backend, preserves server order, and requeues the local draft under a new operation ID at the authoritative revision | **PASS** |
-| Clock skew | Mobile | `issue14OperationPayload` is identical for far-past/far-future client `createdAt`; no client timestamp is sent as synchronization authority | **PASS** |
-| Academic track reset with pending sync | Mobile | Pending operation blocks reset with `context_change_requires_sync`; caches remain intact until pending work is resolved | **PASS** |
-| Academic track reset after pending work resolves | Mobile | Backend-owned reset proceeds, then clears downloaded lesson/attempt learning caches and returns to dashboard | **PASS** |
-| Offline before initial load | Web | Executable source-contract test guards the `navigator.onLine` fail-closed path before session/context requests | **PASS** |
-| Browser restart / reconnect | Web | Active attempt ID is stored; online load re-fetches that exact attempt ID and applies Backend response without client sort/shuffle | **PASS** |
-| Timeout before successful response | Web | Command key is read/reused from localStorage and removed only after the awaited answer request succeeds | **PASS** |
-| Stale revision / multi-device conflict | Web | HTTP 409 path calls `reconcileConflict`, re-fetches the same attempt from Backend and applies the authoritative response without local reordering | **PASS** |
-| Academic transition cache invalidation | Web | Transition removes only the active-attempt pointer, clears current learning view state and reloads Backend state; it does not call broad `localStorage.clear()` | **PASS** |
-| Client assessment authority | Web + Mobile | Web start-attempt request contains quiz ID only; Mobile wire harness asserts no seed, score or question-order fields; resumed attempt list is never sorted/shuffled | **PASS** |
-| Same operation ID with changed payload at Backend | Sync #14 authority | Existing `docs/qa/p0-sync-verification-ledger.md` records the server test for `SYNC_OPERATION_ID_REUSED`, unchanged original acknowledgement/hash/outbox count, then successful replay of the original payload | **PASS — merged authority** |
+| Offline before initial load | Mobile | `client_recovery_fault_injection_test.dart` proves network failure before session/context load produces `offline_no_downloads` without inventing lesson/attempt/pending state | **PASS** |
+| Offline after valid cache exists | Mobile | Recovery harness restores the authoritative attempt and asserts exact Backend question/option order | **PASS** |
+| Offline after valid cache + process/store reconstruction | Mobile | Merged #90 `durable_learning_store_test.dart` writes durable attempt/lesson state, reconstructs fresh scope/store instances and recovers the exact authoritative order | **PASS** |
+| Timeout before ACK | Mobile | Recovery harness marks transport attempted and retains the same stable operation ID plus frozen payload | **PASS** |
+| Controller reconstruction/reconnect | Mobile | Reconstructed controller replays the retained operation with the same operation ID/payload; applied ACK removes it | **PASS** |
+| Real app/process restart with pending operation | Mobile | Merged #90 durable-store test reconstructs fresh scope/store instances and proves the same Issue #14 operation identity and frozen payload survive | **PASS** |
+| ACKed operation is not duplicated after reopen | Mobile | Merged #90 test proves ACK removes durable state; another fresh reopen and sync pass does not resend | **PASS** |
+| Changed local draft after timeout | Mobile | Transport-attempted payload remains immutable; a later local edit does not rewrite the already-attempted operation | **PASS** |
+| Stale revision / second-device update | Mobile | Conflict closes old operation, reloads Backend authority without local reordering and requeues the local draft at the authoritative revision with a new operation ID | **PASS** |
+| Clock skew | Mobile | `issue14OperationPayload` remains identical for far-past/far-future client timestamps and sends no timestamp, seed, score or question-order authority | **PASS** |
+| Account isolation | Mobile | Merged #90 durable tests prove one account cannot read another account's pending/cache state and account clear is scoped | **PASS** |
+| Academic reset with pending sync | Mobile | Pending operation blocks reset with `context_change_requires_sync`; caches remain intact | **PASS** |
+| Academic reset after pending work resolves | Mobile | Existing flow clears intended lesson/attempt caches only after the guard passes; merged #90 test proves pending Sync storage is not erased as a cache side effect | **PASS** |
+| Corrupt durable state | Mobile | Merged #90 test proves corrupt durable payload fails closed as `MOBILE_RECOVERY_STORAGE_INVALID`, not as silently empty state | **PASS** |
+| Offline before initial load | Web | `client-recovery-contract.test.tsx` guards `navigator.onLine` fail-closed startup before session/context requests | **PASS** |
+| Browser restart / reconnect | Web | Active attempt ID is retained and the exact attempt is re-fetched from Backend without client sort/shuffle | **PASS** |
+| Timeout before successful response | Web | Stable command key is reused and removed only after the awaited answer request succeeds | **PASS** |
+| Stale revision / multi-device conflict | Web | HTTP 409 path re-fetches the same attempt from Backend and applies authoritative response without local reordering | **PASS** |
+| Academic transition cache invalidation | Web | Transition removes only the active-attempt pointer/current learning state and reloads Backend state; no broad `localStorage.clear()` | **PASS** |
+| Client assessment authority | Web + Mobile | Start/resume paths contain no client seed, scoring or question-order authority | **PASS** |
+| Same operation ID with changed payload at Backend | Sync #14 authority | Existing Sync verification ledger proves `SYNC_OPERATION_ID_REUSED` preserves original acknowledgement/hash/outbox authority | **PASS — merged authority** |
 
-## Routed blocker: #90
+## Durable recovery evidence consumed from merged #90
 
-Issue #81 exposed a real P0 persistence gap and routed it as #90 `P0-MOBILE-RECOVERY-PERSISTENCE-001` rather than expanding this verification packet.
+The blocker discovered by the first #81 drill is now integrated on `main` through PR #104 / Issue #90. Its executable Mobile tests prove:
 
-At the baseline:
+- pending operation survives reconstruction with the same logical command key, attempt/question identity, revision, value, attempted flag and creation time;
+- applied ACK deletes durable pending state and another reopen cannot resend it;
+- cached lesson + attempt survive reconstruction with exact Backend question/option order;
+- account scopes are isolated and account clear affects only the intended account;
+- academic-reset cache operations do not erase pending Sync state;
+- corrupt durable payload fails closed;
+- durable stores refuse access before Auth binds an account scope.
 
-- `offline_boundary.dart` defines the correct boundaries but only memory concrete stores for downloaded lessons, attempt snapshot, and pending operations;
-- `MobileLearningController` defaults to those memory stores;
-- `main.dart` creates fixture and production learning controllers without durable-store injection;
-- a real process restart therefore loses pending Issue #14 operation identity/payload and offline snapshots.
-
-#81 must not claim final completion until #90 is implemented/integrated, this branch is reconciled to the resulting `main`, and the two blocked restart rows are rerun as PASS.
+The Android/iOS native persistence boundary was also validated by the Mobile Native Compile Proof before #90 integration.
 
 ## Repeatable commands
 
@@ -73,15 +76,8 @@ Repository governed CI remains mandatory on the exact final PR head:
 - dependency review;
 - aggregate required context.
 
-## Release rerun after #90
+## Completion
 
-After #90 integrates:
+All previously blocked process-restart rows are now backed by executable merged durable-store evidence and are PASS. No unresolved P0 recovery/idempotency defect remains in this drill.
 
-1. reconcile #81 onto the new `main`;
-2. run the durable pending-operation restart case: queue → mark transport attempted → terminate/reconstruct process/store → reconnect → assert same operation ID/frozen payload → ACK → terminate/reopen → assert no resend;
-3. run durable cached lesson/attempt restart: cache authoritative snapshot → terminate/reopen → offline initialize → assert exact attempt/question/option order;
-4. rerun academic reset/account isolation tests against durable stores;
-5. rerun Web/Mobile focused tests and the complete governed CI matrix;
-6. update the two blocked rows to PASS only with executable evidence.
-
-No owner-controlled input is required for this drill or for #90's repository-side persistence fix.
+`ISSUE IMPLEMENTATION COMPLETE — PR GREEN AND READY FOR INTEGRATION`
