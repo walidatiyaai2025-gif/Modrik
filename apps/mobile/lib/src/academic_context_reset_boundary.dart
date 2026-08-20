@@ -560,16 +560,16 @@ class _CatalogueCopy {
   final ModrikLocale locale;
 
   String get onboardingTitle => switch (locale) {
-        ModrikLocale.ar => 'اختر سياقك الأكاديمي',
-        ModrikLocale.en => 'Choose your academic context',
-        ModrikLocale.fr => 'Choisissez votre contexte académique',
+        ModrikLocale.ar => 'اختر مسارك الأكاديمي',
+        ModrikLocale.en => 'Choose your academic track',
+        ModrikLocale.fr => 'Choisissez votre parcours académique',
       };
   String get onboardingBody => switch (locale) {
-        ModrikLocale.ar => 'تظهر فقط المسارات التي صرّح بها الخادم لهذه الجلسة.',
+        ModrikLocale.ar => 'هذه هي المسارات الأكاديمية المتاحة لك حاليًا.',
         ModrikLocale.en =>
-          'Only tracks authorized by the backend for this learner are shown.',
+          'These are the academic tracks currently available to you.',
         ModrikLocale.fr =>
-          'Seuls les parcours autorisés par le serveur pour cet élève sont affichés.',
+          'Voici les parcours académiques actuellement disponibles pour vous.',
       };
   String get trackLabel => switch (locale) {
         ModrikLocale.ar => 'المسار الأكاديمي',
@@ -577,9 +577,9 @@ class _CatalogueCopy {
         ModrikLocale.fr => 'Parcours académique',
       };
   String get activate => switch (locale) {
-        ModrikLocale.ar => 'تفعيل السياق',
-        ModrikLocale.en => 'Activate context',
-        ModrikLocale.fr => 'Activer le contexte',
+        ModrikLocale.ar => 'ابدأ بهذا المسار',
+        ModrikLocale.en => 'Start with this track',
+        ModrikLocale.fr => 'Commencer avec ce parcours',
       };
   String get change => switch (locale) {
         ModrikLocale.ar => 'تغيير المسار الأكاديمي',
@@ -587,76 +587,78 @@ class _CatalogueCopy {
         ModrikLocale.fr => 'Changer de parcours académique',
       };
   String get resetTitle => switch (locale) {
-        ModrikLocale.ar => 'تأكيد تغيير المسار',
-        ModrikLocale.en => 'Confirm academic-track change',
-        ModrikLocale.fr => 'Confirmer le changement de parcours',
+        ModrikLocale.ar => 'قبل تغيير المسار الأكاديمي',
+        ModrikLocale.en => 'Before you change academic track',
+        ModrikLocale.fr => 'Avant de changer de parcours académique',
       };
   String get resetBody => switch (locale) {
         ModrikLocale.ar =>
-          'سيؤرشف الخادم السياق السابق والمحاولات والتقدّم بدل حذفها، وقد تُنهى المحاولة الجارية.',
+          'سيتم أرشفة مسارك الأكاديمي السابق ومحاولاتك وتقدّمك، ولن يتم حذفها. وقد يبقى أي عمل جارٍ غير مكتمل.',
         ModrikLocale.en =>
-          'The backend archives the prior context, attempts, and progress instead of deleting them; in-progress work may be abandoned.',
+          'Your previous academic track, attempts, and progress will be archived—not deleted. Any work still in progress may be left unfinished.',
         ModrikLocale.fr =>
-          'Le serveur archive l’ancien contexte, les tentatives et la progression au lieu de les supprimer ; un travail en cours peut être abandonné.',
+          'Votre ancien parcours académique, vos tentatives et votre progression seront archivés, pas supprimés. Tout travail en cours pourra rester inachevé.',
       };
   String get syncWarning => switch (locale) {
         ModrikLocale.ar =>
-          'يجب مزامنة الإجابات والتغييرات المعلّقة قبل إعادة الضبط.',
+          'زامن جميع الإجابات والتغييرات المعلّقة قبل المتابعة.',
         ModrikLocale.en =>
-          'Pending answers and changes must be synchronized before reset.',
+          'Sync all pending answers and changes before you continue.',
         ModrikLocale.fr =>
-          'Les réponses et changements en attente doivent être synchronisés avant la réinitialisation.',
+          'Synchronisez toutes les réponses et modifications en attente avant de continuer.',
       };
   String get confirmConsequences => switch (locale) {
-        ModrikLocale.ar => 'أفهم نتائج الأرشفة وإعادة الضبط.',
-        ModrikLocale.en => 'I understand the archival reset consequences.',
+        ModrikLocale.ar => 'أفهم ما سيحدث عند تغيير المسار.',
+        ModrikLocale.en => 'I understand what will happen when I change tracks.',
         ModrikLocale.fr =>
-          'Je comprends les conséquences de l’archivage et de la réinitialisation.',
+          'Je comprends ce qui se passera quand je changerai de parcours.',
       };
   String get loading => switch (locale) {
-        ModrikLocale.ar => 'جارٍ تحميل المسارات الأكاديمية المصرح بها.',
-        ModrikLocale.en => 'Loading authorized academic tracks.',
-        ModrikLocale.fr => 'Chargement des parcours académiques autorisés.',
+        ModrikLocale.ar => 'جارٍ تحميل مساراتك الأكاديمية.',
+        ModrikLocale.en => 'Loading your academic tracks.',
+        ModrikLocale.fr => 'Chargement de vos parcours académiques.',
       };
   String get empty => switch (locale) {
-        ModrikLocale.ar => 'لا توجد مسارات أكاديمية مصرح بها حاليًا.',
-        ModrikLocale.en => 'No academic tracks are currently authorized.',
+        ModrikLocale.ar => 'لا توجد مسارات أكاديمية متاحة لك حاليًا.',
+        ModrikLocale.en => 'No academic tracks are available to you right now.',
         ModrikLocale.fr =>
-          'Aucun parcours académique n’est actuellement autorisé.',
+          'Aucun parcours académique n’est disponible pour vous pour le moment.',
       };
   String get offline => switch (locale) {
         ModrikLocale.ar =>
-          'يلزم الاتصال لجلب قائمة المسارات المعتمدة أو تغيير السياق.',
+          'اتصل بالإنترنت لتحميل مساراتك الأكاديمية أو تغيير مسارك.',
         ModrikLocale.en =>
-          'Reconnect to load the authorized catalogue or change academic context.',
+          'Reconnect to load your academic tracks or change your track.',
         ModrikLocale.fr =>
-          'Reconnectez-vous pour charger le catalogue autorisé ou changer de contexte.',
+          'Reconnectez-vous pour charger vos parcours académiques ou changer de parcours.',
       };
   String get permission => switch (locale) {
-        ModrikLocale.ar => 'لا تسمح الجلسة الحالية بقراءة قائمة المسارات.',
+        ModrikLocale.ar =>
+          'لا يمكن تحميل المسارات الأكاديمية بهذه الجلسة. سجّل الدخول من جديد ثم حاول مرة أخرى.',
         ModrikLocale.en =>
-          'The current session cannot read the academic-track catalogue.',
+          'We can’t load academic tracks with this session. Sign in again, then try again.',
         ModrikLocale.fr =>
-          'La session actuelle ne peut pas lire le catalogue des parcours.',
+          'Cette session ne permet pas de charger vos parcours académiques. Reconnectez-vous à votre compte, puis réessayez.',
       };
   String get error => switch (locale) {
-        ModrikLocale.ar => 'تعذر تحميل قائمة المسارات. حاول مرة أخرى.',
+        ModrikLocale.ar =>
+          'تعذر تحميل مساراتك الأكاديمية. لم يتغير شيء. حاول مرة أخرى.',
         ModrikLocale.en =>
-          'The academic-track catalogue could not be loaded. Retry.',
+          'We couldn’t load your academic tracks. Nothing has changed. Try again.',
         ModrikLocale.fr =>
-          'Le catalogue des parcours n’a pas pu être chargé. Réessayez.',
+          'Nous n’avons pas pu charger vos parcours académiques. Rien n’a changé. Réessayez.',
       };
   String get transitionFailed => switch (locale) {
         ModrikLocale.ar =>
-          'لم يطبق الخادم الانتقال الأكاديمي. راجع الحالة وأعد المحاولة.',
+          'تعذر تحديث مسارك الأكاديمي. لم يتغير شيء. تحقق من اتصالك ومن أن المسار المختار ما زال متاحًا، ثم حاول مرة أخرى.',
         ModrikLocale.en =>
-          'The backend did not apply the academic transition. Review the state and retry.',
+          'We couldn’t update your academic track. Nothing changed. Check your connection and that the selected track is still available, then try again.',
         ModrikLocale.fr =>
-          'Le serveur n’a pas appliqué la transition académique. Vérifiez l’état et réessayez.',
+          'Nous n’avons pas pu mettre à jour votre parcours académique. Rien n’a changé. Vérifiez votre connexion et que le parcours choisi est toujours disponible, puis réessayez.',
       };
   String get retry => switch (locale) {
-        ModrikLocale.ar => 'إعادة المحاولة',
-        ModrikLocale.en => 'Retry',
+        ModrikLocale.ar => 'حاول مرة أخرى',
+        ModrikLocale.en => 'Try again',
         ModrikLocale.fr => 'Réessayer',
       };
   String get cancel => switch (locale) {
@@ -665,9 +667,9 @@ class _CatalogueCopy {
         ModrikLocale.fr => 'Annuler',
       };
   String get confirm => switch (locale) {
-        ModrikLocale.ar => 'تأكيد إعادة الضبط',
-        ModrikLocale.en => 'Confirm reset',
-        ModrikLocale.fr => 'Confirmer la réinitialisation',
+        ModrikLocale.ar => 'تغيير المسار الأكاديمي',
+        ModrikLocale.en => 'Change academic track',
+        ModrikLocale.fr => 'Changer de parcours académique',
       };
 }
 
