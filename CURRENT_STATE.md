@@ -19,7 +19,8 @@ Updated: 2026-08-20
 - Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is integrated on `main` by merge commit `328820f30448cdec05af0e1ff241a2dc99a966fb`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. No default policy, ad SDK/network, targeting profile, or production activation exists.
 - Issue #10 (`P0-OPS-001`, REQ-P0-009/014 / AC-P0-016..017) is integrated on `main` by merge commit `c1b7a833fc36c844065b92598f7285fe095f29ff`: a scheduled bounded outbox command, per-event overlap-safe locks/rechecks, typed same-ID at-least-once dispatch, attempt checkpoints, capped exponential retry, sanitized error fingerprints, and explicit deferred/exhausted operator signals. Redis and permanent daemons remain unnecessary.
 - Issue #12 (`P0-AI-001`, REQ-P0-013 / AC-P0-015) is integrated on `main` by merge commit `3cc4c4c09301673787dc6179273e3c42c9b676ce`: paid AI defaults off, the full synthetic learning core is tested with outbound HTTP forbidden, and a backend-only allowlist excludes student identity, answers, progress, and credentials from future optional context. No provider transport or production activation is introduced.
-- Parallel Wave 1 is open with bounded ownership: Issue #14 Sync, #15 Auth, #16 Assessment, #17 Student Web, #18 Mobile, and #19 Admin/Content. Shared migrations/OpenAPI/domain authority must remain with the declared issue owner; UI agents consume backend contracts instead of redefining them.
+- Issue #14 (`P0-SYNC-001`, REQ-P0-006 / AC-P0-009) is implemented on focused PR #25 from `codex/p0-sync-001-issue-14`: authenticated ordered 1–100 answer-operation batches, actor-scoped HMAC operation IDs, canonical request hashes, permanent per-operation acknowledgements, exact replay without duplicate answer revisions/outbox events, changed-payload operation-ID conflicts, and transactionally isolated stale/resource conflicts. Existing `AttemptService` authority and answer/outbox redaction remain unchanged; Auth, Assessment, Web, Mobile, Admin/Content, and Brand ownership were not modified.
+- Parallel Wave 1 remains bounded by ownership: Issue #14 Sync is implementation-complete on PR #25; #15 Auth, #16 Assessment, #17 Student Web, #18 Mobile, and #19 Admin/Content remain separately owned. Shared migrations/OpenAPI/domain authority must remain with the declared issue owner; UI agents consume backend contracts instead of redefining them.
 
 ## Verification evidence
 
@@ -40,6 +41,7 @@ Updated: 2026-08-20
 - Issue #10 Bootstrap CI run `32374020760` passed all seven jobs, including MariaDB 10.11 fresh migrations and the complete 19-test worker suite.
 - Issue #10 evidence commit Bootstrap CI run `32374163906` also passed all seven jobs before PR #11 was merged with the expected-head guard.
 - Issue #12 Bootstrap CI runs `32374885883` and `32375021456` passed all seven jobs before PR #13 was merged; the complete paid-AI-off learning core, MariaDB 10.11 migrations, contracts, Web, Mobile, Gitleaks and dependency review were green.
+- Issue #14 implementation Bootstrap CI run `32379996303` passed all seven jobs on PR #25 head `b9adb1f912f4be6cb0a5481acfbf389ef0a1f17a`: contracts/OpenAPI/tokens, Composer validation/audit/Pint/Larastan, full SQLite Backend tests, MariaDB 10.11.18 `migrate:fresh --seed` plus the same 604-assertion Backend suite, Web, Flutter Mobile, Gitleaks, and dependency review. The new acknowledgement migration applied successfully on MariaDB and all four offline-sync integration scenarios passed.
 
 ## External blockers
 
@@ -49,4 +51,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Execute Parallel Wave 1 through Issues #14–#19 on separate branches/PRs. Preserve domain ownership, keep checkpoint pushes frequent, require full green CI for each PR, and integrate only after conflict/contract review.
+Reverify the final documentation head of PR #25 against the complete GitHub CI matrix, resolve any base drift or review findings, and mark the PR ready only when every required job is green. After integration, continue remaining Parallel Wave 1 issues #15–#19 within their separate ownership boundaries.
