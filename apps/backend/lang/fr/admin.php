@@ -62,6 +62,16 @@ return [
         'no_audit' => 'Aucune entrée d’audit n’est disponible pour cet import.',
         'actor' => 'Acteur',
     ],
+    'confirmations' => [
+        'regeneration_title' => 'Confirmer la régénération de la préparation',
+        'regeneration_description' => 'Vérifiez la demande actuelle avant de la remplacer par une nouvelle demande de préparation.',
+        'regeneration_consequence_title' => 'Cette action remplace le travail actif non publié.',
+        'regeneration_consequence_body' => 'La confirmation crée une demande de remplacement et remplace tout travail non publié en staging, validé, révisé ou importé lié à la demande actuelle. Le contenu déjà publié n’est pas annulé.',
+        'publication_title' => 'Confirmer la publication officielle',
+        'publication_description' => 'Vérifiez le contexte du brouillon importé avant de rendre le contenu officiel du programme disponible.',
+        'publication_consequence_title' => 'Il s’agit de l’action finale de publication officielle.',
+        'publication_consequence_body' => 'La confirmation appelle la transaction de publication autoritative existante pour ce brouillon importé. Annuler laisse le brouillon importé inchangé.',
+    ],
     'actions' => [
         'continue' => 'Continuer',
         'back' => 'Retour',
@@ -84,6 +94,9 @@ return [
         'import_reviewed' => 'Importer le brouillon révisé',
         'publish_official' => 'Publier le contenu officiel',
         'retry' => 'Relancer l’opération échouée',
+        'cancel' => 'Annuler',
+        'confirm_regeneration' => 'Régénérer et remplacer le travail',
+        'confirm_publication' => 'Confirmer la publication officielle',
     ],
     'fields' => [
         'track_reference' => 'Référence du parcours',
@@ -155,6 +168,8 @@ return [
         'operation_replayed' => 'L’opération idempotente était déjà terminée.',
         'import_missing' => 'Import de préparation introuvable.',
         'retry_not_available' => 'La relance n’est pas disponible dans cet état.',
+        'confirmation_stale' => 'Cette confirmation n’est plus à jour. Vérifiez le dernier état du workflow puis réessayez.',
+        'publication_confirmation_unavailable' => 'La confirmation de publication officielle est disponible uniquement pour un brouillon importé.',
         'working' => 'Traitement en cours…',
     ],
     'validation' => [

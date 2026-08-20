@@ -2,16 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'academic_track_catalogue.dart';
 import 'models.dart';
 
 class MobileBootstrapConfig {
   const MobileBootstrapConfig({
     required this.apiBaseUrl,
     this.bearerToken,
-    this.fixtureMode = false,
+    bool fixtureMode = false,
     this.initialLessonId,
-    this.academicTrackId,
-  });
+    String? academicTrackId,
+  })  : academicTrackId = academicTrackId,
+        fixtureMode = fixtureMode || academicTrackId != null;
 
   factory MobileBootstrapConfig.fromEnvironment() {
     const rawBase = String.fromEnvironment('MODRIK_API_BASE_URL');
@@ -32,7 +34,8 @@ class MobileBootstrapConfig {
           : null,
       fixtureMode: fixtureMode,
       initialLessonId: lessonId.isEmpty ? null : lessonId,
-      academicTrackId: trackId.isEmpty ? null : trackId,
+      academicTrackId:
+          fixtureMode && trackId.isNotEmpty ? trackId : null,
     );
   }
 
@@ -44,6 +47,9 @@ class MobileBootstrapConfig {
   final String? bearerToken;
   final bool fixtureMode;
   final String? initialLessonId;
+
+  /// Legacy fixture-only bootstrap hint. Production academic selection consumes
+  /// the Backend-owned `/v1/academic-tracks` catalogue instead of this value.
   final String? academicTrackId;
 
   bool get isConfigured => apiBaseUrl != null;
@@ -127,7 +133,8 @@ String newLogicalCommandKey() {
   return 'm-$encoded';
 }
 
-class HttpLearningGateway implements LearningGateway {
+class HttpLearningGateway
+    implements LearningGateway, AcademicTrackCatalogueGateway {
   HttpLearningGateway({
     required this.baseUrl,
     String? bearerToken,
@@ -151,6 +158,18 @@ class HttpLearningGateway implements LearningGateway {
   @override
   Future<Session> session() async =>
       Session.fromJson(await _requestMap('session'));
+
+  @override
+  Future<List<AcademicTrack>> academicTracks() async {
+    final data = await _requestMap('academic-tracks');
+    final source = data['tracks'];
+    if (source is! List) return const [];
+    return List<AcademicTrack>.unmodifiable(
+      source.whereType<Map>().map(
+            (item) => AcademicTrack.fromJson(Map<String, dynamic>.from(item)),
+          ),
+    );
+  }
 
   @override
   Future<AcademicContext> academicContext() async => AcademicContext.fromJson(
@@ -362,7 +381,8 @@ class HttpLearningGateway implements LearningGateway {
   }
 }
 
-class UnconfiguredLearningGateway implements LearningGateway {
+class UnconfiguredLearningGateway
+    implements LearningGateway, AcademicTrackCatalogueGateway {
   const UnconfiguredLearningGateway();
 
   LearningFailure get _failure => const LearningFailure(
@@ -371,6 +391,9 @@ class UnconfiguredLearningGateway implements LearningGateway {
         message: 'The mobile API endpoint is not configured for this build.',
         retryable: false,
       );
+
+  @override
+  Future<List<AcademicTrack>> academicTracks() => Future.error(_failure);
 
   @override
   Future<AcademicContext> academicContext() => Future.error(_failure);
