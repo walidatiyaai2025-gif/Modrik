@@ -18,7 +18,9 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
-    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ModrikSecureSession")
+    guard let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ModrikSecureSession") else {
+      return
+    }
     let channel = FlutterMethodChannel(
       name: secureSessionChannel,
       binaryMessenger: registrar.messenger()
