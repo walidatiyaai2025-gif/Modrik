@@ -18,9 +18,10 @@ class AcademicContextMigrationRollbackTest extends TestCase
         self::assertIsString($down);
         self::assertStringNotContainsString("dropConstrainedForeignId('academic_context_id')", $down);
 
-        $progressForeign = strpos($down, "$table->dropForeign(['academic_context_id']);");
-        $progressUnique = strpos($down, "$table->dropUnique('progress_context_source_unique');");
-        $progressColumns = strpos($down, "$table->dropColumn(['academic_context_id', 'archived_at']);");
+        $foreignStatement = '$table->dropForeign([\'academic_context_id\']);';
+        $progressForeign = strpos($down, $foreignStatement);
+        $progressUnique = strpos($down, '$table->dropUnique(\'progress_context_source_unique\');');
+        $progressColumns = strpos($down, '$table->dropColumn([\'academic_context_id\', \'archived_at\']);');
 
         self::assertNotFalse($progressForeign);
         self::assertNotFalse($progressUnique);
@@ -28,11 +29,11 @@ class AcademicContextMigrationRollbackTest extends TestCase
         self::assertTrue($progressForeign < $progressUnique);
         self::assertTrue($progressUnique < $progressColumns);
 
-        $attemptsForeign = strpos($down, "$table->dropForeign(['academic_context_id']);", $progressForeign + 1);
-        $attemptsIndex = strpos($down, "$table->dropIndex(['academic_context_id', 'archived_at']);");
+        $attemptsForeign = strpos($down, $foreignStatement, $progressForeign + 1);
+        $attemptsIndex = strpos($down, '$table->dropIndex([\'academic_context_id\', \'archived_at\']);');
         $attemptsColumns = strpos(
             $down,
-            "$table->dropColumn(['academic_context_id', 'archived_at']);",
+            '$table->dropColumn([\'academic_context_id\', \'archived_at\']);',
             $progressColumns + 1,
         );
 
