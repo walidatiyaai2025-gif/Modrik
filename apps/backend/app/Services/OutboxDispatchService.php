@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Events\OutboxMessage;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
@@ -175,7 +176,7 @@ final class OutboxDispatchService
         }, 3);
     }
 
-    private function markRedriveRecovered(string $eventId, int $attemptNumber, mixed $finishedAt): void
+    private function markRedriveRecovered(string $eventId, int $attemptNumber, Carbon $finishedAt): void
     {
         $request = DB::table('outbox_redrive_requests')
             ->where('outbox_event_id', $eventId)
