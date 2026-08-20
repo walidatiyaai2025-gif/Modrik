@@ -162,23 +162,20 @@ class MobileLearningController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> activateConfiguredAcademicContext() async {
-    final trackId = config.academicTrackId;
+  Future<void> activateAcademicContext(
+    String academicTrackId, {
+    required String idempotencyKey,
+  }) async {
     if (isOffline) {
       messageCode = 'onboarding_requires_connection';
-      notifyListeners();
-      return;
-    }
-    if (trackId == null) {
-      messageCode = 'academic_track_not_configured';
       notifyListeners();
       return;
     }
     await _runBusy(() async {
       try {
         academicContext = await gateway.activateAcademicContext(
-          trackId,
-          newLogicalCommandKey(),
+          academicTrackId,
+          idempotencyKey,
         );
         messageCode = null;
         status = MobileViewStatus.ready;
@@ -188,15 +185,27 @@ class MobileLearningController extends ChangeNotifier {
     });
   }
 
-  Future<void> resetConfiguredAcademicContext() async {
-    final trackId = config.academicTrackId;
-    if (isOffline) {
-      messageCode = 'onboarding_requires_connection';
+  /// Fixture compatibility only. Production selection must pass a track ID
+  /// returned by the authorized Backend catalogue to [activateAcademicContext].
+  Future<void> activateConfiguredAcademicContext() async {
+    final trackId = config.fixtureMode ? config.academicTrackId : null;
+    if (trackId == null) {
+      messageCode = 'academic_track_not_configured';
       notifyListeners();
       return;
     }
-    if (trackId == null) {
-      messageCode = 'academic_track_not_configured';
+    await activateAcademicContext(
+      trackId,
+      idempotencyKey: newLogicalCommandKey(),
+    );
+  }
+
+  Future<void> resetAcademicContext(
+    String academicTrackId, {
+    required String idempotencyKey,
+  }) async {
+    if (isOffline) {
+      messageCode = 'onboarding_requires_connection';
       notifyListeners();
       return;
     }
@@ -206,7 +215,7 @@ class MobileLearningController extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if (academicContext?.academicTrackId == trackId) {
+    if (academicContext?.academicTrackId == academicTrackId) {
       messageCode = 'academic_context_already_active';
       notifyListeners();
       return;
@@ -215,8 +224,8 @@ class MobileLearningController extends ChangeNotifier {
     await _runBusy(() async {
       try {
         academicContext = await gateway.resetAcademicContext(
-          trackId,
-          newLogicalCommandKey(),
+          academicTrackId,
+          idempotencyKey,
         );
         for (final cached in await downloadedContentCache.listLessons()) {
           await downloadedContentCache.removeLesson(cached.lesson.id);
@@ -238,6 +247,21 @@ class MobileLearningController extends ChangeNotifier {
         await _handleFailure(failure);
       }
     });
+  }
+
+  /// Fixture compatibility only. Production reset must pass a track ID returned
+  /// by the authorized Backend catalogue to [resetAcademicContext].
+  Future<void> resetConfiguredAcademicContext() async {
+    final trackId = config.fixtureMode ? config.academicTrackId : null;
+    if (trackId == null) {
+      messageCode = 'academic_track_not_configured';
+      notifyListeners();
+      return;
+    }
+    await resetAcademicContext(
+      trackId,
+      idempotencyKey: newLogicalCommandKey(),
+    );
   }
 
   Future<void> refresh() => initialize();
