@@ -134,6 +134,78 @@ void main() {
     expect(persistence.encoded, contains('MOBILE_DIAGNOSTICS_STORAGE_RECOVERED'));
   });
 
+  test('read cleanup and recovery-write failures never escape initialization', () async {
+    final persistence = _ThrowingRuntimeDiagnosticsPersistence(
+      throwOnRead: true,
+      throwOnWrite: true,
+      throwOnClear: true,
+    );
+    final diagnostics = RuntimeDiagnostics(
+      config: _enabledConfig,
+      persistence: persistence,
+    );
+
+    await expectLater(diagnostics.initialize(), completes);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(diagnostics.initialized, isTrue);
+    expect(diagnostics.events, hasLength(1));
+    expect(
+      diagnostics.events.single.stableCode,
+      'MOBILE_DIAGNOSTICS_STORAGE_RECOVERED',
+    );
+    expect(persistence.readCalls, 1);
+    expect(persistence.clearCalls, 1);
+    expect(persistence.writeCalls, 1);
+  });
+
+  test('manual diagnostic clear remains fail open when storage clear fails', () async {
+    final persistence = _ThrowingRuntimeDiagnosticsPersistence(
+      throwOnClear: true,
+    );
+    final diagnostics = RuntimeDiagnostics(
+      config: _enabledConfig,
+      persistence: persistence,
+    );
+    await diagnostics.initialize();
+    diagnostics.record(
+      severity: DiagnosticSeverity.info,
+      category: 'transport',
+      correlationId: _correlationA,
+      operation: 'learning.get.session',
+      result: 'success',
+    );
+
+    await expectLater(diagnostics.clear(), completes);
+
+    expect(diagnostics.events, isEmpty);
+    expect(persistence.clearCalls, 1);
+  });
+
+  test('asynchronous diagnostic write failure does not mutate the timeline', () async {
+    final persistence = _ThrowingRuntimeDiagnosticsPersistence(
+      throwOnWrite: true,
+    );
+    final diagnostics = RuntimeDiagnostics(
+      config: _enabledConfig,
+      persistence: persistence,
+    );
+    await diagnostics.initialize();
+
+    diagnostics.record(
+      severity: DiagnosticSeverity.info,
+      category: 'transport',
+      correlationId: _correlationA,
+      operation: 'learning.get.academic-tracks',
+      result: 'success',
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(diagnostics.events, hasLength(1));
+    expect(diagnostics.events.single.result, 'success');
+    expect(persistence.writeCalls, 1);
+  });
+
   test('sensitive sentinel values never enter storage or export', () async {
     const bearer = 'Bearer SENTINEL-BEARER-CREDENTIAL';
     const password = 'SENTINEL-password-value';
@@ -258,4 +330,45 @@ void main() {
     expect(second, isNot(first));
     expect(validDiagnosticCorrelationId('not-a-correlation-id'), isNull);
   });
+}
+
+class _ThrowingRuntimeDiagnosticsPersistence
+    implements RuntimeDiagnosticsPersistence {
+  _ThrowingRuntimeDiagnosticsPersistence({
+    this.throwOnRead = false,
+    this.throwOnWrite = false,
+    this.throwOnClear = false,
+  });
+
+  final bool throwOnRead;
+  final bool throwOnWrite;
+  final bool throwOnClear;
+  int readCalls = 0;
+  int writeCalls = 0;
+  int clearCalls = 0;
+
+  @override
+  Future<String?> read() async {
+    readCalls += 1;
+    if (throwOnRead) {
+      throw StateError('injected diagnostics read failure');
+    }
+    return null;
+  }
+
+  @override
+  Future<void> write(String encoded) async {
+    writeCalls += 1;
+    if (throwOnWrite) {
+      throw StateError('injected diagnostics write failure');
+    }
+  }
+
+  @override
+  Future<void> clear() async {
+    clearCalls += 1;
+    if (throwOnClear) {
+      throw StateError('injected diagnostics clear failure');
+    }
+  }
 }
