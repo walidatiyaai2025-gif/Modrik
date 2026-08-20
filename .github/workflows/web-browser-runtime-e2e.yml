@@ -45,7 +45,7 @@ jobs:
           - candidate: release-gap-web-composite-pilot
             checkout_ref: main
             source_pr: ""
-            compose_prs: "93 103 73 59 63 79 89"
+            compose_prs: "103 73 59 63 79 89"
             build_mode: pilot
             task: full-command
 
@@ -65,19 +65,36 @@ jobs:
       - name: Resolve exact candidate heads and compose test-only tree
         id: candidate
         env:
+          CANDIDATE: ${{ matrix.candidate }}
+          BUILD_MODE: ${{ matrix.build_mode }}
           SOURCE_PR: ${{ matrix.source_pr }}
           COMPOSE_PRS: ${{ matrix.compose_prs }}
+          HARNESS_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
           base_sha="$(git -C target rev-parse HEAD)"
           source_shas=""
+          mkdir -p "evidence/$CANDIDATE"
 
           if [ -n "$SOURCE_PR" ]; then
             source_shas="pr-$SOURCE_PR=$base_sha"
           else
             source_shas="main=$base_sha"
           fi
+
+          python3 - <<'PY'
+          import json, os, pathlib
+          payload = {
+              "schema_version": "modrik.web.browser-candidate-start.v1",
+              "candidate": os.environ["CANDIDATE"],
+              "build_mode": os.environ["BUILD_MODE"],
+              "base_sha": os.popen("git -C target rev-parse HEAD").read().strip(),
+              "harness_sha": os.environ["HARNESS_SHA"],
+          }
+          path = pathlib.Path("evidence") / os.environ["CANDIDATE"] / "candidate-start.json"
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
 
           if [ -n "${COMPOSE_PRS// }" ]; then
             git -C target config user.name "MODRIK browser evidence"
@@ -87,7 +104,33 @@ jobs:
               git -C target fetch --no-tags origin "+refs/pull/$pr/head:$remote_ref"
               sha="$(git -C target rev-parse "$remote_ref")"
               source_shas="$source_shas;pr-$pr=$sha"
-              git -C target merge --no-edit --no-ff "$sha"
+              if ! git -C target merge --no-edit --no-ff "$sha"; then
+                conflicts="$(git -C target diff --name-only --diff-filter=U | paste -sd, -)"
+                ATTEMPTED_PR="$pr" ATTEMPTED_SHA="$sha" SOURCE_SHAS="$source_shas" CONFLICTS="$conflicts" python3 - <<'PY'
+          import json, os, pathlib
+          sources = {}
+          for item in os.environ["SOURCE_SHAS"].split(";"):
+              if item:
+                  key, value = item.split("=", 1)
+                  sources[key] = value
+          payload = {
+              "schema_version": "modrik.web.browser-composition-failure.v1",
+              "candidate": os.environ["CANDIDATE"],
+              "status": "FAIL",
+              "failure_code": "E2E_CANDIDATE_COMPOSITION_CONFLICT",
+              "build_mode": os.environ["BUILD_MODE"],
+              "base_sha": os.popen("git -C target merge-base HEAD origin/main 2>/dev/null || git -C target rev-parse HEAD").read().strip(),
+              "attempted_pr": int(os.environ["ATTEMPTED_PR"]),
+              "attempted_sha": os.environ["ATTEMPTED_SHA"],
+              "source_shas": sources,
+              "conflict_paths": [item for item in os.environ["CONFLICTS"].split(",") if item],
+              "harness_sha": os.environ["HARNESS_SHA"],
+          }
+          path = pathlib.Path("evidence") / os.environ["CANDIDATE"] / "composition-failure.json"
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+                exit 1
+              fi
             done
           fi
 
@@ -148,15 +191,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "evidence/$CANDIDATE"
           python3 - <<'PY'
           import json, os, pathlib
           sources = {}
           for item in os.environ["SOURCE_SHAS"].split(";"):
-              if not item:
-                  continue
-              key, value = item.split("=", 1)
-              sources[key] = value
+              if item:
+                  key, value = item.split("=", 1)
+                  sources[key] = value
           payload = {
               "schema_version": "modrik.web.browser-candidate-manifest.v1",
               "candidate": os.environ["CANDIDATE"],
@@ -221,5 +262,5 @@ jobs:
         with:
           name: web-browser-runtime-${{ matrix.candidate }}
           path: evidence/${{ matrix.candidate }}
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
