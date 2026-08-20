@@ -1,3 +1,5 @@
+import { readWebSessionToken } from "../../../../../lib/web-session";
+
 const ulid = "[0-9A-HJKMNP-TV-Z]{26}";
 const allowedPaths = [
   /^session$/,
@@ -24,8 +26,19 @@ function problem(status: number, code: string, detail: string) {
       request_id: crypto.randomUUID(),
       retryable: status >= 500,
     },
-    { status, headers: { "Content-Type": "application/problem+json" } },
+    { status, headers: { "Content-Type": "application/problem+json", "Cache-Control": "no-store" } },
   );
+}
+
+function bearerToken(request: Request): string | null {
+  const productionSession = readWebSessionToken(request.headers.get("cookie"));
+  if (productionSession) return productionSession;
+
+  if (process.env.MODRIK_FIXTURE_MODE === "true") {
+    return process.env.MODRIK_FIXTURE_BEARER_TOKEN ?? null;
+  }
+
+  return null;
 }
 
 async function proxy(request: Request, context: RouteParameters) {
@@ -35,9 +48,9 @@ async function proxy(request: Request, context: RouteParameters) {
     return problem(404, "RESOURCE_NOT_FOUND", "The requested learning route is not available.");
   }
 
-  const token = process.env.MODRIK_FIXTURE_BEARER_TOKEN;
+  const token = bearerToken(request);
   if (!token) {
-    return problem(503, "FIXTURE_AUTH_NOT_CONFIGURED", "The local fixture learning bridge is not configured.");
+    return problem(401, "AUTHENTICATION_REQUIRED", "Sign in with a valid account session to continue.");
   }
 
   const baseUrl = (process.env.MODRIK_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -60,7 +73,7 @@ async function proxy(request: Request, context: RouteParameters) {
     });
     const responseHeaders = new Headers({
       "Content-Type": upstream.headers.get("content-type") ?? "application/json",
-      "Cache-Control": "no-store",
+      "Cache-Control": "no-store, private",
     });
     for (const header of ["idempotency-replayed", "location"]) {
       const value = upstream.headers.get(header);
@@ -72,7 +85,7 @@ async function proxy(request: Request, context: RouteParameters) {
       headers: responseHeaders,
     });
   } catch {
-    return problem(503, "LEARNING_SERVICE_UNAVAILABLE", "The learning service could not be reached. Check the local Backend and retry.");
+    return problem(503, "LEARNING_SERVICE_UNAVAILABLE", "The learning service could not be reached. Check the Backend and retry.");
   }
 }
 
