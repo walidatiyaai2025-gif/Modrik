@@ -26,11 +26,13 @@ flutter_bin="$(command -v flutter)"
 flutter_sdk="$(cd "$(dirname "$flutter_bin")/.." && pwd -P)"
 printf 'flutter.sdk=%s\n' "$flutter_sdk" > "$local_properties"
 
-gradle() {
-  (
-    cd "$android_dir"
-    java -classpath gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain "$@" --no-daemon
-  )
+if ! command -v gradle >/dev/null 2>&1; then
+  echo 'Gradle is required for the Android release-signing verification. CI installs the repository-pinned Gradle version before this script.' >&2
+  exit 1
+fi
+
+gradle_app() {
+  gradle --project-dir "$android_dir" "$@" --no-daemon
 }
 
 # Release signing inputs must not be required for ordinary debug development.
@@ -39,7 +41,7 @@ gradle() {
   unset MODRIK_ANDROID_SIGNING_STORE_PASSWORD
   unset MODRIK_ANDROID_SIGNING_KEY_ALIAS
   unset MODRIK_ANDROID_SIGNING_KEY_PASSWORD
-  gradle :app:assembleDebug >/dev/null
+  gradle_app :app:assembleDebug >/dev/null
 )
 
 # Build an ephemeral standard Android debug identity, then copy it to another path.
@@ -65,7 +67,7 @@ release_output="$(
   MODRIK_ANDROID_SIGNING_STORE_PASSWORD=android \
   MODRIK_ANDROID_SIGNING_KEY_ALIAS=androiddebugkey \
   MODRIK_ANDROID_SIGNING_KEY_PASSWORD=android \
-  gradle :app:assembleRelease 2>&1
+  gradle_app :app:assembleRelease 2>&1
 )"
 release_status=$?
 set -e
