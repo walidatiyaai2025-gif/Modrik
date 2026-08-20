@@ -4,7 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use RuntimeException;
 
 return new class extends Migration
 {
@@ -21,10 +20,10 @@ return new class extends Migration
         DB::table('users')->orderBy('id')->get(['id', 'email'])->each(function (object $user) use (&$seen): void {
             $normalized = mb_strtolower(trim((string) $user->email));
             if ($normalized === '') {
-                throw new RuntimeException('Existing users must have a non-empty email before the Auth lifecycle migration can run.');
+                throw new \RuntimeException('Existing users must have a non-empty email before the Auth lifecycle migration can run.');
             }
             if (isset($seen[$normalized])) {
-                throw new RuntimeException('Case-insensitive duplicate user emails must be resolved before the Auth lifecycle migration can run.');
+                throw new \RuntimeException('Case-insensitive duplicate user emails must be resolved before the Auth lifecycle migration can run.');
             }
             $seen[$normalized] = true;
             DB::table('users')->where('id', (string) $user->id)->update(['email_normalized' => $normalized]);

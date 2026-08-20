@@ -10,7 +10,6 @@ use App\Notifications\PasswordRecoveryTokenNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class AuthLifecycleTest extends TestCase
@@ -314,36 +313,18 @@ class AuthLifecycleTest extends TestCase
 
     private function verificationToken(User $user): string
     {
-        $token = null;
-        Notification::assertSentTo(
-            $user,
-            EmailVerificationTokenNotification::class,
-            function (EmailVerificationTokenNotification $notification) use (&$token): bool {
-                $token = $notification->token;
+        $notification = Notification::sent($user, EmailVerificationTokenNotification::class)->first();
+        $this->assertInstanceOf(EmailVerificationTokenNotification::class, $notification);
 
-                return true;
-            },
-        );
-        $this->assertIsString($token);
-
-        return $token;
+        return $notification->token;
     }
 
     private function recoveryToken(User $user): string
     {
-        $token = null;
-        Notification::assertSentTo(
-            $user,
-            PasswordRecoveryTokenNotification::class,
-            function (PasswordRecoveryTokenNotification $notification) use (&$token): bool {
-                $token = $notification->token;
+        $notification = Notification::sent($user, PasswordRecoveryTokenNotification::class)->first();
+        $this->assertInstanceOf(PasswordRecoveryTokenNotification::class, $notification);
 
-                return true;
-            },
-        );
-        $this->assertIsString($token);
-
-        return $token;
+        return $notification->token;
     }
 
     private function claims(
