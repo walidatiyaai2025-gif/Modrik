@@ -23,7 +23,7 @@
 
 Shared rule: each issue owns its declared domain/contracts. Do not independently edit another issue owner's migrations/OpenAPI/domain authority. UI agents consume backend contracts. Each agent uses a separate branch/PR and must keep the full repository CI green.
 
-- [ ] P0-SYNC-001 / Issue #14 / REQ-P0-006 / AC-P0-009 — resumable idempotent offline answer sync; owns sync acknowledgements, operation IDs and sync-owned backend contract.
+- [x] P0-SYNC-001 / Issue #14 / REQ-P0-006 / AC-P0-009 — resumable idempotent offline answer sync; owns sync acknowledgements, operation IDs and sync-owned backend contract. Focused PR #25 implements ordered 1–100 batches, durable per-operation replay/conflicts, actor-scoped operation digests, persistence/tests/docs, and preserves existing AttemptService/outbox authority. Implementation Bootstrap CI run `32379996303` is green across all seven jobs, including SQLite and MariaDB 10.11.18 full Backend suites; final documentation-head CI remains the merge-ready guard.
 - [ ] P0-AUTH-001 / Issue #15 / REQ-P0-001 / AC-P0-013 — production email/password lifecycle, verification/recovery, session revocation, account deletion and safe Google/Apple provider linking.
 - [ ] P0-ASSESS-001 / Issue #16 / REQ-P0-005 / AC-P0-002..005 — authoritative quiz/exam randomization, server seeds, variable selection/order and immutable resume.
 - [ ] P0-WEB-001 / Issue #17 / REQ-P0-007/012 / AC-P0-014 — desktop-first multilingual accessible Student Web; consumes backend authority and owns `apps/web` presentation/client work.
