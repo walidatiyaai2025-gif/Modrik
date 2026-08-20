@@ -4,6 +4,7 @@ use App\Exceptions\ApiProblemException;
 use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\AuthenticateModrikSession;
 use App\Http\Middleware\AuthenticateProductionSession;
+use App\Http\Middleware\CaptureRuntimeDiagnostics;
 use App\Http\Middleware\FixtureBearerAuthentication;
 use App\Http\Middleware\RequireContentRole;
 use App\Http\Middleware\RequireRecentAuthentication;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(AssignCorrelationId::class);
+        $middleware->append(CaptureRuntimeDiagnostics::class);
         $middleware->alias([
             'auth.fixture' => FixtureBearerAuthentication::class,
             'auth.modrik' => AuthenticateModrikSession::class,
