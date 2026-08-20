@@ -164,7 +164,7 @@
 
                 <div class="mt-6 flex flex-wrap gap-3">
                     <x-filament::button color="gray" wire:click="previousStep">{{ __('admin.actions.back') }}</x-filament::button>
-                    <x-filament::button wire:click="generate" wire:loading.attr="disabled" wire:target="generate">
+                    <x-filament::button wire:click="generate" wire:loading.attr="disabled" wire:target="generate,requestRegeneration">
                         {{ $preparationRequestId === null ? __('admin.actions.generate') : __('admin.actions.regenerate') }}
                     </x-filament::button>
                 </div>
@@ -250,6 +250,53 @@
                 </x-filament::section>
             @endif
         @endif
+
+        <x-filament::modal
+            id="confirm-content-regeneration"
+            width="2xl"
+            icon="heroicon-o-exclamation-triangle"
+            icon-color="warning"
+            :close-by-clicking-away="false"
+            :close-by-escaping="false"
+            :close-button="false"
+        >
+            <x-slot name="heading">
+                {{ __('admin.confirmations.regeneration_title') }}
+            </x-slot>
+            <x-slot name="description">
+                {{ __('admin.confirmations.regeneration_description') }}
+            </x-slot>
+
+            <div class="space-y-4 text-sm">
+                <div class="rounded-xl border border-warning-300 p-4" role="alert">
+                    <strong>{{ __('admin.confirmations.regeneration_consequence_title') }}</strong>
+                    <p class="mt-1">{{ __('admin.confirmations.regeneration_consequence_body') }}</p>
+                </div>
+                <dl class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <dt class="font-medium">{{ __('admin.fields.request_id') }}</dt>
+                        <dd class="break-all font-mono text-xs">{{ $pendingRegenerationRequestId ?? $preparationRequestId ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">{{ __('admin.fields.status') }}</dt>
+                        <dd>{{ $requestResult['status'] ?? '—' }}</dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="font-medium">{{ __('admin.fields.settings_hash') }}</dt>
+                        <dd class="break-all font-mono text-xs">{{ $requestResult['settings_hash'] ?? '—' }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <x-slot name="footerActions">
+                <x-filament::button color="gray" wire:click="cancelRegeneration" wire:loading.attr="disabled" wire:target="confirmRegeneration,cancelRegeneration">
+                    {{ __('admin.actions.cancel') }}
+                </x-filament::button>
+                <x-filament::button color="danger" wire:click="confirmRegeneration" wire:loading.attr="disabled" wire:target="confirmRegeneration">
+                    {{ __('admin.actions.confirm_regeneration') }}
+                </x-filament::button>
+            </x-slot>
+        </x-filament::modal>
 
         <div wire:loading.flex class="items-center gap-2 text-sm" aria-live="polite">
             <x-filament::loading-indicator class="h-5 w-5" />
