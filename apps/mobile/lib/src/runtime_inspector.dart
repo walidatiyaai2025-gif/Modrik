@@ -109,11 +109,17 @@ class _RuntimeInspectorScreenState extends State<RuntimeInspectorScreen> {
   Widget build(BuildContext context) {
     final snapshot = widget.snapshot;
     final copy = RuntimeInspectorCopy(snapshot.locale);
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
     return Directionality(
       textDirection: snapshot.direction,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(copy.t('title')),
+          toolbarHeight: largeText ? 92 : kToolbarHeight,
+          title: Text(
+            copy.t('title'),
+            maxLines: 2,
+            softWrap: true,
+          ),
         ),
         body: SafeArea(
           child: AnimatedBuilder(
@@ -146,16 +152,23 @@ class _RuntimeInspectorScreenState extends State<RuntimeInspectorScreen> {
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     initialValue: _severity,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: copy.t('severity'),
                       border: const OutlineInputBorder(),
                     ),
                     items: [
-                      DropdownMenuItem(value: 'all', child: Text(copy.t('all'))),
+                      DropdownMenuItem(
+                        value: 'all',
+                        child: Text(copy.t('all'), softWrap: true),
+                      ),
                       ...DiagnosticSeverity.values.map(
                         (severity) => DropdownMenuItem(
                           value: severity.name,
-                          child: Text(severity.name.toUpperCase()),
+                          child: Text(
+                            severity.name.toUpperCase(),
+                            softWrap: true,
+                          ),
                         ),
                       ),
                     ],
@@ -179,19 +192,9 @@ class _RuntimeInspectorScreenState extends State<RuntimeInspectorScreen> {
                     onChanged: (value) => setState(() => _correlation = value.trim()),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          copy.t('timeline'),
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: ModrikColors.navy,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                      ),
-                      Text('${events.length}'),
-                    ],
+                  _TimelineHeader(
+                    copy: copy,
+                    count: events.length,
                   ),
                   const SizedBox(height: 8),
                   if (events.isEmpty)
@@ -471,22 +474,61 @@ class _InspectorAction extends StatelessWidget {
           minimumSize: const Size(48, 48),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 4,
           children: [
             Icon(icon),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                softWrap: true,
-              ),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              softWrap: true,
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TimelineHeader extends StatelessWidget {
+  const _TimelineHeader({required this.copy, required this.count});
+
+  final RuntimeInspectorCopy copy;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = Text(
+      copy.t('timeline'),
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: ModrikColors.navy,
+            fontWeight: FontWeight.w800,
+          ),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+        if (constraints.maxWidth < 360 || largeText) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              title,
+              const SizedBox(height: 4),
+              Text('$count'),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: title),
+            const SizedBox(width: 8),
+            Text('$count'),
+          ],
+        );
+      },
     );
   }
 }
