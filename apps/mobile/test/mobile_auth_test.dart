@@ -35,7 +35,7 @@ void main() {
       tokenProvider: token,
       providerLauncher: const UnconfiguredProviderAuthLauncher(),
       apiConfigured: true,
-      onSessionActivated: (_, __) async => activated++,
+      onSessionActivated: (_, _) async => activated++,
     );
 
     await controller.bootstrap();
