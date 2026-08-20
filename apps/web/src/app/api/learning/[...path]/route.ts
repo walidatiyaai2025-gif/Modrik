@@ -1,4 +1,8 @@
-import { isSameOriginMutation, readWebSessionToken } from "../../../../lib/web-session";
+import {
+  isSameOriginMutation,
+  readWebSessionToken,
+  webSessionClearCookie,
+} from "../../../../lib/web-session";
 
 const ulid = "[0-9A-HJKMNP-TV-Z]{26}";
 const allowedPaths = [
@@ -82,6 +86,9 @@ async function proxy(request: Request, context: RouteParameters) {
     for (const header of ["idempotency-replayed", "location"]) {
       const value = upstream.headers.get(header);
       if (value) responseHeaders.set(header, value);
+    }
+    if (upstream.status === 401) {
+      responseHeaders.append("Set-Cookie", webSessionClearCookie());
     }
 
     return new Response(await upstream.text(), {
