@@ -53,30 +53,27 @@ class RuntimeInspectorHost extends StatelessWidget {
             child: Semantics(
               button: true,
               label: copy.t('open_inspector'),
-              child: Tooltip(
-                message: copy.t('open_inspector'),
-                child: Material(
-                  elevation: 4,
-                  color: ModrikColors.navy,
-                  shape: const CircleBorder(),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: onOpen ??
-                        () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => RuntimeInspectorScreen(
-                                  diagnostics: diagnostics,
-                                  snapshot: snapshot,
-                                ),
+              child: Material(
+                elevation: 4,
+                color: ModrikColors.navy,
+                shape: const CircleBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: onOpen ??
+                      () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => RuntimeInspectorScreen(
+                                diagnostics: diagnostics,
+                                snapshot: snapshot,
                               ),
                             ),
-                    child: const SizedBox(
-                      width: 52,
-                      height: 52,
-                      child: Icon(
-                        Icons.monitor_heart_outlined,
-                        color: ModrikColors.white,
-                      ),
+                          ),
+                  child: const SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: Icon(
+                      Icons.monitor_heart_outlined,
+                      color: ModrikColors.white,
                     ),
                   ),
                 ),
@@ -176,7 +173,7 @@ class _RuntimeInspectorScreenState extends State<RuntimeInspectorScreen> {
                   TextField(
                     decoration: InputDecoration(
                       labelText: copy.t('correlation'),
-                      hintText: 'mcr-… / server reference',
+                      hintText: 'UUID / ULID',
                       border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) => setState(() => _correlation = value.trim()),
