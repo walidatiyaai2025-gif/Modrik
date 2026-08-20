@@ -21,7 +21,8 @@ class OutboxRedriveTest extends TestCase
         config(['modrik.outbox.maximum_attempts' => 2]);
         $eventId = $this->insertOutbox('fixture.redrive', ['secret_marker' => 'must-never-appear-in-recovery-audit']);
         $originalPayload = DB::table('outbox_events')->where('id', $eventId)->value('payload');
-        $listenerState = new class {
+        $listenerState = new class
+        {
             public bool $shouldFail = true;
         };
         $deliveries = [];
