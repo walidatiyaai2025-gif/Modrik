@@ -13,9 +13,9 @@ final class AssessmentEngine
     public const OPTION_ORDERING_ALGORITHM = 'modrik-option-fy-v1';
 
     /**
-     * @param list<array<string, mixed>> $questions
-     * @param array<string, mixed>|null $blueprint
-     * @param list<string> $previousQuestionIds
+     * @param  list<array<string, mixed>>  $questions
+     * @param  array<string, mixed>|null  $blueprint
+     * @param  list<string>  $previousQuestionIds
      * @return array{questions: list<array<string, mixed>>, question_order_policy: string, selection_varied: bool}
      */
     public function buildPlan(array $questions, ?array $blueprint, string $seed, array $previousQuestionIds = []): array
@@ -59,8 +59,8 @@ final class AssessmentEngine
     }
 
     /**
-     * @param list<array<string, mixed>> $options
-     * @param array<string, mixed> $metadata
+     * @param  list<array<string, mixed>>  $options
+     * @param  array<string, mixed>  $metadata
      * @return list<array<string, mixed>>
      */
     public function orderOptions(array $options, bool $explicitlySafe, array $metadata, string $seed, string $questionId): array
@@ -77,7 +77,9 @@ final class AssessmentEngine
         return array_values($ordered);
     }
 
-    /** @param array<string, mixed>|null $blueprint */
+    /**
+     * @param  array<string, mixed>|null  $blueprint
+     */
     private function questionOrderPolicy(?array $blueprint): string
     {
         $policy = $blueprint['question_order'] ?? 'shuffle';
@@ -89,8 +91,8 @@ final class AssessmentEngine
     }
 
     /**
-     * @param list<array<string, mixed>> $questions
-     * @param array<string, mixed>|null $blueprint
+     * @param  list<array<string, mixed>>  $questions
+     * @param  array<string, mixed>|null  $blueprint
      * @return array{0: list<array<string, mixed>>, 1: bool}
      */
     private function selectQuestions(array $questions, ?array $blueprint, string $seed): array
@@ -144,9 +146,9 @@ final class AssessmentEngine
     }
 
     /**
-     * @param list<array<string, mixed>> $allQuestions
-     * @param list<array<string, mixed>> $selected
-     * @param array<string, mixed>|null $blueprint
+     * @param  list<array<string, mixed>>  $allQuestions
+     * @param  list<array<string, mixed>>  $selected
+     * @param  array<string, mixed>|null  $blueprint
      * @return list<array<string, mixed>>
      */
     private function forceAlternateSelection(array $allQuestions, array $selected, ?array $blueprint, string $seed): array
@@ -184,8 +186,8 @@ final class AssessmentEngine
     }
 
     /**
-     * @param array<string, mixed> $question
-     * @param array<string, mixed> $slot
+     * @param  array<string, mixed>  $question
+     * @param  array<string, mixed>  $slot
      */
     private function matchesSlot(array $question, array $slot): bool
     {
@@ -230,8 +232,8 @@ final class AssessmentEngine
     }
 
     /**
-     * @param list<array<string, mixed>> $options
-     * @param array<string, mixed> $metadata
+     * @param  list<array<string, mixed>>  $options
+     * @param  array<string, mixed>  $metadata
      */
     private function hasUnsafeOptionSemantics(array $options, array $metadata): bool
     {
@@ -269,7 +271,7 @@ final class AssessmentEngine
 
     /**
      * @template T of array<string, mixed>
-     * @param list<T> $items
+     * @param  list<T>  $items
      * @return list<T>
      */
     private function shuffle(array $items, string $seed, string $domain): array
@@ -287,7 +289,7 @@ final class AssessmentEngine
 
     /**
      * @template T of array<string, mixed>
-     * @param list<T> $items
+     * @param  list<T>  $items
      * @return list<T>
      */
     private function rotate(array $items, string $seed, string $domain): array
@@ -309,19 +311,28 @@ final class AssessmentEngine
         return is_array($unpacked) ? (int) $unpacked['value'] : 0;
     }
 
-    /** @param list<array<string, mixed>> $questions @return list<string> */
+    /**
+     * @param  list<array<string, mixed>>  $questions
+     * @return list<string>
+     */
     private function ids(array $questions): array
     {
         return array_values(array_map(static fn (array $question): string => (string) $question['id'], $questions));
     }
 
-    /** @param list<array<string, mixed>> $options @return list<string> */
+    /**
+     * @param  list<array<string, mixed>>  $options
+     * @return list<string>
+     */
     private function optionIds(array $options): array
     {
         return array_values(array_map(static fn (array $option): string => (string) ($option['id'] ?? ''), $options));
     }
 
-    /** @param list<string> $left @param list<string> $right */
+    /**
+     * @param  list<string>  $left
+     * @param  list<string>  $right
+     */
     private function sameSet(array $left, array $right): bool
     {
         sort($left);
