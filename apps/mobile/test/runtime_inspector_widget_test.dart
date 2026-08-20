@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:modrik_mobile/main.dart';
+import 'package:modrik_mobile/src/learning_gateway.dart';
+import 'package:modrik_mobile/src/mobile_learning_controller.dart';
 import 'package:modrik_mobile/src/runtime_diagnostics.dart';
 import 'package:modrik_mobile/src/runtime_inspector.dart';
 
@@ -73,6 +76,28 @@ void main() {
     expect(find.text('Export JSON'), findsOneWidget);
     expect(find.text('Clear diagnostics'), findsOneWidget);
     expect(find.textContaining('Bearer '), findsNothing);
+  });
+
+  testWidgets('app root navigator opens inspector from MaterialApp builder overlay', (tester) async {
+    final diagnostics = _diagnostics();
+    final controller = MobileLearningController(
+      gateway: const UnconfiguredLearningGateway(),
+      config: const MobileBootstrapConfig(apiBaseUrl: null),
+    )..status = MobileViewStatus.permission;
+
+    await tester.pumpWidget(
+      ModrikApp(
+        controller: controller,
+        diagnostics: diagnostics,
+        autoInitialize: false,
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.monitor_heart_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Runtime Inspector'), findsOneWidget);
+    expect(find.text('Runtime summary'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Arabic RTL inspector survives 320px and 200 percent text', (tester) async {
