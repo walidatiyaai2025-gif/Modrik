@@ -14,6 +14,8 @@ HTTP errors use RFC 9457 Problem Details with MODRIK extensions: stable `code`, 
 
 Every inbound request receives a request/correlation ID. Logs and events may contain opaque identifiers and operational metadata, but no secrets, raw tokens, student answers, email addresses, or other student PII by default.
 
+The Pilot outbox publisher is a cron-scheduled bounded command, not a permanent-daemon requirement. It locks and rechecks events individually, publishes a typed internal event at least once, marks success atomically, and preserves failed rows for capped exponential retry. Consumers are idempotent by event ID. Attempt records store counters/timestamps plus a stable error code and one-way fingerprint, never raw failure text.
+
 ## Consequences
 
 Clients can localize UX from stable codes without parsing messages. Jobs can be replayed from outbox state. Schema evolution must remain backward compatible within a major API version.

@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-20 — P0-OPS-001 bounded resumable outbox worker
+
+- Added Issue #10 for REQ-P0-009/014 and AC-P0-016/017, turning the database-queue/cron/outbox operational contract into an executable scheduled command.
+- Added `modrik:outbox-dispatch --limit=100`, scheduled once per minute with overlap protection. Operators can choose a validated 1–500 bound; each invocation reports scanned/published/already-published/failed/deferred/exhausted counters and fails on current delivery errors or exhausted events.
+- Added per-event row locks and published-state rechecks, oldest-first batches, typed internal `OutboxMessage` dispatch, stable event IDs for consumer deduplication, and atomic success marking. Delivery remains explicitly at least once.
+- Added portable delivery-attempt checkpoints with five tries, exponential 60–3600 second backoff, resumable unpublished failures, and only a stable error code plus SHA-256 fingerprint—never raw exception messages or event payloads.
+- Added coverage for batch limits, completed no-redelivery, same-ID retry recovery, defer, exhaustion, invalid limits, and failure redaction. Local Pint/Larastan and PHPUnit pass 19 tests/493 assertions; the migration passes SQLite forward/rollback/forward.
+- Updated event delivery metadata, ADR-006, ERD/data dictionary, runbook, QA matrix, and threat model. cPanel path/PHP binary, cron alert capture, and a production redrive drill remain deployment-time owner/operator inputs.
+
 ## 2026-08-20 — P0-SAFETY-001 fail-closed advertising eligibility
 
 - Added Issue #8 and ADR-007 for REQ-P0-010 / AC-P0-011..012. Laravel now owns placement-to-zone mapping and the complete eligibility precedence; client query values cannot supply or override age, zone, policy, or placement state.

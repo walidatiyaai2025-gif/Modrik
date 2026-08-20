@@ -4,6 +4,13 @@ delivery:
   persistence: transactional_outbox
   guarantee: at_least_once
   consumer_requirement: idempotent_by_event_id
+  worker_command: 'php artisan modrik:outbox-dispatch --limit=100'
+  batch_limit_range: [1, 500]
+  retry:
+    maximum_attempts: 5
+    initial_backoff_seconds: 60
+    maximum_backoff_seconds: 3600
+  failure_metadata: [error_code, sha256_error_fingerprint]
 privacy:
   default: opaque_identifiers_only
   prohibited:

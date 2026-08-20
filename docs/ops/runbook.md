@@ -22,6 +22,17 @@ Configure cron with the host's exact PHP 8.4 binary and absolute application pat
 
 The path is deliberately not guessed. Long jobs must checkpoint chunks, use stable idempotency scope, expose failure counters, and be safe when two cron invocations overlap.
 
+`schedule:run` invokes `modrik:outbox-dispatch --limit=100` once per minute with a two-minute overlap lock. The command accepts limits from 1–500, locks and rechecks each event, publishes at most one bounded batch, and prints JSON counters for `scanned`, `published`, `already_published`, `failed`, `deferred`, and `exhausted`. A current failure or any exhausted event returns a failing process status for cron monitoring.
+
+Delivery attempts use five tries with exponential 60–3600 second backoff. Failed events remain unpublished and resume with the same event ID; consumers must deduplicate by that ID because delivery is at least once. Failure storage contains only `DELIVERY_EXCEPTION` and a SHA-256 fingerprint—not the exception message or event payload. Inspect safely with aggregate counts, never by copying production payloads:
+
+```text
+php artisan modrik:outbox-dispatch --limit=100
+php artisan queue:failed
+```
+
+An exhausted event requires an engineering review and a forward repair/redrive procedure; do not edit `published_at` or delete the event to clear an alert.
+
 ## Deploy and rollback
 
 1. Confirm backup/maintenance approval for migrations; production backup policy is still owner-blocked.
