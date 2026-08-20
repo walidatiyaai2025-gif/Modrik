@@ -8,6 +8,7 @@ use App\Services\RuntimeDiagnostics;
 use App\Support\CorrelationId;
 use App\Support\DiagnosticSanitizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -60,7 +61,10 @@ class RuntimeDiagnosticsTest extends TestCase
             ->assertJsonPath('request_id', $correlationId)
             ->assertJsonPath('code', 'VALIDATION_FAILED');
 
-        $row = DB::table('runtime_diagnostic_events')->where('correlation_id', $correlationId)->first();
+        $row = DB::table('runtime_diagnostic_events')
+            ->where('correlation_id', $correlationId)
+            ->where('category', 'exception')
+            ->first();
         $this->assertNotNull($row);
         $this->assertSame('application_log', $row->event_class);
         $this->assertSame('exception', $row->category);
@@ -135,18 +139,24 @@ class RuntimeDiagnosticsTest extends TestCase
         ]);
     }
 
-    public function test_inspector_is_admin_only_even_though_content_team_can_use_the_admin_panel(): void
+    public function test_inspector_is_forbidden_to_content_team_even_though_content_team_can_use_the_admin_panel(): void
     {
         $contentTeam = User::factory()->create(['role' => 'content_team']);
-        $admin = User::factory()->create(['role' => 'admin']);
 
         $this->actingAs($contentTeam)
             ->get('/admin/runtime-inspector')
             ->assertForbidden();
+    }
 
-        $this->actingAs($admin);
-        $this->get('/admin/runtime-inspector')->assertOk();
-        Livewire::test(RuntimeInspector::class)
+    public function test_inspector_is_available_to_admin(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get('/admin/runtime-inspector')
+            ->assertOk();
+        Livewire::actingAs($admin)
+            ->test(RuntimeInspector::class)
             ->assertSee(__('observability.title'))
             ->assertSee(__('observability.privacy_note'));
     }
@@ -241,11 +251,11 @@ class RuntimeDiagnosticsTest extends TestCase
             ->where('category', 'retention_test')
             ->update(['recorded_at' => now()->subDays(30)]);
 
-        $this->artisan('modrik:diagnostics-prune')->assertSuccessful();
+        $this->assertSame(0, Artisan::call('modrik:diagnostics-prune'));
         $this->assertDatabaseHas('runtime_diagnostic_events', ['category' => 'retention_test']);
 
         config(['modrik.observability.retention_days' => 7]);
-        $this->artisan('modrik:diagnostics-prune')->assertSuccessful();
+        $this->assertSame(0, Artisan::call('modrik:diagnostics-prune'));
         $this->assertDatabaseMissing('runtime_diagnostic_events', ['category' => 'retention_test']);
     }
 }
