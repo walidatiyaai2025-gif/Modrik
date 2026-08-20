@@ -64,9 +64,14 @@ class PlatformSecureAuthCredentialStore implements AuthCredentialStore {
       if (decoded is! Map) {
         throw const AuthStorageFailure('MOBILE_SECURE_STORAGE_INVALID');
       }
-      return StoredAuthCredential.fromJson(
+      final credential = StoredAuthCredential.fromJson(
         Map<String, dynamic>.from(decoded),
       );
+      if (!credential.session.expiresAt.isAfter(DateTime.now())) {
+        await clear();
+        return null;
+      }
+      return credential;
     } on AuthStorageFailure {
       rethrow;
     } on PlatformException catch (error) {
