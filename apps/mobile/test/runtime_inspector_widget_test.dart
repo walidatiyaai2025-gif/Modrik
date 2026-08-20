@@ -160,22 +160,40 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('French inspector labels remain available', (tester) async {
+  testWidgets('French inspector survives 320px and 200 percent text with reachable actions', (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final diagnostics = _diagnostics();
+    diagnostics.record(
+      severity: DiagnosticSeverity.error,
+      category: 'transport',
+      correlationId: _supportCorrelation,
+      operation: 'learning.get.session',
+      result: 'backend_failure',
+      stableCode: 'AUTHENTICATION_REQUIRED',
+      connectivity: DiagnosticConnectivity.online,
+    );
     const snapshot = RuntimeInspectorSnapshot(
       locale: 'fr',
       direction: TextDirection.ltr,
-      connectivity: DiagnosticConnectivity.unknown,
+      connectivity: DiagnosticConnectivity.online,
       currentFlow: 'auth.signedOut',
-      pendingSyncCount: 0,
-      cacheItemCount: 0,
+      pendingSyncCount: 2,
+      cacheItemCount: 1,
     );
+
     await tester.pumpWidget(
-      MaterialApp(
-        home: RuntimeInspectorHost(
-          diagnostics: diagnostics,
-          snapshot: snapshot,
-          child: const Scaffold(body: Text('Apprentissage')),
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+        child: MaterialApp(
+          home: RuntimeInspectorHost(
+            diagnostics: diagnostics,
+            snapshot: snapshot,
+            child: const Scaffold(body: Text('Apprentissage')),
+          ),
         ),
       ),
     );
@@ -184,6 +202,31 @@ void main() {
 
     expect(find.text('Inspecteur d’exécution'), findsOneWidget);
     expect(find.text('Résumé d’exécution'), findsOneWidget);
-    expect(find.text('Copier le JSON'), findsOneWidget);
+    expect(find.text(_supportCorrelation), findsOneWidget);
+
+    for (final label in [
+      'Copier le JSON',
+      'Exporter le JSON',
+      'Effacer les diagnostics',
+    ]) {
+      final text = find.text(label);
+      await tester.ensureVisible(text);
+      final button = find.ancestor(of: text, matching: find.byType(OutlinedButton));
+      expect(button, findsOneWidget);
+      expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+    }
+
+    final correlationFilter = find.text('ID de corrélation');
+    await tester.ensureVisible(correlationFilter);
+    expect(correlationFilter, findsOneWidget);
+
+    final timeline = find.text('Chronologie récente des diagnostics');
+    await tester.dragUntilVisible(
+      timeline,
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    expect(timeline, findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
