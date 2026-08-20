@@ -140,6 +140,12 @@ class OutboxRedriveTest extends TestCase
         $this->exhaustCurrentCycle($eventId);
         $this->redriveCommand($eventId, true)->assertSuccessful();
         $this->exhaustCurrentCycle($eventId);
+
+        $reexhausted = DB::table('outbox_redrive_requests')->where('outbox_event_id', $eventId)->first();
+        $this->assertNotNull($reexhausted);
+        $this->assertSame('reexhausted', $reexhausted->status);
+        $this->assertNotNull($reexhausted->resolved_at);
+
         $this->dispatchCommand(1)
             ->expectsOutput('{"scanned":0,"published":0,"already_published":0,"failed":0,"deferred":0,"exhausted":1}')
             ->assertFailed();
