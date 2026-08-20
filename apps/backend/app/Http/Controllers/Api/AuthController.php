@@ -136,7 +136,7 @@ final class AuthController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $session
+     * @param  array<string, mixed>  $session
      * @return array<string, mixed>
      */
     private function authPayload(User $user, string $token, array $session): array
@@ -161,7 +161,7 @@ final class AuthController extends Controller
     }
 
     /**
-     * @param list<string> $allowed
+     * @param  list<string>  $allowed
      * @return array<string, mixed>
      */
     private function payload(Request $request, array $allowed): array
