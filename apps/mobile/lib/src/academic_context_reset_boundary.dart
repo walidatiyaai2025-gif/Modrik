@@ -139,23 +139,43 @@ class _AcademicContextResetBoundaryState
             ),
           )
         : _activeCatalogueStateCard();
-
-    return Column(
-      children: [
-        Expanded(child: widget.child),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: lane,
-              ),
-            ),
+    final laneContainer = SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: lane,
           ),
         ),
-      ],
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final largeText = MediaQuery.textScalerOf(context).scale(16) >= 24;
+        final constrainStateLane =
+            !hasAlternative && constraints.maxWidth < 360 && largeText;
+        if (!constrainStateLane) {
+          return Column(
+            children: [
+              Expanded(child: widget.child),
+              laneContainer,
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            Expanded(child: widget.child),
+            Flexible(
+              fit: FlexFit.loose,
+              child: SingleChildScrollView(child: laneContainer),
+            ),
+          ],
+        );
+      },
     );
   }
 
