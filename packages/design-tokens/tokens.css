@@ -1,0 +1,19 @@
+:root {
+  --modrik-navy: #0D1B2A;
+  --modrik-blue: #1E3A8A;
+  --modrik-teal: #00BFA6;
+  --modrik-sky: #E6F5FF;
+  --modrik-amber: #FBBF24;
+  --modrik-white: #FFFFFF;
+  --modrik-background: #F5F7FA;
+  --modrik-slate: #64748B;
+  --modrik-ink: #172033;
+  --modrik-success: #0F9F83;
+  --modrik-warning: #D68A00;
+  --modrik-error: #B42318;
+  --modrik-info: #2563EB;
+  --modrik-radius-sm: 10px;
+  --modrik-radius-md: 16px;
+  --modrik-radius-lg: 24px;
+  --modrik-radius-pill: 999px;
+}

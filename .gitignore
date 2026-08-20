@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+node_modules/
+vendor/
+.next/
+out/
+build/
+.dart_tool/
+coverage/
+.DS_Store
+*.log

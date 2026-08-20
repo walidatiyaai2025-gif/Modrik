@@ -1,0 +1,31 @@
+name: Coming Soon Smoke
+on:
+  push:
+    paths:
+      - 'deploy/coming-soon/**'
+      - 'packages/design-tokens/**'
+      - '.github/workflows/coming-soon-smoke.yml'
+  pull_request:
+    paths:
+      - 'deploy/coming-soon/**'
+      - 'packages/design-tokens/**'
+      - '.github/workflows/coming-soon-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required files
+        run: |
+          test -s deploy/coming-soon/index.html
+          test -s deploy/coming-soon/assets/styles.css
+          test -s deploy/coming-soon/assets/logo-mark.svg
+          test -s deploy/coming-soon/assets/logo-horizontal.svg
+          test -s packages/design-tokens/tokens.json
+      - name: Reject legacy public naming
+        run: |
+          ! grep -RniE 'eduomni|mizakra|toppers' deploy/coming-soon packages/design-tokens docs/brand/BRAND_SYSTEM.md
+      - name: Ensure canonical domain is present
+        run: grep -q 'https://modrik.org/' deploy/coming-soon/index.html
