@@ -37,16 +37,37 @@ void main() {
     expect(find.text('Server-order question two'), findsOneWidget);
 
     final choiceInkWell = find.ancestor(
-      of: find.text('Option B'),
+      of: find.text('Option B').first,
       matching: find.byType(InkWell),
     );
     expect(choiceInkWell, findsOneWidget);
     expect(tester.getSize(choiceInkWell).height, greaterThanOrEqualTo(48));
 
-    await tester.tap(find.text('Option B'));
+    await tester.tap(find.text('Option B').first);
     await tester.pump();
     expect(controller.answers['attempt-question-2'], 'option-b');
     semantics.dispose();
+  });
+
+  testWidgets('multiple-choice UI emits ordered JSON arrays instead of scalar strings', (tester) async {
+    final controller = _readyController()..section = StudentSection.practice;
+    await tester.pumpWidget(ModrikApp(controller: controller, autoInitialize: false));
+
+    await tester.tap(find.text('Choice C'));
+    await tester.pump();
+    expect(controller.answers['attempt-question-3'], ['option-c']);
+
+    await tester.tap(find.text('Choice A'));
+    await tester.pump();
+    expect(
+      controller.answers['attempt-question-3'],
+      ['option-a', 'option-c'],
+      reason: 'array order follows the backend option snapshot, not tap order',
+    );
+
+    await tester.tap(find.text('Choice C'));
+    await tester.pump();
+    expect(controller.answers['attempt-question-3'], ['option-a']);
   });
 
   testWidgets('permission and offline states are explicit and retryable', (tester) async {
@@ -146,6 +167,21 @@ MobileLearningController _readyController() {
           'type': 'short_text',
           'prompt': {'en': 'Server-order question two', 'ar': 'السؤال الثاني بترتيب الخادم', 'fr': 'Question serveur deux'},
           'response_contract': {'kind': 'short_text', 'max_length': 80},
+          'current_answer': null,
+        },
+        {
+          'attempt_question_id': 'attempt-question-3',
+          'position': 3,
+          'type': 'multiple_choice',
+          'prompt': {'en': 'Server multiple-choice question'},
+          'response_contract': {
+            'kind': 'multiple_choice',
+            'options': [
+              {'id': 'option-a', 'label': {'en': 'Choice A'}},
+              {'id': 'option-b', 'label': {'en': 'Choice B'}},
+              {'id': 'option-c', 'label': {'en': 'Choice C'}},
+            ],
+          },
           'current_answer': null,
         },
       ],
