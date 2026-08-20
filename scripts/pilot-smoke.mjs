@@ -45,6 +45,12 @@ const commandSuites = {
     commandArgs: ["test"],
     cwd: join(repoRoot, "apps/mobile"),
   },
+  browser: {
+    label: "Integrated Web browser runtime acceptance",
+    command: "bash",
+    commandArgs: [join(repoRoot, "qa/web-e2e/run-browser-runtime.sh"), repoRoot],
+    cwd: repoRoot,
+  },
 };
 
 const gates = {
@@ -62,11 +68,13 @@ const gates = {
     evidence: "Web runtime diagnostics test + Mobile runtime diagnostics test + Backend canonical X-Correlation-ID boundary",
   },
   browserRuntime: {
-    label: "Web browser runtime acceptance harness integrated",
+    label: "Executable Web browser runtime acceptance integrated",
     check: () =>
       existsSync(join(repoRoot, "qa/web-e2e/browser-runtime-acceptance.cjs")) &&
+      existsSync(join(repoRoot, "qa/web-e2e/runtime-inspector-acceptance.cjs")) &&
+      existsSync(join(repoRoot, "qa/web-e2e/run-browser-runtime.sh")) &&
       existsSync(join(repoRoot, ".github/workflows/web-browser-runtime-e2e.yml")),
-    evidence: "qa/web-e2e/browser-runtime-acceptance.cjs + .github/workflows/web-browser-runtime-e2e.yml; final handoff must additionally cite green #108 browser CI",
+    evidence: "Issue #108 current-tree browser runner + Runtime Inspector runner + executable wrapper + workflow",
   },
 };
 
@@ -155,9 +163,9 @@ const acceptanceRows = [
   {
     id: "compact-large-text",
     label: "Compact and 200%/large-text client evidence",
-    suites: ["web", "mobile"],
+    suites: ["web", "mobile", "browser"],
     gates: ["browserRuntime"],
-    evidence: "Flutter compact/large-text widget coverage plus integrated Issue #108 real-browser responsive/200%-equivalent/keyboard-focus acceptance.",
+    evidence: "Flutter compact/large-text widget coverage plus executed Issue #108 current-tree browser responsive/200%-equivalent/keyboard-focus acceptance.",
   },
 ];
 
@@ -174,7 +182,15 @@ if (planOnly) {
 }
 
 for (const suiteId of [...new Set(acceptanceRows.flatMap((row) => row.suites))]) {
-  if (suiteId === "fixture") {
+  if (suiteId === "browser" && gateResults.browserRuntime.status !== "PASS") {
+    suiteResults.set(suiteId, {
+      status: "BLOCKED",
+      exit_code: null,
+      duration_ms: 0,
+      command: "qa/web-e2e/run-browser-runtime.sh",
+      detail: "Issue #108 browser runtime acceptance is not integrated on this Git tree.",
+    });
+  } else if (suiteId === "fixture") {
     suiteResults.set(suiteId, await runFixtureSmoke());
   } else {
     suiteResults.set(suiteId, runCommandSuite(suiteId));
