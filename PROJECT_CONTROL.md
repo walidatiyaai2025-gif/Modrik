@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-20
-Control baseline main SHA: `fa9c4b38c8d33f3b4fc38c6b202dd38db9b8382e`
+Control baseline main SHA: `d37497cb5bc8546cf703c8b2f7991d64903d0201`
 Active integration issue: #34 (`P0-INTEGRATION-002`)
 
 This file is the repository-level operational control plane for MODRIK. It does not replace locked product decisions, requirements, ADRs, OpenAPI, schemas, migrations, tests, `CURRENT_STATE.md`, or `TASKS.md`. It defines who may decide what, what may run in parallel, and what must be gated.
@@ -20,6 +20,28 @@ Only the owner may approve or provide:
 - production cutover that replaces `deploy/coming-soon/`.
 
 Agents must never invent these values. Missing values block only the affected work.
+
+### Hands-off owner operating mode
+The project operates in **Hands-off Owner Mode** during engineering.
+
+The owner is not expected to perform routine repository, branch, PR, CI, issue, documentation, local-build, merge, conflict-resolution, release-preparation, or project-administration steps by hand while authorized tooling can perform them safely.
+
+Agents and the Integration Captain MUST:
+- complete all automatable engineering and GitHub work without delegating routine steps back to the owner;
+- use branches, PRs, CI, issue comments, repository state files and connected tooling directly when available;
+- resolve ordinary implementation, integration, test, documentation and merge work autonomously inside the approved contracts;
+- continue other authorized work when one owner-controlled input is blocked;
+- batch owner questions and avoid interrupting the owner for routine choices that are already decided by repository contracts;
+- request owner action only when the action genuinely requires owner-exclusive authority, credentials, legal/content approval, external-account access, destructive production approval, or another capability unavailable to the agents/tools.
+
+When owner action is genuinely required, record `OWNER ACTION REQUIRED` with:
+- the exact blocker;
+- why it cannot be completed by available tooling;
+- the minimum owner action/value needed;
+- what work can continue without it;
+- whether the action can safely wait until final release readiness.
+
+Default rule: if an owner-only action can safely wait until the end of the project, defer and track it rather than interrupting engineering.
 
 ### Integration Captain authority
 The active Wave Integration Captain owns only cross-domain coordination:
@@ -133,24 +155,20 @@ Never merge red CI.
 
 ### Already integrated in Wave 2
 - #32 / PR #37 — Public Landing/Help/guides/legal-trust engineering surfaces, merged at `fa9c4b38c8d33f3b4fc38c6b202dd38db9b8382e`. `deploy/coming-soon/` remains preserved and owner/legal facts remain blocked.
+- #21 / PR #35 — Backend authorized academic-track catalogue, merged at `021db64ca59a6fff23896efc5eab2231d1367c58`. The Backend/OpenAPI catalogue contract is stable; real board/syllabus/version values remain blocked.
+- #30 / PR #36 — Student Web production Auth/account/session UX, merged at `7d6d2f10b5d82528939254f42792a08d228f8202`, preserving Auth #15 authority and Wave governance.
+- #31 / PR #39 — Flutter production Auth/account/session UX, merged at `d37497cb5bc8546cf703c8b2f7991d64903d0201`, preserving Auth #15, Assessment, Sync and current governance boundaries.
 
-### Wave 2A — authorized to run in parallel
-- #21 — Backend authorized academic-track catalogue. Owner: Academic/Backend Agent.
-- #30 — Student Web production Auth/account/session UX. Owner: Web Agent.
-- #31 — Flutter production Auth/account/session UX. Owner: Mobile Agent.
-
-### Wave 2B — dependency gated
+### Wave 2B — dependency released, sequencing controlled
 - #33 — Web/Mobile academic-track catalogue consumption.
 
-#33 MUST NOT begin implementation until #21's Backend/OpenAPI contract is declared stable by the Integration Captain or is merged to `main`. After #21 integration, #33 consumes that exact contract and may not hardcode real board/syllabus/version values.
+#33 may begin only when explicitly authorized by the Integration Captain against the merged #21 contract and current Web/Mobile baselines. It must consume that exact contract and may not hardcode real board/syllabus/version values.
 
 ### Integration
 - #34 — exclusive Wave 2 Integration/QA Captain.
 
 Preferred integration behavior:
-- #21 may integrate once green;
-- #30 and #31 may integrate independently after reconciliation against latest `main` while preserving Auth #15 authority;
-- #33 integrates last after #21 and after relevant Web/Mobile Auth changes, followed by final client and repository revalidation.
+- #33 integrates after the merged #21/#30/#31 baselines, followed by final Web/Mobile and repository revalidation.
 
 ## Wave 1 frozen authority
 
