@@ -17,7 +17,7 @@ Updated: 2026-08-20
 - Issue #4 (`P0-ACADEMIC-001`, REQ-P0-002 / AC-P0-010) is integrated on `main` by merge commit `1512eabf0279cd0efc011b798e61e6850c171676`: onboarding activation, reset-only track changes, context-bound attempts/progress, archival preservation, transition audit, and idempotent APIs. No real board/syllabus input is assumed.
 - Issue #6 (`P0-CONTENT-001`, REQ-P0-003/004 / AC-P0-006..008) is integrated on `main` by merge commit `4effa22904c0f196e04eab6f377f2357eeb7cc67`: Content Team/Admin authorization, deterministic preparation settings hash/prompt/bundle, file-aware idempotency, bounded returned-ZIP inspection, fixed v1 manifest/content schema and semantic validation, request/schema/hash/scope binding, fixture-only rights gating, durable rejected/staged audit/checkpoints, and transactional outbox events. The workflow deliberately stops before curriculum publication.
 - Issue #8 (`P0-SAFETY-001`, REQ-P0-010 / AC-P0-011..012) is integrated on `main` by merge commit `328820f30448cdec05af0e1ff241a2dc99a966fb`: a backend-only placement/zone map, immutable no-ad zones, append-only policy versions and kill switch, minimal expiring age assurance without birth dates, a fail-closed authenticated decision endpoint, and redacted decision audit/outbox records. No default policy, ad SDK/network, targeting profile, or production activation exists.
-- Issue #10 (`P0-OPS-001`, REQ-P0-009/014 / AC-P0-016..017) is implemented on `codex/ac-p0-017-outbox-worker`: a scheduled bounded outbox command, per-event overlap-safe locks/rechecks, typed same-ID at-least-once dispatch, attempt checkpoints, capped exponential retry, sanitized error fingerprints, and explicit deferred/exhausted operator signals. Redis and permanent daemons remain unnecessary.
+- Issue #10 (`P0-OPS-001`, REQ-P0-009/014 / AC-P0-016..017) is implemented on `codex/ac-p0-017-outbox-worker` at `0ccb0c942bfd634c7275a42f8a901a4e51cdb291`: a scheduled bounded outbox command, per-event overlap-safe locks/rechecks, typed same-ID at-least-once dispatch, attempt checkpoints, capped exponential retry, sanitized error fingerprints, and explicit deferred/exhausted operator signals. Draft PR #11 is the integration vehicle. Redis and permanent daemons remain unnecessary.
 
 ## Verification evidence
 
@@ -35,6 +35,7 @@ Updated: 2026-08-20
 - Issue #6 evidence commit Bootstrap CI run `32372203529` also passed all seven jobs before PR #7 was merged with the expected-head guard.
 - Issue #8 Bootstrap CI run `32373180861` passed all seven jobs: contracts/OpenAPI/tokens, Composer audit/Pint/Larastan/PHPUnit, MariaDB 10.11 fresh fixture seed plus the full 16-test suite, Web, Flutter 3.47.1 Mobile, Gitleaks, and dependency review.
 - Issue #8 evidence commit Bootstrap CI run `32373329320` also passed all seven jobs before PR #9 was merged with the expected-head guard.
+- Issue #10 Bootstrap CI run `32374020760` passed all seven jobs, including MariaDB 10.11 fresh migrations and the complete 19-test worker suite.
 
 ## External blockers
 
@@ -44,4 +45,4 @@ Updated: 2026-08-20
 
 ## Next safe task
 
-Commit and publish Issue #10, obtain green MariaDB 10.11 and full repository CI, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.
+Obtain green CI for the Issue #10 evidence commit, mark PR #11 ready, integrate it with an expected-head guard, then continue to the next unblocked P0 gap.

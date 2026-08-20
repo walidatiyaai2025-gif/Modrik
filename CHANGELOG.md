@@ -7,7 +7,7 @@
 - Added per-event row locks and published-state rechecks, oldest-first batches, typed internal `OutboxMessage` dispatch, stable event IDs for consumer deduplication, and atomic success marking. Delivery remains explicitly at least once.
 - Added portable delivery-attempt checkpoints with five tries, exponential 60–3600 second backoff, resumable unpublished failures, and only a stable error code plus SHA-256 fingerprint—never raw exception messages or event payloads.
 - Added coverage for batch limits, completed no-redelivery, same-ID retry recovery, defer, exhaustion, invalid limits, and failure redaction. Local Pint/Larastan and PHPUnit pass 19 tests/493 assertions; the migration passes SQLite forward/rollback/forward.
-- Updated event delivery metadata, ADR-006, ERD/data dictionary, runbook, QA matrix, and threat model. cPanel path/PHP binary, cron alert capture, and a production redrive drill remain deployment-time owner/operator inputs.
+- Updated event delivery metadata, ADR-006, ERD/data dictionary, runbook, QA matrix, and threat model. Bootstrap CI run `32374020760` passed all seven jobs, including MariaDB 10.11, Composer audit, Gitleaks, and dependency review. cPanel path/PHP binary, cron alert capture, and a production redrive drill remain deployment-time owner/operator inputs.
 
 ## 2026-08-20 — P0-SAFETY-001 fail-closed advertising eligibility
 
