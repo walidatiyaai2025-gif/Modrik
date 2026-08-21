@@ -119,6 +119,8 @@ plus a canonical `X-Correlation-ID` boundary in Backend source/tests. This preve
 
 ### Web browser runtime gate
 
+The strict-nonce Web hydration repair from Issue #117 is integrated on current main; this removes the prior prerequisite that prevented meaningful browser execution. The Pilot browser row still requires Issue #108's broader current-tree acceptance artifacts and green execution before it can pass.
+
 Required integrated #108 artifacts:
 
 ```text
