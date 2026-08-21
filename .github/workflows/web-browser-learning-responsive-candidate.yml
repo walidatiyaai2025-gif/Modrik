@@ -16,12 +16,12 @@ concurrency:
 
 jobs:
   learning-responsive-candidate:
-    name: Issue #125 exact + PR #128 composite browser acceptance
+    name: "Issue #125 exact + PR #128 composite browser acceptance"
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
-      - name: Check out Issue #108 harness
+      - name: "Check out Issue #108 harness"
         uses: actions/checkout@v4
         with:
           path: harness
@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0
           path: target-composite
 
-      - name: Check out Issue #125 candidate branch
+      - name: "Check out Issue #125 candidate branch"
         uses: actions/checkout@v4
         with:
           ref: issue-125-learning-responsive
@@ -146,7 +146,7 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
             node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
 
-      - name: Build exact Issue #125 candidate
+      - name: "Build exact Issue #125 candidate"
         if: steps.candidate.outputs.has_candidate == 'true'
         working-directory: target-exact/apps/web
         env:
@@ -161,7 +161,8 @@ jobs:
           export MODRIK_GIT_SHA="$OBSERVED_SHA"
           npm run build
 
-      - name: Run exact Issue #125 Learning/Study matrix
+      - name: "Run exact Issue #125 core matrix and retain all evidence"
+        id: exact_core
         if: steps.candidate.outputs.has_candidate == 'true'
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
@@ -175,42 +176,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          node harness/qa/web-e2e/browser-runtime-acceptance.cjs
-          runtime_status=$?
-          set -e
-          EVIDENCE="$MODRIK_E2E_EVIDENCE_DIR/issue-125-exact-core.json" python3 - <<'PY'
-          import json, os, pathlib, sys
-          path = pathlib.Path(os.environ["EVIDENCE"])
-          if not path.exists():
-              raise SystemExit("missing exact Issue #125 browser evidence")
-          payload = json.loads(path.read_text(encoding="utf-8"))
-          learning = [case for case in payload.get("cases", []) if case.get("surface") == "learning"]
-          expected = {
-              "learning:desktop-en",
-              "learning:desktop-ar",
-              "learning:tablet-fr",
-              "learning:mobile-en-390",
-              "learning:mobile-fr-360-200",
-              "learning:mobile-ar-320-200",
-          }
-          names = {case.get("name") for case in learning}
-          if names != expected:
-              raise SystemExit(f"unexpected Learning matrix: {sorted(names)}")
-          failed = [case for case in learning if case.get("status") != "PASS"]
-          if failed:
-              raise SystemExit("Issue #125 Learning/Study rows remain red: " + ", ".join(
-                  f"{case.get('name')}:{case.get('failure_code', 'UNKNOWN')}" for case in failed
-              ))
-          print("Issue #125 exact Learning/Study matrix: 6 PASS / 0 FAIL")
-          PY
-          # The full core process may still be nonzero before #124 is integrated
-          # because its Auth rows exercise main without PR #128. Learning rows above
-          # are evaluated independently; the composite lane below must be fully green.
-          echo "Exact core process exit (informational for unrelated Auth rows): $runtime_status"
+          # The exact #125 tree intentionally lacks the unmerged #124 Auth fix.
+          # Preserve the full core result for evidence, but defer pass/fail to the
+          # final gate which evaluates Learning rows separately and then requires
+          # the #128 + #125 composite to be entirely green.
+          node harness/qa/web-e2e/browser-runtime-acceptance.cjs || true
 
-      - name: Run exact Issue #125 offline/retry regression
+      - name: "Capture exact Issue #125 sanitized overflow geometry"
+        id: geometry
         if: steps.candidate.outputs.has_candidate == 'true'
+        continue-on-error: true
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
+          MODRIK_E2E_EXPECTED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+          MODRIK_E2E_HARNESS_SHA: ${{ github.sha }}
+        shell: bash
+        run: node harness/qa/web-e2e/browser-overflow-diagnostics.cjs
+
+      - name: "Run exact Issue #125 offline/retry regression"
+        id: offline
+        if: steps.candidate.outputs.has_candidate == 'true'
+        continue-on-error: true
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
@@ -221,8 +210,10 @@ jobs:
         shell: bash
         run: node harness/qa/web-e2e/learning-offline-acceptance.cjs
 
-      - name: Run exact Issue #125 stale-session 401 regression
+      - name: "Run exact Issue #125 stale-session 401 regression"
+        id: session_security
         if: steps.candidate.outputs.has_candidate == 'true'
+        continue-on-error: true
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
@@ -235,7 +226,7 @@ jobs:
         shell: bash
         run: node harness/qa/web-e2e/browser-runtime-acceptance.cjs
 
-      - name: Build PR #128 + Issue #125 composite
+      - name: "Build PR #128 + Issue #125 composite"
         if: steps.candidate.outputs.has_candidate == 'true'
         working-directory: target-composite/apps/web
         env:
@@ -250,8 +241,10 @@ jobs:
           export MODRIK_GIT_SHA="$OBSERVED_SHA"
           npm run build
 
-      - name: Run PR #128 + Issue #125 complete core matrix
+      - name: "Run PR #128 + Issue #125 complete core matrix"
+        id: composite_core
         if: steps.candidate.outputs.has_candidate == 'true'
+        continue-on-error: true
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
@@ -264,6 +257,76 @@ jobs:
           MODRIK_E2E_SOURCE_SHAS: main=${{ steps.candidate.outputs.main_sha }};pr-128=${{ steps.candidate.outputs.auth_sha }};issue-125=${{ steps.candidate.outputs.candidate_sha }}
         shell: bash
         run: node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+
+      - name: Require exact Learning + composite regression acceptance
+        if: steps.candidate.outputs.has_candidate == 'true'
+        env:
+          EXACT_EVIDENCE: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact/issue-125-exact-core.json
+          COMPOSITE_EVIDENCE: ${{ github.workspace }}/evidence/learning-responsive-candidate/composite/pr-128-plus-issue-125-core.json
+          GEOMETRY_OUTCOME: ${{ steps.geometry.outcome }}
+          OFFLINE_OUTCOME: ${{ steps.offline.outcome }}
+          SESSION_OUTCOME: ${{ steps.session_security.outcome }}
+          COMPOSITE_OUTCOME: ${{ steps.composite_core.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+
+          exact_path = pathlib.Path(os.environ["EXACT_EVIDENCE"])
+          if not exact_path.exists():
+              raise SystemExit("missing exact Issue #125 browser evidence")
+          exact = json.loads(exact_path.read_text(encoding="utf-8"))
+          learning = [case for case in exact.get("cases", []) if case.get("surface") == "learning"]
+          expected = {
+              "desktop-en",
+              "desktop-ar",
+              "tablet-fr",
+              "mobile-en-390",
+              "mobile-fr-360-200",
+              "mobile-ar-320-200",
+          }
+          names = {case.get("name") for case in learning}
+          if names != expected:
+              raise SystemExit(f"unexpected Learning matrix: {sorted(names)}")
+          failed_learning = [case for case in learning if case.get("status") != "PASS"]
+
+          supporting_failures = [
+              name
+              for name, outcome in (
+                  ("sanitized geometry", os.environ["GEOMETRY_OUTCOME"]),
+                  ("offline/retry", os.environ["OFFLINE_OUTCOME"]),
+                  ("stale-session 401", os.environ["SESSION_OUTCOME"]),
+                  ("#128 + #125 composite", os.environ["COMPOSITE_OUTCOME"]),
+              )
+              if outcome != "success"
+          ]
+
+          composite_path = pathlib.Path(os.environ["COMPOSITE_EVIDENCE"])
+          composite_failures = []
+          if composite_path.exists():
+              composite = json.loads(composite_path.read_text(encoding="utf-8"))
+              composite_failures = [case for case in composite.get("cases", []) if case.get("status") != "PASS"]
+          elif os.environ["COMPOSITE_OUTCOME"] == "success":
+              supporting_failures.append("composite evidence missing")
+
+          if failed_learning:
+              print("Issue #125 Learning/Study rows remain red:")
+              for case in failed_learning:
+                  print(f"- {case.get('name')}: {case.get('failure_code', 'UNKNOWN')}")
+          if composite_failures:
+              print("Composite browser rows remain red:")
+              for case in composite_failures:
+                  print(f"- {case.get('surface')}:{case.get('name')}: {case.get('failure_code', 'UNKNOWN')}")
+          if supporting_failures:
+              print("Supporting candidate regressions failed: " + ", ".join(supporting_failures))
+
+          if failed_learning or composite_failures or supporting_failures:
+              raise SystemExit(1)
+
+          print("Issue #125 exact Learning/Study matrix: 6 PASS / 0 FAIL")
+          print("PR #128 + Issue #125 composite core matrix: all rows PASS")
+          PY
 
       - name: Upload sanitized Learning candidate evidence
         if: always()
