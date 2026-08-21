@@ -99,6 +99,7 @@ final class ContentPreparationService
             'archive_hash' => $archiveHash,
             'status' => 'validating',
             'validation_summary' => $this->json(['valid' => false, 'errors' => []]),
+            'rights_review_status' => 'pending',
             'created_at' => $createdAt,
             'updated_at' => $createdAt,
         ]);
@@ -116,11 +117,19 @@ final class ContentPreparationService
             }
             /** @var array<string, mixed> $requestRow */
             $requestRow = (array) $preparation;
+            $rightsStatus = (string) $manifest['provenance']['rights_status'];
+            $fixtureAutoApproved = $rightsStatus === 'synthetic_fixture' && (bool) config('modrik.fixture.enabled');
+            $rightsReviewStatus = $fixtureAutoApproved ? 'approved' : 'pending';
+            $targetStatus = $fixtureAutoApproved ? 'staged' : 'rights_review';
+
             DB::table('preparation_imports')->where('id', $importId)->update([
                 'preparation_request_id' => $claimedRequestId,
                 'claimed_preparation_request_id' => $claimedRequestId,
                 'pack_id' => $manifest['pack_id'],
-                'rights_status' => $manifest['provenance']['rights_status'],
+                'rights_status' => $rightsStatus,
+                'rights_review_status' => $rightsReviewStatus,
+                'rights_review_note' => $fixtureAutoApproved ? 'Synthetic fixture auto-approved in fixture mode.' : null,
+                'rights_reviewed_at' => $fixtureAutoApproved ? now() : null,
                 'updated_at' => now(),
             ]);
 
@@ -136,10 +145,7 @@ final class ContentPreparationService
                 || $this->canonicalJson($settings['academic_scope'] ?? null) !== $this->canonicalJson($validated['content_pack']['academic_scope'] ?? null)) {
                 $this->reject('CONTENT_SCOPE_MISMATCH', 'The Content Pack academic scope does not match its preparation settings.', '/academic_scope', $manifest);
             }
-            $rightsStatus = $manifest['provenance']['rights_status'];
-            if ($rightsStatus !== 'synthetic_fixture' || ! (bool) config('modrik.fixture.enabled')) {
-                $this->reject('CONTENT_RIGHTS_REVIEW_REQUIRED', 'Only the synthetic fixture may stage without owner rights review evidence.', '/provenance/rights_status', $manifest);
-            }
+
             $maximumQuestions = (int) ($settings['generation']['maximum_questions_per_quiz'] ?? 0);
             foreach ($validated['content_pack']['quizzes'] as $position => $quiz) {
                 if (is_array($quiz) && count($quiz['question_ids'] ?? []) > $maximumQuestions) {
@@ -163,10 +169,12 @@ final class ContentPreparationService
 
             $summary = ['valid' => true, 'errors' => []];
             DB::table('preparation_imports')->where('id', $importId)->update([
-                'status' => 'staged',
+                'status' => $targetStatus,
                 'validation_summary' => $this->json($summary),
                 'imported_file_count' => count($validated['files']),
                 'imported_record_count' => $validated['imported_record_count'],
+                'operation_state' => $fixtureAutoApproved ? 'ready' : 'blocked',
+                'operation_checkpoint' => $fixtureAutoApproved ? 'archive_staged' : 'rights_review_required',
                 'updated_at' => now(),
             ]);
             DB::table('preparation_requests')->where('id', $claimedRequestId)->update([
@@ -177,11 +185,19 @@ final class ContentPreparationService
                 'preparation_request_id' => $claimedRequestId,
                 'imported_file_count' => count($validated['files']),
                 'imported_record_count' => $validated['imported_record_count'],
+                'rights_review_status' => $rightsReviewStatus,
             ]);
+            if (! $fixtureAutoApproved) {
+                $this->outbox('preparation_import', $importId, 'content.rights_review_required', [
+                    'preparation_request_id' => $claimedRequestId,
+                    'rights_status' => $rightsStatus,
+                    'source_references' => $manifest['provenance']['source_references'],
+                ]);
+            }
 
             return [
                 'accepted' => true,
-                'data' => $this->resultData($importId, 'staged', $claimedRequestId, (string) $manifest['pack_id'], count($validated['files']), $validated['imported_record_count'], $summary),
+                'data' => $this->resultData($importId, $targetStatus, $claimedRequestId, (string) $manifest['pack_id'], count($validated['files']), $validated['imported_record_count'], $summary),
                 'errors' => [],
             ];
         } catch (ContentValidationException $exception) {
@@ -331,7 +347,7 @@ final class ContentPreparationService
     private function storedResult(array $row): array
     {
         $summary = json_decode((string) $row['validation_summary'], true, flags: JSON_THROW_ON_ERROR);
-        $accepted = $row['status'] === 'staged';
+        $accepted = in_array((string) $row['status'], ['staged', 'rights_review'], true);
 
         return [
             'accepted' => $accepted,
