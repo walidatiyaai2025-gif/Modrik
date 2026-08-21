@@ -1,5 +1,8 @@
+import { connection } from "next/server";
 import AuthWorkspace from "./auth-workspace";
 
-export default function Home() {
+export default async function Home() {
+  await connection();
+
   return <AuthWorkspace />;
 }
