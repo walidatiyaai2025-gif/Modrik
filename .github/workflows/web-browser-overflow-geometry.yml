@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pr-118-overflow-geometry:
+  current-main-overflow-geometry:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -25,10 +25,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: harness
 
-      - name: Check out canonical CSP repair candidate
+      - name: Check out authoritative current main
         uses: actions/checkout@v4
         with:
-          ref: refs/pull/118/head
+          ref: main
           path: target
 
       - name: Resolve exact provenance
@@ -64,7 +64,7 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
             node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
 
-      - name: Build exact production candidate
+      - name: Build authoritative main production artifact
         env:
           OBSERVED_SHA: ${{ steps.provenance.outputs.target_sha }}
         working-directory: target/apps/web
