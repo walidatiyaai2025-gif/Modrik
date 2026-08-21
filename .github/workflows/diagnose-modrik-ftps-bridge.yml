@@ -1,0 +1,186 @@
+name: Diagnose MODRIK cPanel FTPS Bridge
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      API_URL: https://api.demo.modrik.org
+
+    steps:
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_USER"
+          test -n "$FTP_PASSWORD"
+
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Create protected execution probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 10)"
+          name=".modrik-probe-$nonce.php"
+          token_file=".modrik-probe-token-$nonce"
+          echo "::add-mask::$token"
+          printf '%s' "$token" > /tmp/modrik-probe-token
+          printf '%s' "$name" > /tmp/modrik-probe-name
+          printf '%s' "$token_file" > /tmp/modrik-probe-token-name
+          cat > /tmp/modrik-probe.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          header('Content-Type: application/json; charset=utf-8');
+          header('Cache-Control: no-store');
+
+          $tokenFile = '__TOKEN_FILE__';
+          $expected = trim((string) @file_get_contents(__DIR__ . '/' . $tokenFile));
+          $provided = (string) ($_SERVER['HTTP_X_MODRIK_DEPLOY_TOKEN'] ?? '');
+          if ($expected === '' || !hash_equals($expected, $provided)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
+
+          function runProbe(array $command, string $cwd): array
+          {
+              if (!function_exists('proc_open')) {
+                  return ['started' => false, 'error' => 'proc_open_unavailable'];
+              }
+              $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+              $process = @proc_open($command, $descriptors, $pipes, $cwd, null, ['bypass_shell' => true]);
+              if (!is_resource($process)) {
+                  return ['started' => false, 'error' => 'proc_open_failed'];
+              }
+              fclose($pipes[0]);
+              $stdout = (string) stream_get_contents($pipes[1]);
+              $stderr = (string) stream_get_contents($pipes[2]);
+              fclose($pipes[1]);
+              fclose($pipes[2]);
+              $exit = proc_close($process);
+              return [
+                  'started' => true,
+                  'exit' => $exit,
+                  'stdout' => substr(trim($stdout), 0, 500),
+                  'stderr' => substr(trim($stderr), 0, 500),
+              ];
+          }
+
+          $backendRoot = dirname(__DIR__);
+          $home = dirname(dirname($backendRoot));
+          $webRoot = $home . '/public_html/demo.modrik.org';
+          $php84 = '/opt/cpanel/ea-php84/root/usr/bin/php';
+          $deployRoot = $home . '/deploy/modrik-demo';
+
+          $disabled = array_values(array_filter(array_map('trim', explode(',', (string) ini_get('disable_functions')))));
+          $result = [
+              'ok' => true,
+              'web_php_version' => PHP_VERSION,
+              'php_binary' => PHP_BINARY,
+              'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? null,
+              'script_dir' => __DIR__,
+              'backend_root' => $backendRoot,
+              'derived_home' => $home,
+              'functions' => [
+                  'proc_open' => function_exists('proc_open'),
+                  'shell_exec' => function_exists('shell_exec'),
+                  'exec' => function_exists('exec'),
+                  'system' => function_exists('system'),
+              ],
+              'disabled_functions' => $disabled,
+              'paths' => [
+                  'bash_exists' => is_file('/bin/bash'),
+                  'bash_executable' => is_executable('/bin/bash'),
+                  'php84_exists' => is_file($php84),
+                  'php84_executable' => is_executable($php84),
+                  'backend_exists' => is_dir($backendRoot),
+                  'backend_env_exists' => is_file($backendRoot . '/.env'),
+                  'backend_storage_exists' => is_dir($backendRoot . '/storage'),
+                  'web_exists' => is_dir($webRoot),
+                  'deploy_root_exists' => is_dir($deployRoot),
+              ],
+              'bash_probe' => runProbe(['/bin/bash', '-lc', 'printf MODRIK_BASH_OK'], $backendRoot),
+              'php84_probe' => runProbe([$php84, '-r', 'echo PHP_VERSION;'], $backendRoot),
+              'current_release' => is_file($deployRoot . '/current-release.txt')
+                  ? trim((string) file_get_contents($deployRoot . '/current-release.txt'))
+                  : null,
+              'last_successful_deploy_utc' => is_file($deployRoot . '/last-successful-deploy-utc.txt')
+                  ? trim((string) file_get_contents($deployRoot . '/last-successful-deploy-utc.txt'))
+                  : null,
+          ];
+
+          echo json_encode($result, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+          PHP
+
+          sed -i "s|__TOKEN_FILE__|$token_file|g" /tmp/modrik-probe.php
+
+      - name: Upload probe over FTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="$(cat /tmp/modrik-probe-name)"
+          token_file="$(cat /tmp/modrik-probe-token-name)"
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 1;
+            set net:timeout 15;
+            cd api.demo.modrik.org/public;
+            put /tmp/modrik-probe.php -o $name;
+            put /tmp/modrik-probe-token -o $token_file;
+            bye;
+          "
+
+      - name: Invoke probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="$(cat /tmp/modrik-probe-name)"
+          token="$(cat /tmp/modrik-probe-token)"
+          response="$(curl --silent --show-error \
+            --max-time 30 \
+            -H "X-MODRIK-Deploy-Token: $token" \
+            "$API_URL/$name")"
+          printf '%s\n' "$response" | jq .
+          jq -e '.ok == true' <<<"$response" >/dev/null
+
+      - name: Remove one-shot probe
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          name="$(cat /tmp/modrik-probe-name 2>/dev/null)"
+          token_file="$(cat /tmp/modrik-probe-token-name 2>/dev/null)"
+          [[ -n "$name" && -n "$token_file" ]] || exit 0
+          timeout 30 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 1;
+            set net:timeout 10;
+            cd api.demo.modrik.org/public;
+            rm -f $name;
+            rm -f $token_file;
+            bye;
+          "
+          exit 0
