@@ -1,8 +1,15 @@
 .auth-shell {
   display: grid;
   grid-template-columns: minmax(18rem, 0.85fr) minmax(22rem, 1.15fr);
+  min-width: 0;
+  max-width: 100%;
   min-height: 100vh;
   background: var(--modrik-background);
+}
+
+.auth-shell,
+.auth-shell * {
+  box-sizing: border-box;
 }
 
 .auth-brand-panel {
@@ -10,6 +17,7 @@
   flex-direction: column;
   justify-content: center;
   gap: 1.5rem;
+  min-width: 0;
   padding: clamp(2rem, 6vw, 6rem);
   color: var(--modrik-white);
   background:
@@ -88,18 +96,23 @@
   flex-direction: column;
   justify-content: center;
   width: min(42rem, 100%);
+  min-width: 0;
+  max-width: 100%;
   margin: 0 auto;
   padding: clamp(1.25rem, 5vw, 4rem);
 }
 
 .auth-toolbar {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   justify-content: flex-end;
   margin-block-end: 1rem;
 }
 
 .auth-locale {
   display: inline-flex;
+  max-width: 100%;
   gap: 0.25rem;
   padding: 0.25rem;
   background: color-mix(in srgb, var(--modrik-slate) 10%, transparent);
@@ -109,10 +122,13 @@
 
 .auth-locale button {
   min-width: 2.75rem;
+  max-width: 100%;
   padding: 0.5rem 0.65rem;
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .auth-locale-active {
@@ -129,7 +145,10 @@
 }
 
 .auth-card {
+  min-width: 0;
+  max-width: 100%;
   padding: clamp(1.5rem, 4vw, 3rem);
+  overflow-wrap: anywhere;
 }
 
 .auth-card h2,
@@ -142,20 +161,28 @@
 
 .auth-form {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 1rem;
   margin-block-start: 1.4rem;
 }
 
 .auth-form label {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.45rem;
   color: var(--modrik-navy);
   font-size: 0.92rem;
   font-weight: 650;
+  overflow-wrap: anywhere;
 }
 
 .auth-form input {
+  box-sizing: border-box;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 3rem;
   padding: 0.7rem 0.85rem;
   color: var(--modrik-ink);
@@ -179,9 +206,12 @@
 .auth-inline-error button,
 .auth-permission-banner button {
   min-height: 2.75rem;
+  max-width: 100%;
   padding: 0.65rem 1rem;
   border-radius: var(--modrik-radius-sm);
   font-weight: 700;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .auth-primary {
@@ -225,11 +255,14 @@
 
 .auth-subnav button,
 .auth-text-button {
+  max-width: 100%;
   padding: 0.45rem 0;
   color: var(--modrik-blue);
   text-align: start;
   text-decoration: underline;
   text-underline-offset: 0.2rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .auth-text-button {
@@ -246,7 +279,10 @@
 }
 
 .auth-notice {
+  min-width: 0;
+  max-width: 100%;
   flex-direction: column;
+  overflow-wrap: anywhere;
 }
 
 .auth-notice-status {
@@ -273,12 +309,16 @@
 .auth-loading {
   grid-column: 1 / -1;
   display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   place-items: center;
   align-content: center;
   gap: 1rem;
   min-height: 100vh;
   padding: 2rem;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .auth-loading .auth-mark {
@@ -287,10 +327,15 @@
 
 .auth-loading h1 {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
   gap: 0.65rem;
   color: var(--modrik-navy);
   font-size: clamp(1.6rem, 4vw, 2.5rem);
+  overflow-wrap: anywhere;
 }
 
 .auth-authenticated {
@@ -493,7 +538,7 @@
 
 @media (max-width: 900px) {
   .auth-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .auth-brand-panel {
@@ -531,6 +576,29 @@
 }
 
 @media (max-width: 560px) {
+  .auth-main {
+    padding-inline: clamp(0.75rem, 4vw, 1.25rem);
+  }
+
+  .auth-toolbar,
+  .auth-locale {
+    width: 100%;
+  }
+
+  .auth-locale {
+    display: flex;
+  }
+
+  .auth-locale button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 0.35rem;
+  }
+
+  .auth-card {
+    padding-inline: clamp(1rem, 5vw, 1.5rem);
+  }
+
   .auth-provider-grid,
   .auth-subnav {
     grid-template-columns: 1fr;
@@ -546,6 +614,10 @@
 
   .auth-topbar .auth-brand-lockup span {
     display: none;
+  }
+
+  .auth-loading {
+    padding-inline: clamp(1rem, 6vw, 1.5rem);
   }
 }
 
