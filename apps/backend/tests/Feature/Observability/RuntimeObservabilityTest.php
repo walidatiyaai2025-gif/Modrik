@@ -221,12 +221,14 @@ final class RuntimeObservabilityTest extends TestCase
         self::assertLessThanOrEqual(3, $bundle['event_count']);
         self::assertLessThanOrEqual(4096, strlen($bundle['json']));
         self::assertStringNotContainsString('SENTINEL_EXPORT_PASSWORD_94', $bundle['json']);
+        self::assertIsArray($decoded['filters']);
+        self::assertArrayNotHasKey('correlation_id', $decoded['filters']);
         foreach ($decoded['events'] as $event) {
             self::assertSame($targetCorrelation, $event['correlation_id']);
         }
     }
 
-    public function test_malicious_admin_export_filter_is_not_persisted_in_diagnostic_audit(): void
+    public function test_malicious_admin_export_filter_is_not_reflected_or_persisted_in_diagnostic_audit(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin);
@@ -239,7 +241,17 @@ final class RuntimeObservabilityTest extends TestCase
         foreach ($sentinels as $sentinel) {
             $page = app(RuntimeInspector::class);
             $page->correlationId = $sentinel;
-            $page->downloadDiagnosticBundle();
+            $response = $page->downloadDiagnosticBundle();
+
+            ob_start();
+            $response->sendContent();
+            $download = ob_get_clean();
+            self::assertIsString($download);
+            self::assertStringNotContainsString($sentinel, $download);
+
+            $decoded = json_decode($download, true, flags: JSON_THROW_ON_ERROR);
+            self::assertIsArray($decoded['filters']);
+            self::assertArrayNotHasKey('correlation_id', $decoded['filters']);
         }
 
         $audits = DB::table('runtime_diagnostic_events')
