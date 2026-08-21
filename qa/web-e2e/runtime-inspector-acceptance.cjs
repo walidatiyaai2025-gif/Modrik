@@ -340,17 +340,31 @@ async function testPilotCase(browser, spec) {
   }
 }
 
-async function testProductionOff(browser) {
+async function testProductionGateOff(browser) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   try {
     await page.goto(baseURL, { waitUntil: "domcontentloaded" });
-    await waitForLogin(page);
     check((await page.locator('[data-runtime-inspector="enabled"]').count()) === 0, "E2E_INSPECTOR_PRODUCTION_HOST_VISIBLE");
     check((await page.locator('button[aria-haspopup="dialog"]').count()) === 0, "E2E_INSPECTOR_PRODUCTION_LAUNCHER_VISIBLE");
+  } finally {
+    await context.close();
+  }
+}
+
+async function testProductionStorageFailClosed(browser) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await waitForLogin(page).catch(() => {
+      throw new Error("E2E_INSPECTOR_PRODUCTION_HYDRATION_PRECONDITION");
+    });
     await page.evaluate(({ key, sentinel }) => window.sessionStorage.setItem(key, sentinel), { key: diagnosticStorageKey, sentinel: privacySentinel });
     await page.reload({ waitUntil: "domcontentloaded" });
-    await waitForLogin(page);
+    await waitForLogin(page).catch(() => {
+      throw new Error("E2E_INSPECTOR_PRODUCTION_HYDRATION_PRECONDITION");
+    });
     check((await page.locator('[data-runtime-inspector="enabled"]').count()) === 0, "E2E_INSPECTOR_PRODUCTION_RELOAD_HOST_VISIBLE");
     check(await page.evaluate((key) => window.sessionStorage.getItem(key), diagnosticStorageKey) === null, "E2E_INSPECTOR_PRODUCTION_STORAGE_NOT_CLEARED");
   } finally {
@@ -378,7 +392,8 @@ async function main() {
     await waitForHttp(baseURL);
     browser = await chromium.launch({ headless: true });
     if (mode === "production") {
-      await runCase("runtime-inspector:production-default-off", { width: 390, height: 844, locale: "en", text_scale: 1 }, () => testProductionOff(browser));
+      await runCase("runtime-inspector:production-default-off", { width: 390, height: 844, locale: "en", text_scale: 1, requires_hydration: false }, () => testProductionGateOff(browser));
+      await runCase("runtime-inspector:production-storage-fail-closed", { width: 390, height: 844, locale: "en", text_scale: 1, requires_hydration: true }, () => testProductionStorageFailClosed(browser));
     } else {
       for (const spec of [
         { name: "desktop-en", width: 1440, height: 1000, locale: "en", textScale: 1 },
