@@ -21,21 +21,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-      CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
-      CPANEL_API_TOKEN: ${{ secrets.CPANEL_API_TOKEN }}
-      CPANEL_REPOSITORY_ROOT: /home/${{ secrets.CPANEL_USERNAME }}/repositories/modrik-demo
-      CPANEL_UPLOAD_DIR: /home/${{ secrets.CPANEL_USERNAME }}
-      CPANEL_API_BASE: https://${{ secrets.CPANEL_HOST }}:2083/execute
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      API_URL: https://api.demo.modrik.org
 
     steps:
       - name: Validate deployment secrets
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$CPANEL_HOST" || { echo 'Missing secret: CPANEL_HOST' >&2; exit 1; }
-          test -n "$CPANEL_USERNAME" || { echo 'Missing secret: CPANEL_USERNAME' >&2; exit 1; }
-          test -n "$CPANEL_API_TOKEN" || { echo 'Missing secret: CPANEL_API_TOKEN' >&2; exit 1; }
+          test -n "$FTP_USER" || { echo 'Missing secret: CPANEL_FTP_USERNAME' >&2; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo 'Missing secret: CPANEL_FTP_PASSWORD' >&2; exit 1; }
 
       - name: Check out canonical main
         uses: actions/checkout@v4
@@ -84,7 +81,6 @@ jobs:
           test -n "$PACKAGE_ZIP"
           unzip -t "$PACKAGE_ZIP" >/dev/null
           echo "PACKAGE_ZIP=$PACKAGE_ZIP" >> "$GITHUB_ENV"
-          echo "REMOTE_PACKAGE=modrik-demo-cpanel-$RELEASE_SHA.zip" >> "$GITHUB_ENV"
 
       - name: Retain deployment package for audit
         uses: actions/upload-artifact@v4
@@ -94,104 +90,205 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Preflight cPanel UAPI token
-        shell: bash
+      - name: Install FTPS client
         run: |
-          set -euo pipefail
-          RESPONSE="$(curl --fail-with-body --silent --show-error \
-            -H "Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN" \
-            "$CPANEL_API_BASE/Variables/get_server_information")"
-          jq -e '.result.status == 1' <<<"$RESPONSE" >/dev/null
-          echo 'MODRIK_CPANEL_UAPI_PREFLIGHT_OK'
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
 
-      - name: Ensure cPanel-managed MODRIK repository
-        shell: bash
-        run: |
-          set -euo pipefail
-          AUTH="Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN"
-          RETRIEVE="$(curl --fail-with-body --silent --show-error -H "$AUTH" \
-            "$CPANEL_API_BASE/VersionControl/retrieve")"
-          jq -e '.result.status == 1' <<<"$RETRIEVE" >/dev/null
-
-          if jq -e --arg root "$CPANEL_REPOSITORY_ROOT" '.result.data | any(.repository_root == $root)' <<<"$RETRIEVE" >/dev/null 2>&1; then
-            echo "cPanel repository already exists: $CPANEL_REPOSITORY_ROOT"
-          else
-            SOURCE='{"remote_name":"origin","url":"https://github.com/walidatiyaai2025-gif/Modrik.git"}'
-            CREATE="$(curl --fail-with-body --silent --show-error -G -H "$AUTH" \
-              --data-urlencode 'type=git' \
-              --data-urlencode 'name=MODRIK Demo Deploy' \
-              --data-urlencode "repository_root=$CPANEL_REPOSITORY_ROOT" \
-              --data-urlencode "source_repository=$SOURCE" \
-              "$CPANEL_API_BASE/VersionControl/create")"
-            jq -e '.result.status == 1' <<<"$CREATE" >/dev/null
-            echo "Created cPanel repository: $CPANEL_REPOSITORY_ROOT"
-          fi
-
-      - name: Upload immutable Demo package through cPanel Fileman UAPI
-        shell: bash
-        run: |
-          set -euo pipefail
-          RESPONSE="$(curl --fail-with-body --silent --show-error \
-            -H "Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN" \
-            -F "dir=$CPANEL_UPLOAD_DIR" \
-            -F "file-1=@$PACKAGE_ZIP;filename=$REMOTE_PACKAGE" \
-            "$CPANEL_API_BASE/Fileman/upload_files")"
-          jq -e '.result.status == 1' <<<"$RESPONSE" >/dev/null
-          echo "Uploaded $REMOTE_PACKAGE via cPanel UAPI."
-
-      - name: Pull canonical main into cPanel repository
-        shell: bash
-        run: |
-          set -euo pipefail
-          RESPONSE="$(curl --fail-with-body --silent --show-error -G \
-            -H "Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN" \
-            --data-urlencode "repository_root=$CPANEL_REPOSITORY_ROOT" \
-            --data-urlencode 'branch=main' \
-            "$CPANEL_API_BASE/VersionControl/update")"
-          jq -e '.result.status == 1' <<<"$RESPONSE" >/dev/null
-          echo 'cPanel repository updated from GitHub main.'
-
-      - name: Start cPanel deployment task
-        shell: bash
-        run: |
-          set -euo pipefail
-          RESPONSE="$(curl --fail-with-body --silent --show-error -G \
-            -H "Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN" \
-            --data-urlencode "repository_root=$CPANEL_REPOSITORY_ROOT" \
-            "$CPANEL_API_BASE/VersionControlDeployment/create")"
-          jq -e '.result.status == 1' <<<"$RESPONSE" >/dev/null
-          echo "$RESPONSE" | jq -c '.result.data'
-
-      - name: Wait for exact release marker
+      - name: Prepare protected one-shot deployment bridge
         shell: bash
         env:
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
-          AUTH="Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN"
-          MARKER_DIR="/home/$CPANEL_USERNAME/deploy/modrik-demo"
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 10)"
+          bridge=".modrik-deploy-$nonce.php"
+          token_file=".modrik-deploy-token-$nonce"
+          remote_package=".modrik-deploy-package-$RELEASE_SHA.zip"
+          remote_runner=".modrik-deploy-runner-$RELEASE_SHA.sh"
+          package_sha="$(sha256sum "$PACKAGE_ZIP" | awk '{print $1}')"
+          runner_sha="$(sha256sum deploy/demo/deploy-demo-cpanel-remote.sh | awk '{print $1}')"
 
-          for attempt in $(seq 1 36); do
-            RESPONSE="$(curl --silent --show-error -G -H "$AUTH" \
-              --data-urlencode "dir=$MARKER_DIR" \
-              --data-urlencode 'file=current-release.txt' \
-              --data-urlencode 'to_charset=UTF-8' \
-              "$CPANEL_API_BASE/Fileman/get_file_content" || true)"
+          echo "::add-mask::$token"
+          printf '%s' "$token" > /tmp/modrik-deploy-token
+          cp deploy/demo/deploy-demo-cpanel-remote.sh /tmp/modrik-deploy-runner.sh
 
-            STATUS="$(jq -r '.result.status // 0' <<<"$RESPONSE" 2>/dev/null || echo 0)"
-            CONTENT="$(jq -r '.result.data.content // empty' <<<"$RESPONSE" 2>/dev/null | tr -d '\r\n' || true)"
-            if [[ "$STATUS" == '1' && "$CONTENT" == "$RELEASE_SHA" ]]; then
-              echo "Exact release marker confirmed: $RELEASE_SHA"
-              exit 0
-            fi
+          cat > /tmp/modrik-deploy.php <<'PHP'
+          <?php
+          declare(strict_types=1);
 
-            echo "Waiting for cPanel deployment ($attempt/36)..."
-            sleep 5
-          done
+          set_time_limit(300);
+          ignore_user_abort(true);
+          header('Content-Type: application/json; charset=utf-8');
+          header('Cache-Control: no-store');
 
-          echo "Timed out waiting for exact release marker $RELEASE_SHA" >&2
-          curl --silent --show-error -H "$AUTH" "$CPANEL_API_BASE/VersionControlDeployment/retrieve" | jq . || true
-          exit 1
+          $expectedToken = trim((string) @file_get_contents(__DIR__ . '/__TOKEN_FILE__'));
+          $providedToken = (string) ($_SERVER['HTTP_X_MODRIK_DEPLOY_TOKEN'] ?? '');
+          if ($expectedToken === '' || !hash_equals($expectedToken, $providedToken)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
+
+          $releaseSha = '__RELEASE_SHA__';
+          $expectedPackageSha = '__PACKAGE_SHA__';
+          $expectedRunnerSha = '__RUNNER_SHA__';
+          $backendRoot = dirname(__DIR__);
+          $home = dirname(dirname($backendRoot));
+          $package = $backendRoot . '/__REMOTE_PACKAGE__';
+          $runner = $backendRoot . '/__REMOTE_RUNNER__';
+
+          try {
+              if (!is_file($package) || !hash_equals($expectedPackageSha, (string) hash_file('sha256', $package))) {
+                  throw new RuntimeException('Deployment package is missing or checksum validation failed.');
+              }
+              if (!is_file($runner) || !hash_equals($expectedRunnerSha, (string) hash_file('sha256', $runner))) {
+                  throw new RuntimeException('Deployment runner is missing or checksum validation failed.');
+              }
+              if (!is_executable('/bin/bash')) {
+                  throw new RuntimeException('/bin/bash is unavailable.');
+              }
+
+              putenv('HOME=' . $home);
+              putenv('PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin');
+
+              $descriptors = [
+                  0 => ['pipe', 'r'],
+                  1 => ['pipe', 'w'],
+                  2 => ['pipe', 'w'],
+              ];
+              $process = proc_open(['/bin/bash', $runner, $package, $releaseSha], $descriptors, $pipes, $backendRoot, null, ['bypass_shell' => true]);
+              if (!is_resource($process)) {
+                  throw new RuntimeException('Unable to start deployment runner.');
+              }
+              fclose($pipes[0]);
+              stream_set_blocking($pipes[1], false);
+              stream_set_blocking($pipes[2], false);
+              $stdout = '';
+              $stderr = '';
+              $started = microtime(true);
+              $status = ['exitcode' => -1];
+
+              while (true) {
+                  $stdout .= (string) stream_get_contents($pipes[1]);
+                  $stderr .= (string) stream_get_contents($pipes[2]);
+                  $status = proc_get_status($process);
+                  if (!$status['running']) {
+                      break;
+                  }
+                  if ((microtime(true) - $started) > 270) {
+                      proc_terminate($process, 15);
+                      throw new RuntimeException('Deployment runner timed out.');
+                  }
+                  usleep(100000);
+              }
+
+              $stdout .= (string) stream_get_contents($pipes[1]);
+              $stderr .= (string) stream_get_contents($pipes[2]);
+              fclose($pipes[1]);
+              fclose($pipes[2]);
+              $exit = proc_close($process);
+              if ($exit === -1) {
+                  $exit = (int) ($status['exitcode'] ?? -1);
+              }
+              $output = trim($stdout . ($stderr === '' ? '' : "\n" . $stderr));
+              if ($exit !== 0) {
+                  throw new RuntimeException('Deployment runner failed (' . $exit . '): ' . substr($output, 0, 12000));
+              }
+
+              echo json_encode([
+                  'ok' => true,
+                  'release_sha' => $releaseSha,
+                  'output' => substr($output, 0, 12000),
+              ], JSON_UNESCAPED_SLASHES);
+          } catch (Throwable $e) {
+              http_response_code(500);
+              echo json_encode([
+                  'ok' => false,
+                  'release_sha' => $releaseSha,
+                  'error' => substr($e->getMessage(), 0, 12000),
+              ], JSON_UNESCAPED_SLASHES);
+          }
+          PHP
+
+          sed -i \
+            -e "s|__TOKEN_FILE__|$token_file|g" \
+            -e "s|__RELEASE_SHA__|$RELEASE_SHA|g" \
+            -e "s|__PACKAGE_SHA__|$package_sha|g" \
+            -e "s|__RUNNER_SHA__|$runner_sha|g" \
+            -e "s|__REMOTE_PACKAGE__|$remote_package|g" \
+            -e "s|__REMOTE_RUNNER__|$remote_runner|g" \
+            /tmp/modrik-deploy.php
+
+          {
+            echo "REMOTE_BRIDGE=$bridge"
+            echo "REMOTE_TOKEN_FILE=$token_file"
+            echo "REMOTE_PACKAGE=$remote_package"
+            echo "REMOTE_RUNNER=$remote_runner"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload package and bridge over FTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 2;
+            set net:timeout 20;
+            cd api.demo.modrik.org;
+            put $PACKAGE_ZIP -o $REMOTE_PACKAGE;
+            put /tmp/modrik-deploy-runner.sh -o $REMOTE_RUNNER;
+            cd public;
+            put /tmp/modrik-deploy-token -o $REMOTE_TOKEN_FILE;
+            put /tmp/modrik-deploy.php -o $REMOTE_BRIDGE;
+            bye;
+          "
+          echo 'MODRIK_FTPS_UPLOAD_OK'
+
+      - name: Execute protected deployment bridge
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          token="$(cat /tmp/modrik-deploy-token)"
+          response="$(curl --silent --show-error --fail-with-body \
+            --max-time 290 \
+            -H "X-MODRIK-Deploy-Token: $token" \
+            "$API_URL/$REMOTE_BRIDGE")"
+          printf '%s\n' "$response" | jq .
+          jq -e --arg sha "$RELEASE_SHA" '.ok == true and .release_sha == $sha' <<<"$response" >/dev/null
+          echo 'MODRIK_FTPS_DEPLOY_OK'
+
+      - name: Remove one-shot deployment files
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          [[ -n "${FTP_USER:-}" && -n "${FTP_PASSWORD:-}" ]] || exit 0
+          timeout 45 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 1;
+            set net:timeout 10;
+            cd api.demo.modrik.org;
+            rm -f ${REMOTE_PACKAGE:-.missing};
+            rm -f ${REMOTE_RUNNER:-.missing};
+            cd public;
+            rm -f ${REMOTE_TOKEN_FILE:-.missing};
+            rm -f ${REMOTE_BRIDGE:-.missing};
+            bye;
+          "
+          exit 0
 
       - name: External post-deploy smoke
         shell: bash
