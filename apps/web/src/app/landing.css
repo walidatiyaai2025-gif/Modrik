@@ -1,0 +1,328 @@
+.landing-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 15% 12%, rgba(37, 211, 185, 0.14), transparent 26rem),
+    linear-gradient(135deg, #061c26 0%, #0b2232 45%, #f3f7fb 45%, #f3f7fb 100%);
+  color: #0d2030;
+  padding: 0 5vw 2rem;
+}
+
+.landing-nav {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.landing-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: white;
+}
+
+.landing-brand-mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 14px;
+  color: #59ead5;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+
+.landing-brand span:last-child {
+  display: grid;
+  line-height: 1.05;
+}
+
+.landing-brand strong {
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+}
+
+.landing-brand small {
+  color: #b7d8dd;
+  font-size: 0.72rem;
+  margin-top: 0.18rem;
+}
+
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.landing-locale {
+  display: inline-flex;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(10, 37, 55, 0.12);
+}
+
+.landing-locale button {
+  min-width: 42px;
+  min-height: 38px;
+  padding: 0 0.65rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #102838;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.landing-locale button[aria-pressed="true"] {
+  color: white;
+  background: #0d2030;
+}
+
+.landing-login-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.15rem;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 800;
+  color: white;
+  background: #2347a0;
+  box-shadow: 0 10px 28px rgba(35, 71, 160, 0.22);
+}
+
+.landing-hero {
+  max-width: 1440px;
+  min-height: calc(100vh - 165px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(480px, 1.05fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 6rem);
+  padding: clamp(2.5rem, 6vh, 5rem) 0;
+}
+
+.landing-hero-copy {
+  color: white;
+  max-width: 660px;
+}
+
+.landing-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(89, 234, 213, 0.12);
+  border: 1px solid rgba(89, 234, 213, 0.36);
+  color: #8af1e2;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.landing-eyebrow {
+  margin: 2rem 0 0.8rem;
+  color: #8af1e2;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landing-hero h1 {
+  margin: 0;
+  font-size: clamp(2.55rem, 5vw, 5.4rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  overflow-wrap: anywhere;
+}
+
+.landing-lead {
+  max-width: 590px;
+  margin: 1.6rem 0 0;
+  color: #c3d7df;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+  line-height: 1.7;
+}
+
+.landing-portals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.landing-portal-card {
+  min-width: 0;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.5rem, 2.5vw, 2.1rem);
+  border-radius: 28px;
+  border: 1px solid rgba(13, 32, 48, 0.09);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 26px 70px rgba(16, 40, 56, 0.15);
+  backdrop-filter: blur(18px);
+}
+
+.landing-portal-admin {
+  margin-top: 3rem;
+  background: linear-gradient(155deg, #0d2030 0%, #15384b 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.landing-portal-icon {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: #e9f8f5;
+  color: #086a66;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.landing-portal-admin .landing-portal-icon {
+  color: #8af1e2;
+  background: rgba(89, 234, 213, 0.12);
+}
+
+.landing-portal-card h2 {
+  margin: 2.25rem 0 0;
+  font-size: clamp(1.65rem, 2.2vw, 2.3rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+}
+
+.landing-portal-card p {
+  margin: 1rem 0 2rem;
+  color: #536775;
+  line-height: 1.65;
+}
+
+.landing-portal-admin p {
+  color: #b7ced7;
+}
+
+.landing-primary-cta,
+.landing-secondary-cta {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.landing-primary-cta {
+  color: white;
+  background: #2347a0;
+}
+
+.landing-secondary-cta {
+  color: #0b2c35;
+  background: #63e7d2;
+}
+
+.landing-footer {
+  max-width: 1440px;
+  margin: 0 auto;
+  color: #71818d;
+  font-size: 0.78rem;
+  text-align: end;
+}
+
+[dir="rtl"] .landing-hero h1,
+[dir="rtl"] .landing-portal-card h2 {
+  letter-spacing: 0;
+}
+
+@media (max-width: 1080px) {
+  .landing-shell {
+    background: linear-gradient(180deg, #071f2b 0 42%, #f3f7fb 42% 100%);
+  }
+
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+  }
+
+  .landing-hero-copy {
+    max-width: 800px;
+  }
+
+  .landing-portals {
+    max-width: 900px;
+  }
+}
+
+@media (max-width: 680px) {
+  .landing-shell {
+    padding-inline: 1rem;
+    background: linear-gradient(180deg, #071f2b 0 38%, #f3f7fb 38% 100%);
+  }
+
+  .landing-nav {
+    min-height: 78px;
+    align-items: flex-start;
+    padding-top: 1rem;
+  }
+
+  .landing-nav-actions {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .landing-login-link {
+    min-height: 40px;
+    padding-inline: 0.9rem;
+    font-size: 0.82rem;
+  }
+
+  .landing-locale button {
+    min-width: 38px;
+    min-height: 34px;
+    padding-inline: 0.45rem;
+  }
+
+  .landing-hero {
+    gap: 2.25rem;
+    padding-top: 2rem;
+  }
+
+  .landing-hero h1 {
+    font-size: clamp(2.25rem, 12vw, 3.6rem);
+  }
+
+  .landing-portals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-portal-card,
+  .landing-portal-admin {
+    min-height: 330px;
+    margin-top: 0;
+    border-radius: 22px;
+  }
+
+  .landing-footer {
+    padding-bottom: 1rem;
+  }
+}

@@ -15,7 +15,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         if ((bool) config('modrik.fixture.enabled')) {
-            $this->call(LearningSliceSeeder::class);
+            $this->call([
+                LearningSliceSeeder::class,
+                DemoAdminSeeder::class,
+            ]);
         }
     }
 }

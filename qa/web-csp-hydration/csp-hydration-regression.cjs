@@ -148,6 +148,16 @@ function observeConsole(message) {
   if (text.includes("script") || text.includes("execute")) signals.csp_script_block = true;
 }
 
+function cspAssertions(csp) {
+  return {
+    csp_present: Boolean(csp),
+    nonce_directive_present: /script-src[^;]*'nonce-[^']+'/.test(csp),
+    strict_dynamic_present: /script-src[^;]*'strict-dynamic'/.test(csp),
+    unsafe_inline_absent: !/script-src[^;]*'unsafe-inline'/.test(csp),
+    unsafe_eval_absent: !/script-src[^;]*'unsafe-eval'/.test(csp),
+  };
+}
+
 async function main() {
   if (!fs.existsSync(path.join(appDir, "package.json"))) {
     throw new Error("E2E_CSP_TARGET_MISSING");
@@ -176,8 +186,29 @@ async function main() {
       signals.page_error = true;
     });
 
-    const response = await page.goto(baseURL, { waitUntil: "domcontentloaded" });
-    const csp = response?.headers()["content-security-policy"] || "";
+    const landingResponse = await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    const landingCsp = landingResponse?.headers()["content-security-policy"] || "";
+
+    let landingHydrated = false;
+    try {
+      const arabicButton = page.locator(".landing-locale button").filter({ hasText: "AR" }).first();
+      await arabicButton.waitFor({ state: "visible", timeout: 10000 });
+      await arabicButton.click();
+      await page.locator('.landing-shell[dir="rtl"]').waitFor({ state: "visible", timeout: 5000 });
+      landingHydrated = (await arabicButton.getAttribute("aria-pressed")) === "true";
+    } catch {
+      landingHydrated = false;
+    }
+
+    const landingMetrics = await page.evaluate(() => ({
+      script_count: document.scripts.length,
+      script_nonce_count: Array.from(document.scripts).filter((script) =>
+        Boolean(script.nonce || script.getAttribute("nonce")),
+      ).length,
+    }));
+
+    const studentResponse = await page.goto(`${baseURL}/student`, { waitUntil: "domcontentloaded" });
+    const studentCsp = studentResponse?.headers()["content-security-policy"] || "";
     const initialLoadingVisible = await page.locator(".auth-loading").isVisible().catch(() => false);
 
     let loginVisible = false;
@@ -188,22 +219,29 @@ async function main() {
       loginVisible = false;
     }
 
-    const metrics = await page.evaluate(() => ({
+    const studentMetrics = await page.evaluate(() => ({
       script_count: document.scripts.length,
       script_nonce_count: Array.from(document.scripts).filter((script) =>
         Boolean(script.nonce || script.getAttribute("nonce")),
       ).length,
     }));
 
+    const landingSecurity = cspAssertions(landingCsp);
+    const studentSecurity = cspAssertions(studentCsp);
     const assertions = {
-      csp_present: Boolean(csp),
-      nonce_directive_present: /script-src[^;]*'nonce-[^']+'/.test(csp),
-      strict_dynamic_present: /script-src[^;]*'strict-dynamic'/.test(csp),
-      unsafe_inline_absent: !/script-src[^;]*'unsafe-inline'/.test(csp),
-      unsafe_eval_absent: !/script-src[^;]*'unsafe-eval'/.test(csp),
-      hydration_completed: loginVisible,
+      csp_present: landingSecurity.csp_present && studentSecurity.csp_present,
+      nonce_directive_present: landingSecurity.nonce_directive_present && studentSecurity.nonce_directive_present,
+      strict_dynamic_present: landingSecurity.strict_dynamic_present && studentSecurity.strict_dynamic_present,
+      unsafe_inline_absent: landingSecurity.unsafe_inline_absent && studentSecurity.unsafe_inline_absent,
+      unsafe_eval_absent: landingSecurity.unsafe_eval_absent && studentSecurity.unsafe_eval_absent,
+      hydration_completed: landingHydrated && loginVisible,
+      landing_initializer_ran: landingHydrated,
       session_initializer_ran: sessionRequests > 0,
-      scripts_received_nonce: metrics.script_count > 0 && metrics.script_nonce_count > 0,
+      scripts_received_nonce:
+        landingMetrics.script_count > 0 &&
+        landingMetrics.script_nonce_count > 0 &&
+        studentMetrics.script_count > 0 &&
+        studentMetrics.script_nonce_count > 0,
       no_csp_script_block: !signals.csp_script_block,
       no_page_error: !signals.page_error,
     };
@@ -216,10 +254,13 @@ async function main() {
       status: failed.length === 0 ? "PASS" : "FAIL",
       failure_code: failed.length === 0 ? null : "E2E_CSP_HYDRATION_ASSERTION_FAILED",
       failed_assertions: failed,
+      landing_hydrated: landingHydrated,
       initial_loading_visible: initialLoadingVisible,
       session_request_count: sessionRequests,
-      script_count: metrics.script_count,
-      script_nonce_count: metrics.script_nonce_count,
+      landing_script_count: landingMetrics.script_count,
+      landing_script_nonce_count: landingMetrics.script_nonce_count,
+      student_script_count: studentMetrics.script_count,
+      student_script_nonce_count: studentMetrics.script_nonce_count,
       assertions,
     };
 

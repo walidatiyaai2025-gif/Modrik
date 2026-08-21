@@ -9,6 +9,7 @@ BACKEND_SOURCE="$ROOT/apps/backend"
 DESIGN_TOKENS_SOURCE="$ROOT/packages/design-tokens/tokens.json"
 LEARNING_FIXTURE_SOURCE="$ROOT/tests/fixtures/content-pack/v1/valid/content-pack.json"
 DEPLOY_DOC="$ROOT/deploy/demo/DEPLOY_CPANEL.md"
+PORTALS_DOC="$ROOT/deploy/demo/PORTALS.md"
 WEB_ENV_TEMPLATE="$ROOT/deploy/demo/web.env.example"
 BACKEND_ENV_TEMPLATE="$ROOT/deploy/demo/backend.env.example"
 
@@ -24,6 +25,7 @@ fail() {
 [[ -f "$DESIGN_TOKENS_SOURCE" ]] || fail "Canonical design tokens are missing."
 [[ -f "$LEARNING_FIXTURE_SOURCE" ]] || fail "Synthetic learning fixture is missing."
 [[ -f "$DEPLOY_DOC" ]] || fail "Demo deployment instructions are missing."
+[[ -f "$PORTALS_DOC" ]] || fail "Demo portal activation instructions are missing."
 [[ -f "$WEB_ENV_TEMPLATE" ]] || fail "Web demo environment template is missing."
 [[ -f "$BACKEND_ENV_TEMPLATE" ]] || fail "Backend demo environment template is missing."
 
@@ -96,6 +98,7 @@ cmp -s "$DESIGN_TOKENS_SOURCE" "$OUT_ROOT/backend/resources/brand/tokens.json" |
 cmp -s "$LEARNING_FIXTURE_SOURCE" "$OUT_ROOT/backend/resources/fixtures/content-pack/v1/valid/content-pack.json" || fail "Packaged Backend synthetic learning fixture differs from the canonical source."
 
 cp "$DEPLOY_DOC" "$OUT_ROOT/DEPLOY.md"
+cp "$PORTALS_DOC" "$OUT_ROOT/PORTALS.md"
 
 RELEASE_SHA="${GITHUB_SHA:-$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || printf 'unknown')}"
 printf '%s\n' "$RELEASE_SHA" > "$OUT_ROOT/RELEASE_SHA.txt"
