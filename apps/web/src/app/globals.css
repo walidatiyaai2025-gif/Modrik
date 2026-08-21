@@ -1213,3 +1213,25 @@ button:disabled {
   overflow-wrap: anywhere;
   white-space: normal;
 }
+
+/* Issue #125: Progress intrinsic containment under FR 360px/200% text. */
+.progress-grid,
+.progress-card,
+.progress-card > div,
+.progress-card progress {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workspace-section-header p:not(.eyebrow),
+.progress-card span,
+.progress-card small {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.progress-card progress {
+  display: block;
+}
