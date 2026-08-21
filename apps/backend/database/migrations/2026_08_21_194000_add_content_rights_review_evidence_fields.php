@@ -10,14 +10,13 @@ return new class extends Migration
     {
         Schema::table('preparation_imports', function (Blueprint $table): void {
             $table->string('rights_basis', 32)->nullable();
-            $table->json('rights_source_references')->nullable();
         });
     }
 
     public function down(): void
     {
         Schema::table('preparation_imports', function (Blueprint $table): void {
-            $table->dropColumn(['rights_basis', 'rights_source_references']);
+            $table->dropColumn('rights_basis');
         });
     }
 };
