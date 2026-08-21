@@ -106,13 +106,14 @@ final class RuntimeObservabilityTest extends TestCase
             'modrik.fixture.user_id' => LearningSliceSeeder::USER_ID,
         ]);
         $correlationId = 'learning-01J6MODRIK123456789';
+        $lessonId = '01J00000000000000000000003';
 
         $this->withToken($token)
             ->withHeader(CorrelationId::HEADER, $correlationId)
-            ->getJson('/v1/lessons/lesson-fixture')
+            ->getJson('/v1/lessons/'.$lessonId)
             ->assertOk()
             ->assertHeader(CorrelationId::HEADER, $correlationId)
-            ->assertJsonPath('data.id', 'lesson-fixture');
+            ->assertJsonPath('data.id', $lessonId);
 
         $events = app(RuntimeInspectorService::class)->events([
             'correlation_id' => $correlationId,
@@ -151,12 +152,13 @@ final class RuntimeObservabilityTest extends TestCase
             'modrik.fixture.user_id' => LearningSliceSeeder::USER_ID,
         ]);
         $learningCorrelation = 'learning-failopen-01J6MODRIK123';
+        $lessonId = '01J00000000000000000000003';
         $this->withToken($token)
             ->withHeader(CorrelationId::HEADER, $learningCorrelation)
-            ->getJson('/v1/lessons/lesson-fixture')
+            ->getJson('/v1/lessons/'.$lessonId)
             ->assertOk()
             ->assertHeader(CorrelationId::HEADER, $learningCorrelation)
-            ->assertJsonPath('data.id', 'lesson-fixture');
+            ->assertJsonPath('data.id', $lessonId);
 
         $admin = User::factory()->create(['role' => 'admin']);
         $adminCorrelation = 'admin-failopen-01J6MODRIK12345';
