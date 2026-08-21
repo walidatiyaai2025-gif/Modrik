@@ -24,6 +24,9 @@ jobs:
       FTP_HOST: ftp.50sols.com
       FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_URL: https://50sols.com
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
       API_URL: https://api.demo.modrik.org
 
     steps:
@@ -102,11 +105,11 @@ jobs:
         run: |
           set -euo pipefail
           token="$(openssl rand -hex 32)"
-          nonce="$(openssl rand -hex 10)"
-          bridge=".modrik-deploy-$nonce.php"
+          nonce="$(openssl rand -hex 12)"
+          bridge="modrik-deploy-$nonce.php"
           token_file=".modrik-deploy-token-$nonce"
-          remote_package=".modrik-deploy-package-$RELEASE_SHA.zip"
-          remote_runner=".modrik-deploy-runner-$RELEASE_SHA.sh"
+          remote_package=".modrik-deploy-package-$nonce.zip"
+          remote_runner=".modrik-deploy-runner-$nonce.sh"
           package_sha="$(sha256sum "$PACKAGE_ZIP" | awk '{print $1}')"
           runner_sha="$(sha256sum deploy/demo/deploy-demo-cpanel-remote.sh | awk '{print $1}')"
 
@@ -134,12 +137,21 @@ jobs:
           $releaseSha = '__RELEASE_SHA__';
           $expectedPackageSha = '__PACKAGE_SHA__';
           $expectedRunnerSha = '__RUNNER_SHA__';
-          $backendRoot = dirname(__DIR__);
-          $home = dirname(dirname($backendRoot));
-          $package = $backendRoot . '/__REMOTE_PACKAGE__';
-          $runner = $backendRoot . '/__REMOTE_RUNNER__';
+          $home = '/home/solscool';
+          $publicHtml = $home . '/public_html';
+          $backendRoot = $publicHtml . '/api.demo.modrik.org';
+          $package = __DIR__ . '/__REMOTE_PACKAGE__';
+          $runner = __DIR__ . '/__REMOTE_RUNNER__';
 
           try {
+              $bridgeRoot = realpath(__DIR__);
+              $expectedBridgeRoot = realpath($publicHtml);
+              if ($bridgeRoot === false || $expectedBridgeRoot === false || $bridgeRoot !== $expectedBridgeRoot) {
+                  throw new RuntimeException('Deployment bridge is not running from the expected cPanel public_html root.');
+              }
+              if (!is_dir($backendRoot) || !is_file($backendRoot . '/artisan')) {
+                  throw new RuntimeException('MODRIK Backend root is unavailable.');
+              }
               if (!is_file($package) || !hash_equals($expectedPackageSha, (string) hash_file('sha256', $package))) {
                   throw new RuntimeException('Deployment package is missing or checksum validation failed.');
               }
@@ -228,7 +240,7 @@ jobs:
             echo "REMOTE_RUNNER=$remote_runner"
           } >> "$GITHUB_ENV"
 
-      - name: Upload package and bridge over FTPS
+      - name: Upload package and bridge over WALKA-proven FTPS path
         shell: bash
         run: |
           set -euo pipefail
@@ -241,29 +253,46 @@ jobs:
             set ftp:passive-mode true;
             set net:max-retries 2;
             set net:timeout 20;
-            cd api.demo.modrik.org;
             put $PACKAGE_ZIP -o $REMOTE_PACKAGE;
             put /tmp/modrik-deploy-runner.sh -o $REMOTE_RUNNER;
-            cd public;
             put /tmp/modrik-deploy-token -o $REMOTE_TOKEN_FILE;
             put /tmp/modrik-deploy.php -o $REMOTE_BRIDGE;
             bye;
           "
           echo 'MODRIK_FTPS_UPLOAD_OK'
 
-      - name: Execute protected deployment bridge
+      - name: Execute protected deployment bridge through web origin
         shell: bash
         env:
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
           token="$(cat /tmp/modrik-deploy-token)"
-          response="$(curl --silent --show-error --fail-with-body \
+          body="$RUNNER_TEMP/modrik-deploy-response.json"
+          set +e
+          http_code="$(curl --silent --show-error \
+            --output "$body" \
+            --write-out '%{http_code}' \
             --max-time 290 \
+            --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
             -H "X-MODRIK-Deploy-Token: $token" \
-            "$API_URL/$REMOTE_BRIDGE")"
-          printf '%s\n' "$response" | jq .
-          jq -e --arg sha "$RELEASE_SHA" '.ok == true and .release_sha == $sha' <<<"$response" >/dev/null
+            "$BRIDGE_URL/$REMOTE_BRIDGE")"
+          curl_exit=$?
+          set -e
+          echo "bridge_curl_exit=$curl_exit"
+          echo "bridge_http_status=$http_code"
+          if [[ $curl_exit -ne 0 ]]; then
+            exit "$curl_exit"
+          fi
+          if ! jq -e --arg sha "$RELEASE_SHA" '.ok == true and .release_sha == $sha' "$body" >/dev/null 2>&1; then
+            if jq -e . "$body" >/dev/null 2>&1; then
+              jq '{ok, release_sha, error}' "$body"
+            else
+              echo 'Bridge returned a non-JSON response.' >&2
+            fi
+            exit 1
+          fi
+          jq . "$body"
           echo 'MODRIK_FTPS_DEPLOY_OK'
 
       - name: Remove one-shot deployment files
@@ -280,10 +309,8 @@ jobs:
             set ftp:passive-mode true;
             set net:max-retries 1;
             set net:timeout 10;
-            cd api.demo.modrik.org;
             rm -f ${REMOTE_PACKAGE:-.missing};
             rm -f ${REMOTE_RUNNER:-.missing};
-            cd public;
             rm -f ${REMOTE_TOKEN_FILE:-.missing};
             rm -f ${REMOTE_BRIDGE:-.missing};
             bye;
