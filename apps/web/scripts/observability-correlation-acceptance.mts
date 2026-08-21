@@ -206,7 +206,11 @@ try {
     200,
   );
 
+  const snapshot = getRuntimeDiagnosticSnapshot();
+  assert.ok(snapshot.length <= 50, "Web diagnostic event count exceeded 50");
   const serialized = serializeRuntimeDiagnosticBundle();
+  const serializedBytes = new TextEncoder().encode(serialized).byteLength;
+  assert.ok(serializedBytes <= 32 * 1024, "Web diagnostic export exceeded 32 KiB");
   for (const sentinel of sentinels) {
     assert.equal(serialized.includes(sentinel), false, `Web diagnostic export leaked ${sentinel}`);
   }
@@ -230,7 +234,12 @@ try {
       E_success_control: success,
     },
     privacy_sentinel_count: sentinels.length,
-    diagnostic_export_bytes: new TextEncoder().encode(serialized).byteLength,
+    bounds: {
+      event_count: snapshot.length,
+      event_count_limit: 50,
+      diagnostic_export_bytes: serializedBytes,
+      diagnostic_export_byte_limit: 32 * 1024,
+    },
   };
 
   const evidenceSerialized = JSON.stringify(evidence, null, 2);
