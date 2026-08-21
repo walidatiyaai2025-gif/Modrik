@@ -57,6 +57,7 @@ The Pilot harness must fail deterministically rather than hang indefinitely:
 - Backend, Web and Mobile suite subprocesses each have a 20-minute hard timeout;
 - the integrated #108 browser wrapper has a 30-minute hard timeout;
 - fixture migration/seed and fixture Web smoke subprocesses each have a 5-minute hard timeout, while backend readiness already uses a bounded probe loop;
+- fixture server cleanup waits up to 2 seconds after `SIGTERM`, escalates to `SIGKILL` if needed, then allows 1 second for forced-exit confirmation before temporary-state cleanup;
 - the public Pilot runner has a 55-minute total subprocess timeout;
 - the dedicated GitHub Actions `pilot-smoke` job has `timeout-minutes: 60`, covering clean-checkout dependency preparation plus execution.
 
