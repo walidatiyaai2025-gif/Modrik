@@ -1,3 +1,5 @@
+import { diagnosticFetch } from "./runtime-diagnostics";
+
 export type Locale = "ar" | "en" | "fr";
 export type LocalizedText = Partial<Record<Locale, string>>;
 
@@ -80,6 +82,19 @@ type ProblemDetails = {
   retryable: boolean;
 };
 
+type LearningDiagnosticOperation =
+  | "learning:session"
+  | "learning:academic-tracks"
+  | "learning:academic-context"
+  | "learning:academic-context-activate"
+  | "learning:academic-context-reset"
+  | "learning:lesson"
+  | "learning:progress"
+  | "learning:attempt-start"
+  | "learning:attempt"
+  | "learning:answer"
+  | "learning:submit";
+
 export class LearningApiError extends Error {
   constructor(
     public readonly status: number,
@@ -92,8 +107,8 @@ export class LearningApiError extends Error {
   }
 }
 
-async function requestData<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/learning/${path}`, {
+async function requestData<T>(operation: LearningDiagnosticOperation, path: string, init?: RequestInit): Promise<T> {
+  const response = await diagnosticFetch(operation, `/api/learning/${path}`, {
     ...init,
     headers: {
       Accept: "application/json, application/problem+json",
@@ -125,24 +140,27 @@ function command(method: "POST" | "PUT", body: object | undefined, idempotencyKe
 }
 
 export const learningApi = {
-  session: () => requestData<Session>("session"),
-  academicTracks: () => requestData<{ tracks: AcademicTrack[] }>("academic-tracks").then(({ tracks }) => tracks),
-  academicContext: () => requestData<AcademicContext>("academic-context"),
+  session: () => requestData<Session>("learning:session", "session"),
+  academicTracks: () =>
+    requestData<{ tracks: AcademicTrack[] }>("learning:academic-tracks", "academic-tracks").then(({ tracks }) => tracks),
+  academicContext: () => requestData<AcademicContext>("learning:academic-context", "academic-context"),
   activateAcademicContext: (academicTrackId: string, idempotencyKey: string) =>
     requestData<AcademicContext>(
+      "learning:academic-context-activate",
       "academic-context/activate",
       command("POST", { academic_track_id: academicTrackId }, idempotencyKey),
     ),
   resetAcademicContext: (academicTrackId: string, idempotencyKey: string) =>
     requestData<AcademicContext>(
+      "learning:academic-context-reset",
       "academic-context/reset",
       command("POST", { academic_track_id: academicTrackId }, idempotencyKey),
     ),
-  lesson: (lessonId: string) => requestData<Lesson>(`lessons/${lessonId}`),
-  progress: () => requestData<Progress[]>("progress"),
+  lesson: (lessonId: string) => requestData<Lesson>("learning:lesson", `lessons/${lessonId}`),
+  progress: () => requestData<Progress[]>("learning:progress", "progress"),
   startAttempt: (quizId: string, idempotencyKey: string) =>
-    requestData<Attempt>("attempts", command("POST", { quiz_id: quizId }, idempotencyKey)),
-  attempt: (attemptId: string) => requestData<Attempt>(`attempts/${attemptId}`),
+    requestData<Attempt>("learning:attempt-start", "attempts", command("POST", { quiz_id: quizId }, idempotencyKey)),
+  attempt: (attemptId: string) => requestData<Attempt>("learning:attempt", `attempts/${attemptId}`),
   answer: (
     attemptId: string,
     attemptQuestionId: string,
@@ -151,9 +169,14 @@ export const learningApi = {
     idempotencyKey: string,
   ) =>
     requestData<{ revision: number; value: string; answered_at: string }>(
+      "learning:answer",
       `attempts/${attemptId}/answers/${attemptQuestionId}`,
       command("PUT", { expected_revision: expectedRevision, value }, idempotencyKey),
     ),
   submit: (attemptId: string, idempotencyKey: string) =>
-    requestData<AttemptResult>(`attempts/${attemptId}/submit`, command("POST", undefined, idempotencyKey)),
+    requestData<AttemptResult>(
+      "learning:submit",
+      `attempts/${attemptId}/submit`,
+      command("POST", undefined, idempotencyKey),
+    ),
 };

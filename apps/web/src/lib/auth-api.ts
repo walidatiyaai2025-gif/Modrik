@@ -1,3 +1,5 @@
+import { diagnosticFetch } from "./runtime-diagnostics";
+
 export type Locale = "ar" | "en" | "fr";
 export type Provider = "google" | "apple";
 
@@ -60,7 +62,7 @@ export class AuthApiError extends Error {
 }
 
 async function requestData<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api/auth/${path}`, {
+  const response = await diagnosticFetch(`auth:${path}`, `/api/auth/${path}`, {
     ...init,
     headers: {
       Accept: "application/json, application/problem+json",
