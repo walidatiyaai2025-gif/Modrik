@@ -11,66 +11,69 @@ import {
 
 type CatalogueState = "loading" | "ready" | "empty" | "error" | "offline" | "permission";
 
-const copy = {
+export const academicTrackCopy = {
   en: {
     label: "Academic track",
-    authorized: "Only tracks authorized by the Backend for your account are shown.",
-    loading: "Loading authorized academic tracks…",
-    empty: "No academic tracks are currently authorized for this account.",
-    error: "The academic-track catalogue could not be loaded.",
-    offline: "Reconnect to load the authorized catalogue or change academic context.",
-    permission: "Your current session cannot read the academic-track catalogue.",
-    retry: "Retry catalogue",
-    activate: "Activate academic context",
+    authorized: "These are the academic tracks currently available for your account.",
+    loading: "Loading your academic tracks…",
+    empty: "No academic tracks are available for your account right now.",
+    error: "We couldn’t load your academic tracks. Nothing has changed. Try again.",
+    offline: "Reconnect to load your academic tracks or change your track.",
+    permission: "We can’t load academic tracks with this session. Sign in again, then try again.",
+    retry: "Try again",
+    activate: "Start with this track",
     change: "Change academic track",
-    resetTitle: "Changing track is a full academic-context reset",
-    resetBody: "The Backend archives the previous context, attempts, and progress instead of deleting history. In-progress work may be abandoned.",
-    confirm: "I understand the archival reset consequences.",
-    submitReset: "Confirm track change",
-    same: "Choose a different authorized track to reset.",
-    busy: "Applying Backend academic-context transition…",
-    failed: "The Backend rejected the academic-context transition. Review the state and retry the same logical operation.",
-    resetRequired: "The Backend requires the explicit reset flow for this transition.",
+    resetTitle: "Before you change academic track",
+    resetBody: "Your previous academic track, attempts, and progress will be archived—not deleted. Any work still in progress may be left unfinished.",
+    syncWarning: "Sync all pending answers and changes before you continue.",
+    confirm: "I understand what will happen when I change tracks.",
+    submitReset: "Change academic track",
+    same: "Choose a different available track to continue.",
+    busy: "Updating your academic track…",
+    failed: "We couldn’t update your academic track. Nothing changed. Check your connection and that the selected track is still available, then try again.",
+    resetRequired: "Nothing changed. Review what will happen when you change tracks, confirm it, then try again.",
   },
   ar: {
     label: "المسار الأكاديمي",
-    authorized: "تظهر فقط المسارات التي صرّح بها الخادم لحسابك.",
-    loading: "جارٍ تحميل المسارات الأكاديمية المصرح بها…",
-    empty: "لا توجد مسارات أكاديمية مصرح بها لهذا الحساب حاليًا.",
-    error: "تعذر تحميل قائمة المسارات الأكاديمية.",
-    offline: "أعد الاتصال لتحميل القائمة المصرح بها أو تغيير السياق الأكاديمي.",
-    permission: "لا تسمح جلستك الحالية بقراءة قائمة المسارات الأكاديمية.",
-    retry: "إعادة تحميل القائمة",
-    activate: "تفعيل السياق الأكاديمي",
+    authorized: "هذه هي المسارات الأكاديمية المتاحة لحسابك حاليًا.",
+    loading: "جارٍ تحميل مساراتك الأكاديمية…",
+    empty: "لا توجد مسارات أكاديمية متاحة لحسابك حاليًا.",
+    error: "تعذر تحميل مساراتك الأكاديمية. لم يتغير شيء. حاول مرة أخرى.",
+    offline: "اتصل بالإنترنت لتحميل مساراتك الأكاديمية أو تغيير مسارك.",
+    permission: "لا يمكن تحميل المسارات الأكاديمية بهذه الجلسة. سجّل الدخول من جديد ثم حاول مرة أخرى.",
+    retry: "حاول مرة أخرى",
+    activate: "ابدأ بهذا المسار",
     change: "تغيير المسار الأكاديمي",
-    resetTitle: "تغيير المسار هو إعادة ضبط كاملة للسياق الأكاديمي",
-    resetBody: "يقوم الخادم بأرشفة السياق السابق والمحاولات والتقدّم بدل حذف السجل، وقد تُنهى الأعمال الجارية.",
-    confirm: "أفهم نتائج الأرشفة وإعادة الضبط.",
-    submitReset: "تأكيد تغيير المسار",
-    same: "اختر مسارًا مصرحًا مختلفًا لإعادة الضبط.",
-    busy: "جارٍ تطبيق الانتقال الأكاديمي المعتمد من الخادم…",
-    failed: "رفض الخادم الانتقال الأكاديمي. راجع الحالة وأعد محاولة نفس العملية المنطقية.",
-    resetRequired: "يتطلب الخادم مسار إعادة الضبط الصريح لهذا الانتقال.",
+    resetTitle: "قبل تغيير المسار الأكاديمي",
+    resetBody: "سيتم أرشفة مسارك الأكاديمي السابق ومحاولاتك وتقدّمك، ولن يتم حذفها. وقد يبقى أي عمل جارٍ غير مكتمل.",
+    syncWarning: "زامن جميع الإجابات والتغييرات المعلّقة قبل المتابعة.",
+    confirm: "أفهم ما سيحدث عند تغيير المسار.",
+    submitReset: "تغيير المسار الأكاديمي",
+    same: "اختر مسارًا آخر متاحًا للمتابعة.",
+    busy: "جارٍ تحديث مسارك الأكاديمي…",
+    failed: "تعذر تحديث مسارك الأكاديمي. لم يتغير شيء. تحقق من اتصالك ومن أن المسار المختار ما زال متاحًا، ثم حاول مرة أخرى.",
+    resetRequired: "لم يتغير شيء. راجع ما سيحدث عند تغيير المسار وأكّد موافقتك، ثم حاول مرة أخرى.",
   },
   fr: {
     label: "Parcours académique",
-    authorized: "Seuls les parcours autorisés par le Backend pour votre compte sont affichés.",
-    loading: "Chargement des parcours académiques autorisés…",
-    empty: "Aucun parcours académique n’est actuellement autorisé pour ce compte.",
-    error: "Le catalogue des parcours académiques n’a pas pu être chargé.",
-    offline: "Reconnectez-vous pour charger le catalogue autorisé ou changer de contexte académique.",
-    permission: "Votre session actuelle ne peut pas lire le catalogue des parcours.",
-    retry: "Recharger le catalogue",
-    activate: "Activer le contexte académique",
+    authorized: "Voici les parcours académiques actuellement disponibles pour votre compte.",
+    loading: "Chargement de vos parcours académiques…",
+    empty: "Aucun parcours académique n’est disponible pour votre compte pour le moment.",
+    error: "Nous n’avons pas pu charger vos parcours académiques. Rien n’a changé. Réessayez.",
+    offline: "Reconnectez-vous pour charger vos parcours académiques ou changer de parcours.",
+    permission: "Cette session ne permet pas de charger vos parcours académiques. Reconnectez-vous à votre compte, puis réessayez.",
+    retry: "Réessayer",
+    activate: "Commencer avec ce parcours",
     change: "Changer de parcours académique",
-    resetTitle: "Changer de parcours réinitialise entièrement le contexte académique",
-    resetBody: "Le Backend archive l’ancien contexte, les tentatives et la progression au lieu de supprimer l’historique. Un travail en cours peut être abandonné.",
-    confirm: "Je comprends les conséquences de l’archivage et de la réinitialisation.",
-    submitReset: "Confirmer le changement",
-    same: "Choisissez un autre parcours autorisé pour réinitialiser.",
-    busy: "Application de la transition académique autoritaire du Backend…",
-    failed: "Le Backend a refusé la transition académique. Vérifiez l’état et réessayez la même opération logique.",
-    resetRequired: "Le Backend exige le flux explicite de réinitialisation pour cette transition.",
+    resetTitle: "Avant de changer de parcours académique",
+    resetBody: "Votre ancien parcours académique, vos tentatives et votre progression seront archivés, pas supprimés. Tout travail en cours pourra rester inachevé.",
+    syncWarning: "Synchronisez toutes les réponses et modifications en attente avant de continuer.",
+    confirm: "Je comprends ce qui se passera quand je changerai de parcours.",
+    submitReset: "Changer de parcours académique",
+    same: "Choisissez un autre parcours disponible pour continuer.",
+    busy: "Mise à jour de votre parcours académique…",
+    failed: "Nous n’avons pas pu mettre à jour votre parcours académique. Rien n’a changé. Vérifiez votre connexion et que le parcours choisi est toujours disponible, puis réessayez.",
+    resetRequired: "Rien n’a changé. Relisez ce qui se passera lors du changement de parcours, confirmez, puis réessayez.",
   },
 } as const;
 
@@ -102,7 +105,7 @@ export default function AcademicTrackSelector({
   offline: boolean;
   onTransitioned: () => Promise<void>;
 }) {
-  const labels = copy[locale];
+  const labels = academicTrackCopy[locale];
   const [state, setState] = useState<CatalogueState>(offline ? "offline" : "loading");
   const [tracks, setTracks] = useState<AcademicTrack[]>([]);
   const [selectedId, setSelectedId] = useState("");
@@ -222,6 +225,7 @@ export default function AcademicTrackSelector({
         <div className="reset-consequence">
           <h3>{labels.resetTitle}</h3>
           <p>{labels.resetBody}</p>
+          <p>{labels.syncWarning}</p>
           <label className="answer-option">
             <input
               type="checkbox"
