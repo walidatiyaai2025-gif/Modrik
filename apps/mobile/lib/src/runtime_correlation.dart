@@ -9,7 +9,17 @@ final RegExp _correlationPattern = RegExp(
   r'^[A-Za-z0-9][A-Za-z0-9._:-]*$',
 );
 
-String? validDiagnosticCorrelationId(String? value) {
+const List<String> _sensitiveCorrelationMarkers = [
+  'authorization',
+  'bearer',
+  'cookie',
+  'password',
+  'secret',
+  'session',
+  'token',
+];
+
+String? validTransportCorrelationId(String? value) {
   if (value == null) return null;
   final length = value.length;
   if (length < diagnosticCorrelationMinLength ||
@@ -19,6 +29,17 @@ String? validDiagnosticCorrelationId(String? value) {
   final match = _correlationPattern.firstMatch(value);
   if (match == null || match.start != 0 || match.end != length) return null;
   return value;
+}
+
+String? validDiagnosticCorrelationId(String? value) {
+  final candidate = validTransportCorrelationId(value);
+  if (candidate == null) return null;
+  final lower = candidate.toLowerCase();
+  if (candidate.contains('@') ||
+      _sensitiveCorrelationMarkers.any(lower.contains)) {
+    return null;
+  }
+  return candidate;
 }
 
 String createDiagnosticCorrelationId() {
