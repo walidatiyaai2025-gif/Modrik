@@ -6,10 +6,11 @@ import RuntimeInspector from "./runtime-inspector";
 import "./globals.css";
 import "./learning-responsive-closeout.css";
 import "./auth.css";
+import "./landing.css";
 
 export const metadata: Metadata = {
   title: "MODRIK | مُدرك",
-  description: "MODRIK student web application.",
+  description: "MODRIK learning platform for students and system administrators.",
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
