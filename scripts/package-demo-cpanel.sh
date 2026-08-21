@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT_ROOT="${1:-$ROOT/.runtime/demo-cpanel}"
+WEB_STANDALONE="$ROOT/apps/web/.next/standalone"
+WEB_STATIC="$ROOT/apps/web/.next/static"
+BACKEND_SOURCE="$ROOT/apps/backend"
+DEPLOY_DOC="$ROOT/deploy/demo/DEPLOY_CPANEL.md"
+WEB_ENV_TEMPLATE="$ROOT/deploy/demo/web.env.example"
+BACKEND_ENV_TEMPLATE="$ROOT/deploy/demo/backend.env.example"
+
+fail() {
+  echo "DEMO_PACKAGE_ERROR: $*" >&2
+  exit 1
+}
+
+[[ -d "$WEB_STANDALONE" ]] || fail "Next standalone output is missing. Run the Web production build first."
+[[ -d "$WEB_STATIC" ]] || fail "Next static output is missing."
+[[ -f "$BACKEND_SOURCE/vendor/autoload.php" ]] || fail "Backend production vendor/autoload.php is missing. Run Composer install first."
+[[ -f "$BACKEND_SOURCE/public/index.php" ]] || fail "Backend public/index.php is missing."
+[[ -f "$DEPLOY_DOC" ]] || fail "Demo deployment instructions are missing."
+[[ -f "$WEB_ENV_TEMPLATE" ]] || fail "Web demo environment template is missing."
+[[ -f "$BACKEND_ENV_TEMPLATE" ]] || fail "Backend demo environment template is missing."
+
+rm -rf "$OUT_ROOT"
+mkdir -p "$OUT_ROOT/web" "$OUT_ROOT/backend"
+
+cp -a "$WEB_STANDALONE/." "$OUT_ROOT/web/"
+
+if [[ -f "$OUT_ROOT/web/server.js" ]]; then
+  WEB_APP_REL="."
+elif [[ -f "$OUT_ROOT/web/apps/web/server.js" ]]; then
+  WEB_APP_REL="apps/web"
+else
+  SERVER_PATH="$(find "$OUT_ROOT/web" -type f -name server.js -print -quit || true)"
+  [[ -n "$SERVER_PATH" ]] || fail "Could not locate the standalone Next server.js."
+  WEB_APP_REL="${SERVER_PATH#"$OUT_ROOT/web/"}"
+  WEB_APP_REL="${WEB_APP_REL%/server.js}"
+fi
+
+WEB_APP="$OUT_ROOT/web/$WEB_APP_REL"
+mkdir -p "$WEB_APP/.next"
+cp -a "$WEB_STATIC" "$WEB_APP/.next/static"
+if [[ -d "$ROOT/apps/web/public" ]]; then
+  rm -rf "$WEB_APP/public"
+  cp -a "$ROOT/apps/web/public" "$WEB_APP/public"
+fi
+cp "$WEB_ENV_TEMPLATE" "$WEB_APP/.env.demo.example"
+printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/WEB_APPLICATION_ROOT.txt"
+
+cp -a "$BACKEND_SOURCE/." "$OUT_ROOT/backend/"
+rm -rf \
+  "$OUT_ROOT/backend/.env" \
+  "$OUT_ROOT/backend/node_modules" \
+  "$OUT_ROOT/backend/tests" \
+  "$OUT_ROOT/backend/.phpunit.cache" \
+  "$OUT_ROOT/backend/storage/logs"/* \
+  "$OUT_ROOT/backend/database/database.sqlite"
+mkdir -p "$OUT_ROOT/backend/storage/logs"
+cp "$BACKEND_ENV_TEMPLATE" "$OUT_ROOT/backend/.env.demo.example"
+
+# A deployment artifact must never contain a live .env file.
+if find "$OUT_ROOT" -type f -name '.env' -print -quit | grep -q .; then
+  fail "A live .env file entered the deployment package."
+fi
+
+[[ -f "$WEB_APP/server.js" ]] || fail "Packaged Web startup server.js is missing."
+[[ -d "$WEB_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
+[[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
+[[ -f "$OUT_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
+[[ -f "$OUT_ROOT/backend/vendor/autoload.php" ]] || fail "Packaged Backend vendor/autoload.php is missing."
+
+cp "$DEPLOY_DOC" "$OUT_ROOT/DEPLOY.md"
+
+RELEASE_SHA="${GITHUB_SHA:-$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || printf 'unknown')}"
+printf '%s\n' "$RELEASE_SHA" > "$OUT_ROOT/RELEASE_SHA.txt"
+
+ZIP_PARENT="$(dirname "$OUT_ROOT")"
+ZIP_NAME="modrik-demo-cpanel-${RELEASE_SHA:0:12}.zip"
+rm -f "$ZIP_PARENT/$ZIP_NAME"
+(
+  cd "$ZIP_PARENT"
+  zip -qr "$ZIP_NAME" "$(basename "$OUT_ROOT")"
+)
+
+echo "Demo cPanel package ready: $ZIP_PARENT/$ZIP_NAME"
+echo "Next application root inside web payload: $WEB_APP_REL"
