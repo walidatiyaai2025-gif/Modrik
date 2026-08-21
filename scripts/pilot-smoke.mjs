@@ -11,6 +11,7 @@ import { boundedFailureDetail, runBoundedSync } from "./pilot-smoke-process.mjs"
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeRoot = join(repoRoot, ".runtime");
 const reportPath = join(runtimeRoot, "pilot-smoke-report.json");
+const correlationAcceptancePath = join(repoRoot, "docs/qa/p0-observability-correlation-acceptance.md");
 const args = new Set(process.argv.slice(2));
 const planOnly = args.has("--plan");
 const strict = args.has("--strict");
@@ -79,6 +80,14 @@ const gates = {
       backendContainsCanonicalCorrelationBoundary(),
     evidence: "Web runtime diagnostics test + Mobile runtime diagnostics test + Backend canonical X-Correlation-ID boundary",
   },
+  correlationAcceptance: {
+    label: "Issue #101 terminal composed correlation trace accepted",
+    check: () => evidenceLedgerContains(
+      correlationAcceptancePath,
+      "OBSERVABILITY CORRELATION ACCEPTANCE COMPLETE",
+    ),
+    evidence: "docs/qa/p0-observability-correlation-acceptance.md with terminal same-support-reference Web/Mobile -> real Laravel Backend -> privileged diagnostics evidence",
+  },
   browserRuntime: {
     label: "Executable Web browser runtime acceptance integrated",
     check: () =>
@@ -92,92 +101,105 @@ const gates = {
 
 const acceptanceRows = [
   {
-    id: "public-surfaces",
-    label: "Public /, trust, help and guide surfaces",
-    suites: ["web"],
-    evidence: "Public content/render/metadata tests run inside the complete Web test suite.",
-  },
-  {
-    id: "web-auth-session",
-    label: "Web sign-in and session restoration",
-    suites: ["backend", "web"],
-    evidence: "Auth lifecycle + Web Auth/session tests.",
-  },
-  {
-    id: "mobile-auth-session",
-    label: "Mobile sign-in and session restoration",
-    suites: ["backend", "mobile"],
-    evidence: "Auth lifecycle + Mobile Auth/session/widget tests.",
-  },
-  {
-    id: "academic-context",
-    label: "Academic-track selection and change",
+    id: "registration-login-session",
+    label: "Registration / login / session",
     suites: ["backend", "web", "mobile"],
-    evidence: "Academic context/catalogue lifecycle and client-consumption tests.",
+    evidence: "Backend Auth lifecycle plus Web/Mobile sign-in, session restoration and revocation coverage.",
   },
   {
-    id: "lesson-read",
-    label: "Published lesson read",
-    suites: ["fixture"],
-    evidence: "Live Next Learning BFF -> Laravel fixture smoke reads a published lesson.",
-  },
-  {
-    id: "practice",
-    label: "Practice start, persisted resume and submit",
-    suites: ["backend", "fixture", "mobile"],
-    evidence: "Authoritative Assessment/learning tests plus live attempt/answer/submit smoke.",
-  },
-  {
-    id: "progress",
-    label: "Progress after graded practice",
-    suites: ["backend", "fixture"],
-    evidence: "Live fixture smoke reads progress after authoritative grading.",
-  },
-  {
-    id: "offline-recovery",
-    label: "Offline interruption and process-restart recovery",
-    suites: ["backend", "mobile"],
-    gates: ["durableRecovery"],
-    evidence: "Offline Sync/authority tests plus durable account-scoped recovery-store tests after integration.",
-  },
-  {
-    id: "session-loss-recovery",
-    label: "Login/session-loss recovery",
+    id: "verification-required",
+    label: "Verification-required path",
     suites: ["backend", "web", "mobile"],
-    evidence: "Session revocation/401 recovery and client credential-clearing tests.",
+    evidence: "Backend verification/resend lifecycle plus explicit accessible Web/Mobile verification UX coverage.",
   },
   {
-    id: "academic-change-recovery",
-    label: "Academic-track change recovery and stale-state invalidation",
+    id: "academic-track-lifecycle",
+    label: "Academic track catalogue / select / change / reset",
     suites: ["backend", "web", "mobile"],
     gates: ["durableRecovery"],
-    evidence: "Academic reset semantics plus durable cache/pending-operation invalidation after integration.",
+    evidence: "Academic catalogue/context lifecycle, reset semantics, client consumption and stale-state invalidation tests.",
   },
   {
-    id: "admin-publication",
-    label: "Admin preparation -> validate -> approve -> publish",
+    id: "dashboard-lesson-study",
+    label: "Dashboard -> lesson / study",
+    suites: ["web", "mobile", "fixture"],
+    evidence: "Visible learning workspace coverage plus live Next Learning BFF -> Laravel fixture lesson read.",
+  },
+  {
+    id: "practice-attempt",
+    label: "Practice / attempt",
+    suites: ["backend", "web", "mobile", "fixture"],
+    evidence: "Authoritative Assessment/client practice tests plus live attempt/answer/submit smoke.",
+  },
+  {
+    id: "authoritative-resume-order",
+    label: "Backend-authoritative attempt resume / order",
+    suites: ["backend", "web", "mobile", "fixture"],
+    evidence: "Server-owned attempt snapshot/order tests, Web resume boundary, Mobile cached/online resume and live fixture attempt flow.",
+  },
+  {
+    id: "scoring-authority",
+    label: "Scoring authority",
+    suites: ["backend", "web", "mobile", "fixture"],
+    evidence: "Backend immutable-snapshot scoring authority plus clients that never submit scoring/seed/order authority and live graded result.",
+  },
+  {
+    id: "offline-pending-answer",
+    label: "Offline pending answer",
+    suites: ["backend", "web", "mobile"],
+    evidence: "Issue #14 pending-operation and offline client-boundary tests preserve one authoritative operation identity.",
+  },
+  {
+    id: "retry-replay",
+    label: "Retry / replay",
+    suites: ["backend", "web", "mobile"],
+    evidence: "Timeout-before-ACK, reconnect replay, conflicts and outbox retry/redrive coverage.",
+  },
+  {
+    id: "durable-ack-no-duplicate",
+    label: "Durable ACK / no duplicate",
+    suites: ["backend", "web", "mobile"],
+    evidence: "Durable acknowledgements, idempotent replay and client ACK removal/no-resend coverage.",
+  },
+  {
+    id: "process-restart-recovery",
+    label: "Process-restart recovery",
+    suites: ["backend", "web", "mobile"],
+    gates: ["durableRecovery"],
+    evidence: "Durable account-scoped recovery-store reconstruction plus exact authoritative attempt/pending-operation recovery.",
+  },
+  {
+    id: "admin-publication-safety",
+    label: "Admin publication safety",
     suites: ["backend"],
-    evidence: "Content preparation/publication/destructive-confirmation Feature tests.",
+    evidence: "Content preparation/publication/destructive-confirmation tests including official-role boundary, UGC exclusion and atomic retry.",
   },
   {
-    id: "runtime-diagnostics",
-    label: "Runtime diagnostics and Inspector evidence",
+    id: "public-coming-soon-boundary",
+    label: "Public / Coming Soon boundary",
+    suites: ["web"],
+    evidence: "Public route/copy/metadata tests preserve explicit owner-controlled legal/release blockers and canonical Coming Soon branding.",
+  },
+  {
+    id: "runtime-diagnostics-correlation",
+    label: "Runtime diagnostics / correlation",
     suites: ["backend", "web", "mobile"],
-    gates: ["runtimeDiagnostics"],
-    evidence: "Canonical Backend correlation boundary plus Web/Mobile bounded Runtime Inspector tests after integration.",
+    gates: ["runtimeDiagnostics", "correlationAcceptance"],
+    evidence: "Integrated component diagnostics plus Issue #101 terminal single composed same-support-reference trace to real Laravel and privileged diagnostics.",
   },
   {
-    id: "locales-direction",
-    label: "AR/EN/FR and RTL/LTR visible client flows",
-    suites: ["web", "mobile"],
-    evidence: "Web copy/direction tests and Flutter locale/direction widget tests.",
+    id: "browser-runtime-evidence",
+    label: "Browser runtime evidence",
+    suites: ["browser"],
+    gates: ["browserRuntime"],
+    evidence: "Executed Issue #108 current-tree real Chromium runtime/session/Inspector/keyboard/overflow acceptance with no required FAIL rows.",
   },
   {
-    id: "compact-large-text",
-    label: "Compact and 200%/large-text client evidence",
+    id: "locales-direction-smoke",
+    label: "AR / EN / FR + RTL / LTR smoke",
     suites: ["web", "mobile", "browser"],
     gates: ["browserRuntime"],
-    evidence: "Flutter compact/large-text widget coverage plus executed Issue #108 current-tree browser responsive/200%-equivalent/keyboard-focus acceptance.",
+    evidence: "Web/Mobile locale-direction tests plus Issue #108 real Chromium AR/RTL, FR/LTR and EN/LTR control coverage.",
   },
 ];
 
@@ -464,6 +486,15 @@ function backendContainsCanonicalCorrelationBoundary() {
     if (treeContains(root, "X-Correlation-ID")) return true;
   }
   return false;
+}
+
+function evidenceLedgerContains(path, terminalPhrase) {
+  if (!existsSync(path)) return false;
+  try {
+    return readFileSync(path, "utf8").includes(terminalPhrase);
+  } catch {
+    return false;
+  }
 }
 
 function treeContains(root, needle) {
