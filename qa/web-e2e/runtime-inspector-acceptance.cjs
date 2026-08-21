@@ -161,7 +161,11 @@ async function stopChild(child) {
 }
 
 async function waitForLogin(page) {
-  await page.locator(".auth-card form").first().waitFor({ state: "visible", timeout: 15000 });
+  try {
+    await page.locator(".auth-card form").first().waitFor({ state: "visible", timeout: 15000 });
+  } catch {
+    throw new Error("E2E_INSPECTOR_HYDRATION_PRECONDITION");
+  }
 }
 
 async function setLocale(page, locale) {
