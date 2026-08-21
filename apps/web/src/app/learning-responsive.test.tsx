@@ -39,6 +39,17 @@ test("Learning locale and navigation controls wrap under 200 percent text pressu
   );
 });
 
+test("French dashboard copy may break inside the narrow hero instead of widening the page", () => {
+  assert.match(
+    css,
+    /\.dashboard-hero h2,[\s\S]*?\.dashboard-hero p:not\(\.eyebrow\),[\s\S]*?\.progress-card > div > \*\s*\{[\s\S]*?overflow-wrap:\s*anywhere;/,
+  );
+  assert.match(
+    css,
+    /\.dashboard-hero,\s*\.dashboard-hero > \*,[\s\S]*?\.progress-card > div > \*\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/,
+  );
+});
+
 test("Collapsed Learning grids use a zero min-content floor", () => {
   assert.match(
     css,
