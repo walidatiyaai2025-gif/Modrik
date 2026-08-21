@@ -22,9 +22,9 @@ final class ContentRightsReviewService
         User $user,
         string $importId,
         string $decision,
-        ?string $rightsBasis,
         ?string $evidenceReference,
         ?string $note,
+        ?string $rightsBasis = null,
     ): array {
         if (! in_array((string) $user->role, self::OPERATOR_ROLES, true)
             || (string) $user->account_status !== 'active'
