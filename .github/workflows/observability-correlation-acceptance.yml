@@ -1,0 +1,124 @@
+name: Observability Correlation Acceptance
+
+on:
+  push:
+    branches: ['codex/slot7-observability-correlation-acceptance']
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/observability-correlation-acceptance.yml'
+      - 'apps/web/scripts/observability-correlation-acceptance.mts'
+      - 'apps/mobile/test/observability_live_backend_acceptance_test.dart'
+      - 'qa/observability/verify-backend-correlation.php'
+      - 'qa/observability/live-trace.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ACCEPTANCE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  OBS_LIVE_TRACE_PORT: '18080'
+
+jobs:
+  terminal-correlation-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve authoritative main and prove harness-only delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          acceptance_main_sha="$(git rev-parse origin/main)"
+          echo "ACCEPTANCE_MAIN_SHA=$acceptance_main_sha" >> "$GITHUB_ENV"
+          git merge-base --is-ancestor "$acceptance_main_sha" HEAD || {
+            echo "Candidate does not contain current authoritative main: $acceptance_main_sha" >&2
+            exit 1
+          }
+          git diff --name-only "$acceptance_main_sha"...HEAD | tee /tmp/acceptance-delta.txt
+          unexpected="$(grep -Ev '^(\.github/workflows/observability-correlation-acceptance\.yml|apps/web/scripts/observability-correlation-acceptance\.mts|apps/mobile/test/observability_live_backend_acceptance_test\.dart|qa/observability/verify-backend-correlation\.php|qa/observability/live-trace\.sh)$' /tmp/acceptance-delta.txt || true)"
+          test -z "$unexpected"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+
+      - name: Run one-command clean-checkout real-Laravel live trace
+        shell: bash
+        run: bash qa/observability/live-trace.sh
+
+      - name: Prove deterministic Laravel cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          if curl --silent --output /dev/null --connect-timeout 0.2 --max-time 0.5 "http://127.0.0.1:${OBS_LIVE_TRACE_PORT}/up" 2>/dev/null; then
+            echo 'Live-trace Laravel server is still reachable after runner exit.' >&2
+            exit 1
+          fi
+          if pgrep -f "[p]hp artisan serve --host=127.0.0.1 --port=${OBS_LIVE_TRACE_PORT}" >/dev/null; then
+            echo 'Live-trace Laravel process survived deterministic cleanup.' >&2
+            exit 1
+          fi
+
+      - name: Re-run integrated Backend observability privacy/Inspector tests
+        working-directory: apps/backend
+        run: timeout --foreground --signal=TERM --kill-after=10s 600s php artisan test tests/Feature/Observability tests/Unit/Observability
+
+      - name: Re-run integrated Web Inspector/privacy/correlation tests
+        working-directory: apps/web
+        run: timeout --foreground --signal=TERM --kill-after=10s 600s npm test
+
+      - name: Re-run integrated Mobile Inspector/privacy/correlation tests
+        working-directory: apps/mobile
+        run: >-
+          timeout --foreground --signal=TERM --kill-after=10s 600s
+          flutter test
+          test/runtime_diagnostic_transport_test.dart
+          test/runtime_diagnostics_test.dart
+          test/runtime_inspector_widget_test.dart
+          test/runtime_correlation_test.dart
+
+      - name: Emit exact evidence bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s acceptance-artifacts/web.json
+          test -s acceptance-artifacts/mobile.json
+          test -s acceptance-artifacts/backend-admin.json
+          echo "authoritative_main=$ACCEPTANCE_MAIN_SHA"
+          echo "candidate_head=$ACCEPTANCE_HEAD_SHA"
+          echo 'A Web Learning -> BFF -> real Laravel failure: PASS'
+          echo 'B Mobile Learning -> real Laravel + fallback + business-ID separation: PASS'
+          echo 'C successful server-reaching control: PASS'
+          echo 'D client-only timeout -> Backend event count 0: PASS'
+          echo 'privacy negative sentinels + privileged Inspector export/audit: PASS'
+          cat acceptance-artifacts/web.json
+          cat acceptance-artifacts/mobile.json
+          cat acceptance-artifacts/backend-admin.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: observability-live-trace-evidence
+          path: acceptance-artifacts
+          if-no-files-found: warn
