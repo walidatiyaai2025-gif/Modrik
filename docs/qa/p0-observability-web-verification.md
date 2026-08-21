@@ -2,8 +2,8 @@
 
 Issue: #96  
 Umbrella: #92  
-Backend diagnostic contract owner: #94  
-Learning BFF dependency: #80 / PR #93
+Backend diagnostic contract owner: #94 / canonical PR #113  
+Integrated Learning BFF dependency: #80 / PR #93
 
 ## Runtime Inspector activation
 
@@ -35,21 +35,40 @@ Privacy-negative tests seed recognizable fake bearer/cookie/password/provider/an
 
 The byte-budget regression fills events with maximum bounded metadata until the 32 KiB ceiling is crossed and proves deterministic oldest-first eviction while retaining the newest event. Storage/export failures remain best-effort and may not block product flows.
 
-These corrections directly address routed #100 findings W1/W2 and the #102 explicit byte-budget acceptance gap. Exact-head CI and support-lane re-review remain required before those findings are considered closed.
+These corrections address routed #100 findings W1/W2 and the #102 explicit byte-budget acceptance gap. Final-current-head independent support rechecks remain required before release closure.
 
 ## Correlation flow
 
-The Web boundary currently uses validated `X-Correlation-ID` values. Browser requests generate UUID correlation IDs, same-origin Auth/Learning BFF routes forward them to the Backend, and the BFF returns a valid Backend echo/replacement when supplied. Arbitrary inbound strings are replaced rather than reflected.
+The Web boundary uses validated `X-Correlation-ID` values. Browser requests generate UUID correlation IDs, same-origin Auth/Learning BFF routes forward them to the Backend, and the BFF returns a valid Backend echo/replacement when supplied. Arbitrary inbound strings are replaced rather than reflected.
 
-Correlation IDs are diagnostics-only. They do not replace or influence Sync operation IDs, Idempotency-Key, Assessment authority, Auth session authority or any domain business identifier.
+Correlation IDs are diagnostics-only. They do not replace or influence Sync operation IDs, `Idempotency-Key`, Assessment authority, Auth session authority or any domain business identifier.
 
-Issue #94 owns the Backend/common diagnostic contract. If #94 establishes a different canonical header before integration, #96 must reconcile to that contract and rerun exact-head CI.
+Issue #94 / canonical PR #113 owns the Backend/common diagnostic contract. If that contract changes before #103 integration, #96 must reconcile to authoritative `main` and rerun exact-head verification rather than redefine Backend authority.
 
-## #80 preservation
+## #80 preservation and current-main reconciliation
 
-Issue #96 is initially stacked on PR #93 because both touch `apps/web/src/app/api/learning/[...path]/route.ts`. The #80 behavior remains intact: an upstream Learning `401` appends `webSessionClearCookie()` while preserving upstream status/body/cache behavior and existing CSRF/origin checks.
+Issue #80 / PR #93 is merged. PR #103 now targets `main` directly and no longer carries the #80-owned `learning-bff-session.test.tsx` in its diff.
 
-Before #96 is integrated, PR #93 must merge first or the Integration Captain must otherwise reconcile the shared route. #96 must then be retargeted/reconciled to current `main` and rerun the complete governed CI matrix.
+The integrated #80 behavior remains intact in the reconciled Learning BFF: an upstream Learning `401` appends `webSessionClearCookie()` while preserving upstream status/body/cache behavior and existing CSRF/origin checks. #96 adds diagnostic correlation propagation around that existing behavior without changing its authority.
+
+The reconciled #96 semantic delta is limited to its Web/QA files. Every future advance of `main` before integration requires a fresh compare/reconciliation and exact-head governed CI.
+
+## Compact / 200% accessibility boundary
+
+The Inspector uses intrinsic-size containment (`min-width: 0`, bounded descendants and wrapped diagnostic metadata) so long allowlisted values cannot force the drawer wider than its viewport. Correlation IDs render with LTR bidi isolation even inside RTL locales. At very narrow widths the drawer uses reduced inline padding while preserving 44px interaction targets and focus behavior.
+
+The final #96 compact fix specifically addresses the routed AR/RTL 320×720 at 200%-equivalent horizontal-overflow case without weakening privacy, focus, or production gating.
+
+## Browser acceptance dependency
+
+Repository #108 owns real Chromium acceptance and does not change #96 production code. On the current reconciled #103 candidate, #108 confirms the prior Learning composition conflict is closed and #93/session-security compatibility remains PASS.
+
+Current authoritative `main` also has an independently reproduced merged #66 CSP/Next hydration regression. The browser cannot meaningfully exercise the Inspector until that Web-security defect is repaired because client hydration stops before the Inspector can initialize. The sanitized evidence is:
+
+- CSP hydration workflow `32460064728`: `E2E_CSP_SCRIPT_BLOCKED_HYDRATION`;
+- browser boot-security workflow `32460064737`: `E2E_AUTH_BOOT_CSP_SCRIPT_BLOCKED`.
+
+#96 must not weaken CSP to manufacture browser green. After the authorized #66/Web-security repair, #108 must rerun the then-current exact #103 head for AR/RTL 320×720/200%, FR/LTR 360×800/200%, EN desktop, production-default-off, keyboard/focus, privacy/export and integrated session-security.
 
 ## Verification commands
 
@@ -64,4 +83,8 @@ npm run test
 npm run build
 ```
 
-Repository Bootstrap CI remains mandatory on the exact final head, including contracts/OpenAPI/tokens, Backend SQLite, MariaDB 10.11 migration round trip/full suite, Flutter analyze/tests, Gitleaks and dependency review.
+Repository Bootstrap CI remains mandatory on the exact final head, including contracts/OpenAPI/tokens, Backend SQLite, MariaDB 10.11 migration round trip/full suite, Flutter analyze/tests plus the Android signing identity gate, Gitleaks, dependency review and the governed aggregate.
+
+## Latest verified implementation checkpoint
+
+Before this documentation refresh, reconciled product head `fa871125119661450af774f35ae2735d578940be` was 0 behind authoritative `main` `1a0aa4c95e6b9280bacf5c34c074c6adece1df98`, contained exactly 16 #96 files, and passed Bootstrap `32459973722` with the complete governed matrix green. Because this document is part of PR #103, any documentation-refresh head must itself rerun the required exact-head CI before final handoff.
