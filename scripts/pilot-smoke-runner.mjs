@@ -1,40 +1,39 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { boundedFailureDetail, runBoundedSync } from "./pilot-smoke-process.mjs";
+
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const harnessPath = join(repoRoot, "scripts/pilot-smoke.mjs");
 const requestedPort = process.env.MODRIK_PILOT_SMOKE_PORT;
 const pilotPort = requestedPort || String(await findAvailableLoopbackPort());
+const harnessTimeoutMs = 55 * 60_000;
 
 if (!requestedPort) {
   console.log(`Pilot smoke selected free loopback port ${pilotPort}.`);
 }
 
-const result = spawnSync(process.execPath, [harnessPath, ...process.argv.slice(2)], {
+const execution = runBoundedSync(process.execPath, [harnessPath, ...process.argv.slice(2)], {
   cwd: repoRoot,
   env: {
     ...process.env,
     MODRIK_PILOT_SMOKE_PORT: pilotPort,
   },
   stdio: "inherit",
+  timeoutMs: harnessTimeoutMs,
 });
+const failureDetail = boundedFailureDetail(execution, "Pilot smoke harness");
 
-if (result.error) {
-  console.error(`Unable to start Pilot smoke harness: ${result.error.message}`);
-  process.exit(1);
+if (failureDetail) {
+  console.error(failureDetail);
+  process.exit(execution.timedOut ? 124 : (execution.result.status ?? 1));
 }
 
-if (result.signal) {
-  console.error(`Pilot smoke harness terminated by signal ${result.signal}.`);
-  process.exit(1);
-}
-
-process.exit(result.status ?? 1);
+process.exit(0);
 
 async function findAvailableLoopbackPort() {
   const server = createServer();
