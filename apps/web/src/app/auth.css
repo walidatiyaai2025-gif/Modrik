@@ -8,7 +8,9 @@
 }
 
 .auth-shell,
-.auth-shell * {
+.auth-shell *,
+.auth-authenticated,
+.auth-authenticated * {
   box-sizing: border-box;
 }
 
@@ -78,7 +80,9 @@
 }
 
 .auth-brand-lockup.compact {
-  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
 }
 
 .auth-brand-lockup .auth-mark {
@@ -351,6 +355,8 @@
 }
 
 .auth-authenticated {
+  min-width: 0;
+  max-width: 100%;
   min-height: 100vh;
   background: var(--modrik-background);
 }
@@ -360,6 +366,8 @@
   z-index: 40;
   inset-block-start: 0;
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: 1rem;
   min-height: 4.75rem;
@@ -370,13 +378,21 @@
   border-block-end: 1px solid color-mix(in srgb, var(--modrik-sky) 15%, transparent);
 }
 
+.auth-topbar > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .auth-topnav {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.35rem;
   margin-inline: auto;
 }
 
 .auth-topnav button {
+  min-width: 0;
   color: color-mix(in srgb, var(--modrik-white) 72%, transparent);
 }
 
@@ -413,6 +429,7 @@
 
 .auth-permission-banner > div {
   display: grid;
+  min-width: 0;
   gap: 0.2rem;
 }
 
@@ -425,12 +442,17 @@
 
 .auth-account-page {
   width: min(1180px, calc(100% - 2rem));
+  min-width: 0;
+  max-width: 100%;
   margin: 0 auto;
   padding-block: clamp(1.5rem, 4vw, 3.5rem);
 }
 
 .auth-account-header {
+  min-width: 0;
+  max-width: 100%;
   margin-block-end: 1.5rem;
+  overflow-wrap: anywhere;
 }
 
 .auth-account-header h1 {
@@ -438,11 +460,13 @@
   font-size: clamp(2rem, 4vw, 3.25rem);
   font-weight: 760;
   letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
 }
 
 .auth-account-header p {
   max-width: 72ch;
   color: var(--modrik-slate);
+  overflow-wrap: anywhere;
 }
 
 .auth-eyebrow {
@@ -454,13 +478,18 @@
 
 .auth-account-grid {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
 .auth-security-card {
+  min-width: 0;
+  max-width: 100%;
   padding: clamp(1.25rem, 3vw, 2rem);
   box-shadow: none;
+  overflow-wrap: anywhere;
 }
 
 .auth-security-card p {
@@ -471,6 +500,8 @@
 
 .auth-card-heading {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
@@ -478,12 +509,16 @@
 
 .auth-session-list {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.65rem;
   margin-block: 1.25rem;
 }
 
 .auth-session-list li {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -495,24 +530,32 @@
 
 .auth-session-list li > div {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.25rem;
+  overflow-wrap: anywhere;
 }
 
 .auth-session-list span {
   color: var(--modrik-slate);
   font-size: 0.86rem;
+  overflow-wrap: anywhere;
 }
 
 .auth-current-pill {
+  max-width: 100%;
   padding: 0.3rem 0.55rem;
   color: var(--modrik-navy) !important;
   background: color-mix(in srgb, var(--modrik-teal) 18%, transparent);
   border-radius: 999px;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .auth-actions-row {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-block-start: 1rem;
@@ -539,6 +582,8 @@
 
 .auth-inline-error {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -546,6 +591,7 @@
   padding: 0.8rem;
   background: color-mix(in srgb, var(--modrik-error) 7%, var(--modrik-white));
   border-radius: var(--modrik-radius-sm);
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 900px) {
@@ -579,11 +625,11 @@
   }
 
   .auth-topnav button {
-    flex: 1;
+    flex: 1 1 0;
   }
 
   .auth-account-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -620,6 +666,10 @@
     grid-template-columns: 1fr;
   }
 
+  .auth-topbar {
+    padding-inline: clamp(0.75rem, 4vw, 1rem);
+  }
+
   .auth-permission-banner,
   .auth-session-list li,
   .auth-card-heading,
@@ -630,6 +680,10 @@
 
   .auth-topbar .auth-brand-lockup span {
     display: none;
+  }
+
+  .auth-account-page {
+    width: min(100% - 1.5rem, 1180px);
   }
 
   .auth-loading {
