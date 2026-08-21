@@ -126,7 +126,7 @@ final class ContentRightsReview extends Page
 
     public function setLocale(string $locale): void
     {
-        if (! in_array($locale, ['ar', 'en', 'fr'], true)) {
+        if (in_array($locale, ['ar', 'en', 'fr'], true) === false) {
             return;
         }
         session()->put('admin_locale', $locale);
@@ -168,11 +168,11 @@ final class ContentRightsReview extends Page
     private function operator(): User
     {
         $user = auth()->user();
-        if (! $user instanceof User) {
-            abort(403);
+        if ($user instanceof User) {
+            return $user;
         }
 
-        return $user;
+        abort(403);
     }
 
     /** @return list<string> */
@@ -184,16 +184,15 @@ final class ContentRightsReview extends Page
             ->where('event_type', 'content.rights_review_required')
             ->orderBy('occurred_at')
             ->value('payload');
-        if (! is_string($payload) || $payload === '') {
-            return [];
-        }
-        $decoded = json_decode($payload, true);
-        $references = is_array($decoded) ? ($decoded['source_references'] ?? null) : null;
-        if (! is_array($references) || ! array_is_list($references)) {
-            return [];
+        if (is_string($payload) && $payload !== '') {
+            $decoded = json_decode($payload, true);
+            $references = is_array($decoded) ? ($decoded['source_references'] ?? null) : null;
+            if (is_array($references) && array_is_list($references)) {
+                return array_values(array_filter($references, 'is_string'));
+            }
         }
 
-        return array_values(array_filter($references, 'is_string'));
+        return [];
     }
 
     private function text(string $ar, string $en, string $fr): string
