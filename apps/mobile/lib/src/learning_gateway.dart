@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'academic_track_catalogue.dart';
 import 'models.dart';
+import 'runtime_diagnostic_transport.dart';
+import 'runtime_diagnostics.dart';
 
 class MobileBootstrapConfig {
   const MobileBootstrapConfig({
@@ -141,6 +144,7 @@ class HttpLearningGateway
     this.bearerTokenProvider,
     this.onAuthenticationRejected,
     this.onEmailVerificationRequired,
+    this.diagnostics,
     HttpClient? client,
   })  : _staticBearerToken = bearerToken,
         _client = client ?? HttpClient();
@@ -150,6 +154,7 @@ class HttpLearningGateway
   final String? Function()? bearerTokenProvider;
   final void Function()? onAuthenticationRejected;
   final void Function()? onEmailVerificationRequired;
+  final RuntimeDiagnostics? diagnostics;
   final HttpClient _client;
 
   String? get _bearerToken =>
@@ -306,8 +311,13 @@ class HttpLearningGateway
     Map<String, dynamic>? body,
     String? idempotencyKey,
   }) async {
+    final diagnosticAttempt = RuntimeDiagnosticTransportAttempt.start(
+      diagnostics,
+      diagnosticOperationName('learning', method, path),
+    );
     try {
       final request = await _client.openUrl(method, baseUrl.resolve(path));
+      diagnosticAttempt.attach(request);
       request.headers.set(
         HttpHeaders.acceptHeader,
         'application/json, application/problem+json',
@@ -324,6 +334,7 @@ class HttpLearningGateway
         request.write(jsonEncode(body));
       }
       final response = await request.close();
+      diagnosticAttempt.acceptResponse(response);
       final text = await response.transform(utf8.decoder).join();
       final payload = text.isEmpty ? <String, dynamic>{} : jsonDecode(text);
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -342,9 +353,15 @@ class HttpLearningGateway
             failure.code == 'EMAIL_VERIFICATION_REQUIRED') {
           onEmailVerificationRequired?.call();
         }
+        diagnosticAttempt.backendFailure(
+          status: failure.status,
+          stableCode: failure.code,
+          retryable: failure.retryable,
+        );
         throw failure;
       }
       if (payload is! Map) {
+        diagnosticAttempt.invalidResponse(stableCode: 'MOBILE_INVALID_RESPONSE');
         throw const LearningFailure(
           status: 0,
           code: 'MOBILE_INVALID_RESPONSE',
@@ -353,10 +370,31 @@ class HttpLearningGateway
         );
       }
       final envelope = Map<String, dynamic>.from(payload);
+      diagnosticAttempt.success(status: response.statusCode);
       return envelope['data'];
-    } on LearningFailure {
+    } on LearningFailure catch (failure) {
+      if (failure.status > 0) {
+        diagnosticAttempt.backendFailure(
+          status: failure.status,
+          stableCode: failure.code,
+          retryable: failure.retryable,
+        );
+      } else if (failure.code == 'MOBILE_NETWORK_OFFLINE') {
+        diagnosticAttempt.offline(stableCode: failure.code);
+      } else {
+        diagnosticAttempt.invalidResponse(stableCode: failure.code);
+      }
       rethrow;
+    } on TimeoutException {
+      diagnosticAttempt.transportFailure(stableCode: 'MOBILE_NETWORK_TIMEOUT');
+      throw const LearningFailure(
+        status: 0,
+        code: 'MOBILE_NETWORK_TIMEOUT',
+        message: 'The learning request timed out.',
+        retryable: true,
+      );
     } on SocketException catch (error) {
+      diagnosticAttempt.offline();
       throw LearningFailure(
         status: 0,
         code: 'MOBILE_NETWORK_OFFLINE',
@@ -364,6 +402,7 @@ class HttpLearningGateway
         retryable: true,
       );
     } on HttpException catch (error) {
+      diagnosticAttempt.transportFailure();
       throw LearningFailure(
         status: 0,
         code: 'MOBILE_NETWORK_ERROR',
@@ -371,6 +410,7 @@ class HttpLearningGateway
         retryable: true,
       );
     } on FormatException {
+      diagnosticAttempt.invalidResponse(stableCode: 'MOBILE_INVALID_RESPONSE');
       throw const LearningFailure(
         status: 0,
         code: 'MOBILE_INVALID_RESPONSE',
