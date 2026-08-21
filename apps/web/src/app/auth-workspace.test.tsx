@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { authCopy, localeDirection } from "./auth-copy";
 import { ProviderPendingNotice, SessionExpiredNotice } from "./auth-workspace";
+
+const authCss = readFileSync(new URL("./auth.css", import.meta.url), "utf8");
 
 test("AR EN FR auth copy stays complete and Arabic is RTL", () => {
   const englishKeys = Object.keys(authCopy.en).sort();
@@ -31,4 +34,15 @@ test("enumeration-resistant recovery copy does not assert account existence", ()
   }
   assert.match(authCopy.en.recoveryAccepted, /^If an eligible account/);
   assert.doesNotMatch(authCopy.en.recoveryAccepted, /account exists|account does not exist/i);
+});
+
+test("Auth chrome consumes the canonical logo and semantic warning/error tokens", () => {
+  assert.match(authCss, /background-image:\s*url\("\/brand\/logo-horizontal\.svg"\)/);
+  assert.match(authCss, /\.auth-loading \.auth-mark\s*{[\s\S]*?display:\s*none;/);
+  assert.match(authCss, /var\(--modrik-warning\)/);
+  assert.match(authCss, /var\(--modrik-error\)/);
+
+  for (const offTokenColor of ["#f5a524", "#8f1d18", "#9f241f", "#b42318"]) {
+    assert.doesNotMatch(authCss, new RegExp(offTokenColor, "i"));
+  }
 });
