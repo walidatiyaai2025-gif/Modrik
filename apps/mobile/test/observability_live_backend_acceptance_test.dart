@@ -43,6 +43,8 @@ void main() {
       final diagnostics = RuntimeDiagnostics(
         config: _config,
         persistence: persistence,
+        maxEvents: 12,
+        maxBytes: 8192,
       );
       await diagnostics.initialize();
 
@@ -101,7 +103,11 @@ void main() {
       expect(liveEvent.metadata['http_status'], 404);
 
       const syncOperationId = 'op-stable-issue14-acceptance-001';
+      const idempotencyKey = 'idem-stable-issue14-acceptance-001';
+      const assessmentAttemptId = '01J88888888888888888888888';
       expect(liveEvent.correlationId, isNot(syncOperationId));
+      expect(liveEvent.correlationId, isNot(idempotencyKey));
+      expect(liveEvent.correlationId, isNot(assessmentAttemptId));
 
       // The live Backend is authoritative for the first half of C. This local
       // synthetic server isolates the second half: an invalid Backend correlation
@@ -160,6 +166,9 @@ void main() {
           connectivity: DiagnosticConnectivity.online,
           currentFlow: 'learning.acceptance',
         );
+        final exportedBytes = utf8.encode(exported).length;
+        expect(diagnostics.events.length, lessThanOrEqualTo(12));
+        expect(exportedBytes, lessThanOrEqualTo(8192));
         for (final sentinel in sentinels) {
           expect(exported, isNot(contains(sentinel)));
           expect(persistence.encoded ?? '', isNot(contains(sentinel)));
@@ -176,6 +185,8 @@ void main() {
               'operation': liveEvent.operation,
               'result': liveEvent.result,
               'sync_operation_id_distinct': liveEvent.correlationId != syncOperationId,
+              'idempotency_key_distinct': liveEvent.correlationId != idempotencyKey,
+              'assessment_id_distinct': liveEvent.correlationId != assessmentAttemptId,
             },
             'C_invalid_backend_correlation_fallback': {
               'request_correlation_id': invalidFallbackRequestCorrelation,
@@ -184,7 +195,12 @@ void main() {
             },
           },
           'privacy_sentinel_count': sentinels.length,
-          'diagnostic_export_bytes': utf8.encode(exported).length,
+          'bounds': {
+            'event_count': diagnostics.events.length,
+            'event_count_limit': 12,
+            'diagnostic_export_bytes': exportedBytes,
+            'diagnostic_export_byte_limit': 8192,
+          },
         };
         final encodedEvidence = const JsonEncoder.withIndent('  ').convert(evidence);
         for (final sentinel in sentinels) {
