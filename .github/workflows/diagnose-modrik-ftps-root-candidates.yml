@@ -1,0 +1,125 @@
+name: Diagnose MODRIK FTPS Root Candidates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      API_URL: https://api.demo.modrik.org
+      ORIGIN_IP: 65.21.208.232
+
+    steps:
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_USER"
+          test -n "$FTP_PASSWORD"
+
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Probe candidate FTP roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          nonce="$(openssl rand -hex 10)"
+          marker="MODRIK_ROOT_OK_$nonce"
+          printf '%s\n' "$marker" > /tmp/modrik-root-marker.txt
+
+          candidates=(
+            "."
+            "public"
+            "api.demo.modrik.org"
+            "api.demo.modrik.org/public"
+            "public_html/api.demo.modrik.org"
+            "public_html/api.demo.modrik.org/public"
+          )
+
+          cleanup_remote() {
+            local candidate="$1"
+            local remote="$2"
+            set +e
+            timeout 20 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+              set ftp:ssl-force true;
+              set ftp:ssl-protect-data true;
+              set ssl:verify-certificate yes;
+              set ssl:check-hostname no;
+              set ftp:passive-mode true;
+              set net:max-retries 1;
+              set net:timeout 8;
+              cd $candidate;
+              rm -f $remote;
+              bye;
+            " >/dev/null 2>&1
+            set -e
+          }
+
+          for i in "${!candidates[@]}"; do
+            candidate="${candidates[$i]}"
+            remote="modrik-root-$nonce-$i.txt"
+            echo "CANDIDATE_${i}_PATH=$candidate"
+
+            set +e
+            timeout 25 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+              set cmd:fail-exit yes;
+              set ftp:ssl-force true;
+              set ftp:ssl-protect-data true;
+              set ssl:verify-certificate yes;
+              set ssl:check-hostname no;
+              set ftp:passive-mode true;
+              set net:max-retries 1;
+              set net:timeout 10;
+              cd $candidate;
+              put /tmp/modrik-root-marker.txt -o $remote;
+              bye;
+            " >/dev/null 2>&1
+            ftp_exit=$?
+            set -e
+            echo "CANDIDATE_${i}_FTP_EXIT=$ftp_exit"
+
+            if [[ $ftp_exit -ne 0 ]]; then
+              echo "CANDIDATE_${i}_UPLOAD_UNAVAILABLE"
+              continue
+            fi
+
+            dns_body="$RUNNER_TEMP/candidate-${i}-dns.body"
+            dns_code="$(curl --silent --show-error --connect-timeout 10 --max-time 20 -o "$dns_body" -w '%{http_code}' "$API_URL/$remote" || true)"
+            echo "CANDIDATE_${i}_DNS_HTTP=$dns_code"
+            if grep -Fqx "$marker" "$dns_body" 2>/dev/null; then
+              echo "CANDIDATE_${i}_DNS_MATCH=true"
+              echo "MODRIK_FTP_DOCROOT_CANDIDATE=$candidate"
+              cleanup_remote "$candidate" "$remote"
+              exit 0
+            fi
+            echo "CANDIDATE_${i}_DNS_MATCH=false"
+
+            origin_body="$RUNNER_TEMP/candidate-${i}-origin.body"
+            origin_code="$(curl --silent --show-error --connect-timeout 10 --max-time 20 \
+              --resolve "api.demo.modrik.org:443:$ORIGIN_IP" \
+              -o "$origin_body" -w '%{http_code}' "$API_URL/$remote" || true)"
+            echo "CANDIDATE_${i}_ORIGIN_HTTP=$origin_code"
+            if grep -Fqx "$marker" "$origin_body" 2>/dev/null; then
+              echo "CANDIDATE_${i}_ORIGIN_MATCH=true"
+              echo "MODRIK_FTP_DOCROOT_CANDIDATE=$candidate"
+              cleanup_remote "$candidate" "$remote"
+              exit 0
+            fi
+            echo "CANDIDATE_${i}_ORIGIN_MATCH=false"
+
+            cleanup_remote "$candidate" "$remote"
+          done
+
+          echo 'MODRIK_FTP_DOCROOT_CANDIDATE_NOT_FOUND' >&2
+          exit 22
