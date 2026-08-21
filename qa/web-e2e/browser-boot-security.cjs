@@ -23,6 +23,10 @@ function fail(code) {
   throw new Error(code);
 }
 
+function check(value, code) {
+  if (!value) fail(code);
+}
+
 function safeCode(error) {
   const message = error instanceof Error ? error.message : "";
   return /^E2E_[A-Z0-9_:-]+$/.test(message) ? message : "E2E_BROWSER_BOOT_ASSERTION_FAILED";
@@ -94,8 +98,19 @@ async function stopChild(child) {
   }
 }
 
+function strictProductionNonce(csp, codePrefix) {
+  check(typeof csp === "string" && csp.length > 0, `${codePrefix}_HEADER_MISSING`);
+  check(/(?:^|;\s*)script-src\s/u.test(csp), `${codePrefix}_SCRIPT_SRC_MISSING`);
+  check(csp.includes("'strict-dynamic'"), `${codePrefix}_STRICT_DYNAMIC_MISSING`);
+  check(!csp.includes("'unsafe-inline'"), `${codePrefix}_UNSAFE_INLINE_PRESENT`);
+  check(!csp.includes("'unsafe-eval'"), `${codePrefix}_UNSAFE_EVAL_PRESENT`);
+  const match = csp.match(/'nonce-([^']+)'/u);
+  check(Boolean(match?.[1] && match[1].length >= 16), `${codePrefix}_NONCE_MISSING`);
+  return match[1];
+}
+
 const evidence = {
-  schema_version: "modrik.web.browser-boot-security.v1",
+  schema_version: "modrik.web.browser-boot-security.v2",
   candidate: "current-main-boot-security",
   expected_sha: expectedSha,
   harness_sha: harnessSha,
@@ -115,6 +130,11 @@ const evidence = {
   failure_code: null,
   auth_session_request_seen: false,
   csp_directive_classes: [],
+  csp_header_present: false,
+  strict_dynamic_present: false,
+  unsafe_inline_absent: false,
+  unsafe_eval_absent: false,
+  request_bound_nonce_verified: false,
 };
 
 async function run() {
@@ -149,6 +169,21 @@ async function run() {
     child = startNext();
     await waitForHttp(baseURL);
 
+    const probeOne = await fetch(baseURL, { redirect: "manual", cache: "no-store" });
+    const cspOne = probeOne.headers.get("content-security-policy") || "";
+    const nonceOne = strictProductionNonce(cspOne, "E2E_CSP_PROBE_ONE");
+
+    const probeTwo = await fetch(baseURL, { redirect: "manual", cache: "no-store" });
+    const cspTwo = probeTwo.headers.get("content-security-policy") || "";
+    const nonceTwo = strictProductionNonce(cspTwo, "E2E_CSP_PROBE_TWO");
+    check(nonceOne !== nonceTwo, "E2E_CSP_NONCE_NOT_REQUEST_BOUND");
+
+    evidence.csp_header_present = true;
+    evidence.strict_dynamic_present = true;
+    evidence.unsafe_inline_absent = true;
+    evidence.unsafe_eval_absent = true;
+    evidence.request_bound_nonce_verified = true;
+
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
@@ -174,10 +209,13 @@ async function run() {
       });
     });
 
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    const navigation = await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    const navigationCsp = navigation?.headers()["content-security-policy"] || "";
+    const navigationNonce = strictProductionNonce(navigationCsp, "E2E_CSP_BROWSER_NAVIGATION");
+    check(navigationNonce !== nonceOne && navigationNonce !== nonceTwo, "E2E_CSP_BROWSER_NONCE_REUSED");
 
     const loginVisible = await Promise.race([
-      page.locator(".auth-card form").waitFor({ state: "visible", timeout: 6000 }).then(() => true).catch(() => false),
+      page.locator(".auth-card form").first().waitFor({ state: "visible", timeout: 6000 }).then(() => true).catch(() => false),
       sleep(6200).then(() => false),
     ]);
 
