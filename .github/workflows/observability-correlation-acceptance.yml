@@ -1,0 +1,171 @@
+name: Observability Correlation Acceptance
+
+on:
+  push:
+    branches: ['codex/slot7-observability-correlation-acceptance']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ACCEPTANCE_MAIN_SHA: 671c753f8894570b64f79ce9a21b2a7e85c1bff9
+  APP_ENV: testing
+  APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  APP_DEBUG: 'false'
+  DB_CONNECTION: sqlite
+  MODRIK_FIXTURE_MODE: 'true'
+  MODRIK_FIXTURE_BEARER_TOKEN: SENTINEL_BEARER_101_FIXTURE_ONLY
+  MODRIK_IDEMPOTENCY_SECRET: test
+  MODRIK_OBSERVABILITY_ENABLED: 'true'
+  MODRIK_RUNTIME_INSPECTOR_ENABLED: 'true'
+  MODRIK_API_BASE_URL: http://127.0.0.1:8000
+  OBS_WEB_EVIDENCE: /tmp/modrik-observability-web.json
+  OBS_MOBILE_EVIDENCE: /tmp/modrik-observability-mobile.json
+  OBS_BACKEND_EVIDENCE: /tmp/modrik-observability-backend.json
+
+jobs:
+  terminal-correlation-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prove QA-only delta over authoritative main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "$ACCEPTANCE_MAIN_SHA")" = "$ACCEPTANCE_MAIN_SHA"
+          git diff --name-only "$ACCEPTANCE_MAIN_SHA"...HEAD | tee /tmp/acceptance-delta.txt
+          unexpected="$(grep -Ev '^(\.github/workflows/observability-correlation-acceptance\.yml|apps/web/scripts/observability-correlation-acceptance\.mts|apps/mobile/test/observability_live_backend_acceptance_test\.dart|qa/observability/verify-backend-correlation\.php)$' /tmp/acceptance-delta.txt || true)"
+          test -z "$unexpected"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Backend dependencies and seed fixture SQLite
+        working-directory: apps/backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer install --no-interaction --prefer-dist --no-progress
+          rm -f database/observability-acceptance.sqlite
+          touch database/observability-acceptance.sqlite
+          echo "DB_DATABASE=$GITHUB_WORKSPACE/apps/backend/database/observability-acceptance.sqlite" >> "$GITHUB_ENV"
+          DB_DATABASE="$GITHUB_WORKSPACE/apps/backend/database/observability-acceptance.sqlite" php artisan migrate:fresh --seed --force
+
+      - name: Start live Laravel fixture Backend
+        working-directory: apps/backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_DATABASE="$GITHUB_WORKSPACE/apps/backend/database/observability-acceptance.sqlite" \
+            php artisan serve --host=127.0.0.1 --port=8000 > /tmp/modrik-backend.log 2>&1 &
+          echo $! > /tmp/modrik-backend.pid
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:8000/up >/dev/null; then
+              exit 0
+            fi
+            sleep 0.5
+          done
+          cat /tmp/modrik-backend.log
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Run live Web -> BFF -> Backend drill
+        working-directory: apps/web
+        run: |
+          npm ci
+          npx tsx scripts/observability-correlation-acceptance.mts
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+
+      - name: Run live Mobile -> Backend drill
+        working-directory: apps/mobile
+        run: |
+          flutter pub get
+          flutter test test/observability_live_backend_acceptance_test.dart
+
+      - name: Verify Backend/Admin lookup and no fabricated timeout event
+        shell: bash
+        run: |
+          set -euo pipefail
+          php qa/observability/verify-backend-correlation.php
+
+      - name: Re-run integrated Backend observability privacy/Inspector tests
+        working-directory: apps/backend
+        run: php artisan test tests/Feature/Observability tests/Unit/Observability
+
+      - name: Re-run integrated Web Inspector/privacy/correlation tests
+        working-directory: apps/web
+        run: npm test
+
+      - name: Re-run integrated Mobile Inspector/privacy/correlation tests
+        working-directory: apps/mobile
+        run: >-
+          flutter test
+          test/runtime_diagnostic_transport_test.dart
+          test/runtime_diagnostics_test.dart
+          test/runtime_inspector_widget_test.dart
+          test/runtime_correlation_test.dart
+
+      - name: Terminal privacy sentinel scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p acceptance-artifacts
+          cp "$OBS_WEB_EVIDENCE" acceptance-artifacts/web.json
+          cp "$OBS_MOBILE_EVIDENCE" acceptance-artifacts/mobile.json
+          cp "$OBS_BACKEND_EVIDENCE" acceptance-artifacts/backend-admin.json
+          sentinels=(
+            SENTINEL_BEARER_101_FIXTURE_ONLY
+            SENTINEL_COOKIE_101_FIXTURE_ONLY
+            SENTINEL_PASSWORD_101_FIXTURE_ONLY
+            SENTINEL_PROVIDER_SECRET_101_FIXTURE_ONLY
+            SENTINEL_LEARNER_ANSWER_101_FIXTURE_ONLY
+            SENTINEL_QUESTION_TEXT_101_FIXTURE_ONLY
+            sentinel.person.101@example.test
+            SENTINEL_NAME_101_FIXTURE_ONLY
+          )
+          for sentinel in "${sentinels[@]}"; do
+            ! grep -R --fixed-strings "$sentinel" acceptance-artifacts
+            ! grep --fixed-strings "$sentinel" /tmp/modrik-backend.log
+          done
+
+      - name: Emit PASS matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'A Web Learning -> BFF -> Backend failure: PASS'
+          echo 'B Web Auth -> BFF -> Backend representative failure: PASS'
+          echo 'C Mobile Learning -> Backend representative failure + invalid-correlation fallback + Sync ID separation: PASS'
+          echo 'D Client-only timeout with no Backend event: PASS'
+          echo 'E Successful control request: PASS'
+          echo 'Privacy sentinels across persisted diagnostics / Inspector tests / exports / Backend bodies / audit: PASS'
+          cat acceptance-artifacts/web.json
+          cat acceptance-artifacts/mobile.json
+          cat acceptance-artifacts/backend-admin.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: observability-correlation-acceptance-evidence
+          path: acceptance-artifacts
+          if-no-files-found: warn
