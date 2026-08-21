@@ -78,7 +78,7 @@ void main() {
     }
 
     expect(liveFailure, isNotNull);
-    expect(liveFailure!.status, 404);
+    expect(liveFailure.status, 404);
     expect(liveFailure.code, isNotEmpty);
     final liveEvent = diagnostics.events.lastWhere(
       (event) =>
