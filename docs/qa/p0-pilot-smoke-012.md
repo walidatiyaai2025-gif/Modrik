@@ -28,7 +28,7 @@ For a clean checkout with the repository-pinned runtimes installed, the single d
 npm run pilot:smoke:clean
 ```
 
-That entrypoint runs `scripts/setup.sh` first, then the strict Pilot harness. It uses only synthetic fixture values already permitted by repository contracts; it does not require or invent production provider IDs, credentials, curriculum identifiers, signing material, or legal facts.
+That entrypoint runs `scripts/setup.sh` first, then the same bounded/free-port Pilot runner used by the prepared-checkout commands. It uses only synthetic fixture values already permitted by repository contracts; it does not require or invent production provider IDs, credentials, curriculum identifiers, signing material, or legal facts.
 
 The CI-safe manifest check is:
 
@@ -36,7 +36,7 @@ The CI-safe manifest check is:
 npm run pilot:smoke:plan
 ```
 
-It validates every suite/gate reference and prints which rows are READY versus BLOCKED without executing product tests.
+It first executes the bounded-process regression test, then validates every suite/gate reference and prints which rows are READY versus BLOCKED without executing product tests.
 
 ## Runtime model
 
@@ -48,7 +48,19 @@ The harness runs each broad product suite once and reuses its result across acce
 - live Student Web Learning BFF -> Laravel synthetic fixture smoke;
 - after Issue #108 is integrated, its repository-owned current-tree browser wrapper for responsive, 200%-equivalent, keyboard/focus, session-security and Runtime Inspector browser evidence.
 
-The live fixture smoke creates an ignored temporary SQLite database under `.runtime/`, runs `migrate:fresh --seed`, starts a local Laravel fixture server, and executes the existing `apps/web/scripts/fixture-smoke.mts`. That path proves session -> academic context -> published lesson -> authoritative attempt -> answers -> submit -> progress through the real Next route handler into Laravel.
+The live fixture smoke creates an ignored temporary SQLite database under `.runtime/`, runs `migrate:fresh --seed`, starts a local Laravel fixture server, and executes the existing `apps/web/scripts/fixture-smoke.mts`. The public runner obtains a free loopback port from the OS unless `MODRIK_PILOT_SMOKE_PORT` is explicitly supplied. That path proves session -> academic context -> published lesson -> authoritative attempt -> answers -> submit -> progress through the real Next route handler into Laravel.
+
+### Bounded execution
+
+The Pilot harness must fail deterministically rather than hang indefinitely:
+
+- Backend, Web and Mobile suite subprocesses each have a 20-minute hard timeout;
+- the integrated #108 browser wrapper has a 30-minute hard timeout;
+- fixture migration/seed and fixture Web smoke subprocesses each have a 5-minute hard timeout, while backend readiness already uses a bounded probe loop;
+- the public Pilot runner has a 55-minute total subprocess timeout;
+- the dedicated GitHub Actions `pilot-smoke` job has `timeout-minutes: 60`, covering clean-checkout dependency preparation plus execution.
+
+A timed-out executable suite is recorded as `FAIL` with exit code `124`, timeout metadata and a sanitized detail in `.runtime/pilot-smoke-report.json`; it is never converted to `BLOCKED` or silently waived. `scripts/pilot-smoke-process.test.mjs` exercises both timeout termination/classification and successful bounded execution, and `npm run pilot:smoke:plan` runs that regression before manifest validation.
 
 A machine-readable report is written to:
 
@@ -115,14 +127,14 @@ qa/web-e2e/run-browser-runtime.sh
 .github/workflows/web-browser-runtime-e2e.yml
 ```
 
-Until all four are on the tested Git tree, the browser suite is recorded as `BLOCKED` and is not invoked. Once integrated, the Pilot harness executes `qa/web-e2e/run-browser-runtime.sh` against the exact current repository tree. A non-zero browser result becomes a real Pilot `FAIL`; file presence alone can no longer promote the compact/200% row to `PASS`.
+Until all four are on the tested Git tree, the browser suite is recorded as `BLOCKED` and is not invoked. Once integrated, the Pilot harness executes `qa/web-e2e/run-browser-runtime.sh` against the exact current repository tree. A non-zero or timed-out browser result becomes a real Pilot `FAIL`; file presence alone can no longer promote the compact/200% row to `PASS`.
 
 The wrapper remains owned by Issue #108. #107 consumes that stable command without duplicating its Playwright profiles, privacy rules, browser installation, or Runtime Inspector assertions.
 
 ## Result semantics
 
 - `PASS` — every mapped executable suite passed and every required local integration gate is present.
-- `FAIL` — at least one mapped executable suite failed. This is always a failing command, including non-strict mode.
+- `FAIL` — at least one mapped executable suite failed or timed out. This is always a failing command, including non-strict mode.
 - `BLOCKED` — executable evidence may be green, but an explicitly required release-gap artifact is not yet integrated. This fails only in strict/final mode.
 
 The final Issue #107 handoff must record the exact integrated Git SHA and strict matrix summary. A green implementation PR for the harness itself is not sufficient to close #107 while required rows remain blocked on other authorized release-gap work.
