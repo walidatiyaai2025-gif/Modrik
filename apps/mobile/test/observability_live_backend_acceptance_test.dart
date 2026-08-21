@@ -34,6 +34,9 @@ void main() {
         'SENTINEL_QUESTION_TEXT_101_FIXTURE_ONLY',
         'sentinel.person.101@example.test',
         'SENTINEL_NAME_101_FIXTURE_ONLY',
+        'SENTINEL_RECOVERY_SECRET_101_FIXTURE_ONLY',
+        'SENTINEL_ASSESSMENT_CONTENT_101_FIXTURE_ONLY',
+        'SENTINEL_REQUEST_BODY_101_FIXTURE_ONLY',
       ];
 
       final persistence = MemoryRuntimeDiagnosticsPersistence();
@@ -43,6 +46,8 @@ void main() {
       );
       await diagnostics.initialize();
 
+      // Seed recognizable values through diagnostics inputs. Sanitization must keep
+      // the raw values out of memory, persistence and export.
       diagnostics.recordUnexpected(
         StateError(sentinels.join(' | ')),
         StackTrace.current,
@@ -63,6 +68,9 @@ void main() {
           'question_text': sentinels[5],
           'email': sentinels[6],
           'name': sentinels[7],
+          'recovery_secret': sentinels[8],
+          'assessment_content': sentinels[9],
+          'payload': sentinels[10],
         },
       );
 
@@ -95,6 +103,9 @@ void main() {
       const syncOperationId = 'op-stable-issue14-acceptance-001';
       expect(liveEvent.correlationId, isNot(syncOperationId));
 
+      // The live Backend is authoritative for the first half of C. This local
+      // synthetic server isolates the second half: an invalid Backend correlation
+      // must never replace the request-side safe correlation.
       final invalidCorrelationServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       String? invalidFallbackRequestCorrelation;
       invalidCorrelationServer.listen((request) async {
