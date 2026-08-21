@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Exceptions\ApiProblemException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 final class ApiResponse
 {
@@ -14,7 +13,11 @@ final class ApiResponse
      */
     public static function success(Request $request, array $data, int $status = 200): JsonResponse
     {
-        return response()->json(self::body($request, $data), $status);
+        $correlationId = self::requestId($request);
+
+        return response()
+            ->json(self::body($request, $data), $status)
+            ->header(CorrelationId::HEADER, $correlationId);
     }
 
     /**
@@ -31,10 +34,15 @@ final class ApiResponse
 
     public static function problem(Request $request, ApiProblemException $exception): JsonResponse
     {
+        $correlationId = self::requestId($request);
+
         return response()->json(
             self::problemBody($request, $exception),
             $exception->status,
-            ['Content-Type' => 'application/problem+json'],
+            [
+                'Content-Type' => 'application/problem+json',
+                CorrelationId::HEADER => $correlationId,
+            ],
         );
     }
 
@@ -61,14 +69,6 @@ final class ApiResponse
 
     public static function requestId(Request $request): string
     {
-        $existing = $request->attributes->get('modrik_request_id');
-        if (is_string($existing) && strlen($existing) >= 16) {
-            return $existing;
-        }
-
-        $requestId = (string) Str::ulid();
-        $request->attributes->set('modrik_request_id', $requestId);
-
-        return $requestId;
+        return CorrelationId::forRequest($request);
     }
 }
