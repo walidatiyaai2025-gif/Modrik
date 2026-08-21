@@ -45,6 +45,7 @@ test(
         "const fs = require('node:fs');",
         "const child = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' });",
         `fs.writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));`,
+        "child.unref();",
       ].join("\n");
 
       const execution = await runBoundedProcess(process.execPath, ["-e", script], {
