@@ -117,6 +117,16 @@ apps/mobile/test/runtime_diagnostics_test.dart
 
 plus a canonical `X-Correlation-ID` boundary in Backend source/tests. This prevents Web/Mobile diagnostic candidates from being counted as complete before the Backend-owned correlation/diagnostic contract is integrated.
 
+### Correlation acceptance gate
+
+Issue #101 retains independent terminal authority for the composed Web/Mobile -> real Laravel -> privileged diagnostics trace. The Pilot consumes the repository-local evidence bridge:
+
+```text
+docs/qa/p0-observability-correlation-acceptance.md
+```
+
+The gate passes only when that ledger contains the independent terminal marker `OBSERVABILITY CORRELATION ACCEPTANCE COMPLETE`. The current ledger records #101's fresh terminal acceptance on PR #127 exact head `def49b15fd98dc18bd5f48b30b92cbef63b3e9ee`, 0-behind authoritative `main` `99a5bda6d18e37bb969885b6fd169facb136586f`, with Bootstrap `32474551604`, Mobile Native Compile `32474551699`, and fresh same-SHA Observability Correlation Acceptance job `96780047868` successful. This evidence bridge changes no observability product semantics and does not merge PR #127.
+
 ### Web browser runtime gate
 
 The strict-nonce Web hydration repair from Issue #117 is integrated on current main; this removes the prior prerequisite that prevented meaningful browser execution. The Pilot browser row still requires Issue #108's broader current-tree acceptance artifacts and green execution before it can pass.
@@ -133,6 +143,16 @@ qa/web-e2e/run-browser-runtime.sh
 Until all four are on the tested Git tree, the browser suite is recorded as `BLOCKED` and is not invoked. Once integrated, the Pilot harness executes `qa/web-e2e/run-browser-runtime.sh` against the exact current repository tree. A non-zero or timed-out browser result becomes a real Pilot `FAIL`; file presence alone can no longer promote the compact/200% row to `PASS`.
 
 The wrapper remains owned by Issue #108. #107 consumes that stable command without duplicating its Playwright profiles, privacy rules, browser installation, or Runtime Inspector assertions.
+
+## Current live dependency checkpoint
+
+At the reconciliation checkpoint against authoritative `main` `99a5bda6d18e37bb969885b6fd169facb136586f`:
+
+- Auth responsive Issue #124 is integrated; it is not a Pilot blocker.
+- Backend/Admin, Web and Mobile observability implementations are integrated; implementation absence is not a Pilot blocker.
+- Issue #101 correlation acceptance is terminal green and the Pilot correlation gate is READY.
+- Issue #108 remains non-terminal: current #125 exact-head Chromium evidence is 12 PASS / 1 FAIL, with only FR/LTR Learning `360x800 @ 200%` failing `E2E_LEARNING_HORIZONTAL_OVERFLOW`; AR/RTL Study, offline/retry, stale-session 401 and Web build are green.
+- Therefore only Pilot rows 15 (browser runtime) and 16 (AR/EN/FR + RTL/LTR smoke) remain dependency-BLOCKED at this checkpoint. Row 14 (Runtime diagnostics/correlation) is READY.
 
 ## Result semantics
 
