@@ -12,22 +12,37 @@ final class ContentRightsReviewService
     /** @var list<string> */
     private const OPERATOR_ROLES = ['admin', 'content_team'];
 
+    /** @var list<string> */
+    private const APPROVED_BASES = ['owner_created', 'licensed', 'public_domain'];
+
     /**
      * @return array<string, mixed>
      */
-    public function review(User $user, string $importId, string $decision, ?string $evidenceReference, ?string $note): array
-    {
-        if (! in_array((string) $user->role, self::OPERATOR_ROLES, true)) {
-            throw $this->problem(403, 'CONTENT_OPERATOR_FORBIDDEN', 'Content operator access required', 'Only Admin or Content Team may review content rights.');
+    public function review(
+        User $user,
+        string $importId,
+        string $decision,
+        ?string $rightsBasis,
+        ?string $evidenceReference,
+        ?string $note,
+    ): array {
+        if (! in_array((string) $user->role, self::OPERATOR_ROLES, true)
+            || (string) $user->account_status !== 'active'
+            || $user->deleted_at !== null) {
+            throw $this->problem(403, 'CONTENT_OPERATOR_FORBIDDEN', 'Content operator access required', 'Only active Admin or Content Team users may review content rights.');
         }
         if (! in_array($decision, ['approved', 'rejected'], true)) {
             throw $this->problem(422, 'CONTENT_RIGHTS_DECISION_INVALID', 'Rights decision invalid', 'Use approved or rejected.');
         }
 
+        $rightsBasis = is_string($rightsBasis) ? trim($rightsBasis) : '';
         $evidenceReference = is_string($evidenceReference) ? trim($evidenceReference) : '';
         $note = is_string($note) ? trim($note) : '';
+        if ($decision === 'approved' && ! in_array($rightsBasis, self::APPROVED_BASES, true)) {
+            throw $this->problem(422, 'CONTENT_RIGHTS_BASIS_REQUIRED', 'Approved rights basis required', 'Approval requires owner_created, licensed, or public_domain as the evidence-backed rights basis.');
+        }
         if ($decision === 'approved' && $evidenceReference === '') {
-            throw $this->problem(422, 'CONTENT_RIGHTS_EVIDENCE_REQUIRED', 'Rights evidence required', 'Approval requires a concrete evidence reference; do not claim rights without evidence.');
+            throw $this->problem(422, 'CONTENT_RIGHTS_EVIDENCE_REQUIRED', 'Rights evidence required', 'Approval requires a concrete owner-controlled evidence reference; do not claim rights without evidence.');
         }
         if ($decision === 'rejected' && $note === '') {
             throw $this->problem(422, 'CONTENT_RIGHTS_REJECTION_REASON_REQUIRED', 'Rights rejection reason required', 'A rejection reason is required.');
@@ -36,7 +51,7 @@ final class ContentRightsReviewService
             throw $this->problem(422, 'CONTENT_RIGHTS_REVIEW_TOO_LONG', 'Rights review fields are too long', 'Evidence references are limited to 500 characters and notes to 2000 characters.');
         }
 
-        return DB::transaction(function () use ($user, $importId, $decision, $evidenceReference, $note): array {
+        return DB::transaction(function () use ($user, $importId, $decision, $rightsBasis, $evidenceReference, $note): array {
             $import = DB::table('preparation_imports')->where('id', $importId)->lockForUpdate()->first();
             if (! $import instanceof \stdClass) {
                 throw $this->problem(404, 'CONTENT_IMPORT_NOT_FOUND', 'Content import not found', 'The staged content import does not exist.');
@@ -44,11 +59,15 @@ final class ContentRightsReviewService
             if ((string) $import->status !== 'rights_review') {
                 throw $this->problem(409, 'CONTENT_RIGHTS_REVIEW_STATE_INVALID', 'Rights review state invalid', 'Rights decisions are only available while the import is awaiting rights review.');
             }
+            if ((string) $import->rights_status === 'synthetic_fixture') {
+                throw $this->problem(409, 'CONTENT_RIGHTS_REVIEW_NOT_REQUIRED', 'Rights review not required', 'Synthetic fixture content does not enter the real-content rights review workflow.');
+            }
 
             $now = now();
             $targetStatus = $decision === 'approved' ? 'staged' : 'rights_review';
             DB::table('preparation_imports')->where('id', $importId)->update([
                 'rights_review_status' => $decision,
+                'rights_basis' => $decision === 'approved' ? $rightsBasis : null,
                 'rights_evidence_reference' => $evidenceReference === '' ? null : $evidenceReference,
                 'rights_review_note' => $note === '' ? null : $note,
                 'rights_reviewed_by' => (string) $user->getKey(),
@@ -69,7 +88,8 @@ final class ContentRightsReviewService
                 'to_status' => $targetStatus,
                 'reason' => $note === '' ? null : $note,
                 'metadata' => json_encode([
-                    'rights_status' => is_string($import->rights_status) ? $import->rights_status : null,
+                    'claimed_rights_status' => is_string($import->rights_status) ? $import->rights_status : null,
+                    'approved_rights_basis' => $decision === 'approved' ? $rightsBasis : null,
                     'evidence_reference' => $evidenceReference === '' ? null : $evidenceReference,
                     'decision' => $decision,
                 ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
@@ -84,7 +104,8 @@ final class ContentRightsReviewService
                 'payload' => json_encode([
                     'preparation_request_id' => is_string($import->preparation_request_id) ? $import->preparation_request_id : null,
                     'decision' => $decision,
-                    'rights_status' => is_string($import->rights_status) ? $import->rights_status : null,
+                    'claimed_rights_status' => is_string($import->rights_status) ? $import->rights_status : null,
+                    'rights_basis' => $decision === 'approved' ? $rightsBasis : null,
                 ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'occurred_at' => $now,
                 'created_at' => $now,
@@ -94,6 +115,7 @@ final class ContentRightsReviewService
             return [
                 'preparation_import_id' => $importId,
                 'rights_review_status' => $decision,
+                'rights_basis' => $decision === 'approved' ? $rightsBasis : null,
                 'status' => $targetStatus,
                 'reviewed_at' => $now->toIso8601String(),
             ];
