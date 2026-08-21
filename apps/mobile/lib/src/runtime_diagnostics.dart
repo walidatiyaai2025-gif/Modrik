@@ -499,11 +499,14 @@ class RuntimeDiagnostics extends ChangeNotifier {
   Future<void> clear() async {
     _events.clear();
     if (!_disposed) notifyListeners();
-    try {
-      await _persistence.clear();
-    } on Object {
-      // Clearing diagnostic storage is best-effort and never domain-fatal.
-    }
+    _writeTail = _writeTail.then((_) async {
+      try {
+        await _persistence.clear();
+      } on Object {
+        // Clearing diagnostic storage is best-effort and never domain-fatal.
+      }
+    });
+    await _writeTail;
   }
 
   String responseCorrelationId(HttpHeaders headers, String fallback) {
