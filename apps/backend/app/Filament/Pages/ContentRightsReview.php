@@ -119,12 +119,15 @@ final class ContentRightsReview extends Page
                 $this->notes[$importId] ?? null,
             );
 
-            Notification::make()
-                ->title($decision === 'approved'
-                    ? $this->text('تم اعتماد مراجعة الحقوق.', 'Rights review approved.', 'Revue des droits approuvée.')
-                    : $this->text('تم رفض مراجعة الحقوق.', 'Rights review rejected.', 'Revue des droits rejetée.'))
-                ->{$decision === 'approved' ? 'success' : 'warning'}()
-                ->send();
+            $notification = Notification::make()->title($decision === 'approved'
+                ? $this->text('تم اعتماد مراجعة الحقوق.', 'Rights review approved.', 'Revue des droits approuvée.')
+                : $this->text('تم رفض مراجعة الحقوق.', 'Rights review rejected.', 'Revue des droits rejetée.'));
+            if ($decision === 'approved') {
+                $notification->success();
+            } else {
+                $notification->warning();
+            }
+            $notification->send();
         } catch (ApiProblemException $exception) {
             Notification::make()
                 ->title($this->text('تعذر حفظ قرار الحقوق.', 'Rights decision blocked.', 'Décision de droits bloquée.'))
