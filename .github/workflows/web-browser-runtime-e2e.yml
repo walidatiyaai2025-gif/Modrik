@@ -24,6 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - candidate: current-main-hydration-security
+            checkout_ref: main
+            source_pr: ""
+            compose_prs: ""
+            build_mode: production
+            task: hydration-security
           - candidate: current-main-core
             checkout_ref: main
             source_pr: ""
@@ -239,6 +245,10 @@ jobs:
         run: |
           set -euo pipefail
           case "$TASK" in
+            hydration-security)
+              MODRIK_E2E_CANDIDATE="$CANDIDATE" \
+                node harness/qa/web-e2e/hydration-security-acceptance.cjs
+              ;;
             core)
               MODRIK_E2E_CANDIDATE="$CANDIDATE-core" \
               MODRIK_E2E_PROFILE=core \
