@@ -5,6 +5,7 @@ on:
     paths:
       - "qa/web-e2e/**"
       - ".github/workflows/web-browser-csp-core-candidate.yml"
+      - ".github/workflows/web-browser-csp-repair-candidate.yml"
       - ".github/workflows/web-browser-runtime-e2e.yml"
   workflow_dispatch:
 
