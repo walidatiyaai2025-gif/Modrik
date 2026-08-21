@@ -150,6 +150,7 @@ final class RuntimeObservabilityTest extends TestCase
             'modrik.fixture.enabled' => true,
             'modrik.fixture.bearer_token' => $token,
             'modrik.fixture.user_id' => LearningSliceSeeder::USER_ID,
+            'modrik.idempotency.secret' => 'test-only-idempotency-secret',
         ]);
         $learningCorrelation = 'learning-failopen-01J6MODRIK123';
         $lessonId = '01J00000000000000000000003';
@@ -160,14 +161,22 @@ final class RuntimeObservabilityTest extends TestCase
             ->assertHeader(CorrelationId::HEADER, $learningCorrelation)
             ->assertJsonPath('data.id', $lessonId);
 
-        DB::table('users')->where('id', LearningSliceSeeder::USER_ID)->update(['role' => 'admin']);
-        $admin = User::query()->findOrFail(LearningSliceSeeder::USER_ID);
+        DB::table('users')->where('id', LearningSliceSeeder::USER_ID)->update(['role' => 'content_team']);
+        $settingsJson = file_get_contents(base_path('../../tests/fixtures/content-pack/v1/valid/preparation-settings.json'));
+        self::assertIsString($settingsJson);
+        $settings = json_decode($settingsJson, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($settings);
         $adminCorrelation = 'admin-failopen-01J6MODRIK12345';
-        $this->actingAs($admin)
+        $this->withToken($token)
             ->withHeader(CorrelationId::HEADER, $adminCorrelation)
-            ->get('/admin/content-review')
-            ->assertOk()
-            ->assertHeader(CorrelationId::HEADER, $adminCorrelation);
+            ->withHeader('Idempotency-Key', 'observability-failopen-admin-0001')
+            ->postJson('/v1/admin/preparation-requests', [
+                'schema_version' => '1.0.0',
+                'settings' => $settings,
+            ])
+            ->assertCreated()
+            ->assertHeader(CorrelationId::HEADER, $adminCorrelation)
+            ->assertJsonPath('data.status', 'ready');
     }
 
     public function test_database_sink_is_bounded_and_keeps_newest_events(): void
