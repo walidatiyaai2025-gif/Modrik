@@ -1,0 +1,76 @@
+name: Diagnose cPanel UAPI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+      CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
+      CPANEL_API_TOKEN: ${{ secrets.CPANEL_API_TOKEN }}
+    steps:
+      - name: Validate secrets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CPANEL_HOST" || { echo 'Missing CPANEL_HOST' >&2; exit 1; }
+          test -n "$CPANEL_USERNAME" || { echo 'Missing CPANEL_USERNAME' >&2; exit 1; }
+          test -n "$CPANEL_API_TOKEN" || { echo 'Missing CPANEL_API_TOKEN' >&2; exit 1; }
+
+      - name: Probe cPanel UAPI safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$RUNNER_TEMP/cpanel-body.txt"
+          HEADERS="$RUNNER_TEMP/cpanel-headers.txt"
+          URL="https://$CPANEL_HOST:2083/execute/Variables/get_server_information"
+
+          set +e
+          HTTP_CODE="$(curl --silent --show-error \
+            --connect-timeout 15 --max-time 30 \
+            -D "$HEADERS" -o "$BODY" \
+            -w '%{http_code}' \
+            -H "Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN" \
+            -H 'Accept: application/json' \
+            "$URL")"
+          CURL_EXIT=$?
+          set -e
+
+          echo "curl_exit=$CURL_EXIT"
+          echo "http_status=$HTTP_CODE"
+          CONTENT_TYPE="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {sub(/\r$/,""); print substr($0, index($0,$2)); exit}' "$HEADERS" || true)"
+          LOCATION="$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/\r$/,""); print substr($0, index($0,$2)); exit}' "$HEADERS" || true)"
+          echo "content_type=${CONTENT_TYPE:-unknown}"
+          if [[ -n "$LOCATION" ]]; then
+            echo "redirect_location=$LOCATION"
+          fi
+
+          if [[ $CURL_EXIT -ne 0 ]]; then
+            echo 'CPANEL_DIAGNOSTIC: transport failure' >&2
+            exit 10
+          fi
+
+          if jq -e '.result.status == 1' "$BODY" >/dev/null 2>&1; then
+            echo 'CPANEL_DIAGNOSTIC: UAPI token authentication OK'
+            jq -c '{module,func,status:.result.status}' "$BODY"
+            exit 0
+          fi
+
+          if jq -e . "$BODY" >/dev/null 2>&1; then
+            echo 'CPANEL_DIAGNOSTIC: JSON response received but UAPI status was not successful' >&2
+            jq -c '{module,func,status:.result.status,errors:.result.errors,messages:.result.messages}' "$BODY" || true
+            exit 11
+          fi
+
+          echo 'CPANEL_DIAGNOSTIC: non-JSON response received' >&2
+          echo 'response_preview_begin'
+          head -c 500 "$BODY" | tr '\r\n' ' ' | sed -E 's/[[:space:]]+/ /g'
+          echo
+          echo 'response_preview_end'
+          exit 12
