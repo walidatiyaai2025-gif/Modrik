@@ -24,6 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - candidate: current-main-core
+            checkout_ref: main
+            source_pr: ""
+            compose_prs: ""
+            build_mode: production
+            task: core
           - candidate: pr-93-session-security
             checkout_ref: refs/pull/93/head
             source_pr: "93"
@@ -42,6 +48,12 @@ jobs:
             compose_prs: ""
             build_mode: production
             task: inspector-production
+          - candidate: pr-103-full-browser-command
+            checkout_ref: refs/pull/103/head
+            source_pr: "103"
+            compose_prs: ""
+            build_mode: pilot
+            task: full-command
           - candidate: release-gap-web-composite-pilot
             checkout_ref: main
             source_pr: ""
@@ -227,6 +239,12 @@ jobs:
         run: |
           set -euo pipefail
           case "$TASK" in
+            core)
+              MODRIK_E2E_CANDIDATE="$CANDIDATE-core" \
+              MODRIK_E2E_PROFILE=core \
+              MODRIK_E2E_EXPECTED_SHA="$MODRIK_E2E_OBSERVED_SHA" \
+                node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+              ;;
             session-security)
               MODRIK_E2E_CANDIDATE="$CANDIDATE-session" \
               MODRIK_E2E_PROFILE=session-security \
