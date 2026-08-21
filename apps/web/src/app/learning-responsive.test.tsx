@@ -65,6 +65,21 @@ test("Dashboard actions and academic reset copy wrap instead of imposing min-con
   );
 });
 
+test("Active Practice attempt controls release intrinsic input and legend width", () => {
+  assert.match(
+    css,
+    /\.practice-workbench form,\s*\.question-list,\s*\.question-card,\s*\.question-card legend,\s*\.text-answer,\s*\.practice-submit-row\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/,
+  );
+  assert.match(
+    css,
+    /\.question-card legend > \*,\s*\.text-answer-label > span,\s*\.practice-submit-row > span\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;[\s\S]*?overflow-wrap:\s*anywhere;/,
+  );
+  assert.match(
+    css,
+    /\.practice-submit-row button\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;[\s\S]*?overflow-wrap:\s*anywhere;[\s\S]*?white-space:\s*normal;/,
+  );
+});
+
 test("Collapsed Learning grids use a zero min-content floor", () => {
   assert.match(
     css,
