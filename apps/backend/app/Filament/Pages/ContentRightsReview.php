@@ -84,7 +84,6 @@ final class ContentRightsReview extends Page
                 'i.pack_id',
                 'i.rights_status',
                 'i.rights_basis',
-                'i.rights_source_references',
                 'i.rights_review_status',
                 'i.rights_evidence_reference',
                 'i.rights_review_note',
@@ -102,7 +101,7 @@ final class ContentRightsReview extends Page
                 'pack_id' => is_string($row->pack_id) ? $row->pack_id : null,
                 'rights_status' => is_string($row->rights_status) ? $row->rights_status : null,
                 'rights_basis' => is_string($row->rights_basis) ? $row->rights_basis : null,
-                'rights_source_references' => $this->decodeList($row->rights_source_references),
+                'rights_source_references' => $this->sourceReferencesForImport((string) $row->id),
                 'rights_review_status' => is_string($row->rights_review_status) ? $row->rights_review_status : 'pending',
                 'rights_evidence_reference' => is_string($row->rights_evidence_reference) ? $row->rights_evidence_reference : null,
                 'rights_review_note' => is_string($row->rights_review_note) ? $row->rights_review_note : null,
@@ -177,17 +176,24 @@ final class ContentRightsReview extends Page
     }
 
     /** @return list<string> */
-    private function decodeList(mixed $json): array
+    private function sourceReferencesForImport(string $importId): array
     {
-        if (! is_string($json) || $json === '') {
+        $payload = DB::table('outbox_events')
+            ->where('aggregate_type', 'preparation_import')
+            ->where('aggregate_id', $importId)
+            ->where('event_type', 'content.rights_review_required')
+            ->orderBy('occurred_at')
+            ->value('payload');
+        if (! is_string($payload) || $payload === '') {
             return [];
         }
-        $decoded = json_decode($json, true);
-        if (! is_array($decoded) || ! array_is_list($decoded)) {
+        $decoded = json_decode($payload, true);
+        $references = is_array($decoded) ? ($decoded['source_references'] ?? null) : null;
+        if (! is_array($references) || ! array_is_list($references)) {
             return [];
         }
 
-        return array_values(array_filter($decoded, 'is_string'));
+        return array_values(array_filter($references, 'is_string'));
     }
 
     private function text(string $ar, string $en, string $fr): string
