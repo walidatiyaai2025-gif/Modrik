@@ -5,19 +5,21 @@ import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { boundedFailureDetail, runBoundedSync } from "./pilot-smoke-process.mjs";
+import { boundedFailureDetail, runBoundedProcess } from "./pilot-smoke-process.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const harnessPath = join(repoRoot, "scripts/pilot-smoke.mjs");
 const requestedPort = process.env.MODRIK_PILOT_SMOKE_PORT;
 const pilotPort = requestedPort || String(await findAvailableLoopbackPort());
 const harnessTimeoutMs = 55 * 60_000;
+const harnessCleanupGraceMs = 2_000;
+const harnessCleanupForceMs = 1_000;
 
 if (!requestedPort) {
   console.log(`Pilot smoke selected free loopback port ${pilotPort}.`);
 }
 
-const execution = runBoundedSync(process.execPath, [harnessPath, ...process.argv.slice(2)], {
+const execution = await runBoundedProcess(process.execPath, [harnessPath, ...process.argv.slice(2)], {
   cwd: repoRoot,
   env: {
     ...process.env,
@@ -25,8 +27,14 @@ const execution = runBoundedSync(process.execPath, [harnessPath, ...process.argv
   },
   stdio: "inherit",
   timeoutMs: harnessTimeoutMs,
+  cleanupGraceMs: harnessCleanupGraceMs,
+  cleanupForceMs: harnessCleanupForceMs,
 });
 const failureDetail = boundedFailureDetail(execution, "Pilot smoke harness");
+
+if (execution.residualTreeTerminated) {
+  console.log("Pilot smoke process-tree cleanup completed before runner exit.");
+}
 
 if (failureDetail) {
   console.error(failureDetail);
