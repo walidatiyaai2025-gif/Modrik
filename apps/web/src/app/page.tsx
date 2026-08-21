@@ -1,5 +1,7 @@
-import AuthWorkspace from "./auth-workspace";
+import LandingPage from "./landing-page";
 
 export default function Home() {
-  return <AuthWorkspace />;
+  const adminUrl = process.env.MODRIK_ADMIN_PORTAL_URL ?? "https://api.demo.modrik.org/admin/login";
+
+  return <LandingPage adminUrl={adminUrl} />;
 }
