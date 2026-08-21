@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Exceptions\ApiProblemException;
 use App\Models\User;
 use App\Services\ContentAdminWorkflowService;
+use App\Services\ContentRightsReviewService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
@@ -22,6 +23,12 @@ final class ContentReviewQueue extends Page
 
     /** @var array<string, string> */
     public array $reasons = [];
+
+    /** @var array<string, string> */
+    public array $rightsEvidenceReferences = [];
+
+    /** @var array<string, string> */
+    public array $rightsNotes = [];
 
     public ?string $selectedImportId = null;
 
@@ -52,6 +59,36 @@ final class ContentReviewQueue extends Page
     public function getMaxContentWidth(): Width
     {
         return Width::Full;
+    }
+
+    public function approveRights(string $importId): void
+    {
+        $this->performRights(function (ContentRightsReviewService $rights) use ($importId): void {
+            $rights->review(
+                $this->operator(),
+                $importId,
+                'approved',
+                $this->rightsEvidenceReferences[$importId] ?? null,
+                $this->rightsNotes[$importId] ?? null,
+            );
+            Notification::make()->title(__('admin.messages.rights_approved'))->success()->send();
+            $this->selectedImportId = $importId;
+        });
+    }
+
+    public function rejectRights(string $importId): void
+    {
+        $this->performRights(function (ContentRightsReviewService $rights) use ($importId): void {
+            $rights->review(
+                $this->operator(),
+                $importId,
+                'rejected',
+                $this->rightsEvidenceReferences[$importId] ?? null,
+                $this->rightsNotes[$importId] ?? null,
+            );
+            Notification::make()->title(__('admin.messages.rights_rejected'))->warning()->send();
+            $this->selectedImportId = $importId;
+        });
     }
 
     public function runDryRun(string $importId): void
@@ -170,7 +207,7 @@ final class ContentReviewQueue extends Page
     /** @return array<int, array<string, mixed>> */
     public function queueRows(): array
     {
-        $allowed = ['validating', 'rejected', 'staged', 'validated', 'reviewed', 'imported', 'published', 'superseded'];
+        $allowed = ['validating', 'rejected', 'rights_review', 'staged', 'validated', 'reviewed', 'imported', 'published', 'superseded'];
         $query = DB::table('preparation_imports as i')
             ->leftJoin('preparation_requests as r', 'r.id', '=', 'i.preparation_request_id')
             ->leftJoin('content_publications as p', 'p.preparation_import_id', '=', 'i.id')
@@ -179,6 +216,11 @@ final class ContentReviewQueue extends Page
                 'i.preparation_request_id',
                 'i.pack_id',
                 'i.rights_status',
+                'i.rights_review_status',
+                'i.rights_evidence_reference',
+                'i.rights_review_note',
+                'i.rights_reviewed_by',
+                'i.rights_reviewed_at',
                 'i.status',
                 'i.validation_summary',
                 'i.dry_run_summary',
@@ -212,6 +254,11 @@ final class ContentReviewQueue extends Page
                 'preparation_request_id' => is_string($row->preparation_request_id) ? $row->preparation_request_id : null,
                 'pack_id' => is_string($row->pack_id) ? $row->pack_id : null,
                 'rights_status' => is_string($row->rights_status) ? $row->rights_status : null,
+                'rights_review_status' => is_string($row->rights_review_status) ? $row->rights_review_status : 'pending',
+                'rights_evidence_reference' => is_string($row->rights_evidence_reference) ? $row->rights_evidence_reference : null,
+                'rights_review_note' => is_string($row->rights_review_note) ? $row->rights_review_note : null,
+                'rights_reviewed_by' => is_string($row->rights_reviewed_by) ? $row->rights_reviewed_by : null,
+                'rights_reviewed_at' => $row->rights_reviewed_at,
                 'status' => (string) $row->status,
                 'validation_summary' => $this->decode($row->validation_summary),
                 'dry_run_summary' => $this->decode($row->dry_run_summary),
@@ -293,6 +340,22 @@ final class ContentReviewQueue extends Page
     {
         try {
             $callback(app(ContentAdminWorkflowService::class));
+        } catch (ApiProblemException $exception) {
+            Notification::make()
+                ->title(__('admin.messages.operation_blocked'))
+                ->body($exception->problemCode.' — '.$exception->getMessage())
+                ->danger()
+                ->send();
+        } catch (Throwable) {
+            Notification::make()->title(__('admin.messages.operation_failed'))->danger()->send();
+        }
+    }
+
+    /** @param callable(ContentRightsReviewService): void $callback */
+    private function performRights(callable $callback): void
+    {
+        try {
+            $callback(app(ContentRightsReviewService::class));
         } catch (ApiProblemException $exception) {
             Notification::make()
                 ->title(__('admin.messages.operation_blocked'))
