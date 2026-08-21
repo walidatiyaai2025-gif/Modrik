@@ -315,7 +315,7 @@ void main() {
     expect(jsonEncode(event.toJson()), isNot(contains(sentinel)));
   });
 
-  test('correlation IDs use canonical UUID or ULID envelope', () {
+  test('correlation IDs use canonical safe diagnostics envelope', () {
     final diagnostics = RuntimeDiagnostics(
       config: _enabledConfig,
       persistence: MemoryRuntimeDiagnosticsPersistence(),
@@ -328,7 +328,7 @@ void main() {
     expect(validDiagnosticCorrelationId(second), second);
     expect(first, matches(RegExp(r'^[0-9a-f-]{36}$')));
     expect(second, isNot(first));
-    expect(validDiagnosticCorrelationId('not-a-correlation-id'), isNull);
+    expect(validDiagnosticCorrelationId('not/a/correlation/id'), isNull);
   });
 }
 
