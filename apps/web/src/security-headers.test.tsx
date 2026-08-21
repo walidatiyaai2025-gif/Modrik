@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { NextRequest } from "next/server";
 import { proxy } from "./proxy";
 import { BASE_SECURITY_HEADERS, buildContentSecurityPolicy } from "./security-headers";
 
 const representativeRoutes = ["/landing", "/", "/api/learning/session"] as const;
+const rootLayoutSource = readFileSync(new URL("./app/layout.tsx", import.meta.url), "utf8");
 
 for (const path of representativeRoutes) {
   test(`enforces browser security headers for ${path}`, () => {
@@ -36,6 +38,12 @@ test("generates a fresh CSP nonce for each request", () => {
     first.headers.get("Content-Security-Policy"),
     second.headers.get("Content-Security-Policy"),
   );
+});
+
+test("keeps the root render request-bound for per-request CSP nonces", () => {
+  assert.match(rootLayoutSource, /import\s*{\s*headers\s*}\s*from\s*"next\/headers"/);
+  assert.match(rootLayoutSource, /export default async function RootLayout/);
+  assert.match(rootLayoutSource, /await headers\(\)/);
 });
 
 test("development allowances do not leak into the production CSP", () => {
