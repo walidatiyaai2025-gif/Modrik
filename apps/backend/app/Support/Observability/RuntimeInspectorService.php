@@ -198,10 +198,6 @@ final class RuntimeInspectorService
             }
         }
 
-        if (is_string($filters['correlation_id'] ?? null) && CorrelationId::isValid((string) $filters['correlation_id'])) {
-            $safe['correlation_id'] = (string) $filters['correlation_id'];
-        }
-
         return $safe;
     }
 
