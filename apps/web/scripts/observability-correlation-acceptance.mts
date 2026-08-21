@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { GET as authGet } from "../src/app/api/auth/[...path]/route";
 import { GET as learningGet } from "../src/app/api/learning/[...path]/route";
@@ -13,6 +14,7 @@ import {
 } from "../src/lib/runtime-diagnostics";
 
 const mainSha = process.env.ACCEPTANCE_MAIN_SHA ?? "unknown";
+const candidateSha = process.env.ACCEPTANCE_HEAD_SHA ?? "unknown";
 const backendBase = (process.env.MODRIK_API_BASE_URL ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 const evidencePath = process.env.OBS_WEB_EVIDENCE ?? "/tmp/modrik-observability-web.json";
 const fixtureBearer = process.env.MODRIK_FIXTURE_BEARER_TOKEN ?? "SENTINEL_BEARER_101_FIXTURE_ONLY";
@@ -31,9 +33,12 @@ const sentinels = [
   "SENTINEL_QUESTION_TEXT_101_FIXTURE_ONLY",
   "SENTINEL_ASSESSMENT_CONTENT_101_FIXTURE_ONLY",
   "SENTINEL_REQUEST_BODY_101_FIXTURE_ONLY",
+  "SENTINEL_RESPONSE_BODY_101_FIXTURE_ONLY",
   "sentinel.person.101@example.test",
   "SENTINEL_NAME_101_FIXTURE_ONLY",
 ];
+
+const responseBodySentinel = sentinels[9];
 
 type UpstreamEvidence = {
   status: number;
@@ -80,6 +85,19 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = requestUrl(input);
   if (url.origin === browserOrigin) return browserRoute(input, init);
   if (url.origin === "http://timeout.fixture") throw new DOMException("synthetic timeout", "AbortError");
+  if (url.origin === "http://response-body.fixture") {
+    return new Response(
+      JSON.stringify({
+        code: "SYNTHETIC_PRIVACY_FAILURE",
+        detail: responseBodySentinel,
+        arbitrary_response_body: responseBodySentinel,
+      }),
+      {
+        status: 503,
+        headers: { "Content-Type": "application/problem+json" },
+      },
+    );
+  }
 
   const headers = requestHeaders(input, init);
   const requestedCorrelation = headers.get("X-Correlation-ID");
@@ -144,6 +162,43 @@ async function runServerCase(
   };
 }
 
+async function runLiveBackendPrivacyRequestProbe() {
+  const requestedCorrelation = randomUUID();
+  const response = await realFetch(`${backendBase}/v1/auth/login`, {
+    method: "POST",
+    headers: {
+      Accept: "application/problem+json",
+      "Content-Type": "application/json",
+      "X-Correlation-ID": requestedCorrelation,
+      Authorization: `Bearer ${sentinels[0]}`,
+      Cookie: `modrik_web_session=${sentinels[1]}`,
+    },
+    body: JSON.stringify({
+      email: sentinels[10],
+      password: sentinels[2],
+      recovery_secret: sentinels[3],
+      provider_secret: sentinels[4],
+      learner_answer: sentinels[5],
+      question_text: sentinels[6],
+      assessment_content: sentinels[7],
+      arbitrary_request_body: sentinels[8],
+    }),
+  });
+  const body = await response.text();
+  assert.ok(response.status >= 400 && response.status < 500, `privacy live probe returned unexpected ${response.status}`);
+  assert.equal(response.headers.get("X-Correlation-ID"), requestedCorrelation);
+  for (const sentinel of sentinels) {
+    assert.equal(body.includes(sentinel), false, "privacy live Backend response reflected a sentinel");
+  }
+
+  return {
+    correlation_id: requestedCorrelation,
+    status: response.status,
+    request_body_seeded: true,
+    request_headers_seeded: true,
+  };
+}
+
 try {
   configureRuntimeDiagnostics(true, {
     environment: "fixture-acceptance",
@@ -158,9 +213,18 @@ try {
     online: true,
   });
 
-  // Seed every privacy sentinel through the browser exception input. Only the safe
+  // Seed privacy sentinels through the browser exception input. Only the safe
   // error class/category may survive; the raw message must never enter diagnostics.
   recordBrowserException("react", new Error(sentinels.join(" | ")));
+
+  // Seed an arbitrary synthetic response body and prove the diagnostic layer does
+  // not serialize it even though the caller can still consume the original body.
+  const responseBodyProbe = await diagnosticFetch(
+    "privacy:response-body",
+    "http://response-body.fixture/privacy",
+  );
+  assert.equal(responseBodyProbe.status, 503);
+  assert.ok((await responseBodyProbe.text()).includes(responseBodySentinel));
 
   const missingLessonId = `01J${"9".repeat(23)}`;
   const learningFailure = await runServerCase(
@@ -186,6 +250,8 @@ try {
   );
   assert.match(authResponse.headers.get("Set-Cookie") ?? "", /modrik_web_session=;/);
   assert.match(authResponse.headers.get("Set-Cookie") ?? "", /Max-Age=0/);
+
+  const livePrivacyProbe = await runLiveBackendPrivacyRequestProbe();
 
   const backendCountBeforeTimeout = backendRequestCount;
   await assert.rejects(
@@ -217,6 +283,7 @@ try {
 
   const evidence = {
     main_sha: mainSha,
+    candidate_sha: candidateSha,
     surface: "web",
     cases: {
       A_web_learning_backend_failure: learningFailure,
@@ -233,7 +300,11 @@ try {
       },
       E_success_control: success,
     },
-    privacy_sentinel_count: sentinels.length,
+    privacy: {
+      live_backend_request: livePrivacyProbe,
+      synthetic_response_body_seeded: true,
+      sentinel_count: sentinels.length,
+    },
     bounds: {
       event_count: snapshot.length,
       event_count_limit: 50,
