@@ -1,0 +1,83 @@
+name: Demo cPanel Package
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'apps/backend/**'
+      - 'deploy/demo/**'
+      - 'scripts/package-demo-cpanel.sh'
+      - '.github/workflows/demo-cpanel-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-cpanel-package-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_mysql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Student Web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Build standalone Student Web
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Install Backend production dependencies
+        working-directory: apps/backend
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Assemble cPanel Demo ZIP
+        run: bash scripts/package-demo-cpanel.sh
+
+      - name: Verify package boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .runtime/demo-cpanel/web/startup.cjs
+          node --check .runtime/demo-cpanel/web/startup.cjs
+          test -f .runtime/demo-cpanel/backend/public/index.php
+          test -f .runtime/demo-cpanel/backend/vendor/autoload.php
+          php -l .runtime/demo-cpanel/backend/public/index.php
+          test ! -f .runtime/demo-cpanel/backend/.env
+          test ! -f .runtime/demo-cpanel/web/.env
+          ZIP_FILE="$(find .runtime -maxdepth 1 -type f -name 'modrik-demo-cpanel-*.zip' -print -quit)"
+          test -n "$ZIP_FILE"
+          unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/DEPLOY.md'
+          unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/web/startup.cjs'
+          unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/public/index.php'
+          if unzip -Z1 "$ZIP_FILE" | grep -E '(^|/)\.env$'; then
+            echo 'Live .env found in Demo package' >&2
+            exit 1
+          fi
+
+      - name: Upload cPanel Demo ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: modrik-demo-cpanel-${{ github.sha }}
+          path: .runtime/modrik-demo-cpanel-*.zip
+          if-no-files-found: error
+          retention-days: 14
+          include-hidden-files: true
