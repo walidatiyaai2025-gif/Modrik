@@ -19,6 +19,9 @@ final class ContentRightsReview extends Page
     protected static ?string $slug = 'content-rights-review';
 
     /** @var array<string, string> */
+    public array $rightsBases = [];
+
+    /** @var array<string, string> */
     public array $evidenceReferences = [];
 
     /** @var array<string, string> */
@@ -28,7 +31,10 @@ final class ContentRightsReview extends Page
     {
         $user = auth()->user();
 
-        return $user instanceof User && in_array((string) $user->role, ['admin', 'content_team'], true);
+        return $user instanceof User
+            && in_array((string) $user->role, ['admin', 'content_team'], true)
+            && (string) $user->account_status === 'active'
+            && $user->deleted_at === null;
     }
 
     public static function getNavigationLabel(): string
@@ -38,6 +44,13 @@ final class ContentRightsReview extends Page
             'fr' => 'Droits du contenu',
             default => 'Content Rights',
         };
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        $count = DB::table('preparation_imports')->where('status', 'rights_review')->count();
+
+        return $count > 0 ? (string) $count : null;
     }
 
     public function getTitle(): string
@@ -70,6 +83,8 @@ final class ContentRightsReview extends Page
                 'i.preparation_request_id',
                 'i.pack_id',
                 'i.rights_status',
+                'i.rights_basis',
+                'i.rights_source_references',
                 'i.rights_review_status',
                 'i.rights_evidence_reference',
                 'i.rights_review_note',
@@ -86,6 +101,8 @@ final class ContentRightsReview extends Page
                 'preparation_request_id' => is_string($row->preparation_request_id) ? $row->preparation_request_id : null,
                 'pack_id' => is_string($row->pack_id) ? $row->pack_id : null,
                 'rights_status' => is_string($row->rights_status) ? $row->rights_status : null,
+                'rights_basis' => is_string($row->rights_basis) ? $row->rights_basis : null,
+                'rights_source_references' => $this->decodeList($row->rights_source_references),
                 'rights_review_status' => is_string($row->rights_review_status) ? $row->rights_review_status : 'pending',
                 'rights_evidence_reference' => is_string($row->rights_evidence_reference) ? $row->rights_evidence_reference : null,
                 'rights_review_note' => is_string($row->rights_review_note) ? $row->rights_review_note : null,
@@ -108,6 +125,15 @@ final class ContentRightsReview extends Page
         $this->review($importId, 'rejected');
     }
 
+    public function setLocale(string $locale): void
+    {
+        if (! in_array($locale, ['ar', 'en', 'fr'], true)) {
+            return;
+        }
+        session()->put('admin_locale', $locale);
+        App::setLocale($locale);
+    }
+
     private function review(string $importId, string $decision): void
     {
         try {
@@ -117,6 +143,7 @@ final class ContentRightsReview extends Page
                 $decision,
                 $this->evidenceReferences[$importId] ?? null,
                 $this->notes[$importId] ?? null,
+                $this->rightsBases[$importId] ?? null,
             );
 
             $notification = Notification::make()->title($decision === 'approved'
@@ -147,6 +174,20 @@ final class ContentRightsReview extends Page
         }
 
         return $user;
+    }
+
+    /** @return list<string> */
+    private function decodeList(mixed $json): array
+    {
+        if (! is_string($json) || $json === '') {
+            return [];
+        }
+        $decoded = json_decode($json, true);
+        if (! is_array($decoded) || ! array_is_list($decoded)) {
+            return [];
+        }
+
+        return array_values(array_filter($decoded, 'is_string'));
     }
 
     private function text(string $ar, string $en, string $fr): string
