@@ -1183,3 +1183,33 @@ button:disabled {
   overflow-wrap: anywhere;
   white-space: normal;
 }
+
+/* Issue #125: active Practice attempt containment under FR 360px/200% text. */
+.practice-workbench form,
+.question-list,
+.question-card,
+.question-card legend,
+.text-answer,
+.practice-submit-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.question-card legend > *,
+.text-answer-label > span,
+.practice-submit-row > span {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.text-answer {
+  box-sizing: border-box;
+}
+
+.practice-submit-row button {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
