@@ -4,3 +4,4 @@ deployment:
     - export DEPLOYPATH=/home/solscool/public_html/modrik.org/
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R deploy/coming-soon/. $DEPLOYPATH
+    - /bin/bash deploy/demo/deploy-demo-cpanel-from-cpanel-git.sh
