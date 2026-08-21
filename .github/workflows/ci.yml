@@ -156,6 +156,8 @@ jobs:
         run: bash scripts/setup.sh
       - name: Execute repository Pilot acceptance matrix
         run: npm run pilot:smoke
+      - name: Require strict all-PASS Pilot acceptance matrix
+        run: npm run pilot:smoke:strict
 
   secret-scan:
     runs-on: ubuntu-latest
