@@ -15,6 +15,7 @@ jobs:
       FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
       API_URL: https://api.demo.modrik.org
+      ORIGIN_IP: 65.21.208.232
 
     steps:
       - name: Validate secrets
@@ -35,7 +36,7 @@ jobs:
           set -euo pipefail
           token="$(openssl rand -hex 32)"
           nonce="$(openssl rand -hex 10)"
-          name=".modrik-probe-$nonce.php"
+          name="modrik-probe-$nonce.php"
           token_file=".modrik-probe-token-$nonce"
           echo "::add-mask::$token"
           printf '%s' "$token" > /tmp/modrik-probe-token
@@ -149,18 +150,60 @@ jobs:
             bye;
           "
 
-      - name: Invoke probe
+      - name: Invoke probe with raw diagnostics
         shell: bash
         run: |
           set -euo pipefail
           name="$(cat /tmp/modrik-probe-name)"
           token="$(cat /tmp/modrik-probe-token)"
-          response="$(curl --silent --show-error \
-            --max-time 30 \
-            -H "X-MODRIK-Deploy-Token: $token" \
-            "$API_URL/$name")"
-          printf '%s\n' "$response" | jq .
-          jq -e '.ok == true' <<<"$response" >/dev/null
+
+          probe() {
+            local label="$1"
+            shift
+            local body="$RUNNER_TEMP/${label}-body.txt"
+            local headers="$RUNNER_TEMP/${label}-headers.txt"
+            local code
+            set +e
+            code="$(curl --silent --show-error \
+              --connect-timeout 15 --max-time 30 \
+              -D "$headers" -o "$body" -w '%{http_code}' \
+              -H "X-MODRIK-Deploy-Token: $token" \
+              "$@" \
+              "$API_URL/$name")"
+            local curl_exit=$?
+            set -e
+            local type
+            type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {sub(/\r$/,""); print substr($0, index($0,$2)); exit}' "$headers" 2>/dev/null || true)"
+            echo "${label}_curl_exit=$curl_exit"
+            echo "${label}_http_status=$code"
+            echo "${label}_content_type=${type:-unknown}"
+            if jq -e . "$body" >/dev/null 2>&1; then
+              echo "${label}_json_begin"
+              jq . "$body"
+              echo "${label}_json_end"
+              if jq -e '.ok == true' "$body" >/dev/null 2>&1; then
+                return 0
+              fi
+            else
+              echo "${label}_response_preview_begin"
+              head -c 1200 "$body" | tr '\r\n' ' ' | sed -E 's/[[:space:]]+/ /g'
+              echo
+              echo "${label}_response_preview_end"
+            fi
+            return 1
+          }
+
+          if probe dns; then
+            exit 0
+          fi
+
+          echo 'DNS path did not return a successful JSON probe; trying direct origin with the same TLS hostname.'
+          if probe origin --resolve "api.demo.modrik.org:443:$ORIGIN_IP"; then
+            exit 0
+          fi
+
+          echo 'MODRIK_FTPS_BRIDGE_DIAGNOSTIC_FAILED' >&2
+          exit 20
 
       - name: Remove one-shot probe
         if: always()
