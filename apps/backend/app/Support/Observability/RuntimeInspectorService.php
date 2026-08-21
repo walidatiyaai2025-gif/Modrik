@@ -44,7 +44,7 @@ final class RuntimeInspectorService
                 ->limit($queryLimit)
                 ->get();
 
-            return $rows->map(fn (object $row): array => $this->serializeRow($row))->all();
+            return array_values($rows->map(fn (object $row): array => $this->serializeRow($row))->all());
         } catch (Throwable) {
             return [];
         }
@@ -152,25 +152,28 @@ final class RuntimeInspectorService
      */
     private function serializeRow(object $row): array
     {
+        /** @var array<string, mixed> $values */
+        $values = (array) $row;
         $metadata = [];
-        if (is_string($row->metadata ?? null) && $row->metadata !== '') {
-            $decoded = json_decode($row->metadata, true);
+        $rawMetadata = $values['metadata'] ?? null;
+        if (is_string($rawMetadata) && $rawMetadata !== '') {
+            $decoded = json_decode($rawMetadata, true);
             $metadata = is_array($decoded) ? $this->sanitizer->metadata($decoded) : [];
         }
 
         return [
-            'occurred_at' => (string) $row->occurred_at,
-            'correlation_id' => (string) $row->correlation_id,
-            'data_class' => (string) $row->data_class,
-            'severity' => (string) $row->severity,
-            'surface' => (string) $row->surface,
-            'category' => (string) $row->category,
-            'stable_code' => $row->stable_code !== null ? (string) $row->stable_code : null,
-            'route' => $row->route !== null ? (string) $row->route : null,
-            'action' => $row->action !== null ? (string) $row->action : null,
-            'duration_ms' => $row->duration_ms !== null ? (int) $row->duration_ms : null,
-            'environment' => $row->environment !== null ? (string) $row->environment : null,
-            'build_identity' => $row->build_identity !== null ? (string) $row->build_identity : null,
+            'occurred_at' => (string) ($values['occurred_at'] ?? ''),
+            'correlation_id' => (string) ($values['correlation_id'] ?? ''),
+            'data_class' => (string) ($values['data_class'] ?? ''),
+            'severity' => (string) ($values['severity'] ?? ''),
+            'surface' => (string) ($values['surface'] ?? ''),
+            'category' => (string) ($values['category'] ?? ''),
+            'stable_code' => isset($values['stable_code']) ? (string) $values['stable_code'] : null,
+            'route' => isset($values['route']) ? (string) $values['route'] : null,
+            'action' => isset($values['action']) ? (string) $values['action'] : null,
+            'duration_ms' => isset($values['duration_ms']) ? (int) $values['duration_ms'] : null,
+            'environment' => isset($values['environment']) ? (string) $values['environment'] : null,
+            'build_identity' => isset($values['build_identity']) ? (string) $values['build_identity'] : null,
             'metadata' => $metadata,
         ];
     }
