@@ -215,10 +215,13 @@ final class ContentRightsReviewTest extends TestCase
 
     private function pendingRightsImport(): string
     {
+        $preparation = app(ContentPreparationService::class)->create($this->operator, $this->requestPayload());
         $id = '01J11111111111111111111111';
         DB::table('preparation_imports')->insert([
             'id' => $id,
             'uploaded_by' => (string) $this->operator->getKey(),
+            'preparation_request_id' => (string) $preparation['preparation_request_id'],
+            'claimed_preparation_request_id' => (string) $preparation['preparation_request_id'],
             'archive_hash' => str_repeat('a', 64),
             'status' => 'rights_review',
             'rights_status' => 'pending_review',
