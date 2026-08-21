@@ -134,6 +134,16 @@ foreach ($sentinels as $sentinel) {
     assertTrue(! str_contains($mobileSerialized, $sentinel), "privacy: sentinel leaked to Mobile evidence/export: {$sentinel}");
 }
 
+$resourceBounds = [
+    'max_events' => (int) config('observability.max_events'),
+    'query_limit' => (int) config('observability.query_limit'),
+    'export_max_events' => (int) config('observability.export_max_events'),
+    'export_max_bytes' => (int) config('observability.export_max_bytes'),
+];
+foreach ($resourceBounds as $key => $value) {
+    assertTrue($value > 0, "Backend observability bound {$key} is not configuration-driven to a positive value");
+}
+
 $result = [
     'main_sha' => $mainSha,
     'backend_admin_lookup' => $backendMatrix,
@@ -147,6 +157,7 @@ $result = [
         'audit_row_count' => count($auditRows),
         'all_sentinels_absent' => true,
     ],
+    'resource_bounds' => $resourceBounds,
 ];
 $encoded = json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 file_put_contents($outputPath, $encoded);
