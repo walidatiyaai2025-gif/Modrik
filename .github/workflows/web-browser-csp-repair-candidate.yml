@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pr-119-browser-boot:
+  pr-118-browser-boot:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -25,10 +25,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: harness
 
-      - name: Check out live CSP repair candidate
+      - name: Check out canonical CSP repair candidate
         uses: actions/checkout@v4
         with:
-          ref: refs/pull/119/head
+          ref: refs/pull/118/head
           path: target
 
       - name: Resolve exact provenance
