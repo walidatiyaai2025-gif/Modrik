@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
+const closeoutCss = readFileSync(new URL("./learning-responsive-closeout.css", import.meta.url), "utf8");
 
 test("Learning responsive CSS shrinks intrinsic containers instead of hiding overflow", () => {
   assert.match(
@@ -90,4 +91,12 @@ test("Collapsed Learning grids use a zero min-content floor", () => {
     css,
     /@media \(max-width: 680px\)[\s\S]*?\.mastery-summary\s*\{[\s\S]*?width:\s*100%;/,
   );
+});
+
+test("Progress workspace heading releases FR 360px min-content pressure without masking overflow", () => {
+  assert.match(
+    closeoutCss,
+    /\.workspace-section-header h2\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;[\s\S]*?overflow-wrap:\s*anywhere;[\s\S]*?white-space:\s*normal;/,
+  );
+  assert.doesNotMatch(closeoutCss, /overflow-x:\s*(?:hidden|clip)/);
 });
