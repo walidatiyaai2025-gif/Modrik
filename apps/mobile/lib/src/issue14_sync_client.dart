@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'learning_gateway.dart';
 import 'offline_boundary.dart';
+import 'runtime_diagnostic_transport.dart';
+import 'runtime_diagnostics.dart';
 
 Map<String, dynamic> issue14OperationPayload(PendingLearningOperation operation) => {
       'operation_id': operation.logicalCommandKey,
@@ -18,6 +21,7 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
     String? bearerToken,
     this.bearerTokenProvider,
     this.onAuthenticationRejected,
+    this.diagnostics,
     HttpClient? client,
   })  : _staticBearerToken = bearerToken,
         _client = client ?? HttpClient();
@@ -26,6 +30,7 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
   final String? _staticBearerToken;
   final String? Function()? bearerTokenProvider;
   final void Function()? onAuthenticationRejected;
+  final RuntimeDiagnostics? diagnostics;
   final HttpClient _client;
 
   String? get _bearerToken =>
@@ -50,8 +55,13 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
   Future<List<PendingSyncAcknowledgement>> _flushBatch(
     List<PendingLearningOperation> operations,
   ) async {
+    final diagnosticAttempt = RuntimeDiagnosticTransportAttempt.start(
+      diagnostics,
+      'sync.post.answers',
+    );
     try {
       final request = await _client.postUrl(baseUrl.resolve('sync/answers'));
+      diagnosticAttempt.attach(request);
       request.headers.set(
         HttpHeaders.acceptHeader,
         'application/json, application/problem+json',
@@ -68,6 +78,7 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
       );
 
       final response = await request.close();
+      diagnosticAttempt.acceptResponse(response);
       final text = await response.transform(utf8.decoder).join();
       final payload = text.isEmpty ? <String, dynamic>{} : jsonDecode(text);
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -83,9 +94,17 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
         if (failure.status == 401 && failure.code == 'AUTHENTICATION_REQUIRED') {
           onAuthenticationRejected?.call();
         }
+        diagnosticAttempt.backendFailure(
+          status: failure.status,
+          stableCode: failure.code,
+          retryable: failure.retryable,
+        );
         throw failure;
       }
       if (payload is! Map) {
+        diagnosticAttempt.invalidResponse(
+          stableCode: 'MOBILE_INVALID_SYNC_RESPONSE',
+        );
         throw const LearningFailure(
           status: 0,
           code: 'MOBILE_INVALID_SYNC_RESPONSE',
@@ -96,6 +115,9 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
       final envelope = Map<String, dynamic>.from(payload);
       final data = envelope['data'];
       if (data is! Map) {
+        diagnosticAttempt.invalidResponse(
+          stableCode: 'MOBILE_INVALID_SYNC_RESPONSE',
+        );
         throw const LearningFailure(
           status: 0,
           code: 'MOBILE_INVALID_SYNC_RESPONSE',
@@ -105,6 +127,9 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
       }
       final acknowledgements = Map<String, dynamic>.from(data)['acknowledgements'];
       if (acknowledgements is! List) {
+        diagnosticAttempt.invalidResponse(
+          stableCode: 'MOBILE_INVALID_SYNC_RESPONSE',
+        );
         throw const LearningFailure(
           status: 0,
           code: 'MOBILE_INVALID_SYNC_RESPONSE',
@@ -112,6 +137,19 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
           retryable: false,
         );
       }
+      diagnostics?.record(
+        severity: DiagnosticSeverity.info,
+        category: 'sync',
+        correlationId: diagnosticAttempt.correlationId ?? 'local',
+        operation: 'sync.acknowledgements',
+        result: 'received',
+        connectivity: DiagnosticConnectivity.online,
+        metadata: {
+          'operation_count': operations.length,
+          'pending_count': operations.length - acknowledgements.length,
+        },
+      );
+      diagnosticAttempt.success(status: response.statusCode);
       return List<PendingSyncAcknowledgement>.unmodifiable(
         acknowledgements.whereType<Map>().map(
               (item) => PendingSyncAcknowledgement.fromJson(
@@ -119,9 +157,27 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
               ),
             ),
       );
-    } on LearningFailure {
+    } on LearningFailure catch (failure) {
+      if (failure.status > 0) {
+        diagnosticAttempt.backendFailure(
+          status: failure.status,
+          stableCode: failure.code,
+          retryable: failure.retryable,
+        );
+      } else {
+        diagnosticAttempt.invalidResponse(stableCode: failure.code);
+      }
       rethrow;
+    } on TimeoutException {
+      diagnosticAttempt.transportFailure(stableCode: 'MOBILE_NETWORK_TIMEOUT');
+      throw const LearningFailure(
+        status: 0,
+        code: 'MOBILE_NETWORK_TIMEOUT',
+        message: 'The answer sync request timed out.',
+        retryable: true,
+      );
     } on SocketException catch (error) {
+      diagnosticAttempt.offline();
       throw LearningFailure(
         status: 0,
         code: 'MOBILE_NETWORK_OFFLINE',
@@ -129,6 +185,7 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
         retryable: true,
       );
     } on HttpException catch (error) {
+      diagnosticAttempt.transportFailure();
       throw LearningFailure(
         status: 0,
         code: 'MOBILE_NETWORK_ERROR',
@@ -136,6 +193,9 @@ class HttpIssue14PendingSyncClient implements PendingSyncClient {
         retryable: true,
       );
     } on FormatException {
+      diagnosticAttempt.invalidResponse(
+        stableCode: 'MOBILE_INVALID_SYNC_RESPONSE',
+      );
       throw const LearningFailure(
         status: 0,
         code: 'MOBILE_INVALID_SYNC_RESPONSE',

@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'auth_models.dart';
 import 'models.dart';
+import 'runtime_diagnostic_transport.dart';
+import 'runtime_diagnostics.dart';
 
 class AuthFailure implements Exception {
   const AuthFailure({
@@ -73,6 +76,7 @@ class HttpAuthGateway implements AuthGateway {
     required this.baseUrl,
     String? bearerToken,
     this.bearerTokenProvider,
+    this.diagnostics,
     HttpClient? client,
   })  : _staticBearerToken = bearerToken,
         _client = client ?? HttpClient();
@@ -80,6 +84,7 @@ class HttpAuthGateway implements AuthGateway {
   final Uri baseUrl;
   final String? _staticBearerToken;
   final String? Function()? bearerTokenProvider;
+  final RuntimeDiagnostics? diagnostics;
   final HttpClient _client;
 
   String? get _bearerToken =>
@@ -293,8 +298,13 @@ class HttpAuthGateway implements AuthGateway {
     bool authenticated = true,
     Map<String, dynamic>? body,
   }) async {
+    final diagnosticAttempt = RuntimeDiagnosticTransportAttempt.start(
+      diagnostics,
+      diagnosticOperationName('auth', method, path),
+    );
     try {
       final request = await _client.openUrl(method, baseUrl.resolve(path));
+      diagnosticAttempt.attach(request);
       request.headers.set(
         HttpHeaders.acceptHeader,
         'application/json, application/problem+json',
@@ -314,21 +324,34 @@ class HttpAuthGateway implements AuthGateway {
       }
 
       final response = await request.close();
+      diagnosticAttempt.acceptResponse(response);
       final text = await response.transform(utf8.decoder).join();
       final payload = text.isEmpty ? null : jsonDecode(text);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         final problem = payload is Map
             ? Map<String, dynamic>.from(payload)
             : <String, dynamic>{};
-        throw AuthFailure(
+        final failure = AuthFailure(
           status: response.statusCode,
           code: problem['code'] as String? ?? 'AUTH_REQUEST_FAILED',
           message: problem['detail'] as String? ?? 'The authentication request failed.',
           retryable: problem['retryable'] as bool? ?? response.statusCode >= 500,
         );
+        diagnosticAttempt.backendFailure(
+          status: failure.status,
+          stableCode: failure.code,
+          retryable: failure.retryable,
+        );
+        throw failure;
       }
-      if (payload == null) return null;
+      if (payload == null) {
+        diagnosticAttempt.success(status: response.statusCode);
+        return null;
+      }
       if (payload is! Map) {
+        diagnosticAttempt.invalidResponse(
+          stableCode: 'MOBILE_AUTH_INVALID_RESPONSE',
+        );
         throw const AuthFailure(
           status: 0,
           code: 'MOBILE_AUTH_INVALID_RESPONSE',
@@ -336,10 +359,29 @@ class HttpAuthGateway implements AuthGateway {
           retryable: false,
         );
       }
+      diagnosticAttempt.success(status: response.statusCode);
       return Map<String, dynamic>.from(payload)['data'];
-    } on AuthFailure {
+    } on AuthFailure catch (failure) {
+      if (failure.status > 0) {
+        diagnosticAttempt.backendFailure(
+          status: failure.status,
+          stableCode: failure.code,
+          retryable: failure.retryable,
+        );
+      } else {
+        diagnosticAttempt.invalidResponse(stableCode: failure.code);
+      }
       rethrow;
+    } on TimeoutException {
+      diagnosticAttempt.transportFailure(stableCode: 'MOBILE_NETWORK_TIMEOUT');
+      throw const AuthFailure(
+        status: 0,
+        code: 'MOBILE_NETWORK_TIMEOUT',
+        message: 'The authentication request timed out.',
+        retryable: true,
+      );
     } on SocketException catch (error) {
+      diagnosticAttempt.offline();
       throw AuthFailure(
         status: 0,
         code: 'MOBILE_NETWORK_OFFLINE',
@@ -347,6 +389,7 @@ class HttpAuthGateway implements AuthGateway {
         retryable: true,
       );
     } on HttpException catch (error) {
+      diagnosticAttempt.transportFailure();
       throw AuthFailure(
         status: 0,
         code: 'MOBILE_NETWORK_ERROR',
@@ -354,6 +397,9 @@ class HttpAuthGateway implements AuthGateway {
         retryable: true,
       );
     } on FormatException {
+      diagnosticAttempt.invalidResponse(
+        stableCode: 'MOBILE_AUTH_INVALID_RESPONSE',
+      );
       throw const AuthFailure(
         status: 0,
         code: 'MOBILE_AUTH_INVALID_RESPONSE',

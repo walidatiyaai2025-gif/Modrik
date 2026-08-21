@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { resolveRuntimeInspectorConfig } from "../lib/runtime-inspector-config";
 import RuntimeInspector from "./runtime-inspector";
@@ -10,8 +11,14 @@ export const metadata: Metadata = {
   description: "MODRIK student web application.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  // The production CSP nonce is generated per request in proxy.ts. Keep the
+  // App Router tree request-bound so Next can read that CSP and nonce its
+  // hydration scripts instead of serving a static shell that strict CSP blocks.
+  await headers();
+
   const inspector = resolveRuntimeInspectorConfig();
+
   return (
     <html lang="en" dir="ltr" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
