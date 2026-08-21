@@ -160,7 +160,8 @@ final class RuntimeObservabilityTest extends TestCase
             ->assertHeader(CorrelationId::HEADER, $learningCorrelation)
             ->assertJsonPath('data.id', $lessonId);
 
-        $admin = User::factory()->create(['role' => 'admin']);
+        DB::table('users')->where('id', LearningSliceSeeder::USER_ID)->update(['role' => 'admin']);
+        $admin = User::query()->findOrFail(LearningSliceSeeder::USER_ID);
         $adminCorrelation = 'admin-failopen-01J6MODRIK12345';
         $this->actingAs($admin)
             ->withHeader(CorrelationId::HEADER, $adminCorrelation)
