@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 
 const targetUrl = process.env.MODRIK_CSP_PROBE_URL ?? "http://127.0.0.1:3000/";
+const targetOrigin = new URL(targetUrl).origin;
 
 async function main() {
   const browser = await chromium.launch({ headless: true });
@@ -13,7 +14,7 @@ async function main() {
     page.on("request", (request) => {
       try {
         const url = new URL(request.url());
-        if (url.origin === new URL(targetUrl).origin && url.pathname === "/api/auth/session") {
+        if (url.origin === targetOrigin && url.pathname === "/api/auth/session") {
           sessionBootstrapObserved = true;
         }
       } catch {
@@ -40,18 +41,6 @@ async function main() {
     assert.ok(nonceMatch, "production CSP is missing its script nonce/strict-dynamic boundary");
     assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/, "production script CSP weakened to unsafe-inline");
     assert.doesNotMatch(csp, /script-src[^;]*'unsafe-eval'/, "production script CSP weakened to unsafe-eval");
-
-    await page.waitForRequest(
-      (request) => {
-        try {
-          const url = new URL(request.url());
-          return url.origin === new URL(targetUrl).origin && url.pathname === "/api/auth/session";
-        } catch {
-          return false;
-        }
-      },
-      { timeout: 10_000 },
-    );
 
     await page.waitForFunction(() => document.querySelector('[aria-busy="true"]') === null, undefined, {
       timeout: 10_000,
