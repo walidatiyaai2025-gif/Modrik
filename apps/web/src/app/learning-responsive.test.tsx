@@ -50,6 +50,21 @@ test("French dashboard copy may break inside the narrow hero instead of widening
   );
 });
 
+test("Dashboard actions and academic reset copy wrap instead of imposing min-content width", () => {
+  assert.match(
+    css,
+    /\.dashboard-stack button\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;[\s\S]*?overflow-wrap:\s*anywhere;[\s\S]*?white-space:\s*normal;/,
+  );
+  assert.match(
+    css,
+    /\.next-actions button > \*,[\s\S]*?\.answer-option > span,[\s\S]*?\.text-answer-label\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/,
+  );
+  assert.match(
+    css,
+    /\.next-actions strong,[\s\S]*?\.reset-consequence p,[\s\S]*?\.answer-option > span\s*\{[\s\S]*?overflow-wrap:\s*anywhere;[\s\S]*?white-space:\s*normal;/,
+  );
+});
+
 test("Collapsed Learning grids use a zero min-content floor", () => {
   assert.match(
     css,
