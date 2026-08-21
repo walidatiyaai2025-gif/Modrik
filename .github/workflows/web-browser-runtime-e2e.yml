@@ -1,0 +1,284 @@
+name: Web Browser Runtime Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "qa/web-e2e/**"
+      - ".github/workflows/web-browser-runtime-e2e.yml"
+      - "docs/qa/P0-WEB-E2E-013-browser-runtime.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-browser-runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-runtime:
+    name: Browser runtime (${{ matrix.candidate }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - candidate: current-main-core
+            checkout_ref: main
+            source_pr: ""
+            compose_prs: ""
+            build_mode: production
+            task: core
+          - candidate: pr-93-session-security
+            checkout_ref: refs/pull/93/head
+            source_pr: "93"
+            compose_prs: ""
+            build_mode: production
+            task: session-security
+          - candidate: pr-103-runtime-inspector-pilot
+            checkout_ref: refs/pull/103/head
+            source_pr: "103"
+            compose_prs: ""
+            build_mode: pilot
+            task: inspector-pilot
+          - candidate: pr-103-runtime-inspector-production
+            checkout_ref: refs/pull/103/head
+            source_pr: "103"
+            compose_prs: ""
+            build_mode: production
+            task: inspector-production
+          - candidate: pr-103-full-browser-command
+            checkout_ref: refs/pull/103/head
+            source_pr: "103"
+            compose_prs: ""
+            build_mode: pilot
+            task: full-command
+          - candidate: release-gap-web-composite-pilot
+            checkout_ref: main
+            source_pr: ""
+            compose_prs: "103 73 59 63 79 89"
+            build_mode: pilot
+            task: full-command
+
+    steps:
+      - name: Check out Issue #108 harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+
+      - name: Check out browser candidate base
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.checkout_ref }}
+          fetch-depth: 0
+          path: target
+
+      - name: Resolve exact candidate heads and compose test-only tree
+        id: candidate
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
+          BUILD_MODE: ${{ matrix.build_mode }}
+          SOURCE_PR: ${{ matrix.source_pr }}
+          COMPOSE_PRS: ${{ matrix.compose_prs }}
+          HARNESS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="$(git -C target rev-parse HEAD)"
+          source_shas=""
+          mkdir -p "evidence/$CANDIDATE"
+
+          if [ -n "$SOURCE_PR" ]; then
+            source_shas="pr-$SOURCE_PR=$base_sha"
+          else
+            source_shas="main=$base_sha"
+          fi
+
+          python3 - <<'PY'
+          import json, os, pathlib
+          payload = {
+              "schema_version": "modrik.web.browser-candidate-start.v1",
+              "candidate": os.environ["CANDIDATE"],
+              "build_mode": os.environ["BUILD_MODE"],
+              "base_sha": os.popen("git -C target rev-parse HEAD").read().strip(),
+              "harness_sha": os.environ["HARNESS_SHA"],
+          }
+          path = pathlib.Path("evidence") / os.environ["CANDIDATE"] / "candidate-start.json"
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+
+          if [ -n "${COMPOSE_PRS// }" ]; then
+            git -C target config user.name "MODRIK browser evidence"
+            git -C target config user.email "browser-evidence@users.noreply.github.com"
+            for pr in $COMPOSE_PRS; do
+              remote_ref="refs/remotes/origin/e2e-pr-$pr"
+              git -C target fetch --no-tags origin "+refs/pull/$pr/head:$remote_ref"
+              sha="$(git -C target rev-parse "$remote_ref")"
+              source_shas="$source_shas;pr-$pr=$sha"
+              if ! git -C target merge --no-edit --no-ff "$sha"; then
+                conflicts="$(git -C target diff --name-only --diff-filter=U | paste -sd, -)"
+                ATTEMPTED_PR="$pr" ATTEMPTED_SHA="$sha" SOURCE_SHAS="$source_shas" CONFLICTS="$conflicts" python3 - <<'PY'
+          import json, os, pathlib
+          sources = {}
+          for item in os.environ["SOURCE_SHAS"].split(";"):
+              if item:
+                  key, value = item.split("=", 1)
+                  sources[key] = value
+          payload = {
+              "schema_version": "modrik.web.browser-composition-failure.v1",
+              "candidate": os.environ["CANDIDATE"],
+              "status": "FAIL",
+              "failure_code": "E2E_CANDIDATE_COMPOSITION_CONFLICT",
+              "build_mode": os.environ["BUILD_MODE"],
+              "base_sha": os.popen("git -C target merge-base HEAD origin/main 2>/dev/null || git -C target rev-parse HEAD").read().strip(),
+              "attempted_pr": int(os.environ["ATTEMPTED_PR"]),
+              "attempted_sha": os.environ["ATTEMPTED_SHA"],
+              "source_shas": sources,
+              "conflict_paths": [item for item in os.environ["CONFLICTS"].split(",") if item],
+              "harness_sha": os.environ["HARNESS_SHA"],
+          }
+          path = pathlib.Path("evidence") / os.environ["CANDIDATE"] / "composition-failure.json"
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+                exit 1
+              fi
+            done
+          fi
+
+          observed_sha="$(git -C target rev-parse HEAD)"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "observed_sha=$observed_sha" >> "$GITHUB_OUTPUT"
+          echo "source_shas=$source_shas" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: target/apps/web/package-lock.json
+
+      - name: Install Web candidate
+        working-directory: target/apps/web
+        run: npm ci
+
+      - name: Cache Chromium runtime
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: playwright-1.62.1-chromium-${{ runner.os }}
+
+      - name: Install pinned Playwright runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
+            node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Build exact direct candidate
+        if: matrix.task != 'full-command'
+        env:
+          BUILD_MODE: ${{ matrix.build_mode }}
+          OBSERVED_SHA: ${{ steps.candidate.outputs.observed_sha }}
+        working-directory: target/apps/web
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .next
+          export MODRIK_RUNTIME_INSPECTOR_ENABLED=true
+          export MODRIK_RUNTIME_ENVIRONMENT="$BUILD_MODE"
+          export MODRIK_BUILD_VERSION=e2e
+          export MODRIK_GIT_SHA="$OBSERVED_SHA"
+          npm run build
+
+      - name: Write sanitized candidate manifest
+        env:
+          CANDIDATE: ${{ matrix.candidate }}
+          BUILD_MODE: ${{ matrix.build_mode }}
+          BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
+          OBSERVED_SHA: ${{ steps.candidate.outputs.observed_sha }}
+          SOURCE_SHAS: ${{ steps.candidate.outputs.source_shas }}
+          HARNESS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          sources = {}
+          for item in os.environ["SOURCE_SHAS"].split(";"):
+              if item:
+                  key, value = item.split("=", 1)
+                  sources[key] = value
+          payload = {
+              "schema_version": "modrik.web.browser-candidate-manifest.v1",
+              "candidate": os.environ["CANDIDATE"],
+              "build_mode": os.environ["BUILD_MODE"],
+              "base_sha": os.environ["BASE_SHA"],
+              "observed_sha": os.environ["OBSERVED_SHA"],
+              "source_shas": sources,
+              "harness_sha": os.environ["HARNESS_SHA"],
+          }
+          path = pathlib.Path("evidence") / os.environ["CANDIDATE"] / "candidate-manifest.json"
+          path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+          PY
+
+      - name: Execute browser runtime acceptance
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/${{ matrix.candidate }}
+          MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.observed_sha }}
+          MODRIK_E2E_SOURCE_SHAS: ${{ steps.candidate.outputs.source_shas }}
+          MODRIK_E2E_PLAYWRIGHT_HOME: ${{ runner.temp }}/playwright
+          MODRIK_E2E_DEPS_READY: "true"
+          TASK: ${{ matrix.task }}
+          CANDIDATE: ${{ matrix.candidate }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$TASK" in
+            core)
+              MODRIK_E2E_CANDIDATE="$CANDIDATE-core" \
+              MODRIK_E2E_PROFILE=core \
+              MODRIK_E2E_EXPECTED_SHA="$MODRIK_E2E_OBSERVED_SHA" \
+                node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+              ;;
+            session-security)
+              MODRIK_E2E_CANDIDATE="$CANDIDATE-session" \
+              MODRIK_E2E_PROFILE=session-security \
+              MODRIK_E2E_EXPECTED_SHA="$MODRIK_E2E_OBSERVED_SHA" \
+                node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+              ;;
+            inspector-pilot)
+              MODRIK_E2E_CANDIDATE="$CANDIDATE-session" \
+              MODRIK_E2E_PROFILE=session-security \
+              MODRIK_E2E_EXPECTED_SHA="$MODRIK_E2E_OBSERVED_SHA" \
+                node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+              MODRIK_E2E_CANDIDATE="$CANDIDATE-inspector" \
+              MODRIK_E2E_INSPECTOR_MODE=pilot \
+                node harness/qa/web-e2e/runtime-inspector-acceptance.cjs
+              ;;
+            inspector-production)
+              MODRIK_E2E_CANDIDATE="$CANDIDATE-inspector" \
+              MODRIK_E2E_INSPECTOR_MODE=production \
+                node harness/qa/web-e2e/runtime-inspector-acceptance.cjs
+              ;;
+            full-command)
+              bash harness/qa/web-e2e/run-browser-runtime.sh target
+              ;;
+            *)
+              echo "Unsupported browser runtime task: $TASK" >&2
+              exit 2
+              ;;
+          esac
+
+      - name: Upload sanitized browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-browser-runtime-${{ matrix.candidate }}
+          path: evidence/${{ matrix.candidate }}
+          if-no-files-found: warn
+          retention-days: 14
