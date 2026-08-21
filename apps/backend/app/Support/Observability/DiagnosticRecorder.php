@@ -97,11 +97,8 @@ final class DiagnosticRecorder
         }
 
         $request = request();
-        $resolvedCorrelationId = $correlationId;
-        if ($resolvedCorrelationId === null && $request instanceof Request) {
-            $resolvedCorrelationId = CorrelationId::forRequest($request);
-        }
-        if ($resolvedCorrelationId === null || ! CorrelationId::isValid($resolvedCorrelationId)) {
+        $resolvedCorrelationId = $correlationId ?? CorrelationId::forRequest($request);
+        if (! CorrelationId::isValid($resolvedCorrelationId)) {
             $resolvedCorrelationId = (string) Str::ulid();
         }
 
@@ -114,8 +111,8 @@ final class DiagnosticRecorder
             'surface' => 'admin',
             'category' => $this->sanitizer->safeCode($category, 64) ?? 'diagnostic_admin_action',
             'stable_code' => $this->sanitizer->safeCode($stableCode, 96) ?? 'DIAGNOSTIC_ADMIN_ACTION',
-            'route' => $request instanceof Request ? $this->safeRoute($request) : null,
-            'action' => $request instanceof Request ? $this->safeAction($request) : null,
+            'route' => $this->safeRoute($request),
+            'action' => $this->safeAction($request),
             'duration_ms' => null,
             'environment' => $this->sanitizer->safeCode((string) app()->environment(), 32),
             'build_identity' => $this->sanitizer->safeCode($this->buildIdentity(), 96),
