@@ -37,6 +37,7 @@ void main() {
         'SENTINEL_RECOVERY_SECRET_101_FIXTURE_ONLY',
         'SENTINEL_ASSESSMENT_CONTENT_101_FIXTURE_ONLY',
         'SENTINEL_REQUEST_BODY_101_FIXTURE_ONLY',
+        'SENTINEL_RESPONSE_BODY_101_FIXTURE_ONLY',
       ];
 
       final persistence = MemoryRuntimeDiagnosticsPersistence();
@@ -73,6 +74,7 @@ void main() {
           'recovery_secret': sentinels[8],
           'assessment_content': sentinels[9],
           'payload': sentinels[10],
+          'response_body': sentinels[11],
         },
       );
 
@@ -111,7 +113,8 @@ void main() {
 
       // The live Backend is authoritative for the first half of C. This local
       // synthetic server isolates the second half: an invalid Backend correlation
-      // must never replace the request-side safe correlation.
+      // must never replace the request-side safe correlation, and an arbitrary
+      // response body must never enter persisted/exported diagnostics.
       final invalidCorrelationServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       String? invalidFallbackRequestCorrelation;
       invalidCorrelationServer.listen((request) async {
@@ -124,8 +127,9 @@ void main() {
         request.response.headers.contentType = ContentType.json;
         request.response.write(jsonEncode({
           'code': 'LEARNING_TEMPORARY_FAILURE',
-          'detail': 'Synthetic fixture failure.',
+          'detail': sentinels[11],
           'retryable': true,
+          'arbitrary_response_body': sentinels[11],
         }));
         await request.response.close();
       });
@@ -176,6 +180,7 @@ void main() {
 
         final evidence = <String, Object?>{
           'main_sha': Platform.environment['ACCEPTANCE_MAIN_SHA'] ?? 'unknown',
+          'candidate_sha': Platform.environment['ACCEPTANCE_HEAD_SHA'] ?? 'unknown',
           'surface': 'mobile',
           'cases': {
             'C_mobile_learning_backend_failure': {
@@ -192,6 +197,7 @@ void main() {
               'request_correlation_id': invalidFallbackRequestCorrelation,
               'final_correlation_id': fallbackEvent.correlationId,
               'fallback_preserved': fallbackEvent.correlationId == invalidFallbackRequestCorrelation,
+              'arbitrary_response_body_not_persisted': true,
             },
           },
           'privacy_sentinel_count': sentinels.length,
