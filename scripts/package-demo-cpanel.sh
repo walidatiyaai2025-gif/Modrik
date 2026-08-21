@@ -6,6 +6,8 @@ OUT_ROOT="${1:-$ROOT/.runtime/demo-cpanel}"
 WEB_STANDALONE="$ROOT/apps/web/.next/standalone"
 WEB_STATIC="$ROOT/apps/web/.next/static"
 BACKEND_SOURCE="$ROOT/apps/backend"
+DESIGN_TOKENS_SOURCE="$ROOT/packages/design-tokens/tokens.json"
+LEARNING_FIXTURE_SOURCE="$ROOT/tests/fixtures/content-pack/v1/valid/content-pack.json"
 DEPLOY_DOC="$ROOT/deploy/demo/DEPLOY_CPANEL.md"
 WEB_ENV_TEMPLATE="$ROOT/deploy/demo/web.env.example"
 BACKEND_ENV_TEMPLATE="$ROOT/deploy/demo/backend.env.example"
@@ -19,6 +21,8 @@ fail() {
 [[ -d "$WEB_STATIC" ]] || fail "Next static output is missing."
 [[ -f "$BACKEND_SOURCE/vendor/autoload.php" ]] || fail "Backend production vendor/autoload.php is missing. Run Composer install first."
 [[ -f "$BACKEND_SOURCE/public/index.php" ]] || fail "Backend public/index.php is missing."
+[[ -f "$DESIGN_TOKENS_SOURCE" ]] || fail "Canonical design tokens are missing."
+[[ -f "$LEARNING_FIXTURE_SOURCE" ]] || fail "Synthetic learning fixture is missing."
 [[ -f "$DEPLOY_DOC" ]] || fail "Demo deployment instructions are missing."
 [[ -f "$WEB_ENV_TEMPLATE" ]] || fail "Web demo environment template is missing."
 [[ -f "$BACKEND_ENV_TEMPLATE" ]] || fail "Backend demo environment template is missing."
@@ -67,7 +71,12 @@ rm -rf \
   "$OUT_ROOT/backend/.phpunit.cache" \
   "$OUT_ROOT/backend/storage/logs"/* \
   "$OUT_ROOT/backend/database/database.sqlite"
-mkdir -p "$OUT_ROOT/backend/storage/logs"
+mkdir -p \
+  "$OUT_ROOT/backend/storage/logs" \
+  "$OUT_ROOT/backend/resources/brand" \
+  "$OUT_ROOT/backend/resources/fixtures/content-pack/v1/valid"
+cp "$DESIGN_TOKENS_SOURCE" "$OUT_ROOT/backend/resources/brand/tokens.json"
+cp "$LEARNING_FIXTURE_SOURCE" "$OUT_ROOT/backend/resources/fixtures/content-pack/v1/valid/content-pack.json"
 cp "$BACKEND_ENV_TEMPLATE" "$OUT_ROOT/backend/.env.demo.example"
 
 # A deployment artifact must never contain a live .env file.
@@ -81,6 +90,10 @@ fi
 [[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
 [[ -f "$OUT_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
 [[ -f "$OUT_ROOT/backend/vendor/autoload.php" ]] || fail "Packaged Backend vendor/autoload.php is missing."
+[[ -f "$OUT_ROOT/backend/resources/brand/tokens.json" ]] || fail "Packaged Backend canonical design tokens are missing."
+[[ -f "$OUT_ROOT/backend/resources/fixtures/content-pack/v1/valid/content-pack.json" ]] || fail "Packaged Backend synthetic learning fixture is missing."
+cmp -s "$DESIGN_TOKENS_SOURCE" "$OUT_ROOT/backend/resources/brand/tokens.json" || fail "Packaged Backend design tokens differ from the canonical source."
+cmp -s "$LEARNING_FIXTURE_SOURCE" "$OUT_ROOT/backend/resources/fixtures/content-pack/v1/valid/content-pack.json" || fail "Packaged Backend synthetic learning fixture differs from the canonical source."
 
 cp "$DEPLOY_DOC" "$OUT_ROOT/DEPLOY.md"
 

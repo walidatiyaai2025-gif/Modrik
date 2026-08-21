@@ -5,6 +5,8 @@ on:
     paths:
       - 'apps/web/**'
       - 'apps/backend/**'
+      - 'packages/design-tokens/**'
+      - 'tests/fixtures/content-pack/v1/valid/content-pack.json'
       - 'deploy/demo/**'
       - 'scripts/package-demo-cpanel.sh'
       - '.github/workflows/demo-cpanel-package.yml'
@@ -60,7 +62,13 @@ jobs:
           node --check .runtime/demo-cpanel/web/startup.cjs
           test -f .runtime/demo-cpanel/backend/public/index.php
           test -f .runtime/demo-cpanel/backend/vendor/autoload.php
+          test -f .runtime/demo-cpanel/backend/resources/brand/tokens.json
+          test -f .runtime/demo-cpanel/backend/resources/fixtures/content-pack/v1/valid/content-pack.json
+          cmp -s packages/design-tokens/tokens.json .runtime/demo-cpanel/backend/resources/brand/tokens.json
+          cmp -s tests/fixtures/content-pack/v1/valid/content-pack.json .runtime/demo-cpanel/backend/resources/fixtures/content-pack/v1/valid/content-pack.json
           php -l .runtime/demo-cpanel/backend/public/index.php
+          php -l .runtime/demo-cpanel/backend/database/seeders/LearningSliceSeeder.php
+          php -r "chdir('.runtime/demo-cpanel/backend'); require 'vendor/autoload.php'; \$config = require 'config/brand.php'; if ((\$config['name'] ?? null) !== 'MODRIK | مُدرك') { exit(1); }"
           test ! -f .runtime/demo-cpanel/backend/.env
           test ! -f .runtime/demo-cpanel/web/.env
           ZIP_FILE="$(find .runtime -maxdepth 1 -type f -name 'modrik-demo-cpanel-*.zip' -print -quit)"
@@ -68,6 +76,8 @@ jobs:
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/DEPLOY.md'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/web/startup.cjs'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/public/index.php'
+          unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/resources/brand/tokens.json'
+          unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/resources/fixtures/content-pack/v1/valid/content-pack.json'
           if unzip -Z1 "$ZIP_FILE" | grep -E '(^|/)\.env$'; then
             echo 'Live .env found in Demo package' >&2
             exit 1
