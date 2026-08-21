@@ -16,17 +16,21 @@ The harness uses production Next.js builds and same-origin BFF routes against a 
 bash qa/web-e2e/run-browser-runtime.sh
 ```
 
-The command contains no GitHub API lookup or hardcoded PR/head SHA. It installs committed Web dependencies and pinned Playwright 1.62.1/Chromium when needed, builds Pilot and Production separately, runs the browser acceptance profiles, and exits nonzero on any real failure. This is the stable command consumed by downstream Pilot-smoke Issue #107 once the tested tree is integrated.
+The command contains no GitHub API lookup or hardcoded PR/head SHA. It installs committed Web dependencies and pinned Playwright 1.62.1/Chromium when needed, builds Pilot and Production separately, runs the browser acceptance profiles, and exits nonzero on any real failure. This is the stable command consumed by downstream Pilot-smoke Issue #107 from the integrated Git tree.
 
-## Exact-head candidate resolution
+## Exact-head resolution
 
-The GitHub Actions workflow resolves and records live Git provenance at runtime:
+Issue #96 / PR #103 Web Runtime Inspector and Issue #117 / PR #118 CSP hydration repair are integrated. The GitHub Actions workflow therefore tests authoritative current `main` directly and records exact Git provenance in sanitized evidence.
 
-- authoritative current `main`;
-- `refs/pull/103/head` for Issue #96 Runtime Inspector;
-- test-only `main + PR #103` composition.
+Current-main profiles are:
 
-The composition is never pushed and carries no integration authority. If either source advances, the next run records the new exact SHA.
+- core Auth/Learning browser matrix;
+- merged Issue #80 session-security behavior;
+- Runtime Inspector Pilot behavior;
+- Runtime Inspector Production fail-closed behavior;
+- the stable full browser command.
+
+Historical PR-head or `main + PR` compositions are not used for final evidence after those product candidates are integrated.
 
 ## Core browser matrix
 
@@ -56,7 +60,7 @@ The session value is generated in memory per browser context and is not written 
 
 ## Runtime Inspector acceptance
 
-Runtime Inspector is tested with separate builds because the root-layout gate can be evaluated during Next build/prerender:
+Runtime Inspector is integrated on current `main` and is tested with separate builds because its root-layout gate can be evaluated during Next build/prerender:
 
 1. Pilot: `MODRIK_RUNTIME_INSPECTOR_ENABLED=true`, `MODRIK_RUNTIME_ENVIRONMENT=pilot`.
 2. Production fail-closed: enable flag remains true while environment is `production`.
@@ -69,22 +73,20 @@ Production verifies that the Inspector UI is absent and diagnostic session stora
 
 `qa/web-e2e/browser-boot-security.cjs` verifies that the production application actually initializes before downstream UI results are interpreted. It stores only bounded PASS/FAIL metadata and exact Git provenance.
 
-The former strict-nonce CSP hydration regression is now closed by canonical Issue #117 / PR #118 integration. On authoritative `main` `166ff0c6f30954cd6cbec0ee41cb97ee4002313c`, #108 run `32468438752` / job `96729958778` is PASS for production build plus real Chromium boot-security.
+The former strict-nonce CSP hydration regression is closed by canonical Issue #117 / PR #118 integration. Current-main boot-security remains a mandatory independent gate; #108 does not weaken CSP.
 
-## Current exact-head findings
+## Current integrated-main evidence
 
-Current #108 reconciled evidence head: `5c34daef95e8240fc8ab571f311a5aaac56919e0` for the exact browser run below. It was 0 behind authoritative `main` and contained only #108 QA/workflow/docs files.
+Latest complete browser run before the integrated-main matrix cleanup: `32468903760` using #108 harness head `1a0cc547ef190690bad520a22e3f3ca32a7fe246` against exact `main` `166ff0c6f30954cd6cbec0ee41cb97ee4002313c`.
 
-### Integrated current-main browser evidence
+Results:
 
-Run `32468438700`, exact `main` `166ff0c6f30954cd6cbec0ee41cb97ee4002313c`:
-
+- current-main production build: PASS;
 - current-main session-security: PASS;
-- desktop EN Auth/Learning: PASS;
-- 1024 AR/RTL Auth/Learning: PASS;
-- tablet FR Auth/Learning: PASS;
-- 390 EN Auth/Learning: PASS;
-- narrow 360/320 at 200%: five known responsive failures remain.
+- Runtime Inspector Pilot: PASS;
+- Runtime Inspector Production default-off/storage fail-closed: PASS;
+- core browser matrix: **8 PASS / 5 FAIL**;
+- stable full command remains nonzero because it includes those same unresolved core failures.
 
 The five failures are exactly:
 
@@ -94,27 +96,20 @@ The five failures are exactly:
 4. AR/RTL 320x720 / 200% Study — `E2E_STUDY_WORKSPACE_HORIZONTAL_CLIP`;
 5. 320x720 AR/FR / 200% Auth loading state — `E2E_AUTH_LOADING_HORIZONTAL_OVERFLOW`.
 
-These are product defects, not weakened or hidden by #108. They now have explicit implementation owners:
+No additional browser defect was exposed after Runtime Inspector and Mobile Runtime Inspector integration.
+
+These failures have explicit implementation owners:
 
 - Issue #124 — Auth/account responsive remediation, Slot 6;
 - Issue #125 — Learning/Study responsive remediation, Overflow Slot 9.
 
-The sanitized geometry probe records only fixed selectors and numerical bounds/scroll dimensions so those owners can reproduce the intrinsic-sizing failures without persisting DOM text or PII.
+The sanitized geometry probe records only fixed selectors and numerical bounds/scroll dimensions so those owners can reproduce intrinsic-sizing failures without persisting DOM text or PII.
 
-### Runtime Inspector exact-head clearance
+## Integrated Runtime Inspector clearance
 
-Current PR #103 exact head tested by run `32468438700` is `23d73e2fef12f445e2093b3f0ebd0062de963e2c`, reconciled 5 commits ahead / 0 behind the same authoritative `main`.
+Before integration, exact PR #103 browser evidence passed Pilot and Production acceptance. After integration, the current-main workflow continues those same tests directly against `main`; it no longer fetches or composes the merged PR head.
 
-Browser results:
-
-- session-security compatibility: PASS;
-- Pilot EN desktop: PASS;
-- Pilot FR/LTR 360x800 / 200%: PASS;
-- Pilot AR/RTL 320x720 / 200%: PASS;
-- Production default-off: PASS;
-- Production diagnostic-storage fail-closed: PASS.
-
-Therefore the former #103 post-CSP `layout.tsx` composition blocker and the earlier Inspector narrow/200% browser blocker are closed on this exact head. The stable full browser command remains red only because it also executes the unresolved core Auth/Learning responsive cases owned by #124/#125.
+Required assertions remain unchanged: session-security compatibility, EN desktop, FR/LTR 360x800 at 200%, AR/RTL 320x720 at 200%, keyboard launcher/focus behavior, bounded/private export, production default-off, and diagnostic-storage fail-closed.
 
 ## Evidence privacy
 
@@ -126,7 +121,7 @@ The harness records no Playwright trace, screenshot, video, DOM dump, console te
 
 - #124 owns the three Auth responsive defects.
 - #125 owns the two Learning/Study responsive defects.
-- #96 / PR #103 owns Runtime Inspector production implementation.
+- #96 / PR #103 Runtime Inspector implementation is integrated and tested here, not redefined here.
 - #83 owns the final accessibility release matrix.
 - #107 owns cross-surface Pilot smoke.
 - #80 session-security behavior is integrated and browser-verified here.
@@ -136,6 +131,6 @@ Any new product defect found by #108 is reproduced with exact viewport/locale/te
 
 ## Completion rule
 
-PR #114 remains Draft until #124/#125 remediation is available and the exact affected Chromium cases pass, current-main boot/core/session-security is green, current #103 Pilot/Production is green, the stable full command and `main + #103` composition are green, #114 is reconciled to then-current `main`, and complete governed CI is green on the exact final head.
+PR #114 remains Draft until #124/#125 remediation is available and the exact affected Chromium cases pass, current-main boot/core/session-security and integrated Runtime Inspector Pilot/Production are green, the stable full command is green, #114 is reconciled to then-current `main`, and complete governed CI is green on the exact final head.
 
 Failures are never converted to weak assertions or hidden behind `continue-on-error`. The completion phrase is withheld until every required gate actually passes.
