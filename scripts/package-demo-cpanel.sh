@@ -46,8 +46,18 @@ if [[ -d "$ROOT/apps/web/public" ]]; then
   rm -rf "$WEB_APP/public"
   cp -a "$ROOT/apps/web/public" "$WEB_APP/public"
 fi
-cp "$WEB_ENV_TEMPLATE" "$WEB_APP/.env.demo.example"
+cp "$WEB_ENV_TEMPLATE" "$OUT_ROOT/web/.env.demo.example"
 printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/WEB_APPLICATION_ROOT.txt"
+
+# cPanel Passenger can always use the Web payload root as Application Root.
+# This wrapper changes cwd to the actual Next standalone app before loading it,
+# while preserving monorepo-traced node_modules in ancestor directories.
+cat > "$OUT_ROOT/web/startup.cjs" <<EOF
+const path = require("node:path");
+const appRoot = path.resolve(__dirname, ${WEB_APP_REL@Q});
+process.chdir(appRoot);
+require(path.join(appRoot, "server.js"));
+EOF
 
 cp -a "$BACKEND_SOURCE/." "$OUT_ROOT/backend/"
 rm -rf \
@@ -65,6 +75,7 @@ if find "$OUT_ROOT" -type f -name '.env' -print -quit | grep -q .; then
   fail "A live .env file entered the deployment package."
 fi
 
+[[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web startup wrapper is missing."
 [[ -f "$WEB_APP/server.js" ]] || fail "Packaged Web startup server.js is missing."
 [[ -d "$WEB_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
 [[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
@@ -85,4 +96,6 @@ rm -f "$ZIP_PARENT/$ZIP_NAME"
 )
 
 echo "Demo cPanel package ready: $ZIP_PARENT/$ZIP_NAME"
-echo "Next application root inside web payload: $WEB_APP_REL"
+echo "cPanel Node Application Root: web payload root"
+echo "cPanel Node startup file: startup.cjs"
+echo "Actual Next standalone app below payload root: $WEB_APP_REL"
