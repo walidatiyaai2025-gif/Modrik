@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type Locale = "ar" | "en" | "fr";
@@ -72,10 +73,10 @@ export default function LandingPage({ adminUrl }: { adminUrl: string }) {
   return (
     <main className="landing-shell" lang={locale} dir={direction}>
       <header className="landing-nav">
-        <a className="landing-brand" href="/" aria-label="MODRIK home">
+        <Link className="landing-brand" href="/" aria-label="MODRIK home">
           <span className="landing-brand-mark" aria-hidden="true">M</span>
           <span><strong>MODRIK</strong><small lang="ar" dir="rtl">مُدرك</small></span>
-        </a>
+        </Link>
         <div className="landing-nav-actions">
           <div className="landing-locale" aria-label="Language">
             {(["ar", "en", "fr"] as const).map((item) => (
@@ -84,7 +85,7 @@ export default function LandingPage({ adminUrl }: { adminUrl: string }) {
               </button>
             ))}
           </div>
-          <a className="landing-login-link" href="/student">{text.loginLabel}</a>
+          <Link className="landing-login-link" href="/student">{text.loginLabel}</Link>
         </div>
       </header>
 
@@ -101,7 +102,7 @@ export default function LandingPage({ adminUrl }: { adminUrl: string }) {
             <span className="landing-portal-icon" aria-hidden="true">01</span>
             <h2>{text.studentTitle}</h2>
             <p>{text.studentBody}</p>
-            <a className="landing-primary-cta" href="/student">{text.studentCta}</a>
+            <Link className="landing-primary-cta" href="/student">{text.studentCta}</Link>
           </article>
 
           <article className="landing-portal-card landing-portal-admin">
