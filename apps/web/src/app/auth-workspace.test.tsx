@@ -48,10 +48,16 @@ test("Auth chrome consumes the canonical logo and semantic warning/error tokens"
 });
 
 test("Auth responsive CSS contains narrow and 200 percent text without clipping critical controls", () => {
-  assert.match(authCss, /\.auth-shell,\s*\.auth-shell \*\s*{[\s\S]*?box-sizing:\s*border-box;/);
+  assert.match(
+    authCss,
+    /\.auth-shell,\s*\.auth-shell \*,\s*\.auth-authenticated,\s*\.auth-authenticated \*\s*{[\s\S]*?box-sizing:\s*border-box;/,
+  );
   assert.match(authCss, /\.auth-main\s*{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/);
   assert.match(authCss, /\.auth-form input\s*{[\s\S]*?box-sizing:\s*border-box;[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/);
   assert.match(authCss, /\.auth-loading h1\s*{[\s\S]*?flex-wrap:\s*wrap;[\s\S]*?overflow-wrap:\s*anywhere;/);
+  assert.match(authCss, /\.auth-brand-lockup\.compact\s*{[\s\S]*?max-width:\s*100%;[\s\S]*?flex:\s*0 1 auto;/);
+  assert.match(authCss, /\.auth-authenticated\s*{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/);
+  assert.match(authCss, /\.auth-account-grid\s*{[\s\S]*?min-width:\s*0;[\s\S]*?max-width:\s*100%;/);
   assert.match(
     authCss,
     /@media \(max-width: 560px\)[\s\S]*?\.auth-locale button\s*{[\s\S]*?flex:\s*1 1 0;[\s\S]*?min-width:\s*0;/,
