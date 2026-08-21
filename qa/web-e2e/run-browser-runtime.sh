@@ -61,7 +61,7 @@ run_core_profile() {
 
 run_learning_offline() {
   MODRIK_E2E_TARGET_DIR="$TARGET_DIR" \
-  MODRIK_E2E_CANDIDATE="current-tree-learning-offline-fr-360-200" \
+  MODRIK_E2E_CANDIDATE="current-tree-learning-offline-en-390" \
   MODRIK_E2E_OBSERVED_SHA="$OBSERVED_SHA" \
   MODRIK_E2E_EVIDENCE_DIR="$EVIDENCE_DIR" \
   node "$SCRIPT_DIR/learning-offline-acceptance.cjs"
@@ -101,7 +101,7 @@ build_web() {
 # not waived or hidden by an earlier failure.
 if build_web pilot; then
   record_evidence "core responsive/auth/learning matrix" run_core_profile core "current-tree-core"
-  record_evidence "learning offline/recovery FR 360x800 @ 200%" run_learning_offline
+  record_evidence "learning offline/recovery EN 390x844 control" run_learning_offline
   record_evidence "stale-session security" run_core_profile session-security "current-tree-session-security"
   record_evidence "Runtime Inspector Pilot" run_inspector_profile pilot "current-tree-runtime-inspector-pilot"
 else
