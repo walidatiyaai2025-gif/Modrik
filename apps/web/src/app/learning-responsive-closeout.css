@@ -1,0 +1,8 @@
+/* Issue #125 terminal closeout: allow the Progress workspace heading to shrink/wrap
+   under FR 360px at 200%-equivalent text without masking horizontal overflow. */
+.workspace-section-header h2 {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
