@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import Home from "./page";
+import { HomeContent } from "./page";
 
 test("renders an accessible session-bootstrap shell without exposing credentials", () => {
-  const markup = renderToStaticMarkup(<Home />);
+  const markup = renderToStaticMarkup(<HomeContent />);
 
   assert.match(markup, /MODRIK/);
   assert.match(markup, /مُدرك/);
