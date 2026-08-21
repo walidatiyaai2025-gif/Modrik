@@ -3,14 +3,29 @@ import {
   legalBlockers,
   publicHref,
   publicPages,
-  publicPath,
   publicUi,
   publicDirection,
+  type LegalBlockerId,
   type PublicLocale,
   type PublicPageKey,
 } from "./content";
 
 export type PublicStyleMap = Record<string, string>;
+
+type RenderedSection = {
+  id: string;
+  title: string;
+  paragraphs: string[];
+  bullets?: string[];
+  blockers?: LegalBlockerId[];
+};
+
+type LandingPresentation = {
+  eyebrow: string;
+  summary: string;
+  highlights: string[];
+  sections: RenderedSection[];
+};
 
 const primaryKeys: PublicPageKey[] = ["landing", "help", "about", "safety"];
 const guideKeys: PublicPageKey[] = ["help", "adminGuide", "accountDeletion", "support"];
@@ -24,6 +39,138 @@ const trustKeys: PublicPageKey[] = [
   "contentPolicy",
   "contact",
 ];
+
+const landingPresentation: Record<PublicLocale, LandingPresentation> = {
+  en: {
+    eyebrow: "A calmer way to learn",
+    summary:
+      "Study lessons, practice at your pace, and keep progress easy to understand in one multilingual learning workspace.",
+    highlights: ["Focused study", "Practice that resumes", "Progress in view"],
+    sections: [
+      {
+        id: "workspace",
+        title: "Study without the clutter",
+        paragraphs: [
+          "Open a lesson in a focused reading space designed to keep the learning material, language and next step easy to find.",
+        ],
+      },
+      {
+        id: "practice",
+        title: "Practice and return with confidence",
+        paragraphs: [
+          "Start practice when you are ready. If you return to the same in-progress attempt, MODRIK keeps that attempt consistent instead of changing it underneath you.",
+        ],
+      },
+      {
+        id: "progress",
+        title: "Keep progress easy to read",
+        paragraphs: [
+          "Use the progress workspace to review your learning state and decide what to revisit next without turning the experience into a wall of scores.",
+        ],
+      },
+      {
+        id: "languages",
+        title: "Built for Arabic, English and French",
+        paragraphs: [
+          "Language direction, mixed-content reading, keyboard access and larger text are treated as part of the learning experience from the start.",
+        ],
+      },
+      {
+        id: "trust",
+        title: "Clear rules behind the experience",
+        paragraphs: [
+          "Question order, scoring, academic context and official content follow authoritative system rules. Draft legal pages stay visibly unapproved until the required owner and legal facts are supplied.",
+        ],
+      },
+    ],
+  },
+  ar: {
+    eyebrow: "تعلّم بهدوء ووضوح",
+    summary:
+      "ذاكر دروسك، وتدرّب بالوتيرة المناسبة لك، وتابع تقدّمك بوضوح داخل مساحة تعلّم واحدة متعددة اللغات.",
+    highlights: ["مذاكرة مركّزة", "تدريب يُستأنف كما هو", "تقدّم واضح"],
+    sections: [
+      {
+        id: "workspace",
+        title: "ذاكر دون تشتيت",
+        paragraphs: [
+          "افتح الدرس في مساحة قراءة مركّزة تساعدك على العثور بسهولة على مادة التعلّم واللغة والخطوة التالية.",
+        ],
+      },
+      {
+        id: "practice",
+        title: "تدرّب وارجع بثقة",
+        paragraphs: [
+          "ابدأ التدريب عندما تكون مستعدًا. وإذا عدت إلى نفس المحاولة الجارية، تحافظ مُدرك على اتساقها بدل تغييرها أثناء تقدّمك.",
+        ],
+      },
+      {
+        id: "progress",
+        title: "تابع تقدّمك بوضوح",
+        paragraphs: [
+          "استخدم مساحة التقدّم لمراجعة حالة تعلّمك وتحديد ما تريد مراجعته لاحقًا دون تحويل التجربة إلى جدار من الدرجات.",
+        ],
+      },
+      {
+        id: "languages",
+        title: "مصمم للعربية والإنجليزية والفرنسية",
+        paragraphs: [
+          "اتجاه اللغة وقراءة المحتوى المختلط والوصول بلوحة المفاتيح والنص الأكبر أجزاء أساسية من تجربة التعلّم منذ البداية.",
+        ],
+      },
+      {
+        id: "trust",
+        title: "قواعد واضحة خلف التجربة",
+        paragraphs: [
+          "يتبع ترتيب الأسئلة والدرجات والسياق الأكاديمي والمحتوى الرسمي قواعد النظام المعتمدة. وتظل الصفحات القانونية المسودة ظاهرة بوضوح كغير معتمدة حتى توفير الحقائق المطلوبة من المالك والجهة القانونية.",
+        ],
+      },
+    ],
+  },
+  fr: {
+    eyebrow: "Apprendre avec calme et clarté",
+    summary:
+      "Étudiez vos leçons, exercez-vous à votre rythme et suivez votre progression clairement dans un seul espace d’apprentissage multilingue.",
+    highlights: ["Étude ciblée", "Exercices qui reprennent", "Progression visible"],
+    sections: [
+      {
+        id: "workspace",
+        title: "Étudier sans distraction",
+        paragraphs: [
+          "Ouvrez une leçon dans un espace de lecture ciblé qui garde le contenu, la langue et la prochaine étape faciles à repérer.",
+        ],
+      },
+      {
+        id: "practice",
+        title: "S’exercer et revenir en confiance",
+        paragraphs: [
+          "Commencez un exercice lorsque vous êtes prêt. Si vous revenez à la même tentative en cours, MODRIK la garde cohérente au lieu de la modifier en cours de route.",
+        ],
+      },
+      {
+        id: "progress",
+        title: "Lire sa progression simplement",
+        paragraphs: [
+          "Utilisez l’espace de progression pour revoir votre état d’apprentissage et choisir ce que vous souhaitez reprendre ensuite, sans transformer l’expérience en mur de scores.",
+        ],
+      },
+      {
+        id: "languages",
+        title: "Conçu pour l’arabe, l’anglais et le français",
+        paragraphs: [
+          "La direction du texte, la lecture de contenu mixte, l’accès clavier et le texte agrandi font partie de l’expérience d’apprentissage dès le départ.",
+        ],
+      },
+      {
+        id: "trust",
+        title: "Des règles claires derrière l’expérience",
+        paragraphs: [
+          "L’ordre des questions, la notation, le contexte académique et le contenu officiel suivent les règles autoritaires du système. Les pages juridiques provisoires restent clairement non approuvées tant que les informations propriétaire et juridiques requises ne sont pas fournies.",
+        ],
+      },
+    ],
+  },
+};
 
 function labelFor(key: PublicPageKey, locale: PublicLocale): string {
   const labels = publicUi[locale];
@@ -109,6 +256,16 @@ export function PublicSiteView({
   const page = publicPages[pageKey];
   const labels = publicUi[locale];
   const direction = publicDirection(locale);
+  const landingCopy = pageKey === "landing" ? landingPresentation[locale] : null;
+  const renderedSections: RenderedSection[] = landingCopy
+    ? landingCopy.sections
+    : page.sections.map((section) => ({
+        id: section.id,
+        title: section.title[locale],
+        paragraphs: section.paragraphs.map((paragraph) => paragraph[locale]),
+        bullets: section.bullets?.map((bullet) => bullet[locale]),
+        blockers: section.blockers ? [...section.blockers] : undefined,
+      }));
   const blockerIds = Array.from(new Set(page.sections.flatMap((section) => section.blockers ?? [])));
 
   return (
@@ -154,23 +311,23 @@ export function PublicSiteView({
       <main id="public-main" className={styles.main}>
         <section className={`${styles.hero} ${pageKey === "landing" ? styles.landingHero : ""}`} aria-labelledby="public-page-title">
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>{page.eyebrow[locale]}</p>
+            <p className={styles.eyebrow}>{landingCopy?.eyebrow ?? page.eyebrow[locale]}</p>
             <h1 id="public-page-title">{page.title[locale]}</h1>
-            <p className={styles.lead}>{page.summary[locale]}</p>
-            {pageKey === "landing" && (
-              <div className={styles.heroActions}>
-                <PageLink pageKey="help" currentPage={pageKey} locale={locale} className={styles.primaryAction} />
-                <PageLink pageKey="about" currentPage={pageKey} locale={locale} className={styles.secondaryAction} />
-              </div>
+            <p className={styles.lead}>{landingCopy?.summary ?? page.summary[locale]}</p>
+            {landingCopy && (
+              <>
+                <div className={styles.heroActions}>
+                  <PageLink pageKey="help" currentPage={pageKey} locale={locale} className={styles.primaryAction} />
+                  <PageLink pageKey="about" currentPage={pageKey} locale={locale} className={styles.secondaryAction} />
+                </div>
+                <ul className={styles.heroHighlights} aria-label={labels.explore}>
+                  {landingCopy.highlights.map((highlight) => (
+                    <li key={highlight}>{highlight}</li>
+                  ))}
+                </ul>
+              </>
             )}
           </div>
-
-          <aside className={styles.releaseCard} aria-labelledby="release-boundary-heading">
-            <span className={styles.releaseMarker} aria-hidden="true">01</span>
-            <h2 id="release-boundary-heading">{labels.releaseBoundary}</h2>
-            <p>{labels.releaseBoundaryBody}</p>
-            <code>{publicPath(pageKey)}</code>
-          </aside>
         </section>
 
         {page.template && (
@@ -185,20 +342,20 @@ export function PublicSiteView({
 
         <div className={styles.contentLayout}>
           <article className={styles.article}>
-            {page.sections.map((section, index) => (
+            {renderedSections.map((section, index) => (
               <section className={styles.contentSection} key={section.id} aria-labelledby={`${section.id}-heading`}>
                 <div className={styles.sectionNumber} aria-hidden="true">
                   {String(index + 1).padStart(2, "0")}
                 </div>
                 <div>
-                  <h2 id={`${section.id}-heading`}>{section.title[locale]}</h2>
+                  <h2 id={`${section.id}-heading`}>{section.title}</h2>
                   {section.paragraphs.map((paragraph, paragraphIndex) => (
-                    <p key={`${section.id}-paragraph-${paragraphIndex}`}>{paragraph[locale]}</p>
+                    <p key={`${section.id}-paragraph-${paragraphIndex}`}>{paragraph}</p>
                   ))}
                   {section.bullets && (
                     <ul className={styles.bulletList}>
                       {section.bullets.map((bullet, bulletIndex) => (
-                        <li key={`${section.id}-bullet-${bulletIndex}`}>{bullet[locale]}</li>
+                        <li key={`${section.id}-bullet-${bulletIndex}`}>{bullet}</li>
                       ))}
                     </ul>
                   )}
@@ -256,7 +413,10 @@ export function PublicSiteView({
           <div className={styles.footerBrand}>
             <strong>MODRIK</strong>
             <span lang="ar" dir="rtl">مُدرك</span>
-            <p>{labels.releaseBoundaryBody}</p>
+            <div className={styles.releaseBoundary}>
+              <h2>{labels.releaseBoundary}</h2>
+              <p>{labels.releaseBoundaryBody}</p>
+            </div>
           </div>
           <LinkGroup title={labels.guides} keys={guideKeys} pageKey={pageKey} locale={locale} styles={styles} />
           <LinkGroup title={labels.purpose} keys={purposeKeys} pageKey={pageKey} locale={locale} styles={styles} />
