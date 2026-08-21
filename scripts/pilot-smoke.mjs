@@ -18,6 +18,8 @@ const allowedArgs = new Set(["--plan", "--strict", "--help"]);
 const productSuiteTimeoutMs = 20 * 60_000;
 const browserSuiteTimeoutMs = 30 * 60_000;
 const fixtureStepTimeoutMs = 5 * 60_000;
+const fixtureShutdownGraceMs = 2_000;
+const fixtureShutdownForceMs = 1_000;
 const gitCommandTimeoutMs = 5_000;
 
 for (const arg of args) {
@@ -345,7 +347,7 @@ async function runFixtureSmoke() {
   } catch (error) {
     return fixtureFailure(started, error instanceof Error ? error.message : String(error), 1);
   } finally {
-    if (server && !server.killed) server.kill("SIGTERM");
+    await stopServer(server);
     rmSync(tempRoot, { recursive: true, force: true });
   }
 }
@@ -374,6 +376,42 @@ async function waitForBackend(url, server) {
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 125));
   }
   throw new Error(`Laravel fixture server did not become ready at ${url}`);
+}
+
+async function stopServer(server) {
+  if (!server || server.exitCode !== null || server.signalCode !== null) return;
+
+  const gracefulExit = waitForChildExit(server, fixtureShutdownGraceMs);
+  server.kill("SIGTERM");
+  if (await gracefulExit) return;
+
+  console.error("Fixture server did not exit after SIGTERM; escalating to SIGKILL.");
+  const forcedExit = waitForChildExit(server, fixtureShutdownForceMs);
+  server.kill("SIGKILL");
+  if (!(await forcedExit)) {
+    console.error("Fixture server did not confirm exit after SIGKILL before the cleanup deadline.");
+  }
+}
+
+function waitForChildExit(server, timeoutMs) {
+  return new Promise((resolvePromise) => {
+    if (server.exitCode !== null || server.signalCode !== null) {
+      resolvePromise(true);
+      return;
+    }
+
+    let settled = false;
+    const finish = (exited) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      server.off("exit", onExit);
+      resolvePromise(exited);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    server.once("exit", onExit);
+  });
 }
 
 function evaluateRow(row) {
