@@ -9,6 +9,7 @@ WEB_DIR="$TARGET_DIR/apps/web"
 EVIDENCE_DIR="${MODRIK_E2E_EVIDENCE_DIR:-$TARGET_DIR/.runtime/web-browser-evidence}"
 PLAYWRIGHT_HOME="${MODRIK_E2E_PLAYWRIGHT_HOME:-${RUNNER_TEMP:-/tmp}/modrik-playwright-1.62.1}"
 PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-${RUNNER_TEMP:-/tmp}/modrik-playwright-browsers}"
+STUDENT_ENTRY_ADAPTER="$SCRIPT_DIR/student-entry-route-adapter.cjs"
 OVERALL_STATUS=0
 
 if [[ ! -f "$WEB_DIR/package.json" ]]; then
@@ -57,6 +58,7 @@ run_runtime_manifest() {
 run_core_profile() {
   local profile="$1"
   local candidate="$2"
+  NODE_OPTIONS="--require=$STUDENT_ENTRY_ADAPTER ${NODE_OPTIONS:-}" \
   MODRIK_E2E_TARGET_DIR="$TARGET_DIR" \
   MODRIK_E2E_PROFILE="$profile" \
   MODRIK_E2E_CANDIDATE="$candidate" \
@@ -67,6 +69,7 @@ run_core_profile() {
 }
 
 run_learning_offline() {
+  NODE_OPTIONS="--require=$STUDENT_ENTRY_ADAPTER ${NODE_OPTIONS:-}" \
   MODRIK_E2E_TARGET_DIR="$TARGET_DIR" \
   MODRIK_E2E_CANDIDATE="current-tree-learning-offline-en-390" \
   MODRIK_E2E_OBSERVED_SHA="$OBSERVED_SHA" \
@@ -77,6 +80,7 @@ run_learning_offline() {
 run_inspector_profile() {
   local mode="$1"
   local candidate="$2"
+  NODE_OPTIONS="--require=$STUDENT_ENTRY_ADAPTER ${NODE_OPTIONS:-}" \
   MODRIK_E2E_TARGET_DIR="$TARGET_DIR" \
   MODRIK_E2E_INSPECTOR_MODE="$mode" \
   MODRIK_E2E_CANDIDATE="$candidate" \
@@ -107,7 +111,8 @@ record_evidence "exact Chromium/Playwright runtime manifest" run_runtime_manifes
 
 # Pilot build: collect every browser slice even when one responsive case fails.
 # The command still exits non-zero at the end if any slice failed; evidence is
-# not waived or hidden by an earlier failure.
+# not waived or hidden by an earlier failure. Student runtime slices are routed
+# to `/student`; the strict CSP/landing regression still exercises `/` directly.
 if build_web pilot; then
   record_evidence "core responsive/auth/learning matrix" run_core_profile core "current-tree-core"
   record_evidence "learning offline/recovery EN 390x844 control" run_learning_offline
