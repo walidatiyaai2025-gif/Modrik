@@ -21,6 +21,7 @@ env:
   MODRIK_IDEMPOTENCY_SECRET: test
   MODRIK_OBSERVABILITY_ENABLED: 'true'
   MODRIK_RUNTIME_INSPECTOR_ENABLED: 'true'
+  MODRIK_OBSERVABILITY_LIVE_ACCEPTANCE: 'true'
   MODRIK_API_BASE_URL: http://127.0.0.1:8000
   OBS_WEB_EVIDENCE: /tmp/modrik-observability-web.json
   OBS_MOBILE_EVIDENCE: /tmp/modrik-observability-mobile.json
