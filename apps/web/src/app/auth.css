@@ -43,8 +43,15 @@
 }
 
 .auth-brand-lockup strong {
-  font-size: 1.05rem;
-  letter-spacing: 0.11em;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .auth-brand-lockup span {
@@ -56,17 +63,24 @@
   flex: 0 0 auto;
 }
 
-.auth-mark {
-  display: grid;
-  place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
+.auth-brand-lockup .auth-mark {
+  width: 10.125rem;
+  height: 2.5rem;
   flex: 0 0 auto;
-  color: var(--modrik-white);
-  background: var(--modrik-blue);
-  border: 1px solid color-mix(in srgb, var(--modrik-sky) 40%, transparent);
-  border-radius: 0.9rem;
-  font-weight: 800;
+  color: transparent;
+  background-color: transparent;
+  background-image: url("/brand/logo-horizontal.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  border: 0;
+  border-radius: 0;
+  font-size: 0;
+}
+
+.auth-brand-lockup.compact .auth-mark {
+  width: 8.1rem;
+  height: 2rem;
 }
 
 .auth-main {
@@ -241,14 +255,14 @@
 }
 
 .auth-notice-error {
-  background: color-mix(in srgb, #b42318 8%, var(--modrik-white));
-  border: 1px solid color-mix(in srgb, #b42318 28%, transparent);
+  background: color-mix(in srgb, var(--modrik-error) 8%, var(--modrik-white));
+  border: 1px solid color-mix(in srgb, var(--modrik-error) 28%, transparent);
 }
 
 .auth-notice-permission,
 .auth-notice-provider {
-  background: color-mix(in srgb, #f5a524 11%, var(--modrik-white));
-  border: 1px solid color-mix(in srgb, #f5a524 32%, transparent);
+  background: color-mix(in srgb, var(--modrik-warning) 11%, var(--modrik-white));
+  border: 1px solid color-mix(in srgb, var(--modrik-warning) 32%, transparent);
 }
 
 .auth-notice-offline {
@@ -265,6 +279,10 @@
   min-height: 100vh;
   padding: 2rem;
   text-align: center;
+}
+
+.auth-loading .auth-mark {
+  display: none;
 }
 
 .auth-loading h1 {
@@ -332,8 +350,8 @@
   align-items: center;
   justify-content: space-between;
   margin: 1rem clamp(1rem, 3vw, 2.5rem);
-  background: color-mix(in srgb, #f5a524 12%, var(--modrik-white));
-  border: 1px solid color-mix(in srgb, #f5a524 30%, transparent);
+  background: color-mix(in srgb, var(--modrik-warning) 12%, var(--modrik-white));
+  border: 1px solid color-mix(in srgb, var(--modrik-warning) 30%, transparent);
 }
 
 .auth-permission-banner > div {
@@ -345,7 +363,7 @@
   flex: 0 0 auto;
   color: var(--modrik-navy);
   background: var(--modrik-white);
-  border: 1px solid color-mix(in srgb, #f5a524 38%, transparent);
+  border: 1px solid color-mix(in srgb, var(--modrik-warning) 38%, transparent);
 }
 
 .auth-account-page {
@@ -444,22 +462,22 @@
 }
 
 .auth-danger-outline {
-  color: #8f1d18 !important;
+  color: var(--modrik-error) !important;
   background: transparent !important;
-  border-color: color-mix(in srgb, #b42318 30%, transparent) !important;
+  border-color: color-mix(in srgb, var(--modrik-error) 30%, transparent) !important;
 }
 
 .auth-danger-card {
-  border-color: color-mix(in srgb, #b42318 22%, transparent);
+  border-color: color-mix(in srgb, var(--modrik-error) 22%, transparent);
 }
 
 .auth-danger {
   color: var(--modrik-white);
-  background: #9f241f;
+  background: var(--modrik-error);
 }
 
 .auth-permission-card {
-  border-color: color-mix(in srgb, #f5a524 35%, transparent);
+  border-color: color-mix(in srgb, var(--modrik-warning) 35%, transparent);
 }
 
 .auth-inline-error {
@@ -469,7 +487,7 @@
   gap: 1rem;
   margin-block-start: 1rem;
   padding: 0.8rem;
-  background: color-mix(in srgb, #b42318 7%, var(--modrik-white));
+  background: color-mix(in srgb, var(--modrik-error) 7%, var(--modrik-white));
   border-radius: var(--modrik-radius-sm);
 }
 
