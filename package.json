@@ -12,6 +12,11 @@
     "brand:icons": "node scripts/generate-mobile-icons.mjs",
     "openapi:lint": "redocly lint docs/api/openapi.yaml",
     "tokens:check": "npm --prefix packages/design-tokens test",
+    "pilot:smoke": "node scripts/pilot-smoke-runner.mjs",
+    "pilot:smoke:test": "node --test scripts/pilot-smoke-process.test.mjs",
+    "pilot:smoke:plan": "npm run pilot:smoke:test && node scripts/pilot-smoke.mjs --plan",
+    "pilot:smoke:strict": "node scripts/pilot-smoke-runner.mjs --strict",
+    "pilot:smoke:clean": "bash scripts/pilot-smoke-clean.sh",
     "web:build": "npm --prefix apps/web run build",
     "web:lint": "npm --prefix apps/web run lint",
     "web:test": "npm --prefix apps/web run test"

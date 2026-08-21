@@ -19,6 +19,10 @@ async function request<T>(
   const headers = new Headers({ Accept: "application/json" });
   if (body !== undefined) headers.set("Content-Type", "application/json");
   if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
+  if (handler !== GET) {
+    headers.set("Origin", "http://localhost");
+    headers.set("Sec-Fetch-Site", "same-origin");
+  }
   const response = await handler(
     new Request(`http://localhost/api/learning/${path}`, {
       method: handler === GET ? "GET" : handler === PUT ? "PUT" : "POST",
