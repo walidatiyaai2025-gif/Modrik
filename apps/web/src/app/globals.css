@@ -1046,3 +1046,107 @@ button:disabled {
     gap: 0.25rem;
   }
 }
+
+/* Issue #125: Learning/Study intrinsic containment for narrow + 200% text. */
+.student-shell,
+.student-shell * {
+  box-sizing: border-box;
+}
+
+.student-shell,
+.student-frame,
+.student-sidebar,
+.student-stage,
+.student-topbar,
+.student-topbar > *,
+.student-main,
+.student-nav,
+.nav-item,
+.dashboard-stack,
+.dashboard-columns,
+.context-panel,
+.next-actions,
+.study-layout,
+.practice-layout,
+.workspace-rail,
+.lesson-reader,
+.practice-workbench,
+.progress-workspace,
+.state-panel,
+.empty-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nav-item > span:last-child,
+.student-topbar h1,
+.fixture-note,
+.workspace-rail h2,
+.lesson-reader h2,
+.practice-workbench h2,
+.primary-button,
+.secondary-button,
+.status-pill,
+.mastery-summary,
+.progress-card > div > * {
+  overflow-wrap: anywhere;
+}
+
+.nav-item > span:last-child,
+.section-heading-row > *,
+.workspace-section-header > *,
+.dashboard-hero > *,
+.offline-banner > *,
+.practice-submit-row > *,
+.result-panel > *,
+.progress-card > div > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.locale-switcher {
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.locale-switcher button {
+  flex: 1 1 2.8rem;
+  max-inline-size: 100%;
+}
+
+.status-pill,
+.mastery-summary {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.progress-card > div {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .student-frame,
+  .dashboard-columns,
+  .study-layout,
+  .practice-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .student-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .locale-switcher {
+    align-self: stretch;
+    inline-size: 100%;
+  }
+
+  .mastery-summary {
+    width: 100%;
+  }
+}
