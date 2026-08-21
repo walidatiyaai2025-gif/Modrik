@@ -91,7 +91,7 @@ cd "$BACKEND_ROOT"
 
 log "Verifying public health endpoints"
 curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
-  https://api.demo.modrik.org/health >/dev/null
+  https://api.demo.modrik.org/up >/dev/null
 curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
   https://demo.modrik.org/ >/dev/null
 
