@@ -80,7 +80,7 @@ void main() {
       requestCorrelation = request.headers.value(diagnosticCorrelationHeader);
       request.response.headers.set(
         diagnosticCorrelationHeader,
-        'not-a-canonical-correlation-id',
+        'not/a/canonical/correlation/id',
       );
       request.response.headers.contentType = ContentType.json;
       request.response.write(jsonEncode({
