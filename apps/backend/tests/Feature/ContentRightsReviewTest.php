@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Exceptions\ApiProblemException;
 use App\Models\User;
+use App\Services\ContentAdminWorkflowService;
 use App\Services\ContentPreparationService;
 use App\Services\ContentRightsReviewService;
 use Database\Seeders\LearningSliceSeeder;
@@ -58,19 +59,39 @@ final class ContentRightsReviewTest extends TestCase
             'aggregate_id' => $importId,
             'event_type' => 'content.rights_review_required',
         ]);
+        $eventPayload = DB::table('outbox_events')
+            ->where('aggregate_id', $importId)
+            ->where('event_type', 'content.rights_review_required')
+            ->value('payload');
+        $this->assertIsString($eventPayload);
+        $this->assertStringContainsString('KW-MOE:ARABIC:GRADE-6:2025-2026-T1-P1', $eventPayload);
         $this->assertDatabaseMissing('outbox_events', [
             'aggregate_id' => $importId,
             'event_type' => 'content.preparation_import_rejected',
         ]);
+
+        try {
+            app(ContentAdminWorkflowService::class)->dryRun($this->operator, $importId);
+            $this->fail('Rights-pending content must not reach dry-run.');
+        } catch (ApiProblemException $exception) {
+            $this->assertSame('CONTENT_WORKFLOW_STATE_INVALID', $exception->problemCode);
+        }
     }
 
-    public function test_rights_approval_requires_evidence_and_unblocks_staging_with_audit(): void
+    public function test_rights_approval_requires_basis_and_evidence_and_unblocks_staging_with_audit(): void
     {
         $importId = $this->pendingRightsImport();
         $rights = app(ContentRightsReviewService::class);
 
         try {
-            $rights->review($this->operator, $importId, 'approved', null, 'Looks plausible.');
+            $rights->review($this->operator, $importId, 'approved', 'rights-evidence://documented-reference', 'Looks plausible.');
+            $this->fail('Rights approval without an explicit basis must fail closed.');
+        } catch (ApiProblemException $exception) {
+            $this->assertSame('CONTENT_RIGHTS_BASIS_REQUIRED', $exception->problemCode);
+        }
+
+        try {
+            $rights->review($this->operator, $importId, 'approved', null, 'Looks plausible.', 'licensed');
             $this->fail('Rights approval without evidence must fail closed.');
         } catch (ApiProblemException $exception) {
             $this->assertSame('CONTENT_RIGHTS_EVIDENCE_REQUIRED', $exception->problemCode);
@@ -82,14 +103,17 @@ final class ContentRightsReviewTest extends TestCase
             'approved',
             'rights-evidence://documented-owner-or-license-reference',
             'Evidence reviewed for the declared content scope.',
+            'licensed',
         );
 
         $this->assertSame('approved', $result['rights_review_status']);
+        $this->assertSame('licensed', $result['rights_basis']);
         $this->assertSame('staged', $result['status']);
         $this->assertDatabaseHas('preparation_imports', [
             'id' => $importId,
             'status' => 'staged',
             'rights_review_status' => 'approved',
+            'rights_basis' => 'licensed',
             'operation_state' => 'ready',
             'operation_checkpoint' => 'rights_review_approved',
         ]);
@@ -126,6 +150,13 @@ final class ContentRightsReviewTest extends TestCase
             'operation_state' => 'blocked',
             'operation_checkpoint' => 'rights_review_rejected',
         ]);
+
+        try {
+            app(ContentAdminWorkflowService::class)->dryRun($this->operator, $importId);
+            $this->fail('Rights-rejected content must remain blocked from dry-run.');
+        } catch (ApiProblemException $exception) {
+            $this->assertSame('CONTENT_WORKFLOW_STATE_INVALID', $exception->problemCode);
+        }
     }
 
     /** @return array<string, mixed> */
