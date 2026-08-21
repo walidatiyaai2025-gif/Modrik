@@ -5,11 +5,17 @@ namespace Tests\Feature\Observability;
 use App\Exceptions\ApiProblemException;
 use App\Support\ApiResponse;
 use App\Support\CorrelationId;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 final class CorrelationIdTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_safe_client_correlation_id_is_echoed_on_response(): void
     {
         $correlationId = 'web-01J6MODRIK1234567890';
@@ -54,6 +60,57 @@ final class CorrelationIdTest extends TestCase
         ] as $candidate) {
             self::assertTrue(CorrelationId::isValid($candidate), $candidate);
             self::assertFalse(CorrelationId::isSafeClientValue($candidate), $candidate);
+        }
+    }
+
+    public function test_secret_shaped_client_correlation_is_replaced_before_durable_and_structured_diagnostics(): void
+    {
+        Route::get('/__test/observability/correlation-privacy', fn () => response()->json(['ok' => true]))
+            ->name('observability.correlation-privacy');
+
+        $sentinels = [
+            'SENTINEL-password-value',
+            'Bearer-SENTINEL-BACKEND-94',
+            'session-SENTINEL-COOKIE-94',
+            'provider-secret-SENTINEL-94',
+            'access-token-SENTINEL-94',
+        ];
+        $logContexts = [];
+
+        Log::shouldReceive('log')
+            ->andReturnUsing(static function (string $level, string $message, array $context) use (&$logContexts): void {
+                if ($message === 'modrik.runtime') {
+                    $logContexts[] = $context;
+                }
+            });
+
+        $resolvedIds = [];
+        foreach ($sentinels as $sentinel) {
+            $response = $this->withHeader(CorrelationId::HEADER, $sentinel)
+                ->getJson('/__test/observability/correlation-privacy');
+
+            $response->assertOk();
+            $resolved = (string) $response->headers->get(CorrelationId::HEADER);
+            $resolvedIds[] = $resolved;
+
+            self::assertNotSame($sentinel, $resolved);
+            self::assertTrue(CorrelationId::isValid($resolved));
+            self::assertTrue(CorrelationId::isSafeClientValue($resolved));
+            self::assertFalse(DB::table('runtime_diagnostic_events')->where('correlation_id', $sentinel)->exists());
+            self::assertTrue(DB::table('runtime_diagnostic_events')
+                ->where('correlation_id', $resolved)
+                ->where('route', 'observability.correlation-privacy')
+                ->exists());
+        }
+
+        self::assertNotEmpty($logContexts);
+        $serializedLogs = json_encode($logContexts, JSON_THROW_ON_ERROR);
+
+        foreach ($sentinels as $sentinel) {
+            self::assertStringNotContainsString($sentinel, $serializedLogs);
+        }
+        foreach ($resolvedIds as $resolved) {
+            self::assertStringContainsString($resolved, $serializedLogs);
         }
     }
 
