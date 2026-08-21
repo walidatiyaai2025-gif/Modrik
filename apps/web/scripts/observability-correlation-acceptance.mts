@@ -195,6 +195,7 @@ try {
   assert.equal(timeoutEvent.status, null);
   assert.equal(timeoutEvent.errorCode, "CLIENT_TIMEOUT");
   assert.equal(backendRequestCount, backendCountBeforeTimeout, "client timeout fabricated a Backend request");
+  const timeoutBackendRequestCountDelta = backendRequestCount - backendCountBeforeTimeout;
 
   const success = await runServerCase(
     "learning:success",
@@ -221,7 +222,7 @@ try {
         support_reference: timeoutEvent.supportReference,
         category: timeoutEvent.category,
         code: timeoutEvent.errorCode,
-        backend_request_count_delta: backendRequestCount - backendCountBeforeTimeout,
+        backend_request_count_delta: timeoutBackendRequestCountDelta,
       },
       E_success_control: success,
     },
