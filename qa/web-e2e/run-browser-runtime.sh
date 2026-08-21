@@ -47,6 +47,13 @@ record_evidence() {
   fi
 }
 
+run_runtime_manifest() {
+  MODRIK_E2E_CANDIDATE="current-tree-browser-runtime" \
+  MODRIK_E2E_OBSERVED_SHA="$OBSERVED_SHA" \
+  MODRIK_E2E_EVIDENCE_DIR="$EVIDENCE_DIR" \
+  node "$SCRIPT_DIR/browser-runtime-manifest.cjs"
+}
+
 run_core_profile() {
   local profile="$1"
   local candidate="$2"
@@ -95,6 +102,8 @@ build_web() {
   MODRIK_GIT_SHA="$OBSERVED_SHA" \
   npm --prefix "$WEB_DIR" run build
 }
+
+record_evidence "exact Chromium/Playwright runtime manifest" run_runtime_manifest
 
 # Pilot build: collect every browser slice even when one responsive case fails.
 # The command still exits non-zero at the end if any slice failed; evidence is
