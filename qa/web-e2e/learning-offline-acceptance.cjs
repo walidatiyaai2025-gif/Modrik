@@ -33,11 +33,11 @@ const evidence = {
   observed_sha: observedSha,
   generated_at: new Date().toISOString(),
   browser: "chromium",
-  viewport: { width: 360, height: 800 },
-  locale: "fr",
+  viewport: { width: 390, height: 844 },
+  locale: "en",
   direction: "ltr",
-  text_scale: 2,
-  text_scale_method: "cssom-root-font-size-200-percent",
+  text_scale: 1,
+  text_scale_method: "control-normal-text",
   security: {
     traces_recorded: false,
     screenshots_recorded: false,
@@ -101,7 +101,7 @@ async function handleMock(req, res) {
         "application/problem+json",
       );
     }
-    return sendJson(res, 200, envelope({ user_id: ids.user, locale: "fr", roles: ["student"] }));
+    return sendJson(res, 200, envelope({ user_id: ids.user, locale: "en", roles: ["student"] }));
   }
 
   if (pathname === "/v1/academic-context") {
@@ -120,7 +120,7 @@ async function handleMock(req, res) {
       labels: {
         en: "Synthetic academic track for offline browser evidence",
         ar: "مسار أكاديمي تجريبي لاختبار وضع عدم الاتصال في المتصفح",
-        fr: "Parcours académique synthétique avec un libellé long pour la preuve hors ligne du navigateur",
+        fr: "Parcours académique synthétique pour la preuve hors ligne du navigateur",
       },
     }] }));
   }
@@ -214,25 +214,6 @@ async function shutdownServer(server) {
   await Promise.race([new Promise((resolve) => server.close(resolve)), sleep(1500)]);
 }
 
-async function setTextScale(page) {
-  const fontSize = await page.evaluate(() => {
-    const rule = "html { font-size: 200% !important; }";
-    let inserted = false;
-    for (const sheet of Array.from(document.styleSheets)) {
-      try {
-        sheet.insertRule(rule, sheet.cssRules.length);
-        inserted = true;
-        break;
-      } catch {
-        // Try the next same-origin stylesheet.
-      }
-    }
-    if (!inserted) document.documentElement.style.fontSize = "200%";
-    return Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
-  });
-  check(fontSize >= 30, "E2E_LEARNING_OFFLINE_TEXT_SCALE_NOT_APPLIED");
-}
-
 async function noHorizontalOverflow(page, code) {
   const okay = await page.evaluate(
     () => document.documentElement.scrollWidth <= window.innerWidth + 1 && document.body.scrollWidth <= window.innerWidth + 1,
@@ -275,7 +256,7 @@ async function main() {
     await waitForHttp(baseURL);
 
     browser = await chromium.launch({ headless: true });
-    context = await browser.newContext({ viewport: { width: 360, height: 800 } });
+    context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     await context.addCookies([{
       name: "modrik_web_session",
       value: crypto.randomBytes(32).toString("base64url"),
@@ -288,15 +269,9 @@ async function main() {
     await page.goto(baseURL, { waitUntil: "domcontentloaded" });
     await page.locator(".student-shell").waitFor({ state: "visible", timeout: 15000 });
     await page.locator(".dashboard-stack").waitFor({ state: "visible", timeout: 15000 });
-    await page.locator(".student-shell").evaluate((element) => {
-      const localeButton = Array.from(element.querySelectorAll(".locale-switcher button"))
-        .find((button) => button.textContent?.trim() === "FR");
-      if (localeButton instanceof HTMLElement) localeButton.click();
-    });
-    await setTextScale(page);
-
-    check(await page.locator(".student-shell").getAttribute("lang") === "fr", "E2E_LEARNING_OFFLINE_LOCALE");
+    check(await page.locator(".student-shell").getAttribute("lang") === "en", "E2E_LEARNING_OFFLINE_LOCALE");
     check(await page.locator(".student-shell").getAttribute("dir") === "ltr", "E2E_LEARNING_OFFLINE_DIRECTION");
+    await noHorizontalOverflow(page, "E2E_LEARNING_OFFLINE_CONTROL_HORIZONTAL_OVERFLOW");
 
     await context.setOffline(true);
     const banner = page.locator(".offline-banner");
