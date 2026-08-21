@@ -1,0 +1,167 @@
+name: Deploy MODRIK Demo to cPanel
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_ref:
+        description: Git branch, tag, or SHA to deploy
+        required: true
+        default: main
+        type: string
+      confirm:
+        description: Type DEPLOY to confirm the cPanel deployment
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modrik-demo-cpanel-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SSH_HOST: ${{ secrets.CPANEL_HOST }}
+      SSH_PORT: ${{ secrets.CPANEL_PORT }}
+      SSH_USER: ${{ secrets.CPANEL_USERNAME }}
+      SSH_PRIVATE_KEY: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_KNOWN_HOSTS }}
+
+    steps:
+      - name: Validate deployment secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SSH_HOST" || { echo 'Missing secret: CPANEL_HOST' >&2; exit 1; }
+          test -n "$SSH_PORT" || { echo 'Missing secret: CPANEL_PORT' >&2; exit 1; }
+          test -n "$SSH_USER" || { echo 'Missing secret: CPANEL_USERNAME' >&2; exit 1; }
+          test -n "$SSH_PRIVATE_KEY" || { echo 'Missing secret: CPANEL_SSH_PRIVATE_KEY' >&2; exit 1; }
+          test -n "$SSH_KNOWN_HOSTS" || { echo 'Missing secret: CPANEL_KNOWN_HOSTS' >&2; exit 1; }
+          [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || { echo 'CPANEL_PORT must be numeric.' >&2; exit 1; }
+
+      - name: Check out requested release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_ref }}
+
+      - name: Resolve immutable release SHA
+        id: release
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_mysql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Student Web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Build standalone Student Web
+        working-directory: apps/web
+        run: npm run build
+
+      - name: Install Backend production dependencies
+        working-directory: apps/backend
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Assemble verified cPanel package
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          GITHUB_SHA="$RELEASE_SHA" bash scripts/package-demo-cpanel.sh
+          PACKAGE_ZIP="$(find .runtime -maxdepth 1 -type f -name 'modrik-demo-cpanel-*.zip' -print -quit)"
+          test -n "$PACKAGE_ZIP"
+          unzip -t "$PACKAGE_ZIP" >/dev/null
+          echo "PACKAGE_ZIP=$PACKAGE_ZIP" >> "$GITHUB_ENV"
+
+      - name: Retain deployment package for audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: modrik-demo-cpanel-deploy-${{ steps.release.outputs.sha }}
+          path: ${{ env.PACKAGE_ZIP }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Configure pinned SSH trust
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.ssh"
+          chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$HOME/.ssh/modrik_cpanel_deploy"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/modrik_cpanel_deploy" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/modrik_cpanel_deploy" >/dev/null
+
+      - name: Preflight cPanel SSH target
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -i "$HOME/.ssh/modrik_cpanel_deploy" \
+            -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 \
+            "$SSH_USER@$SSH_HOST" \
+            'set -e; test -d "$HOME/public_html/demo.modrik.org"; test -d "$HOME/public_html/api.demo.modrik.org"; test -x /opt/cpanel/ea-php84/root/usr/bin/php; mkdir -p "$HOME/deploy/modrik-demo/incoming"; echo MODRIK_CPANEL_PREFLIGHT_OK'
+
+      - name: Upload release and deployment script
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          REMOTE_ZIP="modrik-demo-cpanel-$RELEASE_SHA.zip"
+          SCP_COMMON=(
+            -i "$HOME/.ssh/modrik_cpanel_deploy"
+            -P "$SSH_PORT"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+          )
+          scp "${SCP_COMMON[@]}" "$PACKAGE_ZIP" "$SSH_USER@$SSH_HOST:~/deploy/modrik-demo/incoming/$REMOTE_ZIP"
+          scp "${SCP_COMMON[@]}" deploy/demo/deploy-demo-cpanel-remote.sh "$SSH_USER@$SSH_HOST:~/deploy/modrik-demo/incoming/deploy-demo-cpanel-remote.sh"
+          echo "REMOTE_ZIP=$REMOTE_ZIP" >> "$GITHUB_ENV"
+
+      - name: Deploy release on cPanel
+        shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          ssh \
+            -i "$HOME/.ssh/modrik_cpanel_deploy" \
+            -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 \
+            "$SSH_USER@$SSH_HOST" \
+            "bash ~/deploy/modrik-demo/incoming/deploy-demo-cpanel-remote.sh ~/deploy/modrik-demo/incoming/$REMOTE_ZIP $RELEASE_SHA"
+
+      - name: External post-deploy smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://api.demo.modrik.org/health >/dev/null
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://demo.modrik.org/ >/dev/null
+          echo "MODRIK demo deployment is healthy."
