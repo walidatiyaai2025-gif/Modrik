@@ -2,20 +2,23 @@ import 'dart:math';
 
 const diagnosticCorrelationHeader = 'X-Correlation-ID';
 const diagnosticFallbackCorrelationHeader = 'X-Request-ID';
+const diagnosticCorrelationMinLength = 16;
+const diagnosticCorrelationMaxLength = 96;
 
-final RegExp _uuidPattern = RegExp(
-  r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-  caseSensitive: false,
+final RegExp _correlationPattern = RegExp(
+  r'^[A-Za-z0-9][A-Za-z0-9._:-]*$',
 );
-final RegExp _ulidPattern = RegExp(r'^[0-9A-HJKMNP-TV-Z]{26}$');
 
 String? validDiagnosticCorrelationId(String? value) {
   if (value == null) return null;
-  final candidate = value.trim();
-  if (_uuidPattern.hasMatch(candidate) || _ulidPattern.hasMatch(candidate)) {
-    return candidate;
+  final length = value.length;
+  if (length < diagnosticCorrelationMinLength ||
+      length > diagnosticCorrelationMaxLength) {
+    return null;
   }
-  return null;
+  final match = _correlationPattern.firstMatch(value);
+  if (match == null || match.start != 0 || match.end != length) return null;
+  return value;
 }
 
 String createDiagnosticCorrelationId() {
