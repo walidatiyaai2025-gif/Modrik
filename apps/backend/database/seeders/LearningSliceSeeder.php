@@ -31,7 +31,23 @@ class LearningSliceSeeder extends Seeder
      */
     public function run(): void
     {
-        $fixturePath = base_path('../../tests/fixtures/content-pack/v1/valid/content-pack.json');
+        $fixtureCandidates = [
+            base_path('../../tests/fixtures/content-pack/v1/valid/content-pack.json'),
+            resource_path('fixtures/content-pack/v1/valid/content-pack.json'),
+        ];
+        $fixturePath = null;
+
+        foreach ($fixtureCandidates as $candidate) {
+            if (is_file($candidate) && is_readable($candidate)) {
+                $fixturePath = $candidate;
+                break;
+            }
+        }
+
+        if ($fixturePath === null) {
+            throw new RuntimeException('Unable to locate the synthetic content fixture in the repository or packaged Backend payload.');
+        }
+
         $contents = file_get_contents($fixturePath);
 
         if ($contents === false) {
