@@ -1,3 +1,11 @@
+# php -- BEGIN cPanel-compatible handler, do not edit
+# Ensure LiteSpeed/Apache executes MODRIK PHP entrypoints with the same EA PHP 8.4
+# runtime selected for api.demo.modrik.org in cPanel MultiPHP Manager.
+<IfModule mime_module>
+    AddHandler application/x-httpd-ea-php84 .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-compatible handler
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
