@@ -23,7 +23,7 @@ void main() {
     expect(validDiagnosticCorrelationId('-leading-punctuation-id'), isNull);
     expect(validDiagnosticCorrelationId('contains space 123456'), isNull);
     expect(validDiagnosticCorrelationId('contains/slash/123456'), isNull);
-    expect(validDiagnosticCorrelationId('a' * 97), isNull);
+    expect(validDiagnosticCorrelationId(List.filled(97, 'a').join()), isNull);
     expect(validDiagnosticCorrelationId('valid-looking-id-123\n'), isNull);
   });
 }
