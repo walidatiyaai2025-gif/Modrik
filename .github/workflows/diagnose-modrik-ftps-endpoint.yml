@@ -1,0 +1,130 @@
+name: Diagnose MODRIK FTPS Endpoint
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      FTP_DNS_HOST: ftp.50sols.com
+      FTP_ORIGIN_HOST: 65.21.208.232
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      API_URL: https://api.demo.modrik.org
+      API_ORIGIN_IP: 65.21.208.232
+      FTP_TARGET: api.demo.modrik.org/public
+
+    steps:
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_USER"
+          test -n "$FTP_PASSWORD"
+
+      - name: Install diagnostics
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp dnsutils >/dev/null
+
+      - name: Report public endpoint resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "FTP_DNS_A=$(dig +short A "$FTP_DNS_HOST" | paste -sd, -)"
+          echo "API_DNS_A=$(dig +short A api.demo.modrik.org | paste -sd, -)"
+          echo "EXPECTED_ORIGIN=$API_ORIGIN_IP"
+
+      - name: Compare FTPS DNS host and web origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          nonce="$(openssl rand -hex 10)"
+          marker="MODRIK_ENDPOINT_OK_$nonce"
+          printf '%s\n' "$marker" > /tmp/modrik-endpoint-marker.txt
+
+          probe_ftp() {
+            local label="$1"
+            local endpoint="$2"
+            local remote="modrik-endpoint-$nonce-$label.txt"
+            echo "${label}_FTP_ENDPOINT=$endpoint"
+
+            set +e
+            timeout 30 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$endpoint" -e "
+              set cmd:fail-exit yes;
+              set ftp:ssl-force true;
+              set ftp:ssl-protect-data true;
+              set ssl:verify-certificate yes;
+              set ssl:check-hostname no;
+              set ftp:passive-mode true;
+              set net:max-retries 1;
+              set net:timeout 12;
+              cd $FTP_TARGET;
+              put /tmp/modrik-endpoint-marker.txt -o $remote;
+              bye;
+            " >/dev/null 2>&1
+            local ftp_exit=$?
+            set -e
+            echo "${label}_FTP_EXIT=$ftp_exit"
+            if [[ $ftp_exit -ne 0 ]]; then
+              return 1
+            fi
+
+            local body="$RUNNER_TEMP/${label}.body"
+            local code
+            code="$(curl --silent --show-error --connect-timeout 10 --max-time 20 \
+              --resolve "api.demo.modrik.org:443:$API_ORIGIN_IP" \
+              -o "$body" -w '%{http_code}' "$API_URL/$remote" || true)"
+            echo "${label}_WEB_HTTP=$code"
+            if grep -Fqx "$marker" "$body" 2>/dev/null; then
+              echo "${label}_WEB_MATCH=true"
+              echo "MODRIK_FTPS_WORKING_ENDPOINT=$endpoint"
+              cleanup_ftp "$endpoint" "$remote"
+              return 0
+            fi
+            echo "${label}_WEB_MATCH=false"
+            cleanup_ftp "$endpoint" "$remote"
+            return 1
+          }
+
+          cleanup_ftp() {
+            local endpoint="$1"
+            local remote="$2"
+            set +e
+            timeout 20 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$endpoint" -e "
+              set ftp:ssl-force true;
+              set ftp:ssl-protect-data true;
+              set ssl:verify-certificate yes;
+              set ssl:check-hostname no;
+              set ftp:passive-mode true;
+              set net:max-retries 1;
+              set net:timeout 8;
+              cd $FTP_TARGET;
+              rm -f $remote;
+              bye;
+            " >/dev/null 2>&1
+            set -e
+          }
+
+          set +e
+          probe_ftp dns "$FTP_DNS_HOST"; dns_result=$?
+          probe_ftp origin "$FTP_ORIGIN_HOST"; origin_result=$?
+          set -e
+
+          echo "SUMMARY dns=$dns_result origin=$origin_result"
+          if [[ $origin_result -eq 0 ]]; then
+            echo 'DIRECT_ORIGIN_FTPS_CONFIRMED'
+            exit 0
+          fi
+          if [[ $dns_result -eq 0 ]]; then
+            echo 'DNS_FTPS_CONFIRMED'
+            exit 0
+          fi
+
+          echo 'MODRIK_FTPS_ENDPOINT_NOT_CONFIRMED' >&2
+          exit 23
