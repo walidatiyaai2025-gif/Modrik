@@ -55,7 +55,7 @@ final class ContentRightsReview extends Page
 
     public function getTitle(): string
     {
-        return static::getNavigationLabel();
+        return self::getNavigationLabel();
     }
 
     public function getSubheading(): string
