@@ -114,11 +114,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Choose your academic context'), findsOneWidget);
+      expect(find.text('Choose your academic track'), findsOneWidget);
       expect(find.text('Second track'), findsOneWidget);
       expect(
         Directionality.of(
-          tester.element(find.text('Choose your academic context')),
+          tester.element(find.text('Choose your academic track')),
         ),
         TextDirection.ltr,
       );
@@ -137,20 +137,20 @@ void main() {
 
       controller.setLocale(ModrikLocale.ar);
       await tester.pump();
-      expect(find.text('اختر سياقك الأكاديمي'), findsOneWidget);
+      expect(find.text('اختر مسارك الأكاديمي'), findsOneWidget);
       expect(find.text('المسار الأول'), findsOneWidget);
       expect(
-        Directionality.of(tester.element(find.text('اختر سياقك الأكاديمي'))),
+        Directionality.of(tester.element(find.text('اختر مسارك الأكاديمي'))),
         TextDirection.rtl,
       );
 
       controller.setLocale(ModrikLocale.fr);
       await tester.pump();
-      expect(find.text('Choisissez votre contexte académique'), findsOneWidget);
+      expect(find.text('Choisissez votre parcours académique'), findsOneWidget);
       expect(find.text('Premier parcours'), findsOneWidget);
       expect(
         Directionality.of(
-          tester.element(find.text('Choisissez votre contexte académique')),
+          tester.element(find.text('Choisissez votre parcours académique')),
         ),
         TextDirection.ltr,
       );
@@ -167,7 +167,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('Learning workspace'), findsOneWidget);
-      expect(find.text('Loading authorized academic tracks.'), findsOneWidget);
+      expect(find.text('Loading your academic tracks.'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('academic-catalogue-active-state-loading')),
         findsOneWidget,
@@ -198,7 +198,9 @@ void main() {
 
       expect(find.text('Learning workspace'), findsOneWidget);
       expect(
-        find.text('The current session cannot read the academic-track catalogue.'),
+        find.text(
+          'We can’t load academic tracks with this session. Sign in again, then try again.',
+        ),
         findsOneWidget,
       );
       expect(
@@ -206,7 +208,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Try again'));
       await tester.pumpAndSettle();
       expect(gateway.catalogueCalls, 2);
       expect(find.text('Change academic track'), findsOneWidget);
@@ -227,10 +229,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Learning workspace'), findsOneWidget);
       expect(
-        find.text('No academic tracks are currently authorized.'),
+        find.text('No academic tracks are available to you right now.'),
         findsOneWidget,
       );
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
 
       final offlineController = _activeController(_CatalogueGateway())
         ..status = MobileViewStatus.offline;
@@ -244,11 +246,11 @@ void main() {
       expect(find.text('Learning workspace'), findsOneWidget);
       expect(
         find.text(
-          'Reconnect to load the authorized catalogue or change academic context.',
+          'Reconnect to load your academic tracks or change your track.',
         ),
         findsOneWidget,
       );
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
 
       final errorController = _activeController(
         _CatalogueGateway(
@@ -270,10 +272,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Learning workspace'), findsOneWidget);
       expect(
-        find.text('The academic-track catalogue could not be loaded. Retry.'),
+        find.text(
+          'We couldn’t load your academic tracks. Nothing has changed. Try again.',
+        ),
         findsOneWidget,
       );
-      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
     },
   );
 
@@ -288,12 +292,18 @@ void main() {
 
       await tester.tap(find.text('Change academic track'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('archives the prior context'), findsOneWidget);
-      expect(find.textContaining('Pending answers and changes'), findsOneWidget);
+      expect(find.textContaining('previous academic track'), findsOneWidget);
+      expect(find.textContaining('Sync all pending answers and changes'), findsOneWidget);
 
-      final confirmFinder = find.widgetWithText(FilledButton, 'Confirm reset');
+      final dialog = find.byType(AlertDialog);
+      final confirmFinder = find.descendant(
+        of: dialog,
+        matching: find.widgetWithText(FilledButton, 'Change academic track'),
+      );
       expect(tester.widget<FilledButton>(confirmFinder).onPressed, isNull);
-      await tester.tap(find.text('I understand the archival reset consequences.'));
+      await tester.tap(
+        find.text('I understand what will happen when I change tracks.'),
+      );
       await tester.pump();
       expect(tester.widget<FilledButton>(confirmFinder).onPressed, isNotNull);
 
@@ -317,10 +327,16 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Change academic track'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('I understand the archival reset consequences.'));
+      await tester.tap(
+        find.text('I understand what will happen when I change tracks.'),
+      );
       await tester.pump();
 
-      final confirmFinder = find.widgetWithText(FilledButton, 'Confirm reset');
+      final dialog = find.byType(AlertDialog);
+      final confirmFinder = find.descendant(
+        of: dialog,
+        matching: find.widgetWithText(FilledButton, 'Change academic track'),
+      );
       await tester.tap(confirmFinder);
       await tester.pumpAndSettle();
 
