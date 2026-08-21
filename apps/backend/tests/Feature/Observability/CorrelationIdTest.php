@@ -18,6 +18,7 @@ final class CorrelationIdTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader(CorrelationId::HEADER, $correlationId);
+        self::assertTrue(CorrelationId::isSafeClientValue($correlationId));
     }
 
     public function test_invalid_client_correlation_id_is_replaced_not_reflected(): void
@@ -31,8 +32,29 @@ final class CorrelationIdTest extends TestCase
 
         self::assertNotSame($unsafe, $resolved);
         self::assertTrue(CorrelationId::isValid($resolved));
+        self::assertTrue(CorrelationId::isSafeClientValue($resolved));
         self::assertFalse(CorrelationId::isValid("unsafe\r\nheader"));
         self::assertFalse(CorrelationId::isValid('unsafe value with spaces'));
+    }
+
+    public function test_syntactically_valid_secret_shaped_client_correlation_is_not_safe_for_acceptance(): void
+    {
+        $unsafe = 'SENTINEL-password-value';
+
+        self::assertTrue(CorrelationId::isValid($unsafe));
+        self::assertFalse(CorrelationId::isSafeClientValue($unsafe));
+
+        foreach ([
+            'authorization-SENTINEL-94',
+            'bearer-SENTINEL-94',
+            'cookie-SENTINEL-94',
+            'provider-secret-SENTINEL-94',
+            'session-SENTINEL-94',
+            'access-token-SENTINEL-94',
+        ] as $candidate) {
+            self::assertTrue(CorrelationId::isValid($candidate), $candidate);
+            self::assertFalse(CorrelationId::isSafeClientValue($candidate), $candidate);
+        }
     }
 
     public function test_correlation_survives_auth_learning_and_admin_request_paths(): void
