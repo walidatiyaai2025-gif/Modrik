@@ -1153,3 +1153,33 @@ button:disabled {
     width: 100%;
   }
 }
+
+/* Issue #125: final Dashboard action/selector min-content relief for FR 360px/200%. */
+.dashboard-stack button {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.next-actions button > *,
+.academic-track-selector,
+.academic-track-selector > *,
+.reset-consequence,
+.reset-consequence > *,
+.answer-option,
+.answer-option > span,
+.text-answer-label {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.next-actions strong,
+.next-actions small,
+.academic-track-selector p,
+.reset-consequence h3,
+.reset-consequence p,
+.answer-option > span {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
