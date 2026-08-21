@@ -1,4 +1,9 @@
 import {
+  CORRELATION_HEADER,
+  correlationIdForRequest,
+  correlationIdFromResponse,
+} from "../../../../lib/diagnostic-correlation";
+import {
   isSameOriginMutation,
   readWebSessionToken,
   sanitizeAuthEnvelope,
@@ -26,7 +31,7 @@ const allowedPaths = [
 
 type RouteParameters = { params: Promise<{ path: string[] }> };
 
-function problem(status: number, code: string, detail: string) {
+function problem(status: number, code: string, detail: string, correlationId: string) {
   return Response.json(
     {
       type: `https://modrik.org/problems/${code.toLowerCase()}`,
@@ -34,10 +39,17 @@ function problem(status: number, code: string, detail: string) {
       status,
       code,
       detail,
-      request_id: crypto.randomUUID(),
+      request_id: correlationId,
       retryable: status >= 500,
     },
-    { status, headers: { "Content-Type": "application/problem+json", "Cache-Control": "no-store" } },
+    {
+      status,
+      headers: {
+        "Content-Type": "application/problem+json",
+        "Cache-Control": "no-store",
+        [CORRELATION_HEADER]: correlationId,
+      },
+    },
   );
 }
 
@@ -53,18 +65,27 @@ function shouldClearSession(relativePath: string, method: string, status: number
 }
 
 async function proxy(request: Request, context: RouteParameters) {
+  const correlationId = correlationIdForRequest(request);
   const { path } = await context.params;
   const relativePath = path.join("/");
   if (!allowedPaths.some((pattern) => pattern.test(relativePath))) {
-    return problem(404, "RESOURCE_NOT_FOUND", "The requested account route is not available.");
+    return problem(404, "RESOURCE_NOT_FOUND", "The requested account route is not available.", correlationId);
   }
   if (!isSameOriginMutation(request)) {
-    return problem(403, "CSRF_CHECK_FAILED", "The account request did not originate from this MODRIK Web application.");
+    return problem(
+      403,
+      "CSRF_CHECK_FAILED",
+      "The account request did not originate from this MODRIK Web application.",
+      correlationId,
+    );
   }
 
   const baseUrl = (process.env.MODRIK_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
   const sessionToken = readWebSessionToken(request.headers.get("cookie"));
-  const headers = new Headers({ Accept: "application/json, application/problem+json" });
+  const headers = new Headers({
+    Accept: "application/json, application/problem+json",
+    [CORRELATION_HEADER]: correlationId,
+  });
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("Content-Type", contentType);
   if (sessionToken) headers.set("Authorization", `Bearer ${sessionToken}`);
@@ -78,11 +99,13 @@ async function proxy(request: Request, context: RouteParameters) {
       signal: AbortSignal.timeout(10_000),
     });
 
+    const returnedCorrelationId = correlationIdFromResponse(upstream, correlationId);
     const rawBody = upstream.status === 204 ? "" : await upstream.text();
     const sanitized = upstream.ok ? sanitizeAuthEnvelope(rawBody) : { body: rawBody, accessToken: null, expiresAt: null };
     const responseHeaders = new Headers({
       "Content-Type": upstream.headers.get("content-type") ?? "application/json",
       "Cache-Control": "no-store, private",
+      [CORRELATION_HEADER]: returnedCorrelationId,
     });
 
     if (sanitized.accessToken) {
@@ -97,7 +120,12 @@ async function proxy(request: Request, context: RouteParameters) {
       headers: responseHeaders,
     });
   } catch {
-    return problem(503, "AUTH_SERVICE_UNAVAILABLE", "The account service could not be reached. Check your connection and retry.");
+    return problem(
+      503,
+      "AUTH_SERVICE_UNAVAILABLE",
+      "The account service could not be reached. Check your connection and retry.",
+      correlationId,
+    );
   }
 }
 
