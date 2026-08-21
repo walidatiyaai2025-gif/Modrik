@@ -1,0 +1,275 @@
+name: Web Browser Learning Responsive Candidate
+
+on:
+  pull_request:
+    paths:
+      - "qa/web-e2e/**"
+      - ".github/workflows/web-browser-learning-responsive-candidate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-browser-learning-responsive-candidate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  learning-responsive-candidate:
+    name: Issue #125 exact + PR #128 composite browser acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out Issue #108 harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+
+      - name: Check out authoritative main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          path: target-composite
+
+      - name: Check out Issue #125 candidate branch
+        uses: actions/checkout@v4
+        with:
+          ref: issue-125-learning-responsive
+          fetch-depth: 0
+          path: target-exact
+
+      - name: Resolve exact heads and prepare test-only composition
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          main_sha="$(git -C target-composite rev-parse HEAD)"
+          candidate_sha="$(git -C target-exact rev-parse HEAD)"
+          mkdir -p evidence/learning-responsive-candidate
+
+          echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+          echo "candidate_sha=$candidate_sha" >> "$GITHUB_OUTPUT"
+
+          if [ "$candidate_sha" = "$main_sha" ]; then
+            echo "has_candidate=false" >> "$GITHUB_OUTPUT"
+            MAIN_SHA="$main_sha" CANDIDATE_SHA="$candidate_sha" python3 - <<'PY'
+          import json, os, pathlib
+          payload = {
+              "schema_version": "modrik.web.learning-responsive-preflight.v1",
+              "status": "BLOCKED_NO_IMPLEMENTATION_DELTA",
+              "main_sha": os.environ["MAIN_SHA"],
+              "candidate_sha": os.environ["CANDIDATE_SHA"],
+              "candidate_branch": "issue-125-learning-responsive",
+              "required_failures": [
+                  "E2E_LEARNING_HORIZONTAL_OVERFLOW",
+                  "E2E_STUDY_WORKSPACE_HORIZONTAL_CLIP",
+              ],
+          }
+          pathlib.Path("evidence/learning-responsive-candidate/preflight.json").write_text(
+              json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+          )
+          PY
+            exit 0
+          fi
+
+          if ! git -C target-exact merge-base --is-ancestor "$main_sha" "$candidate_sha"; then
+            echo "Issue #125 candidate is behind authoritative main" >&2
+            exit 1
+          fi
+
+          echo "has_candidate=true" >> "$GITHUB_OUTPUT"
+          git -C target-composite config user.name "MODRIK browser evidence"
+          git -C target-composite config user.email "browser-evidence@users.noreply.github.com"
+          git -C target-composite fetch --no-tags origin "+refs/pull/128/head:refs/remotes/origin/e2e-pr-128"
+          auth_sha="$(git -C target-composite rev-parse refs/remotes/origin/e2e-pr-128)"
+          echo "auth_sha=$auth_sha" >> "$GITHUB_OUTPUT"
+          git -C target-composite merge --no-edit --no-ff "$auth_sha"
+          git -C target-composite fetch --no-tags origin "+refs/heads/issue-125-learning-responsive:refs/remotes/origin/e2e-issue-125"
+          resolved_candidate_sha="$(git -C target-composite rev-parse refs/remotes/origin/e2e-issue-125)"
+          if [ "$resolved_candidate_sha" != "$candidate_sha" ]; then
+            echo "Issue #125 candidate moved during composition" >&2
+            exit 1
+          fi
+          git -C target-composite merge --no-edit --no-ff "$candidate_sha"
+          composite_sha="$(git -C target-composite rev-parse HEAD)"
+          echo "composite_sha=$composite_sha" >> "$GITHUB_OUTPUT"
+
+          MAIN_SHA="$main_sha" CANDIDATE_SHA="$candidate_sha" AUTH_SHA="$auth_sha" COMPOSITE_SHA="$composite_sha" python3 - <<'PY'
+          import json, os, pathlib
+          payload = {
+              "schema_version": "modrik.web.learning-responsive-candidate.v1",
+              "status": "READY_FOR_BROWSER_EXECUTION",
+              "main_sha": os.environ["MAIN_SHA"],
+              "candidate_sha": os.environ["CANDIDATE_SHA"],
+              "candidate_branch": "issue-125-learning-responsive",
+              "auth_pr_128_sha": os.environ["AUTH_SHA"],
+              "composite_sha": os.environ["COMPOSITE_SHA"],
+          }
+          pathlib.Path("evidence/learning-responsive-candidate/candidate.json").write_text(
+              json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Set up Node.js
+        if: steps.candidate.outputs.has_candidate == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: target-exact/apps/web/package-lock.json
+
+      - name: Install exact candidate dependencies
+        if: steps.candidate.outputs.has_candidate == 'true'
+        working-directory: target-exact/apps/web
+        run: npm ci
+
+      - name: Install composite dependencies
+        if: steps.candidate.outputs.has_candidate == 'true'
+        working-directory: target-composite/apps/web
+        run: npm ci
+
+      - name: Cache Chromium runtime
+        if: steps.candidate.outputs.has_candidate == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: playwright-1.62.1-chromium-${{ runner.os }}
+
+      - name: Install pinned Playwright runtime
+        if: steps.candidate.outputs.has_candidate == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
+            node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Build exact Issue #125 candidate
+        if: steps.candidate.outputs.has_candidate == 'true'
+        working-directory: target-exact/apps/web
+        env:
+          OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .next
+          export MODRIK_RUNTIME_INSPECTOR_ENABLED=true
+          export MODRIK_RUNTIME_ENVIRONMENT=pilot
+          export MODRIK_BUILD_VERSION=learning-responsive-e2e
+          export MODRIK_GIT_SHA="$OBSERVED_SHA"
+          npm run build
+
+      - name: Run exact Issue #125 Learning/Study matrix
+        if: steps.candidate.outputs.has_candidate == 'true'
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
+          MODRIK_E2E_CANDIDATE: issue-125-exact-core
+          MODRIK_E2E_PROFILE: core
+          MODRIK_E2E_EXPECTED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+          MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+          runtime_status=$?
+          set -e
+          EVIDENCE="$MODRIK_E2E_EVIDENCE_DIR/issue-125-exact-core.json" python3 - <<'PY'
+          import json, os, pathlib, sys
+          path = pathlib.Path(os.environ["EVIDENCE"])
+          if not path.exists():
+              raise SystemExit("missing exact Issue #125 browser evidence")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          learning = [case for case in payload.get("cases", []) if case.get("surface") == "learning"]
+          expected = {
+              "learning:desktop-en",
+              "learning:desktop-ar",
+              "learning:tablet-fr",
+              "learning:mobile-en-390",
+              "learning:mobile-fr-360-200",
+              "learning:mobile-ar-320-200",
+          }
+          names = {case.get("name") for case in learning}
+          if names != expected:
+              raise SystemExit(f"unexpected Learning matrix: {sorted(names)}")
+          failed = [case for case in learning if case.get("status") != "PASS"]
+          if failed:
+              raise SystemExit("Issue #125 Learning/Study rows remain red: " + ", ".join(
+                  f"{case.get('name')}:{case.get('failure_code', 'UNKNOWN')}" for case in failed
+              ))
+          print("Issue #125 exact Learning/Study matrix: 6 PASS / 0 FAIL")
+          PY
+          # The full core process may still be nonzero before #124 is integrated
+          # because its Auth rows exercise main without PR #128. Learning rows above
+          # are evaluated independently; the composite lane below must be fully green.
+          echo "Exact core process exit (informational for unrelated Auth rows): $runtime_status"
+
+      - name: Run exact Issue #125 offline/retry regression
+        if: steps.candidate.outputs.has_candidate == 'true'
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
+          MODRIK_E2E_CANDIDATE: issue-125-exact-learning-offline
+          MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+        shell: bash
+        run: node harness/qa/web-e2e/learning-offline-acceptance.cjs
+
+      - name: Run exact Issue #125 stale-session 401 regression
+        if: steps.candidate.outputs.has_candidate == 'true'
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
+          MODRIK_E2E_CANDIDATE: issue-125-exact-session-security
+          MODRIK_E2E_PROFILE: session-security
+          MODRIK_E2E_EXPECTED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+          MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
+        shell: bash
+        run: node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+
+      - name: Build PR #128 + Issue #125 composite
+        if: steps.candidate.outputs.has_candidate == 'true'
+        working-directory: target-composite/apps/web
+        env:
+          OBSERVED_SHA: ${{ steps.candidate.outputs.composite_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .next
+          export MODRIK_RUNTIME_INSPECTOR_ENABLED=true
+          export MODRIK_RUNTIME_ENVIRONMENT=pilot
+          export MODRIK_BUILD_VERSION=responsive-composite-e2e
+          export MODRIK_GIT_SHA="$OBSERVED_SHA"
+          npm run build
+
+      - name: Run PR #128 + Issue #125 complete core matrix
+        if: steps.candidate.outputs.has_candidate == 'true'
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-composite
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/composite
+          MODRIK_E2E_CANDIDATE: pr-128-plus-issue-125-core
+          MODRIK_E2E_PROFILE: core
+          MODRIK_E2E_EXPECTED_SHA: ${{ steps.candidate.outputs.composite_sha }}
+          MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.composite_sha }}
+          MODRIK_E2E_SOURCE_SHAS: main=${{ steps.candidate.outputs.main_sha }};pr-128=${{ steps.candidate.outputs.auth_sha }};issue-125=${{ steps.candidate.outputs.candidate_sha }}
+        shell: bash
+        run: node harness/qa/web-e2e/browser-runtime-acceptance.cjs
+
+      - name: Upload sanitized Learning candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-browser-learning-responsive-candidate
+          path: evidence/learning-responsive-candidate
+          if-no-files-found: error
+          retention-days: 14
