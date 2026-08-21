@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+
+import { boundedFailureDetail, runBoundedSync } from "./pilot-smoke-process.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const runtimeRoot = join(repoRoot, ".runtime");
@@ -13,6 +15,10 @@ const args = new Set(process.argv.slice(2));
 const planOnly = args.has("--plan");
 const strict = args.has("--strict");
 const allowedArgs = new Set(["--plan", "--strict", "--help"]);
+const productSuiteTimeoutMs = 20 * 60_000;
+const browserSuiteTimeoutMs = 30 * 60_000;
+const fixtureStepTimeoutMs = 5 * 60_000;
+const gitCommandTimeoutMs = 5_000;
 
 for (const arg of args) {
   if (!allowedArgs.has(arg)) {
@@ -22,7 +28,7 @@ for (const arg of args) {
 }
 
 if (args.has("--help")) {
-  console.log(`MODRIK Pilot smoke harness\n\nUsage:\n  node scripts/pilot-smoke.mjs [--plan] [--strict]\n\n--plan    Validate and print the acceptance plan without executing suites.\n--strict  Exit 2 when any acceptance row is BLOCKED by an unintegrated release dependency.\n\nWithout --strict, real test failures still exit 1 while BLOCKED rows are reported without failing the command.`);
+  console.log(`MODRIK Pilot smoke harness\n\nUsage:\n  node scripts/pilot-smoke.mjs [--plan] [--strict]\n\n--plan    Validate and print the acceptance plan without executing suites.\n--strict  Exit 2 when any acceptance row is BLOCKED by an unintegrated release dependency.\n\nWithout --strict, real test failures still exit 1 while BLOCKED rows are reported without failing the command. Executable child suites are bounded; a timeout is recorded as FAIL.`);
   process.exit(0);
 }
 
@@ -32,24 +38,28 @@ const commandSuites = {
     command: "php",
     commandArgs: ["artisan", "test"],
     cwd: join(repoRoot, "apps/backend"),
+    timeoutMs: productSuiteTimeoutMs,
   },
   web: {
     label: "Student Web/Public/Auth test suite",
     command: "npm",
     commandArgs: ["run", "test"],
     cwd: join(repoRoot, "apps/web"),
+    timeoutMs: productSuiteTimeoutMs,
   },
   mobile: {
     label: "Flutter Mobile test suite",
     command: "flutter",
     commandArgs: ["test"],
     cwd: join(repoRoot, "apps/mobile"),
+    timeoutMs: productSuiteTimeoutMs,
   },
   browser: {
     label: "Integrated Web browser runtime acceptance",
     command: "bash",
     commandArgs: [join(repoRoot, "qa/web-e2e/run-browser-runtime.sh"), repoRoot],
     cwd: repoRoot,
+    timeoutMs: browserSuiteTimeoutMs,
   },
 };
 
@@ -243,17 +253,23 @@ function runCommandSuite(id) {
   const suite = commandSuites[id];
   console.log(`\n=== ${suite.label} ===`);
   const started = Date.now();
-  const result = spawnSync(suite.command, suite.commandArgs, {
+  const execution = runBoundedSync(suite.command, suite.commandArgs, {
     cwd: suite.cwd,
     env: process.env,
     stdio: "inherit",
     shell: process.platform === "win32",
+    timeoutMs: suite.timeoutMs,
   });
+  const failureDetail = boundedFailureDetail(execution, suite.label);
+  if (failureDetail) console.error(failureDetail);
+
   return {
-    status: result.status === 0 ? "PASS" : "FAIL",
-    exit_code: result.status ?? 1,
+    status: failureDetail ? "FAIL" : "PASS",
+    exit_code: failureDetail ? (execution.timedOut ? 124 : (execution.result.status ?? 1)) : 0,
     duration_ms: Date.now() - started,
     command: [suite.command, ...suite.commandArgs].join(" "),
+    timeout_ms: suite.timeoutMs,
+    ...(failureDetail ? { detail: failureDetail } : {}),
   };
 }
 
@@ -283,14 +299,16 @@ async function runFixtureSmoke() {
 
   let server;
   try {
-    const migrate = spawnSync("php", ["artisan", "migrate:fresh", "--seed", "--force"], {
+    const migrate = runBoundedSync("php", ["artisan", "migrate:fresh", "--seed", "--force"], {
       cwd: join(repoRoot, "apps/backend"),
       env: backendEnv,
       stdio: "inherit",
       shell: process.platform === "win32",
+      timeoutMs: fixtureStepTimeoutMs,
     });
-    if (migrate.status !== 0) {
-      return fixtureFailure(started, "Laravel fixture migrate/seed failed", migrate.status ?? 1);
+    const migrateFailure = boundedFailureDetail(migrate, "Laravel fixture migrate/seed");
+    if (migrateFailure) {
+      return fixtureFailure(started, migrateFailure, migrate.timedOut ? 124 : (migrate.result.status ?? 1));
     }
 
     server = spawn("php", ["artisan", "serve", "--host=127.0.0.1", `--port=${port}`], {
@@ -301,7 +319,7 @@ async function runFixtureSmoke() {
     });
 
     await waitForBackend(`${baseUrl}/up`, server);
-    const smoke = spawnSync("npm", ["run", "smoke:fixture"], {
+    const smoke = runBoundedSync("npm", ["run", "smoke:fixture"], {
       cwd: join(repoRoot, "apps/web"),
       env: {
         ...process.env,
@@ -311,15 +329,18 @@ async function runFixtureSmoke() {
       },
       stdio: "inherit",
       shell: process.platform === "win32",
+      timeoutMs: fixtureStepTimeoutMs,
     });
-    if (smoke.status !== 0) {
-      return fixtureFailure(started, "Web fixture smoke failed", smoke.status ?? 1);
+    const smokeFailure = boundedFailureDetail(smoke, "Web fixture smoke");
+    if (smokeFailure) {
+      return fixtureFailure(started, smokeFailure, smoke.timedOut ? 124 : (smoke.result.status ?? 1));
     }
     return {
       status: "PASS",
       exit_code: 0,
       duration_ms: Date.now() - started,
       command: "Laravel migrate:fresh --seed + server + npm run smoke:fixture",
+      step_timeout_ms: fixtureStepTimeoutMs,
     };
   } catch (error) {
     return fixtureFailure(started, error instanceof Error ? error.message : String(error), 1);
@@ -336,6 +357,7 @@ function fixtureFailure(started, detail, exitCode) {
     exit_code: exitCode,
     duration_ms: Date.now() - started,
     command: "Laravel migrate:fresh --seed + server + npm run smoke:fixture",
+    step_timeout_ms: fixtureStepTimeoutMs,
     detail,
   };
 }
@@ -390,12 +412,13 @@ function printMatrix(rows, summary) {
 }
 
 function gitHead() {
-  const result = spawnSync("git", ["rev-parse", "HEAD"], {
+  const execution = runBoundedSync("git", ["rev-parse", "HEAD"], {
     cwd: repoRoot,
     encoding: "utf8",
     shell: process.platform === "win32",
+    timeoutMs: gitCommandTimeoutMs,
   });
-  return result.status === 0 ? result.stdout.trim() : "unknown";
+  return boundedFailureDetail(execution, "git rev-parse") ? "unknown" : execution.result.stdout.trim();
 }
 
 function backendContainsCanonicalCorrelationBoundary() {
