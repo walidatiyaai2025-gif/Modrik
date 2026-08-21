@@ -86,3 +86,115 @@ jobs:
           path: evidence/csp-repair-candidate
           if-no-files-found: error
           retention-days: 14
+
+  preflight-main-pr118-pr103-full-browser:
+    needs: pr-118-browser-boot
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out exact Issue #108 harness head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: harness
+
+      - name: Check out authoritative main for test-only composition
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          path: target
+
+      - name: Compose main plus canonical CSP repair plus current Runtime Inspector
+        id: compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence/preflight
+          git -C target config user.name "MODRIK Browser Evidence"
+          git -C target config user.email "browser-evidence@modrik.invalid"
+
+          main_sha="$(git -C target rev-parse HEAD)"
+          git -C target fetch --no-tags origin \
+            '+refs/pull/118/head:refs/remotes/preflight/pr-118' \
+            '+refs/pull/103/head:refs/remotes/preflight/pr-103'
+          pr118_sha="$(git -C target rev-parse refs/remotes/preflight/pr-118)"
+          pr103_sha="$(git -C target rev-parse refs/remotes/preflight/pr-103)"
+
+          echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+          echo "pr118_sha=$pr118_sha" >> "$GITHUB_OUTPUT"
+          echo "pr103_sha=$pr103_sha" >> "$GITHUB_OUTPUT"
+
+          if ! git -C target merge --no-ff --no-edit "$pr118_sha"; then
+            git -C target diff --name-only --diff-filter=U | sort > evidence/preflight/composition-conflicts.txt
+            echo "E2E_PREFLIGHT_PR118_COMPOSITION_CONFLICT" >&2
+            exit 1
+          fi
+
+          if ! git -C target merge --no-ff --no-edit "$pr103_sha"; then
+            git -C target diff --name-only --diff-filter=U | sort > evidence/preflight/composition-conflicts.txt
+            echo "E2E_PREFLIGHT_PR103_COMPOSITION_CONFLICT" >&2
+            exit 1
+          fi
+
+          composite_sha="$(git -C target rev-parse HEAD)"
+          echo "composite_sha=$composite_sha" >> "$GITHUB_OUTPUT"
+          printf '%s\n' \
+            "main_sha=$main_sha" \
+            "pr118_sha=$pr118_sha" \
+            "pr103_sha=$pr103_sha" \
+            "composite_sha=$composite_sha" \
+            > evidence/preflight/provenance.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: target/apps/web/package-lock.json
+
+      - name: Install composed Web dependencies
+        working-directory: target/apps/web
+        run: npm ci
+
+      - name: Cache Chromium runtime
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: playwright-1.62.1-chromium-${{ runner.os }}
+
+      - name: Install pinned Playwright runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
+            node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Execute stable full browser command on preflight composition
+        env:
+          MODRIK_E2E_DEPS_READY: "true"
+          MODRIK_E2E_PLAYWRIGHT_HOME: ${{ runner.temp }}/playwright
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/preflight/browser
+          MODRIK_E2E_SOURCE_SHAS: main=${{ steps.compose.outputs.main_sha }};pr118=${{ steps.compose.outputs.pr118_sha }};pr103=${{ steps.compose.outputs.pr103_sha }}
+        run: bash harness/qa/web-e2e/run-browser-runtime.sh target
+
+      - name: Recheck production boot security on composed tree
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target
+          MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/preflight/boot
+          MODRIK_E2E_EXPECTED_SHA: ${{ steps.compose.outputs.composite_sha }}
+          MODRIK_E2E_HARNESS_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node harness/qa/web-e2e/browser-boot-security.cjs
+
+      - name: Upload sanitized preflight browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-browser-preflight-main-pr118-pr103
+          path: evidence/preflight
+          if-no-files-found: error
+          retention-days: 14
