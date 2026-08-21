@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import { NextRequest } from "next/server";
 import { proxy } from "./proxy";
@@ -36,6 +37,13 @@ test("generates a fresh CSP nonce for each request", () => {
     first.headers.get("Content-Security-Policy"),
     second.headers.get("Content-Security-Policy"),
   );
+});
+
+test("root page opts into request-time rendering for nonce CSP", () => {
+  const pageSource = fs.readFileSync(new URL("./app/page.tsx", import.meta.url), "utf8");
+
+  assert.match(pageSource, /import\s+\{\s*connection\s*\}\s+from\s+["']next\/server["']/);
+  assert.match(pageSource, /await\s+connection\(\)/);
 });
 
 test("development allowances do not leak into the production CSP", () => {
