@@ -6,8 +6,9 @@ Issue #94 owns the Backend/Admin observability foundation used by the cross-surf
 
 `X-Correlation-ID` is the canonical diagnostics-only request correlation header.
 
-- A client value is accepted only when it is 16–96 ASCII characters, begins with an alphanumeric character, and otherwise contains only alphanumeric characters plus `.`, `_`, `:`, or `-`.
-- Missing, malformed, oversized, or unsafe values are replaced with a server-generated ULID and are never reflected raw.
+- The transport grammar remains 16–96 ASCII characters, beginning with an alphanumeric character and otherwise containing only alphanumeric characters plus `.`, `_`, `:`, or `-`.
+- Incoming client values must also pass the stricter diagnostic-safe acceptance boundary. Obvious credential-shaped values containing case-insensitive markers such as `authorization`, `bearer`, `cookie`, `password`, `secret`, `session`, or `token` are replaced even when they satisfy the transport grammar.
+- Missing, malformed, oversized, or diagnostic-unsafe values are replaced with a server-generated ULID and are never reflected raw, persisted as the canonical diagnostic correlation, or copied into structured runtime logging.
 - The resolved value is echoed as `X-Correlation-ID` and is also used by the existing RFC9457/support `request_id` field for backward compatibility.
 - Correlation IDs never replace or mutate Sync operation IDs, idempotency keys, Auth/session authority, Assessment attempt authority, or publication authority.
 
