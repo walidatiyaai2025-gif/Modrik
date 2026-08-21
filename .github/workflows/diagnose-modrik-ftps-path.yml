@@ -1,0 +1,150 @@
+name: Diagnose MODRIK FTPS Path Mapping
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      API_URL: https://api.demo.modrik.org
+      ORIGIN_IP: 65.21.208.232
+
+    steps:
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_USER"
+          test -n "$FTP_PASSWORD"
+
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Prepare static and PHP markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          nonce="$(openssl rand -hex 10)"
+          marker="MODRIK_PATH_OK_$nonce"
+          txt="modrik-path-$nonce.txt"
+          php="modrik-path-$nonce.php"
+          printf '%s\n' "$marker" > /tmp/modrik-path.txt
+          cat > /tmp/modrik-path.php <<PHP
+          <?php
+          header('Content-Type: text/plain; charset=utf-8');
+          echo '$marker';
+          PHP
+          printf '%s' "$txt" > /tmp/modrik-path-txt-name
+          printf '%s' "$php" > /tmp/modrik-path-php-name
+          printf '%s' "$marker" > /tmp/modrik-path-marker
+
+      - name: Upload markers and report FTP location
+        shell: bash
+        run: |
+          set -euo pipefail
+          txt="$(cat /tmp/modrik-path-txt-name)"
+          php="$(cat /tmp/modrik-path-php-name)"
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 1;
+            set net:timeout 15;
+            echo FTP_INITIAL_PWD; pwd;
+            cd api.demo.modrik.org/public;
+            echo FTP_TARGET_PWD; pwd;
+            put /tmp/modrik-path.txt -o $txt;
+            put /tmp/modrik-path.php -o $php;
+            echo FTP_TARGET_LISTING_BEGIN;
+            cls -1 $txt $php;
+            echo FTP_TARGET_LISTING_END;
+            bye;
+          "
+
+      - name: Compare static and PHP reachability
+        shell: bash
+        run: |
+          set -euo pipefail
+          txt="$(cat /tmp/modrik-path-txt-name)"
+          php="$(cat /tmp/modrik-path-php-name)"
+          marker="$(cat /tmp/modrik-path-marker)"
+
+          check() {
+            local label="$1"
+            local path="$2"
+            shift 2
+            local body="$RUNNER_TEMP/${label}.body"
+            local headers="$RUNNER_TEMP/${label}.headers"
+            local code
+            set +e
+            code="$(curl --silent --show-error --connect-timeout 15 --max-time 25 \
+              -D "$headers" -o "$body" -w '%{http_code}' "$@" "$API_URL/$path")"
+            local curl_exit=$?
+            set -e
+            local type
+            type="$(awk 'BEGIN{IGNORECASE=1} /^content-type:/ {sub(/\r$/,""); print substr($0, index($0,$2)); exit}' "$headers" 2>/dev/null || true)"
+            echo "${label}_curl_exit=$curl_exit"
+            echo "${label}_http_status=$code"
+            echo "${label}_content_type=${type:-unknown}"
+            if grep -Fqx "$marker" "$body" 2>/dev/null; then
+              echo "${label}_marker_match=true"
+              return 0
+            fi
+            echo "${label}_marker_match=false"
+            echo "${label}_response_preview_begin"
+            head -c 700 "$body" | tr '\r\n' ' ' | sed -E 's/[[:space:]]+/ /g'
+            echo
+            echo "${label}_response_preview_end"
+            return 1
+          }
+
+          set +e
+          check dns_txt "$txt"; dns_txt=$?
+          check dns_php "$php"; dns_php=$?
+          check origin_txt "$txt" --resolve "api.demo.modrik.org:443:$ORIGIN_IP"; origin_txt=$?
+          check origin_php "$php" --resolve "api.demo.modrik.org:443:$ORIGIN_IP"; origin_php=$?
+          set -e
+
+          echo "SUMMARY dns_txt=$dns_txt dns_php=$dns_php origin_txt=$origin_txt origin_php=$origin_php"
+          if [[ $dns_txt -eq 0 || $origin_txt -eq 0 ]]; then
+            echo 'STATIC_MARKER_REACHABLE'
+            exit 0
+          fi
+          echo 'STATIC_MARKER_NOT_REACHABLE' >&2
+          exit 21
+
+      - name: Remove one-shot markers
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          txt="$(cat /tmp/modrik-path-txt-name 2>/dev/null)"
+          php="$(cat /tmp/modrik-path-php-name 2>/dev/null)"
+          [[ -n "$txt" && -n "$php" ]] || exit 0
+          timeout 30 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 1;
+            set net:timeout 10;
+            cd api.demo.modrik.org/public;
+            rm -f $txt;
+            rm -f $php;
+            bye;
+          "
+          exit 0
