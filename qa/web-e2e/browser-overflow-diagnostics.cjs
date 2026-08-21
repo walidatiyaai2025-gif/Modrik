@@ -20,6 +20,8 @@ const ids = {
   lesson: "01J00000000000000000000003",
   quiz: "01J00000000000000000000004",
   node: "01J00000000000000000000005",
+  attempt: "01J00000000000000000000006",
+  question: "01J00000000000000000000007",
   track: "01J000000000000000000000A1",
 };
 
@@ -30,7 +32,7 @@ const state = {
 };
 
 const evidence = {
-  schema_version: "modrik.web.browser-overflow-geometry.v1",
+  schema_version: "modrik.web.browser-overflow-geometry.v2",
   expected_sha: process.env.MODRIK_E2E_EXPECTED_SHA || null,
   harness_sha: process.env.MODRIK_E2E_HARNESS_SHA || null,
   generated_at: new Date().toISOString(),
@@ -76,6 +78,32 @@ function problem(status, code) {
     detail: status === 401 ? "Authentication required." : "Synthetic failure.",
     request_id: "overflow-e2e",
     retryable: false,
+  };
+}
+
+function attemptPayload() {
+  return {
+    id: ids.attempt,
+    academic_context_id: ids.context,
+    quiz_id: ids.quiz,
+    status: "in_progress",
+    blueprint_version: 1,
+    ordering_algorithm: "modrik-fy-v1",
+    started_at: "2026-08-21T00:05:00Z",
+    completed_at: null,
+    archived_at: null,
+    questions: [{
+      attempt_question_id: ids.question,
+      position: 1,
+      type: "short_text",
+      prompt: {
+        en: "Synthetic responsive acceptance prompt",
+        ar: "سؤال تجريبي للتحقق من الاستجابة",
+        fr: "Question synthétique pour la validation responsive",
+      },
+      response_contract: { kind: "short_text", max_length: 64 },
+      current_answer: null,
+    }],
   };
 }
 
@@ -129,6 +157,23 @@ async function handleMock(req, res) {
 
   if (pathname === "/v1/progress") {
     return sendJson(res, 200, envelope([{ academic_context_id: ids.context, curriculum_node_id: ids.node, mastery: 0.72, source_version: 1, calculated_at: "2026-08-21T00:00:00Z" }]));
+  }
+
+  if (pathname === "/v1/attempts" && req.method === "POST") {
+    return sendJson(res, 200, envelope(attemptPayload()));
+  }
+  if (pathname === `/v1/attempts/${ids.attempt}` && req.method === "GET") {
+    return sendJson(res, 200, envelope(attemptPayload()));
+  }
+  if (pathname.startsWith(`/v1/attempts/${ids.attempt}/answers/`) && req.method === "PUT") {
+    return sendJson(res, 200, envelope({ revision: 1, value: "", answered_at: "2026-08-21T00:00:00Z" }));
+  }
+  if (pathname === `/v1/attempts/${ids.attempt}/submit` && req.method === "POST") {
+    return sendJson(res, 200, envelope({
+      attempt: { ...attemptPayload(), status: "graded", completed_at: "2026-08-21T00:10:00Z" },
+      score: 1,
+      max_score: 1,
+    }));
   }
 
   return sendJson(res, 404, problem(404, "RESOURCE_NOT_FOUND"), "application/problem+json");
@@ -251,6 +296,12 @@ const LEARNING_SELECTORS = [
   ".study-layout", ".workspace-rail", ".lesson-reader",
 ];
 
+const PRACTICE_SELECTORS = [
+  ...LEARNING_SELECTORS,
+  ".practice-empty", ".practice-empty .primary-button", ".question-card", ".question-card form",
+  ".text-answer", ".practice-submit-row", ".practice-submit-row button", ".primary-button",
+];
+
 async function recordAuth(browser, name, width, height, locale, loading = false) {
   state.locale = locale;
   state.sessionMode = "unauthenticated";
@@ -278,7 +329,7 @@ async function recordAuth(browser, name, width, height, locale, loading = false)
   }
 }
 
-async function recordLearning(browser, name, width, height, locale, study = false) {
+async function recordLearning(browser, name, width, height, locale, mode = "learning") {
   state.locale = locale;
   state.sessionMode = "authenticated";
   state.sessionDelayMs = 0;
@@ -290,18 +341,26 @@ async function recordLearning(browser, name, width, height, locale, study = fals
     await page.locator(".student-shell").waitFor({ state: "visible", timeout: 15000 });
     await page.locator(".dashboard-stack").waitFor({ state: "visible", timeout: 15000 });
     await setTextScale(page);
-    if (study) {
+
+    if (mode === "study") {
       await page.locator(".student-nav button").nth(1).click();
       await page.locator(".lesson-reader").waitFor({ state: "visible", timeout: 10000 });
+    } else if (mode === "practice") {
+      await page.locator(".student-nav button").nth(2).click();
+      const start = page.locator(".practice-empty .primary-button");
+      await start.waitFor({ state: "visible", timeout: 10000 });
+      await start.click();
+      await page.locator(".question-card").waitFor({ state: "visible", timeout: 10000 });
     }
+
     evidence.cases.push({
       name,
-      surface: study ? "study" : "learning",
+      surface: mode,
       width,
       height,
       locale,
       text_scale: 2,
-      geometry: await collectGeometry(page, LEARNING_SELECTORS),
+      geometry: await collectGeometry(page, mode === "practice" ? PRACTICE_SELECTORS : LEARNING_SELECTORS),
     });
   } finally {
     await context.close();
@@ -331,8 +390,9 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     await recordAuth(browser, "fr-360-auth", 360, 800, "fr");
     await recordLearning(browser, "fr-360-learning", 360, 800, "fr");
+    await recordLearning(browser, "fr-360-practice", 360, 800, "fr", "practice");
     await recordAuth(browser, "ar-320-auth", 320, 720, "ar");
-    await recordLearning(browser, "ar-320-study", 320, 720, "ar", true);
+    await recordLearning(browser, "ar-320-study", 320, 720, "ar", "study");
     await recordAuth(browser, "ar-320-loading", 320, 720, "ar", true);
   } finally {
     if (browser) await browser.close().catch(() => {});
