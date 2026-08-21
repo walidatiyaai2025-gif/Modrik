@@ -114,9 +114,8 @@
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(15rem, 0.7fr);
-  gap: clamp(1.5rem, 4vw, 4rem);
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
   padding: clamp(1.5rem, 4vw, 3.75rem);
   background: var(--modrik-white);
   border: 1px solid color-mix(in srgb, var(--modrik-blue) 12%, transparent);
@@ -125,6 +124,7 @@
 }
 
 .landingHero {
+  min-height: clamp(25rem, 52vw, 36rem);
   background:
     radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--modrik-teal) 18%, transparent), transparent 36%),
     linear-gradient(145deg, var(--modrik-navy), color-mix(in srgb, var(--modrik-blue) 72%, var(--modrik-navy)));
@@ -135,6 +135,10 @@
 .heroCopy {
   align-self: center;
   max-width: 52rem;
+}
+
+.landingHero .heroCopy {
+  max-width: 59rem;
 }
 
 .eyebrow {
@@ -174,6 +178,7 @@
 
 .landingHero .lead {
   color: var(--modrik-sky);
+  font-size: clamp(1.1rem, 1.7vw, 1.4rem);
 }
 
 .heroActions {
@@ -205,45 +210,26 @@
   border: 1px solid color-mix(in srgb, var(--modrik-white) 50%, transparent);
 }
 
-.releaseCard {
+.heroHighlights {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 15rem;
-  padding: 1.35rem;
-  color: var(--modrik-ink);
-  background: color-mix(in srgb, var(--modrik-sky) 78%, var(--modrik-white));
-  border-radius: var(--modrik-radius-md);
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.releaseMarker {
+.heroHighlights li {
   display: inline-flex;
-  align-self: flex-start;
-  margin-block-end: auto;
-  color: var(--modrik-blue);
-  font-size: 2.5rem;
-  font-weight: 800;
-}
-
-.releaseCard h2 {
-  margin: 1rem 0 0.5rem;
-  color: var(--modrik-navy);
-  font-size: 1.15rem;
-}
-
-.releaseCard p {
-  margin: 0;
-  color: var(--modrik-slate);
-  line-height: 1.65;
-}
-
-.releaseCard code {
-  align-self: flex-start;
-  margin-block-start: 1rem;
-  padding: 0.35rem 0.55rem;
-  color: var(--modrik-blue);
-  background: var(--modrik-white);
-  border-radius: var(--modrik-radius-sm);
+  align-items: center;
+  min-height: 2.45rem;
+  padding-inline: 0.9rem;
+  color: var(--modrik-sky);
+  font-size: 0.88rem;
+  font-weight: 650;
+  background: color-mix(in srgb, var(--modrik-white) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--modrik-white) 18%, transparent);
+  border-radius: var(--modrik-radius-pill);
 }
 
 .templateNotice {
@@ -480,12 +466,31 @@
   font-weight: 700;
 }
 
-.footerBrand p {
-  max-width: 38ch;
-  margin: 0.8rem 0 0;
-  color: color-mix(in srgb, var(--modrik-sky) 76%, var(--modrik-slate));
-  font-size: 0.88rem;
-  line-height: 1.7;
+.releaseBoundary {
+  max-width: 40ch;
+  margin-block-start: 0.9rem;
+  padding-block-start: 0.9rem;
+  border-block-start: 1px solid color-mix(in srgb, var(--modrik-sky) 20%, transparent);
+}
+
+.releaseBoundary h2 {
+  margin: 0;
+  color: var(--modrik-teal);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shell[dir="rtl"] .releaseBoundary h2 {
+  letter-spacing: normal;
+}
+
+.releaseBoundary p {
+  margin: 0.45rem 0 0;
+  color: color-mix(in srgb, var(--modrik-sky) 72%, var(--modrik-slate));
+  font-size: 0.78rem;
+  line-height: 1.65;
 }
 
 .footerGroup h2 {
@@ -540,17 +545,8 @@
     justify-self: end;
   }
 
-  .hero,
   .contentLayout {
     grid-template-columns: 1fr;
-  }
-
-  .releaseCard {
-    min-height: auto;
-  }
-
-  .releaseMarker {
-    margin-block-end: 0;
   }
 
   .sideRail {
@@ -604,8 +600,18 @@
     border-radius: var(--modrik-radius-md);
   }
 
+  .landingHero {
+    min-height: auto;
+    padding-block: 2.5rem;
+  }
+
   .hero h1 {
     font-size: clamp(2rem, 12vw, 3.2rem);
+  }
+
+  .heroHighlights li {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 
   .contentSection {
