@@ -154,13 +154,27 @@ String diagnosticOperationName(String surface, String method, String path) {
       .where((segment) => segment.isNotEmpty)
       .toList(growable: false);
   final safeSegments = <String>[];
-  for (final segment in segments) {
-    if (_looksOpaqueResourceId(segment)) continue;
+  for (var index = 0; index < segments.length; index += 1) {
+    final segment = segments[index];
+    if (_isKnownLearningResourceId(surface, segments, index) ||
+        _looksOpaqueResourceId(segment)) {
+      continue;
+    }
     safeSegments.add(sanitizeDiagnosticIdentifier(segment));
     if (safeSegments.length == 3) break;
   }
   final suffix = safeSegments.isEmpty ? 'root' : safeSegments.join('.');
   return '$surface.${method.toLowerCase()}.$suffix';
+}
+
+bool _isKnownLearningResourceId(
+  String surface,
+  List<String> segments,
+  int index,
+) {
+  if (surface != 'learning' || index == 0) return false;
+  final parent = segments[index - 1];
+  return parent == 'lessons' || parent == 'attempts' || parent == 'answers';
 }
 
 bool _looksOpaqueResourceId(String segment) {
