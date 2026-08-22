@@ -21,8 +21,8 @@ capabilities:
     area: content
     classification: admin_manageable
     surface: ContentOperations
-    status: present_on_issue_182_branch
-    notes: Guided lifecycle entry point with KPI summary linking Academic Track, Preparation, Ingestion/Processing, Rights, Review/Publish, exception triage and traceability while preserving Backend authority.
+    status: present
+    notes: Integrated by PR #201. Guided lifecycle entry point with KPI summary links Academic Track, Preparation, Ingestion/Processing, Rights, Review/Publish, exception triage and traceability while preserving Backend authority.
   - id: admin.content.rights
     area: content
     classification: admin_manageable
@@ -32,32 +32,32 @@ capabilities:
     area: content
     classification: admin_manageable
     surface: ContentIngestionOperations / ContentPreparationWizard
-    status: present_on_issue_182_branch
-    notes: Returned-ZIP import state, processing checkpoint, attempts and safe error codes are visible; retry is limited to the existing authorized dry-run and upload stays bound to originating Preparation Requests.
+    status: present
+    notes: Integrated by PR #201. Returned-ZIP import state, processing checkpoint, attempts and safe error codes are visible; retry is limited to the existing authorized dry-run and upload stays bound to originating Preparation Requests.
   - id: admin.content.review_exceptions
     area: content
     classification: admin_manageable
     surface: ContentReviewExceptions
-    status: present_on_issue_182_branch
-    notes: Triage queue is derived from persisted operation failure/block state, rights review status, review decisions and deterministic dry-run blocking codes. It routes to existing authorized mutation surfaces and does not create a parallel workflow.
+    status: present
+    notes: Integrated by PR #201. Triage is derived from persisted operation failure/block state, rights review status, review decisions and deterministic dry-run blocking codes and routes to existing authorized mutation surfaces.
   - id: admin.content.traceability_versions
     area: content
     classification: read_only_operational
     surface: ContentTraceability
-    status: present_on_issue_182_branch
-    notes: Read-only request/archive/content/dry-run hash linkage, rights evidence reference, review/publication state, canonical lesson/question/quiz versions and preparation supersession history.
+    status: present
+    notes: Integrated by PR #201. Read-only request/archive/content/dry-run hash linkage, rights evidence reference, review/publication state, canonical lesson/question/quiz versions and preparation supersession history.
   - id: admin.content.processing_policy
     area: content
     classification: read_only_operational
     surface: ContentOperations
-    status: present_on_issue_182_branch
-    notes: Backend does not select a preparation provider. The deterministic request/bundle and returned-ZIP contract requires paid_ai_required=false even when optional paid-AI runtime capability is enabled; archive validation and rights/review gates remain Backend-authoritative.
+    status: present
+    notes: Integrated by PR #201. Backend does not select a preparation provider. The deterministic request/bundle and returned-ZIP contract requires paid_ai_required=false even when optional paid-AI runtime capability is enabled; archive validation and rights/review gates remain Backend-authoritative.
   - id: admin.content.curriculum_coverage
     area: content
     classification: read_only_operational
     surface: ContentOperations
-    status: present_on_issue_182_branch
-    notes: Coverage is reported as canonical counts for tracks, curriculum nodes and nodes with lessons/questions/quizzes; no synthetic quality or completeness score is invented.
+    status: present
+    notes: Integrated by PR #201. Coverage is reported as canonical counts for tracks, curriculum nodes and nodes with lessons/questions/quizzes; no synthetic quality or completeness score is invented.
   - id: admin.content.automated_confidence
     area: content
     classification: deferred_disabled
