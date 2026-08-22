@@ -115,8 +115,9 @@ capabilities:
   - id: student.notifications.center
     area: notifications
     classification: user_facing
-    surface: contract-defined Notification Center
-    status: audit_required
+    surface: Student Web / Student Mobile Notification Center
+    status: present
+    notes: Issue #235 adds a Backend-owned first-party inbox with strict own-account list/read/read-all state. Web and Mobile expose discoverable AR/EN/FR loading, empty, offline, error, permission, retry and read/unread UX. Firebase/FCM remains auxiliary; no raw registration token or external delivery authority is claimed.
   - id: admin.firebase.integration
     area: integrations
     classification: admin_manageable
