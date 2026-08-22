@@ -15,14 +15,16 @@ final class StudentNotificationService
     public function inbox(User $user, int $limit = 100): array
     {
         $boundedLimit = max(1, min($limit, 100));
-        $items = DB::table('student_notifications')
-            ->where('user_id', (string) $user->getAuthIdentifier())
-            ->orderByDesc('occurred_at')
-            ->orderByDesc('id')
-            ->limit($boundedLimit)
-            ->get(['id', 'kind', 'title', 'body', 'action', 'occurred_at', 'read_at'])
-            ->map(fn (object $row): array => $this->serialize($row))
-            ->all();
+        $items = array_values(
+            DB::table('student_notifications')
+                ->where('user_id', (string) $user->getAuthIdentifier())
+                ->orderByDesc('occurred_at')
+                ->orderByDesc('id')
+                ->limit($boundedLimit)
+                ->get(['id', 'kind', 'title', 'body', 'action', 'occurred_at', 'read_at'])
+                ->map(fn (object $row): array => $this->serialize((array) $row))
+                ->all(),
+        );
 
         $unreadCount = DB::table('student_notifications')
             ->where('user_id', (string) $user->getAuthIdentifier())
@@ -31,33 +33,35 @@ final class StudentNotificationService
 
         return [
             'items' => $items,
-            'unread_count' => $unreadCount,
+            'unread_count' => max(0, (int) $unreadCount),
         ];
     }
 
     /** @return array<string, mixed>|null */
     public function markRead(User $user, string $notificationId): ?array
     {
-        $row = DB::transaction(function () use ($user, $notificationId): ?object {
+        $row = DB::transaction(function () use ($user, $notificationId): ?array {
             $query = DB::table('student_notifications')
                 ->where('id', $notificationId)
                 ->where('user_id', (string) $user->getAuthIdentifier());
 
-            $row = $query->lockForUpdate()->first(['id', 'kind', 'title', 'body', 'action', 'occurred_at', 'read_at']);
-            if ($row === null) {
+            $record = $query->lockForUpdate()->first(['id', 'kind', 'title', 'body', 'action', 'occurred_at', 'read_at']);
+            if ($record === null) {
                 return null;
             }
 
-            if ($row->read_at === null) {
+            /** @var array<string, mixed> $payload */
+            $payload = (array) $record;
+            if (($payload['read_at'] ?? null) === null) {
                 $readAt = now();
                 $query->update([
                     'read_at' => $readAt,
                     'updated_at' => $readAt,
                 ]);
-                $row->read_at = $readAt;
+                $payload['read_at'] = $readAt;
             }
 
-            return $row;
+            return $payload;
         });
 
         return $row === null ? null : $this->serialize($row);
@@ -76,23 +80,29 @@ final class StudentNotificationService
             ]);
     }
 
-    /** @return array<string, mixed> */
-    private function serialize(object $row): array
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    private function serialize(array $row): array
     {
-        $action = $row->action === null ? null : (string) $row->action;
+        $rawAction = $row['action'] ?? null;
+        $action = is_string($rawAction) ? $rawAction : null;
         if ($action !== null && ! in_array($action, self::ACTIONS, true)) {
             $action = null;
         }
 
+        $readAt = $row['read_at'] ?? null;
+
         return [
-            'id' => (string) $row->id,
-            'kind' => (string) $row->kind,
-            'title' => $this->localizedMap((string) $row->title),
-            'body' => $this->localizedMap((string) $row->body),
+            'id' => (string) ($row['id'] ?? ''),
+            'kind' => (string) ($row['kind'] ?? ''),
+            'title' => $this->localizedMap((string) ($row['title'] ?? '{}')),
+            'body' => $this->localizedMap((string) ($row['body'] ?? '{}')),
             'action' => $action,
-            'occurred_at' => (string) $row->occurred_at,
-            'read_at' => $row->read_at === null ? null : (string) $row->read_at,
-            'is_read' => $row->read_at !== null,
+            'occurred_at' => (string) ($row['occurred_at'] ?? ''),
+            'read_at' => $readAt === null ? null : (string) $readAt,
+            'is_read' => $readAt !== null,
         ];
     }
 
