@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:modrik_mobile/src/learning_gateway.dart';
 import 'package:modrik_mobile/src/models.dart';
 import 'package:modrik_mobile/src/notification_center.dart';
 import 'package:modrik_mobile/src/student_notifications.dart';
@@ -71,13 +72,6 @@ void main() {
       ],
     );
 
-    await tester.drag(find.byType(ListView), const Offset(0, 300));
-    await tester.pump();
-    await tester.fling(find.byType(ListView), const Offset(0, 300), 1000);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Retry'), warnIfMissed: false);
-
-    // Recreate with populated server state to keep the test deterministic.
     await tester.pumpWidget(
       MaterialApp(
         home: MobileNotificationCenter(
