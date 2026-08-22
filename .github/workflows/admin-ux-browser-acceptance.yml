@@ -136,46 +136,55 @@ jobs:
               { name: 'en-200pct-1280x720', locale: 'en', width: 1280, height: 720, scale: 2 },
             ];
 
+            const surfaces = [
+              { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
+              { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
+            ];
+
             for (const c of cases) {
               await page.setViewportSize({ width: c.width, height: c.height });
-              await page.goto(`http://127.0.0.1:8000/admin?admin_locale=${c.locale}`, { waitUntil: 'networkidle' });
-              if (c.scale !== 1) {
-                const cdp = await context.newCDPSession(page);
-                await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: c.scale });
+
+              for (const surface of surfaces) {
+                await page.goto(`http://127.0.0.1:8000${surface.url}?admin_locale=${c.locale}`, { waitUntil: 'networkidle' });
+                if (c.scale !== 1) {
+                  const cdp = await context.newCDPSession(page);
+                  await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: c.scale });
+                }
+
+                const root = page.locator(surface.selector);
+                record(`${surface.name} ${c.name}: visible`, await root.isVisible(), `${surface.selector} missing`);
+                const dir = await root.getAttribute('dir');
+                record(`${surface.name} ${c.name}: direction`, dir === (c.locale === 'ar' ? 'rtl' : 'ltr'), `dir=${dir}`);
+
+                const geometry = await page.evaluate(() => ({
+                  scrollWidth: document.documentElement.scrollWidth,
+                  clientWidth: document.documentElement.clientWidth,
+                  bodyScrollWidth: document.body.scrollWidth,
+                }));
+                record(
+                  `${surface.name} ${c.name}: no critical page overflow`,
+                  geometry.scrollWidth <= geometry.clientWidth + 3,
+                  JSON.stringify(geometry),
+                );
+
+                await page.keyboard.press('Tab');
+                const focused = await page.evaluate(() => {
+                  const el = document.activeElement;
+                  return !!el && el !== document.body && el !== document.documentElement;
+                });
+                record(`${surface.name} ${c.name}: keyboard focus`, focused, 'Tab did not move focus to an interactive element');
+
+                await page.screenshot({ path: path.join(out, `${surface.name}-${c.name}.png`), fullPage: true });
               }
-
-              const dashboard = page.locator('[data-testid="modrik-admin-dashboard"]');
-              record(`${c.name}: dashboard visible`, await dashboard.isVisible(), 'dashboard root missing');
-              const dir = await dashboard.getAttribute('dir');
-              record(`${c.name}: direction`, dir === (c.locale === 'ar' ? 'rtl' : 'ltr'), `dir=${dir}`);
-
-              const geometry = await page.evaluate(() => ({
-                scrollWidth: document.documentElement.scrollWidth,
-                clientWidth: document.documentElement.clientWidth,
-                bodyScrollWidth: document.body.scrollWidth,
-              }));
-              record(
-                `${c.name}: no critical page overflow`,
-                geometry.scrollWidth <= geometry.clientWidth + 3,
-                JSON.stringify(geometry),
-              );
-
-              await page.keyboard.press('Tab');
-              const focused = await page.evaluate(() => {
-                const el = document.activeElement;
-                return !!el && el !== document.body && el !== document.documentElement;
-              });
-              record(`${c.name}: keyboard focus`, focused, 'Tab did not move focus to an interactive element');
-
-              await page.screenshot({ path: path.join(out, `${c.name}.png`), fullPage: true });
             }
 
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v1',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v2',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'PASS',
+                surfaces: surfaces.map(({ name, url }) => ({ name, url })),
                 checks,
               }, null, 2) + '\n',
             );
@@ -185,7 +194,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v1',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v2',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'FAIL',
                 checks,

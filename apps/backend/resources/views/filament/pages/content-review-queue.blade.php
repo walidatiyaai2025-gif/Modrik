@@ -206,6 +206,17 @@
                                                 <li class="rounded-lg border border-danger-300 p-3 text-sm">
                                                     <x-filament::badge color="danger"><span dir="ltr">{{ $code }}</span></x-filament::badge>
                                                     <p class="mt-2 text-xs text-gray-600 dark:text-gray-300">{{ $remediationFor(is_string($code) ? $code : null) }}</p>
+                                                    @if ($code === 'CONTENT_TARGET_TRACK_MISSING' && $row['preparation_request_id'] !== null && \App\Filament\Pages\AcademicCatalogue::canAccess())
+                                                        <div class="mt-3">
+                                                            <x-filament::button
+                                                                size="sm"
+                                                                tag="a"
+                                                                :href="\App\Filament\Pages\AcademicCatalogue::getUrl(['request' => $row['preparation_request_id']])"
+                                                            >
+                                                                {{ \App\Filament\Pages\AcademicCatalogue::getNavigationLabel() }}
+                                                            </x-filament::button>
+                                                        </div>
+                                                    @endif
                                                 </li>
                                             @endforeach
                                         </ul>
