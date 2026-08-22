@@ -16,6 +16,7 @@ const baseCapability = Object.freeze({
 
 const validMatrix = () => ({
   schema_version: "1.0.0",
+  updated: "2026-08-22",
   governance_id: "GOV-SURFACE-001",
   source: ["docs/product/CAPABILITY_SURFACE_GOVERNANCE.md"],
   classifications: [...CAPABILITY_CLASSIFICATIONS],
@@ -27,6 +28,16 @@ test("accepts a well-formed capability surface matrix", () => {
     capabilityCount: 1,
     classificationCount: 5,
   });
+});
+
+test("rejects malformed schema metadata", () => {
+  const matrix = validMatrix();
+  matrix.schema_version = "1";
+  assert.throws(() => validateCapabilitySurfaceMatrix(matrix), /schema_version must be x\.y\.z/);
+
+  matrix.schema_version = "1.0.0";
+  matrix.updated = "22-08-2026";
+  assert.throws(() => validateCapabilitySurfaceMatrix(matrix), /updated must be YYYY-MM-DD/);
 });
 
 test("rejects duplicate capability IDs", () => {
