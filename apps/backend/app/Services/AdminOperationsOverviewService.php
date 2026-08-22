@@ -103,14 +103,19 @@ final class AdminOperationsOverviewService
                 }
             }
 
+            $fcmEnabled = (bool) ($firebase['fcm_enabled'] ?? false);
+            $fcmStatus = (string) ($firebase['fcm_transport_status'] ?? 'unknown');
+            $firebaseTransportUnavailable = $fcmEnabled && $fcmStatus !== 'available';
+            $attentionRequired = $pendingProviders > 0 || $firebaseTransportUnavailable;
+
             return [
-                'status' => $pendingProviders > 0 || ($firebase['fcm_transport_status'] ?? '') === 'configuration_incomplete'
-                    ? 'attention'
-                    : 'healthy',
+                'status' => $attentionRequired ? 'attention' : 'healthy',
                 'pending_auth_transports' => $pendingProviders,
-                'firebase_fcm_status' => (string) ($firebase['fcm_transport_status'] ?? 'unknown'),
+                'firebase_fcm_status' => $fcmStatus,
                 'firebase_credentials_reference_set' => (bool) ($firebase['credential_reference_set'] ?? false),
-                'detail' => 'Only safe integration status is summarized; credential material remains external.',
+                'detail' => $attentionRequired
+                    ? 'One or more configured integration transports are not available; no success is fabricated.'
+                    : 'Only safe integration status is summarized; credential material remains external.',
             ];
         } catch (Throwable) {
             return [
