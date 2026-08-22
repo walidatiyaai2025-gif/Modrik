@@ -64,7 +64,7 @@ final class PublicLegalStatus extends Page
     public function publicPages(): array
     {
         return [
-            ['key' => 'landing', 'slug' => '/', 'kind' => 'public_information', 'template' => false, 'indexable' => true],
+            ['key' => 'landing', 'slug' => '/landing', 'kind' => 'public_information', 'template' => false, 'indexable' => true],
             ['key' => 'help', 'slug' => '/help', 'kind' => 'help', 'template' => false, 'indexable' => true],
             ['key' => 'adminGuide', 'slug' => '/admin-guide', 'kind' => 'help', 'template' => false, 'indexable' => true],
             ['key' => 'about', 'slug' => '/about', 'kind' => 'public_information', 'template' => false, 'indexable' => true],
