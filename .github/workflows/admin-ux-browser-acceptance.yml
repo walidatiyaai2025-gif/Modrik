@@ -6,10 +6,14 @@ on:
       - "apps/backend/app/Filament/**"
       - "apps/backend/app/Http/Middleware/SetAdminLocale.php"
       - "apps/backend/app/Providers/Filament/AdminPanelProvider.php"
+      - "apps/backend/app/Services/IntegrationStatusService.php"
+      - "apps/backend/app/Services/SystemSettingsRegistry.php"
       - "apps/backend/resources/css/filament/admin/**"
       - "apps/backend/resources/views/components/admin/**"
       - "apps/backend/resources/views/filament/**"
       - "apps/backend/tests/Feature/AdminUxFoundationTest.php"
+      - "apps/backend/tests/Feature/AdminSystemSettingsSurfaceTest.php"
+      - "apps/backend/tests/Feature/AdminIntegrationSettingsSurfacesTest.php"
       - "docs/brand/ADMIN_UX_SYSTEM.md"
       - ".github/workflows/admin-ux-browser-acceptance.yml"
 
@@ -139,6 +143,11 @@ jobs:
             const surfaces = [
               { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
+              { name: 'system-settings', url: '/admin/system-settings', selector: '[data-testid="modrik-system-settings"]' },
+              { name: 'authentication-providers', url: '/admin/authentication-providers', selector: '[data-testid="modrik-auth-providers"]' },
+              { name: 'notification-settings', url: '/admin/notification-settings', selector: '[data-testid="modrik-notification-settings"]' },
+              { name: 'firebase-runtime', url: '/admin/firebase-runtime', selector: '[data-testid="modrik-firebase-runtime"]' },
+              { name: 'advertising-safety', url: '/admin/advertising-safety', selector: '[data-testid="modrik-advertising-safety"]' },
             ];
 
             for (const c of cases) {
@@ -181,7 +190,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v2',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v3',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'PASS',
                 surfaces: surfaces.map(({ name, url }) => ({ name, url })),
@@ -194,7 +203,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v2',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v3',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'FAIL',
                 checks,
