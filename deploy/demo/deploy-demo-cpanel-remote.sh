@@ -46,6 +46,7 @@ unzip -q "$PACKAGE_ZIP" -d "$EXTRACT_DIR"
 [[ -f "$SOURCE_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
 [[ -f "$SOURCE_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
 [[ -f "$SOURCE_ROOT/backend/vendor/autoload.php" ]] || fail "Packaged Backend vendor/autoload.php is missing."
+[[ -f "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" ]] || fail "Packaged Demo Web restart convergence helper is missing."
 [[ -f "$SOURCE_ROOT/RELEASE_SHA.txt" ]] || fail "Packaged RELEASE_SHA.txt is missing."
 
 PACKAGED_SHA="$(tr -d '\r\n' < "$SOURCE_ROOT/RELEASE_SHA.txt")"
@@ -105,6 +106,17 @@ cd "$BACKEND_ROOT"
 "$PHP_BIN" artisan config:cache
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
+
+log "Waiting for bounded Student Web restart convergence"
+# Refresh Passenger's restart marker after all copy/cache work, then tolerate only
+# the bounded propagation window configured by the packaged helper. Stale content
+# never advances deployment state; the detailed checks below remain mandatory.
+touch "$WEB_ROOT/tmp/restart.txt"
+if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
+  MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
+  bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
+  fail "Demo Web runtime did not reach the requested release within the bounded restart window."
+fi
 
 log "Verifying public health and portal runtime markers"
 curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \

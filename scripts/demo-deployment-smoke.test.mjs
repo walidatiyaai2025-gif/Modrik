@@ -10,6 +10,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const smokeScript = path.join(root, "scripts", "verify-demo-deployment-smoke.sh");
 const workflowPath = path.join(root, ".github", "workflows", "deploy-demo-cpanel.yml");
 const remoteRunnerPath = path.join(root, "deploy", "demo", "deploy-demo-cpanel-remote.sh");
+const restartWaitPath = path.join(root, "deploy", "demo", "wait-for-demo-web-release.sh");
+const packageScriptPath = path.join(root, "scripts", "package-demo-cpanel.sh");
 const release = "0123456789abcdef0123456789abcdef01234567";
 const shortRelease = release.slice(0, 12);
 
@@ -74,6 +76,62 @@ esac
         FAKE_WEB_BODY: webBody,
         FAKE_STUDENT_BODY: studentPortalBody,
         FAKE_ADMIN_BODY: adminBody,
+      },
+    });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+function runRestartWait({ staleLandingAttempts = 0, maxAttempts = 3 } = {}) {
+  const directory = mkdtempSync(path.join(tmpdir(), "modrik-demo-restart-"));
+  const curl = path.join(directory, "curl");
+  const counter = path.join(directory, "landing-count");
+  const staleRelease = "a".repeat(40);
+  const staleShort = staleRelease.slice(0, 12);
+  const staleLandingBody = `<div data-testid="modrik-web-release-badge" title="MODRIK deployed release: ${staleRelease}">Build ${staleShort}</div><main data-testid="modrik-landing-page"><a data-testid="modrik-student-portal-entry" href="/student">Student</a></main>`;
+
+  writeFileSync(curl, `#!/usr/bin/env bash
+set -euo pipefail
+url="\${!#}"
+case "$url" in
+  "https://demo.test/")
+    count=0
+    if [[ -f "\${FAKE_COUNTER_FILE}" ]]; then count="$(cat "\${FAKE_COUNTER_FILE}")"; fi
+    count=$((count + 1))
+    printf '%s' "$count" > "\${FAKE_COUNTER_FILE}"
+    if (( count <= FAKE_STALE_LANDING_ATTEMPTS )); then
+      printf '%s' "\${FAKE_STALE_LANDING_BODY}"
+    else
+      printf '%s' "\${FAKE_FRESH_LANDING_BODY}"
+    fi
+    ;;
+  "https://demo.test/student")
+    printf '%s' "\${FAKE_FRESH_STUDENT_BODY}"
+    ;;
+  *)
+    exit 64
+    ;;
+esac
+`);
+  chmodSync(curl, 0o755);
+
+  try {
+    return spawnSync("bash", [restartWaitPath, release], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: `${directory}:${process.env.PATH ?? ""}`,
+        MODRIK_DEMO_WEB_URL: "https://demo.test/",
+        MODRIK_DEMO_STUDENT_URL: "https://demo.test/student",
+        MODRIK_WEB_RESTART_ATTEMPTS: String(maxAttempts),
+        MODRIK_WEB_RESTART_DELAY_SECONDS: "0",
+        FAKE_COUNTER_FILE: counter,
+        FAKE_STALE_LANDING_ATTEMPTS: String(staleLandingAttempts),
+        FAKE_STALE_LANDING_BODY: staleLandingBody,
+        FAKE_FRESH_LANDING_BODY: landingBody,
+        FAKE_FRESH_STUDENT_BODY: studentBody,
       },
     });
   } finally {
@@ -146,6 +204,20 @@ test("Demo release smoke rejects an invalid immutable release SHA before network
   assert.match(result.stderr, /MODRIK_DEPLOY_RELEASE_SHA_INVALID/);
 });
 
+test("bounded Web restart wait accepts stale then fresh Passenger content", () => {
+  const result = runRestartWait({ staleLandingAttempts: 1, maxAttempts: 3 });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(`MODRIK_DEMO_WEB_RELEASE_READY release=${shortRelease} attempt=2`));
+  assert.doesNotMatch(`${result.stdout}${result.stderr}`, /data-testid|<div|<main|<section/);
+});
+
+test("bounded Web restart wait fails closed when Passenger remains permanently stale", () => {
+  const result = runRestartWait({ staleLandingAttempts: 99, maxAttempts: 2 });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, new RegExp(`MODRIK_DEPLOY_WEB_RESTART_TIMEOUT release=${shortRelease} attempts=2`));
+  assert.doesNotMatch(`${result.stdout}${result.stderr}`, /data-testid|<div|<main|<section/);
+});
+
 test("cPanel deployment workflow keeps the exact release smoke mandatory", () => {
   const workflow = readFileSync(workflowPath, "utf8");
   assert.match(workflow, /name: External post-deploy release smoke/);
@@ -153,13 +225,19 @@ test("cPanel deployment workflow keeps the exact release smoke mandatory", () =>
   assert.match(workflow, /bash scripts\/verify-demo-deployment-smoke\.sh "\$RELEASE_SHA"/);
 });
 
-test("remote cPanel runner validates portal markers before recording deployment success", () => {
+test("remote cPanel runner waits for Web restart convergence before recording deployment success", () => {
   const runner = readFileSync(remoteRunnerPath, "utf8");
+  const packageScript = readFileSync(packageScriptPath, "utf8");
+  assert.match(packageScript, /wait-for-demo-web-release\.sh/);
+  assert.match(runner, /Waiting for bounded Student Web restart convergence/);
+  assert.match(runner, /touch "\$WEB_ROOT\/tmp\/restart\.txt"/);
+  assert.match(runner, /wait-for-demo-web-release\.sh/);
   assert.match(runner, /modrik-landing-page/);
   assert.match(runner, /modrik-student-portal-entry/);
   assert.match(runner, /modrik-student-portal/);
   assert.match(runner, /Student Portal Auth runtime did not render after copy/);
   assert.match(runner, /Student Portal served Landing content after copy/);
   assert.match(runner, /current-release\.txt/);
+  assert.ok(runner.indexOf("wait-for-demo-web-release.sh") < runner.indexOf("current-release.txt"));
   assert.ok(runner.indexOf("modrik-student-portal") < runner.indexOf("current-release.txt"));
 });
