@@ -16,6 +16,7 @@ on:
       - "apps/backend/tests/Feature/AdminIntegrationSettingsSurfacesTest.php"
       - "apps/backend/tests/Feature/AssessmentQuestionBankTest.php"
       - "apps/backend/tests/Feature/AssessmentOperationsTest.php"
+      - "apps/backend/tests/Feature/AssessmentQualityReviewTest.php"
       - "docs/brand/ADMIN_UX_SYSTEM.md"
       - ".github/workflows/admin-ux-browser-acceptance.yml"
 
@@ -147,6 +148,7 @@ jobs:
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
               { name: 'assessment-operations', url: '/admin/assessment-operations', selector: '[data-testid="modrik-assessment-operations"]' },
               { name: 'assessment-question-bank', url: '/admin/assessment-question-bank', selector: '[data-testid="modrik-assessment-question-bank"]' },
+              { name: 'assessment-quality-review', url: '/admin/assessment-quality-review', selector: '[data-testid="modrik-assessment-quality-review"]' },
               { name: 'content-preparation', url: '/admin/content-preparation', selector: '[data-testid="modrik-content-preparation"]' },
               { name: 'content-rights-review', url: '/admin/content-rights-review', selector: '[data-testid="modrik-content-rights-review"]' },
               { name: 'system-settings', url: '/admin/system-settings', selector: '[data-testid="modrik-system-settings"]' },
@@ -196,7 +198,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v5',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v6',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'PASS',
                 surfaces: surfaces.map(({ name, url }) => ({ name, url })),
@@ -209,7 +211,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v5',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v6',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'FAIL',
                 checks,
