@@ -75,6 +75,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: MobileNotificationCenter(
+          key: const ValueKey('populated-ar-notifications'),
           gateway: gateway,
           initialLocale: ModrikLocale.ar,
         ),
