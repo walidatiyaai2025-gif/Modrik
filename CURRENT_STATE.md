@@ -60,7 +60,8 @@ Content rights remain a separate fail-closed gate. `pending_review` material mus
 
 The authorized evaluation target remains `demo.modrik.org`.
 
-Last repository-recorded successful Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+This is the last repository-recorded successful Demo deployment.
 
 GitHub Actions run `32563427725`, attempt 2, successfully deployed that immutable source checkpoint. Repository source has advanced materially since then.
 
