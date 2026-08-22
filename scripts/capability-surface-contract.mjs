@@ -10,11 +10,14 @@ export const CAPABILITY_CLASSIFICATIONS = Object.freeze([
 
 const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 const nonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+const semanticVersion = (value) => nonEmptyString(value) && /^\d+\.\d+\.\d+$/.test(value);
+const isoDate = (value) => nonEmptyString(value) && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 export function validateCapabilitySurfaceMatrix(matrix) {
   assert(matrix && typeof matrix === "object" && !Array.isArray(matrix), "capability matrix must be an object");
   assert.equal(matrix.governance_id, "GOV-SURFACE-001", "capability matrix must bind to GOV-SURFACE-001");
-  assert(nonEmptyString(matrix.schema_version), "capability matrix schema_version must be non-empty");
+  assert(semanticVersion(matrix.schema_version), "capability matrix schema_version must be x.y.z");
+  assert(isoDate(matrix.updated), "capability matrix updated must be YYYY-MM-DD");
   assert(Array.isArray(matrix.source) && matrix.source.length > 0, "capability matrix source must be non-empty");
   assert(matrix.source.every(nonEmptyString), "capability matrix source entries must be non-empty strings");
 
