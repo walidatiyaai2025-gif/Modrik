@@ -181,11 +181,13 @@ class AdminUxFoundationTest extends TestCase
 
         $this->actingAs($admin);
 
-        $dashboard = Livewire::test(Dashboard::class);
-        $metrics = $dashboard->instance()->metrics();
+        $dashboard = app(Dashboard::class);
+        $metrics = $dashboard->metrics();
 
         $this->assertSame('Preparation requests', $metrics[0]['label']);
         $this->assertSame(1, $metrics[0]['value']);
-        $dashboard->assertSee('Preparation requests');
+
+        Livewire::test(Dashboard::class)
+            ->assertSee('Preparation requests');
     }
 }
