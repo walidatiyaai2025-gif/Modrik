@@ -7,6 +7,7 @@ import { notificationCopy } from "./notification-copy";
 const portal = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 const shortcut = readFileSync(new URL("./notification-shortcut.tsx", import.meta.url), "utf8");
 const center = readFileSync(new URL("./notifications/notification-center.tsx", import.meta.url), "utf8");
+const stylesheet = readFileSync(new URL("./notifications/notification-center.module.css", import.meta.url), "utf8");
 const bff = readFileSync(new URL("../api/learning/[...path]/route.ts", import.meta.url), "utf8");
 const api = readFileSync(new URL("../../lib/learning-api.ts", import.meta.url), "utf8");
 
@@ -25,16 +26,17 @@ test("Notification Center covers loading empty offline permission error retry an
   assert.match(center, /learningApi\.markNotificationRead/);
   assert.match(center, /learningApi\.markAllNotificationsRead/);
   assert.match(center, /aria-live="polite"/);
-  assert.match(center, /focus-visible/);
+  assert.match(stylesheet, /:focus-visible/);
+  assert.match(stylesheet, /@media \(max-width: 30rem\)/);
 });
 
 test("notification API client and BFF expose only the bounded inbox/read contract", () => {
   assert.match(api, /notifications: \(\) => requestData<StudentNotificationInbox>/);
   assert.match(api, /markNotificationRead/);
   assert.match(api, /markAllNotificationsRead/);
-  assert.match(bff, /\^notifications\$\/|\^notifications\$|\^notifications\\\/$/);
-  assert.match(bff, /notifications\\\/read-all/);
-  assert.match(bff, /notifications\/\$\{ulid\}\/read/);
+  assert.ok(bff.includes('/^notifications$/'));
+  assert.ok(bff.includes('/^notifications\\/read-all$/'));
+  assert.ok(bff.includes('new RegExp(`^notifications/${ulid}/read$`)'));
   assert.doesNotMatch(api, /registration[_ -]?token/i);
   assert.doesNotMatch(center, /registration[_ -]?token/i);
 });
