@@ -9,8 +9,8 @@ fs.mkdirSync(evidenceDir, { recursive: true });
 
 async function noOverflow(page, name) {
   const geometry = await page.evaluate(() => ({
-    scrollWidth: document.documentElement.scrollWidth,
-    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+    clientWidth: window.innerWidth,
   }));
   if (geometry.scrollWidth > geometry.clientWidth + 1) {
     throw new Error(`${name}: horizontal overflow ${geometry.scrollWidth} > ${geometry.clientWidth}`);
@@ -106,6 +106,37 @@ async function landingCase(browser, spec) {
   return { name: spec.name, status: 'PASS', locale: spec.locale, viewport: [spec.width, spec.height], zoom: spec.zoom, geometry, focus };
 }
 
+async function studentAuthCase(browser, spec) {
+  const context = await browser.newContext({ viewport: { width: spec.width, height: spec.height } });
+  const page = await context.newPage();
+  await installAuthBoundary(page);
+  await page.goto(`${baseUrl}/student`, { waitUntil: 'networkidle' });
+  await page.getByTestId('modrik-student-portal-route').waitFor({ state: 'attached' });
+  const shell = page.locator('.auth-shell');
+  await shell.waitFor({ state: 'visible' });
+  await page.locator('.auth-main').waitFor({ state: 'visible' });
+  await page.locator('.auth-card form').first().waitFor({ state: 'visible' });
+  await page.locator('.auth-locale button', { hasText: spec.locale.toUpperCase() }).first().click();
+  if (spec.textScale === 2) {
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+  }
+  await requireRelease(page, spec.name);
+  const expectedDir = spec.locale === 'ar' ? 'rtl' : 'ltr';
+  const dir = await shell.getAttribute('dir');
+  const lang = await shell.getAttribute('lang');
+  if (dir !== expectedDir || lang !== spec.locale) throw new Error(`${spec.name}: auth locale/direction mismatch ${lang}/${dir}`);
+  const geometry = await noOverflow(page, spec.name);
+  const submit = page.locator('button[type="submit"]').first();
+  await submit.scrollIntoViewIfNeeded();
+  const submitBox = await submit.boundingBox();
+  if (!submitBox || submitBox.width < 44 || submitBox.height < 44) throw new Error(`${spec.name}: auth submit target smaller than 44px`);
+  if (submitBox.x < -1 || submitBox.x + submitBox.width > spec.width + 1) throw new Error(`${spec.name}: auth submit horizontally clipped`);
+  const focus = await visibleFocus(page, spec.name);
+  await page.screenshot({ path: path.join(evidenceDir, `${spec.name}.png`), fullPage: true });
+  await context.close();
+  return { name: spec.name, status: 'PASS', locale: spec.locale, viewport: [spec.width, spec.height], textScale: spec.textScale, geometry, focus };
+}
+
 async function transitionCase(browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await context.newPage();
@@ -132,6 +163,10 @@ async function transitionCase(browser) {
       { name: 'landing-fr-360-200', locale: 'fr', width: 360, height: 800, zoom: 2 },
       { name: 'landing-ar-320-200', locale: 'ar', width: 320, height: 720, zoom: 2 },
     ]) results.push(await landingCase(browser, spec));
+    for (const spec of [
+      { name: 'student-fr-360-200', locale: 'fr', width: 360, height: 800, textScale: 2 },
+      { name: 'student-ar-320-200', locale: 'ar', width: 320, height: 720, textScale: 2 },
+    ]) results.push(await studentAuthCase(browser, spec));
     results.push(await transitionCase(browser));
 
     const payload = {
