@@ -1,0 +1,239 @@
+name: Admin Sidebar Contrast Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "apps/backend/app/Providers/Filament/AdminPanelProvider.php"
+      - "apps/backend/resources/css/filament/admin/**"
+      - "apps/backend/resources/views/filament/admin/sidebar-contrast.blade.php"
+      - "apps/backend/vite.config.js"
+      - ".github/workflows/admin-sidebar-contrast-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-sidebar-contrast-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sidebar-contrast:
+    name: Rendered sidebar contrast
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ${{ github.workspace }}/apps/backend/database/admin-sidebar-contrast.sqlite
+      CACHE_STORE: array
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: database
+      MODRIK_FIXTURE_MODE: 'true'
+      MODRIK_FIXTURE_BEARER_TOKEN: modrik-sidebar-contrast-fixture-token
+      MODRIK_IDEMPOTENCY_SECRET: modrik-sidebar-contrast-idempotency-secret
+      MODRIK_DEMO_ADMIN_EMAIL: admin.sidebar@example.test
+      MODRIK_DEMO_ADMIN_PASSWORD: ModrikSidebarContrast123!
+
+    steps:
+      - name: Check out exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Resolve exact candidate SHA
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ github.event.pull_request.head.sha }}" ] && [ "$sha" != "${{ github.event.pull_request.head.sha }}" ]; then
+            echo "Exact-head mismatch: checkout=$sha expected=${{ github.event.pull_request.head.sha }}" >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Build exact Admin candidate
+        working-directory: apps/backend
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm install --no-audit --no-fund
+          npm run build
+          grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
+          grep -q 'resources/css/filament/admin/sidebar-contrast.css' public/build/manifest.json
+
+      - name: Prepare deterministic Admin fixture
+        working-directory: apps/backend
+        run: |
+          touch database/admin-sidebar-contrast.sqlite
+          php artisan migrate:fresh --seed --force
+
+      - name: Install pinned Playwright runtime
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
+            node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Start Laravel Admin runtime
+        working-directory: apps/backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          php artisan serve --host=127.0.0.1 --port=8000 > "$RUNNER_TEMP/admin-sidebar-laravel.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/admin-sidebar-laravel.pid"
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8000/admin/login >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/admin-sidebar-laravel.log" >&2
+          exit 1
+
+      - name: Measure rendered sidebar contrast
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          EXPECTED_SHA: ${{ steps.candidate.outputs.sha }}
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/admin-sidebar-contrast.cjs" <<'NODE'
+          const { chromium } = require('playwright');
+
+          function rgba(value) {
+            const match = String(value).match(/rgba?\(([^)]+)\)/i);
+            if (!match) throw new Error(`Unsupported rendered color: ${value}`);
+            const parts = match[1].split(/[\s,\/]+/).filter(Boolean).map(Number);
+            return { r: parts[0], g: parts[1], b: parts[2], a: Number.isFinite(parts[3]) ? parts[3] : 1 };
+          }
+
+          function channel(value) {
+            const s = value / 255;
+            return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+          }
+
+          function luminance(color) {
+            return 0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b);
+          }
+
+          function contrast(foreground, background) {
+            const l1 = luminance(foreground);
+            const l2 = luminance(background);
+            return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+          }
+
+          async function renderedContrast(locator) {
+            return locator.evaluate((node) => {
+              const fg = getComputedStyle(node).color;
+              let current = node;
+              let bg = null;
+              while (current) {
+                const candidate = getComputedStyle(current).backgroundColor;
+                if (candidate && candidate !== 'transparent' && candidate !== 'rgba(0, 0, 0, 0)') {
+                  bg = candidate;
+                  break;
+                }
+                current = current.parentElement;
+              }
+              return { fg, bg };
+            });
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+            const page = await context.newPage();
+
+            await page.goto('http://127.0.0.1:8000/admin/login', { waitUntil: 'networkidle' });
+            await page.locator('input[type="email"]').fill('admin.sidebar@example.test');
+            await page.locator('input[type="password"]').fill('ModrikSidebarContrast123!');
+            await Promise.all([
+              page.waitForURL(/\/admin(?:\?|$)/, { timeout: 15000 }),
+              page.locator('button[type="submit"]').click(),
+            ]);
+
+            for (const locale of ['en', 'ar']) {
+              await page.goto(`http://127.0.0.1:8000/admin?admin_locale=${locale}`, { waitUntil: 'networkidle' });
+              const sidebar = page.locator('.fi-sidebar');
+              if (!(await sidebar.isVisible())) throw new Error(`${locale}: sidebar is not visible`);
+
+              const assetCount = await page.locator('link[rel="stylesheet"][href*="sidebar-contrast"]').count();
+              if (assetCount < 1) throw new Error(`${locale}: sidebar contrast asset is not loaded after build`);
+
+              const labels = page.locator('.fi-sidebar .fi-sidebar-item-label:visible');
+              const groups = page.locator('.fi-sidebar .fi-sidebar-group-label:visible');
+              if ((await labels.count()) < 3) throw new Error(`${locale}: insufficient rendered sidebar item labels`);
+              if ((await groups.count()) < 2) throw new Error(`${locale}: insufficient rendered sidebar group labels`);
+
+              for (const [kind, locator, minimum] of [
+                ['item', labels, 4.5],
+                ['group', groups, 4.5],
+              ]) {
+                const count = await locator.count();
+                for (let index = 0; index < count; index += 1) {
+                  const sample = locator.nth(index);
+                  const colors = await renderedContrast(sample);
+                  if (!colors.bg) throw new Error(`${locale} ${kind} ${index}: no effective rendered background`);
+                  const ratio = contrast(rgba(colors.fg), rgba(colors.bg));
+                  if (ratio < minimum) {
+                    const text = (await sample.textContent() || '').trim().slice(0, 80);
+                    throw new Error(`${locale} ${kind} ${index} contrast ${ratio.toFixed(2)} < ${minimum}: ${text}; fg=${colors.fg}; bg=${colors.bg}`);
+                  }
+                }
+              }
+
+              const icons = page.locator('.fi-sidebar .fi-sidebar-item-icon:visible');
+              const iconCount = await icons.count();
+              if (iconCount < 1) throw new Error(`${locale}: no visible sidebar icons`);
+              for (let index = 0; index < iconCount; index += 1) {
+                const colors = await renderedContrast(icons.nth(index));
+                if (!colors.bg) throw new Error(`${locale} icon ${index}: no effective rendered background`);
+                const ratio = contrast(rgba(colors.fg), rgba(colors.bg));
+                if (ratio < 3) throw new Error(`${locale} icon ${index} contrast ${ratio.toFixed(2)} < 3`);
+              }
+
+              const dir = await page.locator('html').getAttribute('dir');
+              if (dir !== (locale === 'ar' ? 'rtl' : 'ltr')) throw new Error(`${locale}: unexpected document direction ${dir}`);
+            }
+
+            console.log(`MODRIK_ADMIN_SIDEBAR_CONTRAST_OK head=${process.env.EXPECTED_SHA.slice(0, 12)}`);
+            await browser.close();
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          node "$RUNNER_TEMP/admin-sidebar-contrast.cjs"
+
+      - name: Stop Admin runtime
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$RUNNER_TEMP/admin-sidebar-laravel.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/admin-sidebar-laravel.pid")" 2>/dev/null || true
+          fi
+
+      - name: Upload Laravel log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-sidebar-contrast-log-${{ github.event.pull_request.number }}
+          path: ${{ runner.temp }}/admin-sidebar-laravel.log
+          if-no-files-found: warn
+          retention-days: 14
