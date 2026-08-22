@@ -1,0 +1,218 @@
+name: Admin UX Browser Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "apps/backend/app/Filament/**"
+      - "apps/backend/app/Http/Middleware/SetAdminLocale.php"
+      - "apps/backend/app/Providers/Filament/AdminPanelProvider.php"
+      - "apps/backend/resources/css/filament/admin/**"
+      - "apps/backend/resources/views/components/admin/**"
+      - "apps/backend/resources/views/filament/**"
+      - "apps/backend/tests/Feature/AdminUxFoundationTest.php"
+      - "docs/brand/ADMIN_UX_SYSTEM.md"
+      - ".github/workflows/admin-ux-browser-acceptance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-ux-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  admin-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ${{ github.workspace }}/apps/backend/database/admin-evidence.sqlite
+      CACHE_STORE: array
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: database
+      MODRIK_FIXTURE_MODE: 'true'
+      MODRIK_FIXTURE_BEARER_TOKEN: modrik-admin-evidence-fixture-token
+      MODRIK_IDEMPOTENCY_SECRET: modrik-admin-evidence-idempotency-secret
+      MODRIK_DEMO_ADMIN_EMAIL: admin.evidence@example.test
+      MODRIK_DEMO_ADMIN_PASSWORD: ModrikEvidenceAdmin123!
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install Backend dependencies
+        working-directory: apps/backend
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm install --no-audit --no-fund
+          npm run build
+          grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
+
+      - name: Prepare deterministic Admin fixture
+        working-directory: apps/backend
+        run: |
+          touch database/admin-evidence.sqlite
+          php artisan migrate:fresh --seed --force
+
+      - name: Cache Chromium runtime
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: admin-playwright-1.62.1-chromium-${{ runner.os }}
+
+      - name: Install pinned Playwright runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
+            node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Start Laravel Admin runtime
+        working-directory: apps/backend
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 > "$RUNNER_TEMP/admin-laravel.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/admin-laravel.pid"
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8000/admin/login >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/admin-laravel.log"
+          exit 1
+
+      - name: Execute responsive multilingual Admin acceptance
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          EVIDENCE_DIR: ${{ github.workspace }}/admin-ux-evidence
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/admin-ux-acceptance.cjs" <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const { chromium } = require('playwright');
+
+          const out = process.env.EVIDENCE_DIR;
+          fs.mkdirSync(out, { recursive: true });
+
+          const checks = [];
+          const record = (name, pass, detail = '') => {
+            checks.push({ name, pass, detail });
+            if (!pass) throw new Error(`${name}: ${detail}`);
+          };
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ locale: 'en-US' });
+            const page = await context.newPage();
+
+            await page.goto('http://127.0.0.1:8000/admin/login', { waitUntil: 'networkidle' });
+            await page.locator('input[type="email"]').fill('admin.evidence@example.test');
+            await page.locator('input[type="password"]').fill('ModrikEvidenceAdmin123!');
+            await Promise.all([
+              page.waitForURL(/\/admin(?:\?|$)/, { timeout: 15000 }),
+              page.locator('button[type="submit"]').click(),
+            ]);
+
+            const cases = [
+              { name: 'en-1440x900', locale: 'en', width: 1440, height: 900, scale: 1 },
+              { name: 'fr-1280x720', locale: 'fr', width: 1280, height: 720, scale: 1 },
+              { name: 'ar-1024x768', locale: 'ar', width: 1024, height: 768, scale: 1 },
+              { name: 'ar-390x844', locale: 'ar', width: 390, height: 844, scale: 1 },
+              { name: 'en-200pct-1280x720', locale: 'en', width: 1280, height: 720, scale: 2 },
+            ];
+
+            for (const c of cases) {
+              await page.setViewportSize({ width: c.width, height: c.height });
+              await page.goto(`http://127.0.0.1:8000/admin?admin_locale=${c.locale}`, { waitUntil: 'networkidle' });
+              if (c.scale !== 1) {
+                const cdp = await context.newCDPSession(page);
+                await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: c.scale });
+              }
+
+              const dashboard = page.locator('[data-testid="modrik-admin-dashboard"]');
+              record(`${c.name}: dashboard visible`, await dashboard.isVisible(), 'dashboard root missing');
+              const dir = await dashboard.getAttribute('dir');
+              record(`${c.name}: direction`, dir === (c.locale === 'ar' ? 'rtl' : 'ltr'), `dir=${dir}`);
+
+              const geometry = await page.evaluate(() => ({
+                scrollWidth: document.documentElement.scrollWidth,
+                clientWidth: document.documentElement.clientWidth,
+                bodyScrollWidth: document.body.scrollWidth,
+              }));
+              record(
+                `${c.name}: no critical page overflow`,
+                geometry.scrollWidth <= geometry.clientWidth + 3,
+                JSON.stringify(geometry),
+              );
+
+              await page.keyboard.press('Tab');
+              const focused = await page.evaluate(() => {
+                const el = document.activeElement;
+                return !!el && el !== document.body && el !== document.documentElement;
+              });
+              record(`${c.name}: keyboard focus`, focused, 'Tab did not move focus to an interactive element');
+
+              await page.screenshot({ path: path.join(out, `${c.name}.png`), fullPage: true });
+            }
+
+            fs.writeFileSync(
+              path.join(out, 'acceptance.json'),
+              JSON.stringify({
+                schema_version: 'modrik.admin-ux-browser-acceptance.v1',
+                expected_sha: process.env.EXPECTED_SHA,
+                status: 'PASS',
+                checks,
+              }, null, 2) + '\n',
+            );
+
+            await browser.close();
+          })().catch(async (error) => {
+            fs.writeFileSync(
+              path.join(out, 'acceptance.json'),
+              JSON.stringify({
+                schema_version: 'modrik.admin-ux-browser-acceptance.v1',
+                expected_sha: process.env.EXPECTED_SHA,
+                status: 'FAIL',
+                checks,
+                error: String(error && error.stack || error),
+              }, null, 2) + '\n',
+            );
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          node "$RUNNER_TEMP/admin-ux-acceptance.cjs"
+
+      - name: Upload Admin UX visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-ux-browser-evidence-${{ github.event.pull_request.number }}
+          path: admin-ux-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Laravel log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-ux-laravel-log-${{ github.event.pull_request.number }}
+          path: ${{ runner.temp }}/admin-laravel.log
+          if-no-files-found: warn
+          retention-days: 14
