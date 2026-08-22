@@ -43,11 +43,12 @@ Immutable historical facts known at this checkpoint include:
 - PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb` — capability-matrix reconciliation after #198.
 - PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c` — supported Content Operations surfaces, ingestion/retry, exception triage, provenance/traceability, version/coverage visibility and truthful deferred classifications.
 - PR #211 / Issue #210 merged at `986a696e99fc087c68b9298f403e76ece6627ed5` — Admin sidebar readability/contrast.
+- PR #213 / Issue #212 merged at `b96e5e638f308c90b4781ad787893c31663bbcbf` — post-Settings/Content project-control reconciliation preserving non-self-staling semantics.
 - PR #199 / Issue #200 is included in the reconciled baseline `c82604443c5d6b3100e8df03f8fb37f089fc2853` — human-readable Admin lookups and guided publication UX.
 
 ## Current execution policy
 
-- #183 remains open at the parent level. PR #207 is exact-head green Stage A visibility; PR #229 is active Stage B and must preserve Backend-authoritative seed, selected set/order, resume order, immutable attempt snapshots and scoring.
+- #183 remains open at the parent level. PR #207 is exact-head green Stage A visibility. PR #229 Stage B is also exact-head green at `8756b4acb43aa89fbc91ae947157165ad0032ada` and remains stacked on #207 until Stage A integrates; no Assessment Admin surface may expose seed, selected set/order, resume order, immutable attempt snapshots or scoring as operator authority.
 - #184 remains open at the parent level. PR #218 (Accounts/RBAC/Sessions/Operations) and PR #225 (Public/Legal/Help status) are exact-head green integration candidates; unsupported authority remains read-only/deferred instead of fabricated.
 - PR #221 is the exact-head green shared Student-entry browser-harness repair. PR #209 must be reconciled/re-run after that shared QA fix integrates rather than duplicating it in product code.
 - Real-content academic values, rights evidence and final legal facts remain owner-controlled inputs and must not be fabricated.
