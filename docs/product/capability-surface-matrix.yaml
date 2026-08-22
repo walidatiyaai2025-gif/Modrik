@@ -28,6 +28,12 @@ capabilities:
     surface: AcademicCatalogue
     status: present
     notes: Admin-only create/list/search/filter/edit for unreferenced tracks, preparation-request scope prefill, immutable audit history, and conservative history locking for referenced tracks. Values must be owner-approved; no board/syllabus/version values are fabricated.
+  - id: student.academic.track_change
+    area: academic
+    classification: user_facing
+    surface: Student Web / Academic Track workspace / AcademicTrackSelector
+    status: present_on_issue_208_branch
+    notes: A first-class Student navigation destination shows the current context and Backend-authorized track catalogue, then reuses the existing explicit activate/reset confirmation flow. Prior attempts/progress remain archived, no mastery or answers migrate across tracks, and track IDs are never typed by the learner.
   - id: admin.system.settings
     area: operations
     classification: admin_manageable
