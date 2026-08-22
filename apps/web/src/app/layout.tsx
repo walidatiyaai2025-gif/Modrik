@@ -7,6 +7,7 @@ import "./globals.css";
 import "./learning-responsive-closeout.css";
 import "./auth.css";
 import "./landing.css";
+import "./release-badge.css";
 
 export const metadata: Metadata = {
   title: "MODRIK | مُدرك",
@@ -20,10 +21,22 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   await headers();
 
   const inspector = resolveRuntimeInspectorConfig();
+  const release = process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA?.trim();
+  const shortRelease = release ? release.slice(0, 12) : null;
 
   return (
     <html lang="en" dir="ltr" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
+        {release && shortRelease ? (
+          <div
+            className="modrik-release-badge"
+            data-testid="modrik-web-release-badge"
+            title={`MODRIK deployed release: ${release}`}
+            aria-label={`MODRIK build ${shortRelease}`}
+          >
+            Build {shortRelease}
+          </div>
+        ) : null}
         {children}
         <RuntimeInspector {...inspector} />
       </body>
