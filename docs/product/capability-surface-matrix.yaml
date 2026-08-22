@@ -26,19 +26,26 @@ capabilities:
     area: academic
     classification: admin_manageable
     surface: AcademicCatalogue
-    status: present_on_issue_180_branch
+    status: present
     notes: Admin-only create/list/search/filter/edit for unreferenced tracks, preparation-request scope prefill, immutable audit history, and conservative history locking for referenced tracks. Values must be owner-approved; no board/syllabus/version values are fabricated.
+  - id: admin.system.settings
+    area: operations
+    classification: admin_manageable
+    surface: SystemSettingsRegistry
+    status: present_on_issue_181_branch
+    notes: Typed non-secret settings with environment scope, optimistic locking, immutable audit history and restore-as-new-version semantics. Secret keys are outside the registry allowlist.
   - id: admin.auth.providers
     area: auth
     classification: admin_manageable
-    surface: null
-    status: missing
-    notes: Must expose safe enablement/status/config references for Email/Password, Google and Apple; no plaintext secrets.
+    surface: AuthenticationProviders / SystemSettingsRegistry
+    status: present_on_issue_181_branch
+    notes: Email/Password, Google and Apple expose enablement, safe references and Set/Not Set secret state. Google/Apple remain fail-closed while the repository verifier adapter is pending; plaintext secrets are never returned.
   - id: admin.notifications.settings
     area: notifications
     classification: admin_manageable
-    surface: null
-    status: missing
+    surface: NotificationSettings / SystemSettingsRegistry
+    status: present_on_issue_181_branch
+    notes: Global enablement and quiet-hours policy are versioned/audited. Implemented verification/recovery email channels are distinguished from still-audited Student Notification Center scope.
   - id: student.notifications.center
     area: notifications
     classification: user_facing
@@ -47,19 +54,21 @@ capabilities:
   - id: admin.firebase.integration
     area: integrations
     classification: admin_manageable
-    surface: null
-    status: missing
-    notes: Environment/status/test push/Remote Config sync/health only; secrets external.
+    surface: FirebaseRuntimeIntegrations / SystemSettingsRegistry
+    status: present_on_issue_181_branch
+    notes: Safe project/app references, credential Set/Not Set state, FCM/Remote Config enablement and a controlled test-target boundary are surfaced. No network send is claimed while the Firebase transport adapter is pending. Firebase remains auxiliary and secrets stay external.
   - id: admin.ads.control
     area: safety
     classification: admin_manageable
-    surface: null
-    status: missing
+    surface: AdvertisingSafetyControls / SystemSettingsRegistry
+    status: present_on_issue_181_branch
+    notes: The operator switch is an additional kill switch only. It can make the Backend policy more restrictive but can never weaken immutable no-ad, age, consent, placement or policy gates.
   - id: safety.ads.no_ad_zones
     area: safety
     classification: internal_non_editable
-    surface: policy/tests; may be displayed read-only
-    status: present_contract
+    surface: AdvertisingSafetyControls read-only / Backend policy tests
+    status: present
+    notes: Account, assessment, help, lesson, onboarding and progress remain immutable no-ad zones with no Admin edit control.
   - id: assessment.authoritative_randomization
     area: assessment
     classification: internal_non_editable
