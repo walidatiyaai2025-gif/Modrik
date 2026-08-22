@@ -9,9 +9,9 @@ const expectedSha = process.env.MODRIK_PORTAL_EXPECTED_SHA || 'unknown';
 fs.mkdirSync(evidenceDir, { recursive: true });
 
 const copy = {
-  en: { studentCta: 'Student sign in', signInTitle: 'Welcome back' },
-  fr: { studentCta: 'Connexion élève', signInTitle: 'Bon retour' },
-  ar: { studentCta: 'دخول الطالب', signInTitle: 'مرحبًا بعودتك' },
+  en: { studentCta: 'Student sign in', signInTitle: 'Sign in' },
+  fr: { studentCta: 'Connexion élève', signInTitle: 'Se connecter' },
+  ar: { studentCta: 'دخول الطالب', signInTitle: 'تسجيل الدخول' },
 };
 
 function problem(status, code, detail) {
