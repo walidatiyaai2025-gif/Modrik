@@ -74,6 +74,22 @@ export type Progress = {
   calculated_at: string;
 };
 
+export type StudentNotificationAction = "study" | "practice" | "progress" | "academic" | "account";
+export type StudentNotification = {
+  id: string;
+  kind: string;
+  title: Record<Locale, string>;
+  body: Record<Locale, string>;
+  action: StudentNotificationAction | null;
+  occurred_at: string;
+  read_at: string | null;
+  is_read: boolean;
+};
+export type StudentNotificationInbox = {
+  items: StudentNotification[];
+  unread_count: number;
+};
+
 type Envelope<T> = { data: T; meta: { request_id: string } };
 type ProblemDetails = {
   status: number;
@@ -90,6 +106,9 @@ type LearningDiagnosticOperation =
   | "learning:academic-context-reset"
   | "learning:lesson"
   | "learning:progress"
+  | "learning:notifications"
+  | "learning:notification-read"
+  | "learning:notifications-read-all"
   | "learning:attempt-start"
   | "learning:attempt"
   | "learning:answer"
@@ -158,6 +177,19 @@ export const learningApi = {
     ),
   lesson: (lessonId: string) => requestData<Lesson>("learning:lesson", `lessons/${lessonId}`),
   progress: () => requestData<Progress[]>("learning:progress", "progress"),
+  notifications: () => requestData<StudentNotificationInbox>("learning:notifications", "notifications"),
+  markNotificationRead: (notificationId: string) =>
+    requestData<StudentNotification>(
+      "learning:notification-read",
+      `notifications/${notificationId}/read`,
+      { method: "PUT" },
+    ),
+  markAllNotificationsRead: () =>
+    requestData<{ updated_count: number; unread_count: number }>(
+      "learning:notifications-read-all",
+      "notifications/read-all",
+      { method: "PUT" },
+    ),
   startAttempt: (quizId: string, idempotencyKey: string) =>
     requestData<Attempt>("learning:attempt-start", "attempts", command("POST", { quiz_id: quizId }, idempotencyKey)),
   attempt: (attemptId: string) => requestData<Attempt>("learning:attempt", `attempts/${attemptId}`),

@@ -31,6 +31,8 @@ tags:
     description: Resumable backend-authoritative synchronization of offline learning mutations.
   - name: Progress
     description: Recomputable learning progress projections.
+  - name: Notifications
+    description: Backend-owned durable in-app notification inbox and read state. External push transport is auxiliary and is not delivery authority.
   - name: Preparation
     description: Admin-only deterministic content preparation and validation.
   - name: Safety
@@ -556,6 +558,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProgressResponse'
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/notifications:
+    get:
+      summary: List the authenticated account's notifications
+      operationId: listStudentNotifications
+      tags: [Notifications]
+      description: Returns only notifications owned by the authenticated account. The durable in-app inbox remains authoritative; this contract does not claim external push delivery.
+      responses:
+        '200':
+          description: Account-owned notifications and Backend-authoritative unread count, newest first.
+          headers:
+            Cache-Control:
+              description: Student notification payloads are account-private and must never be shared or reused.
+              schema: {type: string, const: 'no-store, private'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentNotificationInboxResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/notifications/read-all:
+    put:
+      summary: Mark every notification owned by the authenticated account as read
+      operationId: markAllStudentNotificationsRead
+      tags: [Notifications]
+      description: Idempotently updates unread notifications for only the authenticated account. No external delivery state is mutated or inferred.
+      responses:
+        '200':
+          description: Number of rows newly marked read and the resulting zero unread count.
+          headers:
+            Cache-Control:
+              description: Notification read state is account-private and must never be shared or reused.
+              schema: {type: string, const: 'no-store, private'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentNotificationReadAllResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+  /v1/notifications/{notificationId}/read:
+    parameters:
+      - $ref: '#/components/parameters/NotificationId'
+    put:
+      summary: Mark one owned notification as read
+      operationId: markStudentNotificationRead
+      tags: [Notifications]
+      description: Idempotently marks one notification owned by the authenticated account. Missing, malformed, or foreign notification identifiers fail closed as not found so account ownership is never disclosed.
+      responses:
+        '200':
+          description: Backend-authoritative notification with read state applied.
+          headers:
+            Cache-Control:
+              description: Notification payloads and read state are account-private and must never be shared or reused.
+              schema: {type: string, const: 'no-store, private'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentNotificationResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
   /v1/advertising/decisions/{placementCode}:
     parameters:
       - name: placementCode
@@ -689,6 +748,11 @@ components:
       schema: {$ref: '#/components/schemas/Ulid'}
     AttemptQuestionId:
       name: attemptQuestionId
+      in: path
+      required: true
+      schema: {$ref: '#/components/schemas/Ulid'}
+    NotificationId:
+      name: notificationId
       in: path
       required: true
       schema: {$ref: '#/components/schemas/Ulid'}
@@ -1186,6 +1250,70 @@ components:
               mastery: {type: number, minimum: 0, maximum: 1}
               source_version: {type: integer, minimum: 1}
               calculated_at: {type: string, format: date-time}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    NotificationLocalizedText:
+      type: object
+      additionalProperties: false
+      required: [ar, en, fr]
+      properties:
+        ar: {type: string}
+        en: {type: string}
+        fr: {type: string}
+    StudentNotification:
+      type: object
+      additionalProperties: false
+      required: [id, kind, title, body, action, occurred_at, read_at, is_read]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        kind: {type: string, maxLength: 48}
+        title: {$ref: '#/components/schemas/NotificationLocalizedText'}
+        body: {$ref: '#/components/schemas/NotificationLocalizedText'}
+        action:
+          oneOf:
+            - type: 'null'
+            - type: string
+              enum: [study, practice, progress, academic, account]
+        occurred_at: {type: string}
+        read_at:
+          oneOf:
+            - type: 'null'
+            - type: string
+        is_read: {type: boolean}
+    StudentNotificationInboxResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [items, unread_count]
+          properties:
+            items:
+              type: array
+              maxItems: 100
+              items: {$ref: '#/components/schemas/StudentNotification'}
+            unread_count: {type: integer, minimum: 0}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    StudentNotificationResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data: {$ref: '#/components/schemas/StudentNotification'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    StudentNotificationReadAllResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [updated_count, unread_count]
+          properties:
+            updated_count: {type: integer, minimum: 0}
+            unread_count: {type: integer, const: 0}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     AdvertisingDecisionResponse:
       type: object
