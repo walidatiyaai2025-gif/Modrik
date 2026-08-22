@@ -19,7 +19,7 @@ const fixtureLessonId = "01J00000000000000000000003";
 const activeAttemptStorageKey = "modrik.student.active-attempt";
 
 type ViewState = "loading" | "ready" | "offline" | "error" | "permission";
-type WorkspaceView = "home" | "study" | "practice" | "progress";
+type WorkspaceView = "home" | "study" | "practice" | "progress" | "academic";
 
 function commandKey(scope: string) {
   const storageKey = `modrik.fixture.command.${scope}`;
@@ -184,7 +184,7 @@ export default function LearningWorkspace() {
     setResult(null);
     setLesson(null);
     setProgress([]);
-    setView("home");
+    setView("academic");
     await load();
   }
 
@@ -303,6 +303,7 @@ export default function LearningWorkspace() {
     study: labels.studyTitle,
     practice: labels.practiceTitle,
     progress: labels.progressTitle,
+    academic: labels.academicTrackTitle,
   }[view];
 
   const navItems: Array<{ id: WorkspaceView; label: string; marker: string }> = [
@@ -310,6 +311,7 @@ export default function LearningWorkspace() {
     { id: "study", label: labels.study, marker: "02" },
     { id: "practice", label: labels.practice, marker: "03" },
     { id: "progress", label: labels.progress, marker: "04" },
+    { id: "academic", label: labels.academicTrack, marker: "05" },
   ];
 
   return (
@@ -460,12 +462,10 @@ export default function LearningWorkspace() {
                         ) : (
                           <p>{labels.onboarding}</p>
                         )}
-                        <AcademicTrackSelector
-                          context={context}
-                          locale={locale}
-                          offline={state === "offline"}
-                          onTransitioned={handleAcademicTransition}
-                        />
+                        <p className="muted-copy">{labels.manageAcademicTrackHelp}</p>
+                        <button type="button" className="secondary-button" onClick={() => setView("academic")}>
+                          {labels.manageAcademicTrack}
+                        </button>
                       </section>
 
                       <section className="next-actions" aria-label={labels.navigation}>
@@ -483,6 +483,11 @@ export default function LearningWorkspace() {
                           <span className="action-index" aria-hidden="true">04</span>
                           <strong>{labels.progress}</strong>
                           <small>{labels.openProgress}</small>
+                        </button>
+                        <button type="button" onClick={() => setView("academic")}>
+                          <span className="action-index" aria-hidden="true">05</span>
+                          <strong>{labels.academicTrack}</strong>
+                          <small>{labels.openAcademicTrack}</small>
                         </button>
                       </section>
                     </div>
@@ -691,6 +696,57 @@ export default function LearningWorkspace() {
                         })}
                       </div>
                     )}
+                  </section>
+                )}
+
+                {view === "academic" && (
+                  <section className="progress-workspace academic-track-workspace" aria-labelledby="academic-track-workspace-heading">
+                    <header className="workspace-section-header">
+                      <div>
+                        <p className="eyebrow">{labels.academicTrack}</p>
+                        <h2 id="academic-track-workspace-heading">{labels.academicTrackTitle}</h2>
+                        <p>{labels.academicTrackSubtitle}</p>
+                      </div>
+                      <span className="status-pill">{context?.state === "active" ? labels.active : labels.onboarding}</span>
+                    </header>
+
+                    <div className="dashboard-columns">
+                      <section className="context-panel" aria-labelledby="current-academic-context-heading">
+                        <div className="section-heading-row">
+                          <div>
+                            <p className="eyebrow">{labels.currentAcademicTrack}</p>
+                            <h3 id="current-academic-context-heading">
+                              {context?.state === "active" ? labels.active : labels.onboarding}
+                            </h3>
+                          </div>
+                          <span className="status-pill">{context?.state === "active" ? labels.active : labels.onboarding}</span>
+                        </div>
+                        {context?.state === "active" ? (
+                          <dl className="context-definition">
+                            <div>
+                              <dt>{labels.yearLevel}</dt>
+                              <dd>{context.year_level}</dd>
+                            </div>
+                          </dl>
+                        ) : (
+                          <p>{labels.onboarding}</p>
+                        )}
+                        <div className="reset-consequence">
+                          <h3>{labels.trackChangeSafetyTitle}</h3>
+                          <p>{labels.trackChangeSafetyBody}</p>
+                          <p>{labels.contextLocked}</p>
+                        </div>
+                      </section>
+
+                      <section className="context-panel" aria-label={labels.manageAcademicTrack}>
+                        <AcademicTrackSelector
+                          context={context}
+                          locale={locale}
+                          offline={state === "offline"}
+                          onTransitioned={handleAcademicTransition}
+                        />
+                      </section>
+                    </div>
                   </section>
                 )}
               </>
