@@ -38,6 +38,19 @@ If a conflict is found, block only the affected work and record it. Never silent
 - Exam Rating, Learning XP and Community Reputation are separate.
 - No cash prizes, betting, paid entry or loot-box competition mechanics.
 
+## Owner-authorized capability/settings surface rule
+
+Owner directive 2026-08-22 establishes `GOV-SURFACE-001` for the whole project. Read `docs/product/CAPABILITY_SURFACE_GOVERNANCE.md` and `docs/product/capability-surface-matrix.yaml`.
+
+- Every implemented/configurable capability must have a discoverable Admin/User/Operational surface, or be explicitly classified as internal/non-editable/deferred.
+- Admin-manageable features are incomplete if operators must know a hidden route, API endpoint, table name or internal ID to find/manage them.
+- Do not make secrets, assessment authority, privacy/security invariants or immutable safety rules editable merely to satisfy UI parity.
+- Settings/integrations use safe status/reference display for secrets, RBAC, confirmation, audit/versioning where applicable, and AR/EN/FR + RTL/LTR UI where applicable.
+- P1/Future/activation-gated features remain disabled/deferred until authorized.
+- Every feature/settings change updates the capability-to-surface matrix and regression coverage.
+
+Master Plan areas explicitly subject to this rule include Academic Catalogue, Content Operations, Exam/Question administration, Accounts/RBAC/Sessions, Authentication Providers, Notifications, Firebase/Runtime Integrations, Ads/Safety, optional AI providers, Public/Legal/Help content, and System/Runtime health/settings.
+
 ## Repository bootstrap required before broad coding
 
 Create and maintain:
