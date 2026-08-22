@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('kind', 48);
             $table->json('title');
             $table->json('body');
-            $table->string('action_path', 255)->nullable();
+            $table->string('action', 32)->nullable();
             $table->timestamp('occurred_at');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
