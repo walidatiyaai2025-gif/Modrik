@@ -82,7 +82,7 @@ final class AcademicCatalogue extends Page
     public function mount(): void
     {
         $requestId = request()->query('request');
-        if (! is_string($requestId) || $requestId === '') {
+        if (is_string($requestId) === false || $requestId === '') {
             return;
         }
 
