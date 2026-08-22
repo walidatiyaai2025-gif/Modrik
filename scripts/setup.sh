@@ -22,6 +22,12 @@ if [[ ! -f apps/backend/.env ]]; then
 fi
 php apps/backend/artisan key:generate --force
 
+# The Filament panel uses a custom Vite theme. A clean checkout is not runtime-ready
+# until the Admin assets are compiled after Composer has installed Filament's CSS source.
+npm --prefix apps/backend install --no-audit --no-fund
+npm --prefix apps/backend run build
+grep -q 'resources/css/filament/admin/theme.css' apps/backend/public/build/manifest.json
+
 npm ci
 npm --prefix apps/web ci
 if [[ ! -f apps/web/.env.local ]]; then

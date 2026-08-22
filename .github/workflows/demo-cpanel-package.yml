@@ -51,6 +51,18 @@ jobs:
         working-directory: apps/backend
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
 
+      - name: Install Backend Admin asset dependencies
+        working-directory: apps/backend
+        run: npm install --no-audit --no-fund
+
+      - name: Build Backend Admin assets
+        working-directory: apps/backend
+        run: npm run build
+
+      - name: Verify Admin theme entered Vite manifest
+        working-directory: apps/backend
+        run: grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
+
       - name: Assemble cPanel Demo ZIP
         run: bash scripts/package-demo-cpanel.sh
 
@@ -62,6 +74,8 @@ jobs:
           node --check .runtime/demo-cpanel/web/startup.cjs
           test -f .runtime/demo-cpanel/backend/public/index.php
           test -f .runtime/demo-cpanel/backend/vendor/autoload.php
+          test -f .runtime/demo-cpanel/backend/public/build/manifest.json
+          grep -q 'resources/css/filament/admin/theme.css' .runtime/demo-cpanel/backend/public/build/manifest.json
           test -f .runtime/demo-cpanel/backend/resources/brand/tokens.json
           test -f .runtime/demo-cpanel/backend/resources/fixtures/content-pack/v1/valid/content-pack.json
           test -f .runtime/demo-cpanel/PORTALS.md
@@ -79,6 +93,7 @@ jobs:
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/PORTALS.md'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/web/startup.cjs'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/public/index.php'
+          unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/public/build/manifest.json'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/resources/brand/tokens.json'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/resources/fixtures/content-pack/v1/valid/content-pack.json'
           if unzip -Z1 "$ZIP_FILE" | grep -E '(^|/)\.env$'; then

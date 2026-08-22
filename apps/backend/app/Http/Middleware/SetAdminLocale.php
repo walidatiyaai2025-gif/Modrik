@@ -15,6 +15,11 @@ final class SetAdminLocale
     /** @param Closure(Request): Response $next */
     public function handle(Request $request, Closure $next): Response
     {
+        $requestedLocale = $request->query('admin_locale');
+        if (is_string($requestedLocale) && in_array($requestedLocale, self::SUPPORTED, true)) {
+            $request->session()->put('admin_locale', $requestedLocale);
+        }
+
         $sessionLocale = $request->session()->get('admin_locale');
         $user = $request->user();
         $userLocale = $user instanceof User ? (string) $user->locale : '';
@@ -22,6 +27,7 @@ final class SetAdminLocale
         if (! in_array($locale, self::SUPPORTED, true)) {
             $locale = 'en';
         }
+
         App::setLocale($locale);
 
         return $next($request);
