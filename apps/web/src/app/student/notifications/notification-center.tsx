@@ -55,7 +55,7 @@ export default function NotificationCenter() {
   }, [handleError]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => void load());
     const offline = () => setState("offline");
     const online = () => void load();
     window.addEventListener("offline", offline);
