@@ -21,8 +21,9 @@ Earlier shared Admin UX, Academic Catalogue, Settings/Auth Provider/Notification
 
 ## Active implementation queue at this checkpoint
 
-- Issue #235 / PR #236 — Backend-owned Student Notification Center across Backend, Web and Mobile. The PR is still draft and must be evaluated from its live GitHub head. Implemented direction includes durable per-account inbox state, authenticated read/read-all operations, Web and Mobile first-party surfaces, localization/accessibility and fail-closed external-delivery boundaries. OpenAPI/capability/browser/runtime evidence and final exact-head CI remain part of its completion path.
-- No worker should duplicate #235 implementation ownership while that branch is active.
+- Issue #235 / PR #236 — Backend-owned Student Notification Center across Backend, Web and Mobile. Current reviewed head `e2a2411bf8aba040a85b2fffb0e397f5268059bc` is Ready for Review and exact-head green on baseline `94b1930bfe73db27dae212b103dabbf5aaec8658`. Durable per-account inbox state, authenticated read/read-all operations, canonical OpenAPI plus executable contract guards, Web and Mobile first-party surfaces, AR/EN/FR, RTL/LTR, accessibility/reflow, fail-closed external-delivery boundaries, browser/runtime acceptance and Android/iOS native compile proof are complete on that head.
+- No worker should duplicate #235 implementation ownership while PR #236 remains open.
+- PR #230 is the dependency-safe control-state integration predecessor. After PR #230 merges, PR #236 must be reconciled onto the resulting live `main` and rerun its required exact-head governed CI and review-thread checks before final integration.
 - Real-content evaluation work remains gated by owner-approved academic scope and evidence-backed content rights.
 
 ## CI / integration evidence
@@ -32,6 +33,8 @@ Recent exact-head integration evidence includes:
 - PR #234: Bootstrap #1008 green, including live capability-matrix validation, SQLite/MariaDB, Web, Mobile/signing, normal/strict Pilot and governed finalizer.
 - PR #232: Bootstrap #1016, Admin Browser #128 and Demo Package #218 green; the combined contract chain preserves capability governance and Demo release-smoke regressions.
 - PR #239: Bootstrap #1024 and Content Operations Browser Acceptance #80 green on reviewed head `24dcf5e0c6eea8aa2eec1ef4a46d267cd9393ae1`; merged to `94b1930bfe73db27dae212b103dabbf5aaec8658`.
+- PR #230: Bootstrap #1034 green on control checkpoint head `0da69271a6d20cd63fce40cc87a4cbcf21e07e27` before the current control-text reconciliation.
+- PR #236 current implementation head `e2a2411bf8aba040a85b2fffb0e397f5268059bc`: Bootstrap #1036, Notification Center Browser #8, Boot Security #77, Runtime #93, Learning Responsive #39, Mobile Native Compile #89, Content Operations Browser #89 and Demo Package #232 green; unresolved review threads 0.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 

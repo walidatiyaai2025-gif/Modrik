@@ -19,16 +19,21 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] #233 / PR #234 — executable capability-surface contract validation in CI.
 - [x] #231 / PR #232 — exact Demo Web/Admin Build SHA release smoke hardening.
 - [x] PR #239 — Windows client explicitly classified `deferred_disabled`; no Windows implementation or activation added.
+- [x] #205 — independent Admin lookup/authority preflight published and support lane closed.
+- [x] #194 — final shared Admin UX consumption review for #181–#184 published and support lane closed.
 
 ## ACTIVE P0 implementation
 
-- [ ] #235 / PR #236 — Student Notification Center.
-  - Backend-owned durable per-account inbox and authenticated read/read-all semantics.
-  - Web + Mobile first-party surfaces using the same Backend authority.
-  - AR/EN/FR, RTL/LTR, accessibility and loading/empty/offline/error/permission/retry states.
-  - Keep raw FCM tokens, Admin targeting, marketing policy and unsupported external delivery out of scope.
-  - Complete OpenAPI and capability-matrix truth, governed browser/runtime evidence and exact-head full CI before integration.
-  - Do not duplicate implementation ownership while the active PR is in progress.
+- [ ] #235 / PR #236 — Student Notification Center; implementation is complete and green on current reviewed baseline, final integration remains pending.
+  - [x] Backend-owned durable per-account inbox and authenticated list/read/read-all semantics.
+  - [x] Web + Mobile first-party surfaces using the same Backend authority.
+  - [x] AR/EN/FR, RTL/LTR, accessibility and loading/empty/offline/error/permission/retry/read-unread states.
+  - [x] Raw FCM/APNs tokens, Admin targeting, marketing policy and unsupported external delivery remain outside authority and are not exposed.
+  - [x] Canonical OpenAPI and executable Notification Center contract guards.
+  - [x] Exact-head Bootstrap #1036, Notification Center Browser #8, Boot Security #77, Runtime #93, Learning Responsive #39, Mobile Native Compile #89, Content Operations Browser #89 and Demo Package #232 green on `e2a2411bf8aba040a85b2fffb0e397f5268059bc`; unresolved review threads 0.
+  - [ ] Integration Captain merges PR #230 first because that control checkpoint intentionally records #235 / PR #236 as active.
+  - [ ] After PR #230 changes live `main`, reconcile PR #236 onto that exact baseline and rerun all required exact-head governed CI/review-thread checks before final merge.
+  - [ ] Close #235 only after PR #236 is actually integrated; do not convert green candidate evidence into a false merged-state claim.
 
 ## Control plane / release
 
@@ -36,6 +41,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] Demo packaging defect fixed; Backend Admin assets are deterministically built/verified before packaging.
 - [x] Successful authorized Demo deployment evidence recorded for run `32563427725`, attempt 2, deployed SHA `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 - [x] Next-deployment release smoke now requires exact Web and Admin Build SHA identity via PR #232.
+- [ ] PR #230 — merge the reconciled Demo/control checkpoint before PR #236. Current pre-update head `0da69271a6d20cd63fce40cc87a4cbcf21e07e27` had Bootstrap #1034 green; any new control-text checkpoint must pass fresh exact-head CI before integration.
 - [ ] After an owner-authorized deployment of a newer canonical main, record the new immutable deployed SHA only if API, Web and Admin external smoke all pass. Source-control merge alone must never advance deployment state.
 - [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
 

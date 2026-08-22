@@ -37,7 +37,9 @@ The earlier Admin UX, Academic Catalogue, Settings/Integrations, Content, contro
 
 ## Active implementation at this checkpoint
 
-- Issue #235 / PR #236 — Backend-owned Student Notification Center across Backend/Web/Mobile. It remains an active draft implementation; fetch its live GitHub head and CI before any integration decision. It must preserve per-account isolation, no-store/private responses, Backend authority, AR/EN/FR, RTL/LTR and fail-closed Firebase/FCM boundaries.
+- Issue #235 / PR #236 — Backend-owned Student Notification Center across Backend/Web/Mobile. Current reviewed head `e2a2411bf8aba040a85b2fffb0e397f5268059bc` is Ready for Review and exact-head green on baseline `94b1930bfe73db27dae212b103dabbf5aaec8658`, including SQLite/MariaDB, OpenAPI/contracts, Web/Mobile tests and builds, Notification Center browser acceptance, native Android/iOS compile proof, strict Pilot and governed aggregate CI. It preserves per-account isolation, no-store/private responses, Backend authority, AR/EN/FR, RTL/LTR and fail-closed Firebase/FCM boundaries.
+- No worker should duplicate #235 implementation ownership while PR #236 remains open.
+- Because this control checkpoint intentionally records #235 / PR #236 as active, dependency-safe integration is **PR #230 first, then reconcile PR #236 onto the resulting live `main`, rerun exact-head governed CI/review-thread checks, then integrate PR #236**. If PR #236 lands first instead, PR #230 becomes stale and must be reconciled/revalidated before merge.
 - Real-content evaluation remains gated by owner-approved academic values, deterministic validation and content-rights review.
 - Production activation remains separately gated by external owner/security/legal inputs.
 
@@ -46,6 +48,8 @@ The earlier Admin UX, Academic Catalogue, Settings/Integrations, Content, contro
 All implementation enters `main` through focused PRs. Never merge red CI or weaken tests/security gates to obtain green.
 
 The governed matrix includes control-state validation, capability-surface validation, repository contracts/REQ/AC/schemas, OpenAPI lint, design tokens, Composer validate/audit, Pint, Larastan, full SQLite PHPUnit, MariaDB 10.11 migration/full suite, Web audit/lint/typecheck/tests/build, Flutter analyze/tests/signing gate, Gitleaks, dependency review, Pilot normal/strict acceptance and relevant browser/runtime/demo acceptance.
+
+A green exact-head result is valid for the tested source baseline only. When an earlier integration changes `main`, a later candidate must be reconciled onto that live baseline and rerun its required exact-head gates before final merge.
 
 Release/deployment changes must also preserve the exact Web/Admin Build SHA smoke now integrated by PR #232.
 
