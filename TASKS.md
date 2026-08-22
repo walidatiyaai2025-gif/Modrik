@@ -1,13 +1,13 @@
 # TASKS
 
 Updated: 2026-08-22
-Last reconciled baseline: `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`
+Last reconciled baseline: `c82604443c5d6b3100e8df03f8fb37f089fc2853`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
 ## COMPLETE — prior P0/Pilot engineering baseline
 
-All repository-verifiable prior P0/Pilot implementation reached terminal green before the owner-authorized follow-on capability/settings surface workstream. Historical evidence remains in Git/CI including PR #114, PR #112 and governed run `32493326967`.
+All repository-verifiable prior P0/Pilot implementation reached terminal green before the owner-authorized capability/settings surface workstream. Historical evidence remains in Git/CI including PR #114, PR #112 and governed run `32493326967`.
 
 ## OWNER-AUTHORIZED FOLLOW-ON — `GOV-SURFACE-001`
 
@@ -16,8 +16,8 @@ All repository-verifiable prior P0/Pilot implementation reached terminal green b
 - [x] #180 — Academic Catalogue Management via PR #189; `CONTENT_TARGET_TRACK_MISSING` has supported Admin remediation.
 - [x] #181 — typed/versioned System Settings + Auth Providers + Notifications + Firebase Runtime + Advertising & Safety surfaces via PR #198; capability matrix reconciled by PR #204.
 - [x] #182 — Content Operations management surfaces via PR #201; implemented lifecycle, ingestion/retry, review exceptions, provenance/traceability and version/coverage surfaces are integrated, while unsupported Backend capabilities remain explicitly deferred.
-- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants. PR #207 is an active first visibility stage and requires current-main reconciliation plus Issue-level completion review.
-- [ ] #184 — Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces and explicit deferred classifications.
+- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants. PR #207 is integration-ready Stage A; PR #229 is active Stage B.
+- [ ] #184 — Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces. PR #218 and PR #225 are exact-head green integration candidates; parent closure still requires integrated reconciliation/DoD review.
 
 ### Global DoD for this workstream
 
@@ -30,21 +30,24 @@ All repository-verifiable prior P0/Pilot implementation reached terminal green b
 - [ ] Navigation/capability regressions fail if a required surface disappears without explicit reclassification.
 - [ ] SQLite + MariaDB 10.11 + full governed CI green for each implementation PR.
 
-## Current parallel implementation / remediation queue
+## Current implementation / integration queue
 
-- [ ] #183 / PR #207 — reconcile onto the post-#201 main baseline; review the broader Issue #183 DoD and complete only dependency-safe Assessment Admin gaps without exposing seed/order/resume/scoring authority.
-- [ ] #184 — begin/continue Accounts/RBAC/Sessions + Public/Legal/Help packet without overlapping #183 contracts.
-- [ ] #200 / PR #199 — reconcile non-technical Admin lookup/guided publication UX onto current main; preserve Backend-generated identities and publication authority.
-- [ ] #208 / PR #209 — obtain full exact-head governed CI for the Student academic-track change flow, then reconcile and integrate only if green.
-- [ ] #210 / PR #211 — reconcile focused sidebar contrast fix onto current main and rerun Bootstrap + Admin Browser + Demo Package.
+- [ ] #183 / PR #207 — Stage A is exact-head green and Ready for Integration Captain review; do not close #183 from Stage A alone.
+- [ ] #217 / PR #229 — active stacked Assessment Stage B; complete exact-head governed CI, then retarget/reconcile only after #207 integrates.
+- [ ] #184 / PR #218 — Accounts/RBAC/Sessions/Operations Stage A is exact-head green and Ready for Review.
+- [ ] #224 / PR #225 — Public/Legal/Help operational status is exact-head green and Ready for Review; mutable legal/public management remains contract-blocked rather than fabricated.
+- [ ] #219 / PR #221 — shared Student-entry QA harness repair is exact-head green and Ready for Integration.
+- [ ] #208 / PR #209 — Student academic-track product delta remains blocked only on integration/reconciliation of the shared #221 browser-harness repair before fresh exact-head Web acceptance.
+- [x] #200 / PR #199 — human-readable Admin lookup/guided publication UX integrated in baseline `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+- [x] #210 / PR #211 — Admin sidebar contrast/readability integrated at `986a696e99fc087c68b9298f403e76ece6627ed5`.
 
 ## P0 control-plane / release tasks
 
 - [x] #190 — non-self-staling project-control semantics and CI contradiction guard integrated via PR #197.
 - [x] #152 / PR #153 — fixture-only Demo learner sign-in integrated at `3f0feebcf50721c3cdf646c5a917ca21c8e25374`.
 - [x] cPanel packaging defect from deployment run `32563427725` fixed by PR #196.
-- [ ] Re-run `Deploy MODRIK Demo to cPanel` with `DEPLOY` from a known integrated main SHA, then verify Backend health, Student Web, Admin and visible Build SHA before advancing deployment state.
-- [ ] #212 / PR #213 — reconcile the control checkpoint through integrated #201 and update capability truth after Content Operations integration; merge only after governed control-state/Bootstrap CI is green.
+- [x] Re-run `Deploy MODRIK Demo to cPanel` from an integrated main SHA and verify package, FTPS transfer, protected remote bridge and external Demo/API smoke. Run `32563427725`, attempt 2, succeeded for baseline `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+- [ ] #212 / PR #213 — integrate/reconcile the control checkpoint only if still needed after the newer live-state reconciliation; do not merge stale control prose over current GitHub truth.
 
 ## Real-content evaluation tasks
 
@@ -54,9 +57,11 @@ All repository-verifiable prior P0/Pilot implementation reached terminal green b
 
 ## Demo deployment checkpoint
 
-Last repository-recorded Demo deployment: `41bb2959387bc1a01995d643d6419713d5ba0e56`.
+Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-Deployment run `32563427725` failed before FTPS upload and did not change the deployed build. PR #196 repaired packaging, but a successful new run must be verified before this checkpoint advances.
+Deployment workflow run `32563427725`, attempt 2, completed successfully after PR #196 repaired the Backend Admin Vite packaging boundary. Package assembly, artifact retention, FTPS upload, protected one-shot deployment bridge execution, cleanup and external smoke for `api.demo.modrik.org` and `demo.modrik.org` all passed.
+
+Detailed evidence: `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
 
 ## OWNER / EXTERNAL INPUTS — production activation only
 
