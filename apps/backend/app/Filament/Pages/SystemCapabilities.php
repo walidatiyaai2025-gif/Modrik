@@ -67,6 +67,7 @@ final class SystemCapabilities extends Page
     public function capabilities(): array
     {
         $inspectorEnabled = (bool) config('observability.inspector_enabled', false);
+        $studentUrl = $this->studentWorkspaceUrl();
 
         return [
             [
@@ -92,27 +93,27 @@ final class SystemCapabilities extends Page
             [
                 'module' => 'student_auth_account',
                 'mode' => 'student_surface',
-                'url' => 'https://demo.modrik.org/student',
+                'url' => $studentUrl,
             ],
             [
                 'module' => 'academic_context',
                 'mode' => 'student_surface',
-                'url' => 'https://demo.modrik.org/student',
+                'url' => $studentUrl,
             ],
             [
                 'module' => 'study_lessons',
                 'mode' => 'student_surface',
-                'url' => 'https://demo.modrik.org/student',
+                'url' => $studentUrl,
             ],
             [
                 'module' => 'assessment_practice',
                 'mode' => 'student_surface',
-                'url' => 'https://demo.modrik.org/student',
+                'url' => $studentUrl,
             ],
             [
                 'module' => 'progress',
                 'mode' => 'student_surface',
-                'url' => 'https://demo.modrik.org/student',
+                'url' => $studentUrl,
             ],
             [
                 'module' => 'offline_sync',
@@ -135,5 +136,20 @@ final class SystemCapabilities extends Page
                 'url' => $inspectorEnabled ? RuntimeInspector::getUrl() : null,
             ],
         ];
+    }
+
+    private function studentWorkspaceUrl(): ?string
+    {
+        $host = request()->getHost();
+        if (! str_starts_with($host, 'api.')) {
+            return null;
+        }
+
+        $webHost = substr($host, 4);
+        if ($webHost === '') {
+            return null;
+        }
+
+        return request()->getScheme().'://'.$webHost.'/student';
     }
 }
