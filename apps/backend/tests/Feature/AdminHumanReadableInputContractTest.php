@@ -83,7 +83,8 @@ class AdminHumanReadableInputContractTest extends TestCase
 
         $this->assertStringContainsString('A database-backed reference is never a free-text field', $contract);
         $this->assertStringContainsString('every operator-entered field has nearby guidance', mb_strtolower($contract));
-        $this->assertStringContainsString('Content Preparation flow must select approved Academic Track', $contract);
+        $this->assertStringContainsString('selecting an approved Academic Track is the authority', $contract);
+        $this->assertStringContainsString('Content Preparation flow must derive that scope from the selected track', $contract);
         $this->assertStringContainsString('Register or select the Academic Track', $contract);
         $this->assertStringContainsString('Import canonical draft and publish', $contract);
     }
