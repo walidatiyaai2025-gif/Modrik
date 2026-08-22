@@ -9,6 +9,8 @@
             $state = (string) ($step['state'] ?? 'pending');
             $title = (string) ($step['label'] ?? '');
             $description = (string) ($step['description'] ?? '');
+            $url = is_string($step['url'] ?? null) && $step['url'] !== '' ? $step['url'] : null;
+            $action = (string) ($step['action'] ?? '');
         @endphp
         <div class="modrik-step" data-state="{{ $state }}" role="listitem">
             <div class="flex items-center gap-2">
@@ -19,6 +21,14 @@
             </div>
             @if ($description !== '')
                 <div class="mt-2 text-xs leading-5 text-gray-500">{{ $description }}</div>
+            @endif
+            @if ($url !== null)
+                <a
+                    href="{{ $url }}"
+                    class="mt-3 inline-flex min-h-9 items-center rounded-lg text-xs font-semibold text-primary-700 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+                >
+                    {{ $action !== '' ? $action : $title }}
+                </a>
             @endif
         </div>
     @endforeach

@@ -26,34 +26,55 @@ class AdminAcademicCatalogueTest extends TestCase
         $this->assertFalse(AcademicCatalogue::canAccess());
     }
 
-    public function test_admin_can_register_owner_approved_track_and_audit_reason(): void
+    public function test_admin_registers_readable_track_while_backend_generates_internal_identity(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'locale' => 'en']);
         $this->actingAs($admin);
 
         Livewire::test(AcademicCatalogue::class)
-            ->set('form.code', 'OWNER:TRACK:APPROVED-001')
-            ->set('form.board_reference', 'OWNER-BOARD-REFERENCE')
-            ->set('form.syllabus_version', 'OWNER-SYLLABUS-VERSION')
-            ->set('form.year_level', 'OWNER-YEAR-LEVEL')
-            ->set('form.title_en', 'Owner approved track')
-            ->set('form.title_ar', 'مسار معتمد من المالك')
-            ->set('form.title_fr', 'Parcours approuvé par le propriétaire')
+            ->set('form.board_reference', '__new__')
+            ->set('form.new_board_label', 'Kuwait Ministry of Education')
+            ->set('form.syllabus_version', '__new__')
+            ->set('form.new_syllabus_label', 'National Curriculum 2026')
+            ->set('form.year_level', '__new__')
+            ->set('form.new_year_level_label', 'Grade 6')
+            ->set('form.title_en', 'Kuwait Grade 6 National Curriculum')
+            ->set('form.title_ar', 'المنهج الوطني الكويتي للصف السادس')
+            ->set('form.title_fr', 'Programme national du Koweït — 6e année')
             ->set('form.is_fixture', false)
-            ->set('form.reason', 'Register values supplied and approved by owner.')
+            ->set('form.reason', 'Register approved Grade 6 curriculum for the 2026 academic year.')
             ->call('save')
             ->assertHasNoErrors()
-            ->assertSee('OWNER:TRACK:APPROVED-001');
+            ->assertSee('Kuwait Grade 6 National Curriculum');
 
-        $track = DB::table('academic_tracks')->where('code', 'OWNER:TRACK:APPROVED-001')->first();
+        $track = DB::table('academic_tracks')->first();
         $this->assertNotNull($track);
+        $this->assertStringStartsWith('TRACK:', (string) $track->code);
+        $this->assertStringStartsWith('BOARD:', (string) $track->board_reference);
+        $this->assertStringStartsWith('SYLLABUS:', (string) $track->syllabus_version);
+        $this->assertStringStartsWith('YEAR:', (string) $track->year_level);
         $this->assertFalse((bool) $track->is_fixture);
         $this->assertDatabaseHas('academic_track_audits', [
             'academic_track_id' => $track->id,
             'actor_id' => $admin->getKey(),
             'action' => 'created',
-            'reason' => 'Register values supplied and approved by owner.',
+            'reason' => 'Register approved Grade 6 curriculum for the 2026 academic year.',
         ]);
+    }
+
+    public function test_catalogue_form_does_not_expose_raw_reference_or_code_text_inputs(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/filament/pages/academic-catalogue.blade.php'));
+
+        $this->assertStringNotContainsString('wire:model="form.code"', $view);
+        $this->assertStringNotContainsString('wire:model="form.board_reference" type="text"', $view);
+        $this->assertStringNotContainsString('wire:model="form.syllabus_version" type="text"', $view);
+        $this->assertStringNotContainsString('wire:model="form.year_level" type="text"', $view);
+        $this->assertStringContainsString('wire:model.live="form.board_reference"', $view);
+        $this->assertStringContainsString('wire:model.live="form.syllabus_version"', $view);
+        $this->assertStringContainsString('wire:model.live="form.year_level"', $view);
+        $this->assertStringContainsString('No Track Reference or internal code is required', $view);
+        $this->assertStringContainsString('From academic track to published content', $view);
     }
 
     public function test_referenced_track_is_history_locked_against_admin_edit(): void
@@ -88,9 +109,8 @@ class AdminAcademicCatalogueTest extends TestCase
         $this->actingAs($admin);
         Livewire::test(AcademicCatalogue::class)
             ->assertSee('History locked')
-            ->assertSee('History locked')
             ->call('edit', $trackId)
-            ->assertHasErrors(['form.code']);
+            ->assertHasErrors(['form.title_en']);
 
         $this->assertSame('OWNER-VERSION', DB::table('academic_tracks')->where('id', $trackId)->value('syllabus_version'));
         $this->assertDatabaseCount('academic_track_audits', 0);
