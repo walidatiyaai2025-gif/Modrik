@@ -105,7 +105,6 @@ final class ContentReviewExceptions extends Page
                 'updated_at',
             ])
             ->map(function (object $row): array {
-                /** @var object{operation_state: mixed, rights_review_status: mixed, review_decision: mixed} $row */
                 $classification = $this->classify($row);
 
                 return [
@@ -208,11 +207,8 @@ final class ContentReviewExceptions extends Page
             });
     }
 
-    /**
-     * @param  object{operation_state: mixed, rights_review_status: mixed, review_decision: mixed}  $row
-     * @return array{category: string, severity: string, label: string, next_url: string, next_label: string}
-     */
-    private function classify(object $row): array
+    /** @return array{category: string, severity: string, label: string, next_url: string, next_label: string} */
+    private function classify(\stdClass $row): array
     {
         $operationState = (string) $row->operation_state;
         $rightsStatus = (string) $row->rights_review_status;
