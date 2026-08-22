@@ -18,10 +18,31 @@ fail() {
   exit 1
 }
 
+ensure_backend_admin_assets() {
+  local manifest="$BACKEND_SOURCE/public/build/manifest.json"
+
+  if [[ -f "$manifest" ]] && grep -q 'resources/css/filament/admin/theme.css' "$manifest"; then
+    return
+  fi
+
+  command -v npm >/dev/null 2>&1 || fail "Backend Vite build is missing and npm is unavailable."
+
+  echo "Backend Admin Vite build is missing; building deterministic Admin assets before packaging."
+  (
+    cd "$BACKEND_SOURCE"
+    npm install --no-audit --no-fund
+    npm run build
+  )
+
+  [[ -f "$manifest" ]] || fail "Backend Vite build is still missing after the Admin asset build."
+  grep -q 'resources/css/filament/admin/theme.css' "$manifest" || fail "Backend Vite manifest does not contain the MODRIK Admin theme after build."
+}
+
 [[ -d "$WEB_STANDALONE" ]] || fail "Next standalone output is missing. Run the Web production build first."
 [[ -d "$WEB_STATIC" ]] || fail "Next static output is missing."
 [[ -f "$BACKEND_SOURCE/vendor/autoload.php" ]] || fail "Backend production vendor/autoload.php is missing. Run Composer install first."
 [[ -f "$BACKEND_SOURCE/public/index.php" ]] || fail "Backend public/index.php is missing."
+ensure_backend_admin_assets
 [[ -f "$BACKEND_SOURCE/public/build/manifest.json" ]] || fail "Backend Vite build is missing. Run the Backend Admin asset build first."
 grep -q 'resources/css/filament/admin/theme.css' "$BACKEND_SOURCE/public/build/manifest.json" || fail "Backend Vite manifest does not contain the MODRIK Admin theme."
 [[ -f "$DESIGN_TOKENS_SOURCE" ]] || fail "Canonical design tokens are missing."
