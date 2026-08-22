@@ -62,17 +62,13 @@ class AdminAcademicCatalogueRemediationTest extends TestCase
 
         $this->actingAs($admin);
         $catalogueUrl = AcademicCatalogue::getUrl(['request' => $requestId]);
-        /** @var class-string<ContentReviewQueue> $reviewQueueComponent */
-        $reviewQueueComponent = ContentReviewQueue::class;
-        Livewire::test($reviewQueueComponent)
+        Livewire::test(app(ContentReviewQueue::class))
             ->assertSee('CONTENT_TARGET_TRACK_MISSING')
             ->assertSee(AcademicCatalogue::getNavigationLabel())
             ->assertSeeHtml('href="'.e($catalogueUrl).'"');
 
-        /** @var class-string<AcademicCatalogue> $catalogueComponent */
-        $catalogueComponent = AcademicCatalogue::class;
         Livewire::withQueryParams(['request' => $requestId])
-            ->test($catalogueComponent)
+            ->test(app(AcademicCatalogue::class))
             ->assertSet('sourceRequestId', $requestId)
             ->assertSet('form.code', 'OWNER:TRACK:CATALOGUE-GATE')
             ->assertSet('form.board_reference', 'OWNER-BOARD-CATALOGUE-GATE')
