@@ -9,6 +9,7 @@ import test from "node:test";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const smokeScript = path.join(root, "scripts", "verify-demo-deployment-smoke.sh");
 const workflowPath = path.join(root, ".github", "workflows", "deploy-demo-cpanel.yml");
+const remoteRunnerPath = path.join(root, "deploy", "demo", "deploy-demo-cpanel-remote.sh");
 const release = "0123456789abcdef0123456789abcdef01234567";
 const shortRelease = release.slice(0, 12);
 
@@ -150,4 +151,15 @@ test("cPanel deployment workflow keeps the exact release smoke mandatory", () =>
   assert.match(workflow, /name: External post-deploy release smoke/);
   assert.match(workflow, /RELEASE_SHA: \$\{\{ steps\.release\.outputs\.sha \}\}/);
   assert.match(workflow, /bash scripts\/verify-demo-deployment-smoke\.sh "\$RELEASE_SHA"/);
+});
+
+test("remote cPanel runner validates portal markers before recording deployment success", () => {
+  const runner = readFileSync(remoteRunnerPath, "utf8");
+  assert.match(runner, /modrik-landing-page/);
+  assert.match(runner, /modrik-student-portal-entry/);
+  assert.match(runner, /modrik-student-portal/);
+  assert.match(runner, /Student Portal Auth runtime did not render after copy/);
+  assert.match(runner, /Student Portal served Landing content after copy/);
+  assert.match(runner, /current-release\.txt/);
+  assert.ok(runner.indexOf("modrik-student-portal") < runner.indexOf("current-release.txt"));
 });

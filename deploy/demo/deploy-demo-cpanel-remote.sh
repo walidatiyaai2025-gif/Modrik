@@ -106,13 +106,35 @@ cd "$BACKEND_ROOT"
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 
-log "Verifying public health and portal endpoints"
+log "Verifying public health and portal runtime markers"
 curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
   https://api.demo.modrik.org/up >/dev/null
-curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
-  https://demo.modrik.org/ >/dev/null
-curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
-  https://demo.modrik.org/student >/dev/null
+landing_body="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://demo.modrik.org/)" \
+  || fail "Demo Landing is unreachable after copy."
+student_body="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://demo.modrik.org/student)" \
+  || fail "Student Portal is unreachable after copy."
+
+SHORT_SHA="${RELEASE_SHA:0:12}"
+[[ "$landing_body" == *'data-testid="modrik-web-release-badge"'* ]] \
+  && [[ "$landing_body" == *"MODRIK deployed release: $RELEASE_SHA"* ]] \
+  && [[ "$landing_body" == *"Build $SHORT_SHA"* ]] \
+  || fail "Demo Landing release identity is stale after copy."
+[[ "$landing_body" == *'data-testid="modrik-landing-page"'* ]] \
+  || fail "Demo Landing runtime marker is missing after copy."
+[[ "$landing_body" == *'data-testid="modrik-student-portal-entry"'* ]] \
+  && [[ "$landing_body" == *'href="/student"'* ]] \
+  || fail "Demo Landing Student Portal entry is missing after copy."
+
+[[ "$student_body" == *'data-testid="modrik-web-release-badge"'* ]] \
+  && [[ "$student_body" == *"MODRIK deployed release: $RELEASE_SHA"* ]] \
+  && [[ "$student_body" == *"Build $SHORT_SHA"* ]] \
+  || fail "Student Portal release identity is stale after copy."
+[[ "$student_body" == *'data-testid="modrik-student-portal"'* ]] \
+  || fail "Student Portal route marker is missing after copy."
+[[ "$student_body" == *'class="auth-shell"'* ]] \
+  || fail "Student Portal Auth runtime did not render after copy."
+[[ "$student_body" != *'data-testid="modrik-landing-page"'* ]] \
+  || fail "Student Portal served Landing content after copy."
 
 printf '%s\n' "$RELEASE_SHA" > "$DEPLOY_ROOT/current-release.txt"
 printf '%s\n' "$TIMESTAMP" > "$DEPLOY_ROOT/last-successful-deploy-utc.txt"
