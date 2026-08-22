@@ -1,12 +1,13 @@
 <?php
 
 return [
-    'fixture' => [
-        'enabled' => (bool) env('MODRIK_FIXTURE_MODE', false),
-        'bearer_token' => (string) env('MODRIK_FIXTURE_BEARER_TOKEN', ''),
+    'reference_data' => [
+        'enabled' => (bool) env('MODRIK_REFERENCE_DATA_ENABLED', false),
         'user_id' => '01J00000000000000000000030',
         'lesson_id' => '01J00000000000000000000003',
         'quiz_id' => '01J00000000000000000000020',
+    ],
+    'demo' => [
         'student' => [
             'email' => (string) env('MODRIK_DEMO_STUDENT_EMAIL', ''),
             'password' => (string) env('MODRIK_DEMO_STUDENT_PASSWORD', ''),

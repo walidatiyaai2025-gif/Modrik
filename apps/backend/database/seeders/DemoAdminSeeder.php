@@ -10,8 +10,8 @@ final class DemoAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = trim((string) config('modrik.fixture.admin.email', ''));
-        $password = (string) config('modrik.fixture.admin.password', '');
+        $email = trim((string) config('modrik.demo.admin.email', ''));
+        $password = (string) config('modrik.demo.admin.password', '');
 
         if ($email === '' && $password === '') {
             return;
