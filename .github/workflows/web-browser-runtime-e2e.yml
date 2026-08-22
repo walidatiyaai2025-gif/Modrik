@@ -261,7 +261,7 @@ jobs:
                 node harness/qa/web-e2e/runtime-inspector-acceptance.cjs
               ;;
             full-command)
-              bash harness/qa/web-e2e/run-browser-runtime.sh target
+              env -u NODE_OPTIONS bash harness/qa/web-e2e/run-browser-runtime.sh target
               ;;
             *)
               echo "Unsupported browser runtime task: $TASK" >&2
