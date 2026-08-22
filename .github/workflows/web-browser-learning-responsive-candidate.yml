@@ -15,13 +15,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  learning-responsive-candidate:
-    name: "Issue #125 exact browser acceptance"
+  learning-responsive-regression:
+    name: "Integrated Issue #125 Learning responsive regression"
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
-      - name: "Check out Issue #108 harness"
+      - name: "Check out browser acceptance harness"
         uses: actions/checkout@v4
         with:
           path: harness
@@ -31,59 +31,28 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-          path: target-main
-
-      - name: "Check out Issue #125 candidate branch"
-        uses: actions/checkout@v4
-        with:
-          ref: issue-125-learning-responsive
-          fetch-depth: 0
           path: target-exact
 
-      - name: Resolve exact heads
+      - name: Resolve integrated regression head
         id: candidate
         shell: bash
         run: |
           set -euo pipefail
-          main_sha="$(git -C target-main rev-parse HEAD)"
-          candidate_sha="$(git -C target-exact rev-parse HEAD)"
+          main_sha="$(git -C target-exact rev-parse HEAD)"
           mkdir -p evidence/learning-responsive-candidate
 
           echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
-          echo "candidate_sha=$candidate_sha" >> "$GITHUB_OUTPUT"
+          echo "candidate_sha=$main_sha" >> "$GITHUB_OUTPUT"
 
-          if [ "$candidate_sha" = "$main_sha" ]; then
-            echo "has_candidate=false" >> "$GITHUB_OUTPUT"
-            MAIN_SHA="$main_sha" CANDIDATE_SHA="$candidate_sha" python3 - <<'PY'
+          MAIN_SHA="$main_sha" HARNESS_SHA="$GITHUB_SHA" python3 - <<'PY'
           import json, os, pathlib
           payload = {
-              "schema_version": "modrik.web.learning-responsive-preflight.v1",
-              "status": "BLOCKED_NO_IMPLEMENTATION_DELTA",
-              "main_sha": os.environ["MAIN_SHA"],
-              "candidate_sha": os.environ["CANDIDATE_SHA"],
-              "candidate_branch": "issue-125-learning-responsive",
-          }
-          pathlib.Path("evidence/learning-responsive-candidate/preflight.json").write_text(
-              json.dumps(payload, indent=2) + "\n", encoding="utf-8"
-          )
-          PY
-            exit 0
-          fi
-
-          if ! git -C target-exact merge-base --is-ancestor "$main_sha" "$candidate_sha"; then
-            echo "Issue #125 candidate is behind authoritative main" >&2
-            exit 1
-          fi
-
-          echo "has_candidate=true" >> "$GITHUB_OUTPUT"
-          MAIN_SHA="$main_sha" CANDIDATE_SHA="$candidate_sha" HARNESS_SHA="$GITHUB_SHA" python3 - <<'PY'
-          import json, os, pathlib
-          payload = {
-              "schema_version": "modrik.web.learning-responsive-candidate.v2",
+              "schema_version": "modrik.web.learning-responsive-integrated.v1",
               "status": "READY_FOR_BROWSER_EXECUTION",
               "main_sha": os.environ["MAIN_SHA"],
-              "candidate_sha": os.environ["CANDIDATE_SHA"],
-              "candidate_branch": "issue-125-learning-responsive",
+              "candidate_sha": os.environ["MAIN_SHA"],
+              "candidate": "integrated-main",
+              "source_issue": 125,
               "harness_sha": os.environ["HARNESS_SHA"],
           }
           pathlib.Path("evidence/learning-responsive-candidate/candidate.json").write_text(
@@ -92,27 +61,23 @@ jobs:
           PY
 
       - name: Set up Node.js
-        if: steps.candidate.outputs.has_candidate == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22.23.2
           cache: npm
           cache-dependency-path: target-exact/apps/web/package-lock.json
 
-      - name: Install exact candidate dependencies
-        if: steps.candidate.outputs.has_candidate == 'true'
+      - name: Install integrated candidate dependencies
         working-directory: target-exact/apps/web
         run: npm ci
 
       - name: Cache Chromium runtime
-        if: steps.candidate.outputs.has_candidate == 'true'
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/ms-playwright
           key: playwright-1.62.1-chromium-${{ runner.os }}
 
       - name: Install pinned Playwright runtime
-        if: steps.candidate.outputs.has_candidate == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -120,8 +85,7 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
             node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
 
-      - name: "Build exact Issue #125 candidate"
-        if: steps.candidate.outputs.has_candidate == 'true'
+      - name: Build integrated current-main candidate
         working-directory: target-exact/apps/web
         env:
           OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
@@ -135,29 +99,29 @@ jobs:
           export MODRIK_GIT_SHA="$OBSERVED_SHA"
           npm run build
 
-      - name: "Run exact Issue #125 complete core matrix"
+      - name: Run integrated complete core matrix
         id: exact_core
-        if: steps.candidate.outputs.has_candidate == 'true'
         continue-on-error: true
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          NODE_OPTIONS: --require=${{ github.workspace }}/harness/qa/web-e2e/student-entry-route-adapter.cjs
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
           MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
           MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
-          MODRIK_E2E_CANDIDATE: issue-125-exact-core
+          MODRIK_E2E_CANDIDATE: issue-125-integrated-main-core
           MODRIK_E2E_PROFILE: core
           MODRIK_E2E_EXPECTED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
           MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
-          MODRIK_E2E_SOURCE_SHAS: main=${{ steps.candidate.outputs.main_sha }};issue-125=${{ steps.candidate.outputs.candidate_sha }}
+          MODRIK_E2E_SOURCE_SHAS: main=${{ steps.candidate.outputs.main_sha }}
         shell: bash
         run: node harness/qa/web-e2e/browser-runtime-acceptance.cjs
 
-      - name: "Capture exact Issue #125 sanitized overflow geometry"
+      - name: Capture integrated sanitized overflow geometry
         id: geometry
-        if: steps.candidate.outputs.has_candidate == 'true'
         continue-on-error: true
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          NODE_OPTIONS: --require=${{ github.workspace }}/harness/qa/web-e2e/student-entry-route-adapter.cjs
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
           MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
           MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
@@ -166,40 +130,39 @@ jobs:
         shell: bash
         run: node harness/qa/web-e2e/browser-overflow-diagnostics.cjs
 
-      - name: "Run exact Issue #125 offline/retry regression"
+      - name: Run integrated offline/retry regression
         id: offline
-        if: steps.candidate.outputs.has_candidate == 'true'
         continue-on-error: true
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          NODE_OPTIONS: --require=${{ github.workspace }}/harness/qa/web-e2e/student-entry-route-adapter.cjs
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
           MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
           MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
-          MODRIK_E2E_CANDIDATE: issue-125-exact-learning-offline
+          MODRIK_E2E_CANDIDATE: issue-125-integrated-main-learning-offline
           MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
         shell: bash
         run: node harness/qa/web-e2e/learning-offline-acceptance.cjs
 
-      - name: "Run exact Issue #125 stale-session 401 regression"
+      - name: Run integrated stale-session 401 regression
         id: session_security
-        if: steps.candidate.outputs.has_candidate == 'true'
         continue-on-error: true
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          NODE_OPTIONS: --require=${{ github.workspace }}/harness/qa/web-e2e/student-entry-route-adapter.cjs
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
           MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target-exact
           MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact
-          MODRIK_E2E_CANDIDATE: issue-125-exact-session-security
+          MODRIK_E2E_CANDIDATE: issue-125-integrated-main-session-security
           MODRIK_E2E_PROFILE: session-security
           MODRIK_E2E_EXPECTED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
           MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.candidate_sha }}
         shell: bash
         run: node harness/qa/web-e2e/browser-runtime-acceptance.cjs
 
-      - name: Require exact candidate browser acceptance
-        if: steps.candidate.outputs.has_candidate == 'true'
+      - name: Require integrated Learning responsive acceptance
         env:
-          EXACT_EVIDENCE: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact/issue-125-exact-core.json
+          EXACT_EVIDENCE: ${{ github.workspace }}/evidence/learning-responsive-candidate/exact/issue-125-integrated-main-core.json
           EXACT_CORE_OUTCOME: ${{ steps.exact_core.outcome }}
           GEOMETRY_OUTCOME: ${{ steps.geometry.outcome }}
           OFFLINE_OUTCOME: ${{ steps.offline.outcome }}
@@ -212,7 +175,7 @@ jobs:
 
           exact_path = pathlib.Path(os.environ["EXACT_EVIDENCE"])
           if not exact_path.exists():
-              raise SystemExit("missing exact Issue #125 browser evidence")
+              raise SystemExit("missing integrated Issue #125 browser evidence")
           exact = json.loads(exact_path.read_text(encoding="utf-8"))
 
           learning = [case for case in exact.get("cases", []) if case.get("surface") == "learning"]
@@ -233,7 +196,7 @@ jobs:
           supporting_failures = [
               name
               for name, outcome in (
-                  ("exact core", os.environ["EXACT_CORE_OUTCOME"]),
+                  ("integrated core", os.environ["EXACT_CORE_OUTCOME"]),
                   ("sanitized geometry", os.environ["GEOMETRY_OUTCOME"]),
                   ("offline/retry", os.environ["OFFLINE_OUTCOME"]),
                   ("stale-session 401", os.environ["SESSION_OUTCOME"]),
@@ -242,21 +205,21 @@ jobs:
           ]
 
           if failed_core:
-              print("Exact Issue #125 browser rows remain red:")
+              print("Integrated Issue #125 browser rows remain red:")
               for case in failed_core:
                   print(f"- {case.get('surface')}:{case.get('name')}: {case.get('failure_code', 'UNKNOWN')}")
           if supporting_failures:
-              print("Supporting exact-candidate regressions failed: " + ", ".join(supporting_failures))
+              print("Supporting integrated regressions failed: " + ", ".join(supporting_failures))
 
           if failed_learning or failed_core or supporting_failures:
               raise SystemExit(1)
 
-          print("Issue #125 exact Learning/Study matrix: 6 PASS / 0 FAIL")
-          print(f"Issue #125 exact complete core matrix: {len(exact.get('cases', []))} PASS / 0 FAIL")
+          print("Integrated Issue #125 Learning/Study matrix: 6 PASS / 0 FAIL")
+          print(f"Integrated complete core matrix: {len(exact.get('cases', []))} PASS / 0 FAIL")
           print("Offline/retry + stale-session 401 + sanitized geometry: PASS")
           PY
 
-      - name: Upload sanitized Learning candidate evidence
+      - name: Upload sanitized Learning regression evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:

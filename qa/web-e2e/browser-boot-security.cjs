@@ -12,6 +12,7 @@ const evidenceDir = path.resolve(process.env.MODRIK_E2E_EVIDENCE_DIR || path.joi
 const appPort = Number(process.env.MODRIK_E2E_APP_PORT || 3210);
 const mockPort = Number(process.env.MODRIK_E2E_MOCK_PORT || 4210);
 const baseURL = `http://127.0.0.1:${appPort}`;
+const studentURL = `${baseURL}/student`;
 const expectedSha = process.env.MODRIK_E2E_EXPECTED_SHA || null;
 const harnessSha = process.env.MODRIK_E2E_HARNESS_SHA || null;
 
@@ -167,13 +168,13 @@ async function run() {
   try {
     await listen(mockServer, mockPort);
     child = startNext();
-    await waitForHttp(baseURL);
+    await waitForHttp(studentURL);
 
-    const probeOne = await fetch(baseURL, { redirect: "manual", cache: "no-store" });
+    const probeOne = await fetch(studentURL, { redirect: "manual", cache: "no-store" });
     const cspOne = probeOne.headers.get("content-security-policy") || "";
     const nonceOne = strictProductionNonce(cspOne, "E2E_CSP_PROBE_ONE");
 
-    const probeTwo = await fetch(baseURL, { redirect: "manual", cache: "no-store" });
+    const probeTwo = await fetch(studentURL, { redirect: "manual", cache: "no-store" });
     const cspTwo = probeTwo.headers.get("content-security-policy") || "";
     const nonceTwo = strictProductionNonce(cspTwo, "E2E_CSP_PROBE_TWO");
     check(nonceOne !== nonceTwo, "E2E_CSP_NONCE_NOT_REQUEST_BOUND");
@@ -209,7 +210,7 @@ async function run() {
       });
     });
 
-    const navigation = await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    const navigation = await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     const navigationCsp = navigation?.headers()["content-security-policy"] || "";
     const navigationNonce = strictProductionNonce(navigationCsp, "E2E_CSP_BROWSER_NAVIGATION");
     check(navigationNonce !== nonceOne && navigationNonce !== nonceTwo, "E2E_CSP_BROWSER_NONCE_REUSED");
