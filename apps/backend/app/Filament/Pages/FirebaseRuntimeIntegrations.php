@@ -75,6 +75,7 @@ final class FirebaseRuntimeIntegrations extends Page
                 app()->environment(),
                 $this->targetType,
                 trim($this->targetReference),
+                (string) $user->getAuthIdentifier(),
             );
             $this->lastTestCode = $result['code'];
             $this->resetErrorBag('targetReference');
