@@ -77,8 +77,9 @@ capabilities:
   - id: admin.exam.question_management
     area: assessment
     classification: admin_manageable
-    surface: null
-    status: audit_required
+    surface: AssessmentQuestionBank
+    status: present_on_issue_183_branch
+    notes: Discoverable Admin/Content-Team question-bank and implemented quiz/practice catalogue with academic-track/subject filters, published prompts/options, approved answer contracts, explanations, scores, versions and quiz membership. Attempt seed, student-specific selected set/order, resume order and scoring snapshots remain internal_non_editable.
   - id: admin.content.upload_ingestion
     area: content
     classification: admin_manageable
