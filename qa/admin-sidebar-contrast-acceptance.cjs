@@ -237,22 +237,22 @@ async function requireHoverAndFocus(page, locale) {
       const activeLabels = page.locator('.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label:visible');
       const groups = page.locator('.fi-sidebar .fi-sidebar-group-label:visible');
       const renderedIcons = page.locator([
-        '.fi-sidebar .fi-sidebar-group-button svg:visible',
+        '.fi-sidebar .fi-sidebar-group-btn svg:visible',
+        '.fi-sidebar .fi-sidebar-group-dropdown-trigger-btn svg:visible',
         '.fi-sidebar .fi-sidebar-item-btn svg:visible',
+        '.fi-sidebar .fi-sidebar-group-button svg:visible',
         '.fi-sidebar .fi-sidebar-item-button svg:visible',
-        '.fi-sidebar .fi-sidebar-item-icon:visible',
-        '.fi-sidebar .fi-sidebar-group-icon:visible',
       ].join(', '));
 
       if ((await inactiveLabels.count()) < 2) throw new Error(`${locale}: insufficient inactive sidebar labels`);
       if ((await activeLabels.count()) < 1) throw new Error(`${locale}: no active sidebar label rendered`);
       if ((await groups.count()) < 2) throw new Error(`${locale}: insufficient sidebar group labels`);
-      if ((await renderedIcons.count()) < 1) throw new Error(`${locale}: no rendered sidebar icon available for contrast verification`);
+      if ((await renderedIcons.count()) < 2) throw new Error(`${locale}: insufficient visible sidebar navigation icons`);
 
       await requireContrast(inactiveLabels, 'inactive-item', locale, 4.5);
       await requireContrast(activeLabels, 'active-item', locale, 4.5);
       await requireContrast(groups, 'group', locale, 4.5);
-      await requireContrast(renderedIcons, 'icon', locale, 3);
+      await requireContrast(renderedIcons, 'navigation-icon', locale, 3);
       await requireHoverAndFocus(page, locale);
 
       const dir = await page.locator('html').getAttribute('dir');
