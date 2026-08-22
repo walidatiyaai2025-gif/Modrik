@@ -8,17 +8,22 @@ use RuntimeException;
 
 final class DemoStudentSeeder extends Seeder
 {
+    private const TEST_EMAIL = 'pilot.student@modrik.test';
+
+    private const TEST_PASSWORD = 'ModrikPilotRealSession!2026';
+
     public function run(): void
     {
-        $email = trim((string) config('modrik.fixture.student.email', ''));
-        $password = (string) config('modrik.fixture.student.password', '');
+        $email = trim((string) config('modrik.demo.student.email', ''));
+        $password = (string) config('modrik.demo.student.password', '');
+
+        if ($email === '' && $password === '' && app()->environment('testing')) {
+            $email = self::TEST_EMAIL;
+            $password = self::TEST_PASSWORD;
+        }
 
         if ($email === '' && $password === '') {
             return;
-        }
-
-        if (! (bool) config('modrik.fixture.enabled')) {
-            throw new RuntimeException('Demo student credentials may only be applied while MODRIK fixture mode is enabled.');
         }
 
         if ($email === '' || $password === '') {
@@ -36,7 +41,7 @@ final class DemoStudentSeeder extends Seeder
 
         $learner = User::query()->find(LearningSliceSeeder::USER_ID);
         if (! $learner instanceof User) {
-            throw new RuntimeException('The fixture learner must be seeded before DemoStudentSeeder runs.');
+            throw new RuntimeException('The reference learner must be seeded before DemoStudentSeeder runs.');
         }
 
         $normalizedEmail = mb_strtolower($email);

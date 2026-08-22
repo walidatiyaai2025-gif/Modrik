@@ -9,17 +9,16 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        if ((bool) config('modrik.fixture.enabled')) {
-            $this->call([
-                LearningSliceSeeder::class,
-                DemoStudentSeeder::class,
-                DemoAdminSeeder::class,
-            ]);
+        if (! app()->environment('testing') && ! (bool) config('modrik.reference_data.enabled')) {
+            return;
         }
+
+        $this->call([
+            LearningSliceSeeder::class,
+            DemoStudentSeeder::class,
+            DemoAdminSeeder::class,
+        ]);
     }
 }
