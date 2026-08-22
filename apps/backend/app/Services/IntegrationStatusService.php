@@ -22,14 +22,15 @@ final class IntegrationStatusService
         $google = (array) config('modrik.auth.providers.google', []);
         $apple = (array) config('modrik.auth.providers.apple', []);
         $providerTransportPending = $this->providerVerifier instanceof PendingProviderIdentityVerifier;
+        $emailTransportStatus = $this->emailTransportStatus();
 
         return [
             'email' => [
                 'enabled' => $this->boolSetting('auth.email.enabled', $environment),
                 'verification' => true,
                 'recovery' => true,
-                'transport_status' => 'available',
-                'secret_set' => true,
+                'transport_status' => $emailTransportStatus,
+                'secret_set' => $emailTransportStatus !== 'configuration_incomplete',
             ],
             'google' => [
                 'enabled' => $this->boolSetting('auth.google.enabled', $environment),
@@ -53,13 +54,15 @@ final class IntegrationStatusService
     /** @return array<string, mixed> */
     public function notifications(string $environment): array
     {
+        $emailTransportStatus = $this->emailTransportStatus();
+
         return [
             'enabled' => $this->boolSetting('notifications.enabled', $environment),
             'quiet_hours_enabled' => $this->boolSetting('notifications.quiet_hours.enabled', $environment),
             'quiet_hours_start' => $this->settings->current('notifications.quiet_hours.start', $environment)['value'],
             'quiet_hours_end' => $this->settings->current('notifications.quiet_hours.end', $environment)['value'],
-            'email_verification_channel' => 'available',
-            'password_recovery_channel' => 'available',
+            'email_verification_channel' => $emailTransportStatus,
+            'password_recovery_channel' => $emailTransportStatus,
             'student_notification_center' => 'audit_required',
             'push_channel' => $this->boolSetting('firebase.fcm.enabled', $environment) ? 'enabled_pending_transport' : 'disabled',
         ];
@@ -197,6 +200,27 @@ final class IntegrationStatusService
     private function boolSetting(string $key, string $environment): bool
     {
         return $this->settings->current($key, $environment)['value'] === true;
+    }
+
+    private function emailTransportStatus(): string
+    {
+        $mailer = trim((string) config('mail.default', ''));
+        if ($mailer === '') {
+            return 'configuration_incomplete';
+        }
+
+        $transport = trim((string) config("mail.mailers.{$mailer}.transport", ''));
+        if ($transport === '' && ! in_array($mailer, ['failover', 'roundrobin'], true)) {
+            return 'configuration_incomplete';
+        }
+
+        if (in_array($transport, ['log', 'array'], true)) {
+            return 'test_only';
+        }
+
+        // Configuration alone is not delivery evidence. A future health-check
+        // adapter may promote this status only after a real transport succeeds.
+        return 'configured_not_validated';
     }
 
     private function isSet(string $value): bool
