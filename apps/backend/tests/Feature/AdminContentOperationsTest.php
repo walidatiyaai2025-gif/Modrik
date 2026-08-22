@@ -107,13 +107,14 @@ class AdminContentOperationsTest extends TestCase
             ], JSON_THROW_ON_ERROR),
         ]);
 
-        /** @var ContentReviewExceptions $page */
-        $page = Livewire::test(ContentReviewExceptions::class)
+        $component = Livewire::test(ContentReviewExceptions::class);
+        $component
             ->assertOk()
             ->assertSee('Evidence-backed triage')
-            ->assertSee('CONTENT_TARGET_TRACK_MISSING')
-            ->instance();
+            ->assertSee('CONTENT_TARGET_TRACK_MISSING');
 
+        /** @var ContentReviewExceptions $page */
+        $page = $component->instance();
         $metrics = $page->metrics();
         $this->assertSame(1, $metrics['total_attention']);
         $this->assertSame(1, $metrics['processing_blocked']);
@@ -192,12 +193,14 @@ class AdminContentOperationsTest extends TestCase
             'updated_at' => $now,
         ]);
 
-        /** @var ContentTraceability $page */
-        $page = Livewire::test(ContentTraceability::class)
+        $component = Livewire::test(ContentTraceability::class);
+        $component
             ->assertOk()
             ->assertSee('Traceability chain')
-            ->assertSee('Disabled until Backend contract exists')
-            ->instance();
+            ->assertSee('Disabled until Backend contract exists');
+
+        /** @var ContentTraceability $page */
+        $page = $component->instance();
         $versions = $page->canonicalVersions();
         $this->assertSame(3, $versions['lessons'][0]['version']);
         $this->assertSame(4, $versions['questions'][0]['version']);
