@@ -3,7 +3,7 @@ import NotificationShortcut from "./notification-shortcut";
 
 export default function StudentPortalPage() {
   return (
-    <div data-testid="modrik-student-portal">
+    <div className="student-portal-boundary" data-testid="modrik-student-portal">
       <AuthWorkspace />
       <NotificationShortcut />
     </div>
