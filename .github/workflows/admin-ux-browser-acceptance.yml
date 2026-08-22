@@ -143,6 +143,8 @@ jobs:
             const surfaces = [
               { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
+              { name: 'content-preparation', url: '/admin/content-preparation', selector: '[data-testid="modrik-content-preparation"]' },
+              { name: 'content-rights-review', url: '/admin/content-rights-review', selector: '[data-testid="modrik-content-rights-review"]' },
               { name: 'system-settings', url: '/admin/system-settings', selector: '[data-testid="modrik-system-settings"]' },
               { name: 'authentication-providers', url: '/admin/authentication-providers', selector: '[data-testid="modrik-auth-providers"]' },
               { name: 'notification-settings', url: '/admin/notification-settings', selector: '[data-testid="modrik-notification-settings"]' },
@@ -190,7 +192,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v3',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v4',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'PASS',
                 surfaces: surfaces.map(({ name, url }) => ({ name, url })),
@@ -203,7 +205,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v3',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v4',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'FAIL',
                 checks,

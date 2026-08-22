@@ -74,6 +74,20 @@ Each operator page should present information in this order:
 
 Internal IDs and hashes must not become the primary title of a record when a human/operator concept exists.
 
+## Human-readable input and lookup contract
+
+This rule is mandatory across every Admin workflow.
+
+1. **A database-backed reference is never a free-text field.** If the valid value comes from a persisted lookup, relation or previously registered canonical record, the operator must choose it from a dropdown, searchable combobox or equivalent constrained selector. Raw foreign keys, ULIDs, internal codes and reference strings must not be typed by the operator.
+2. **The selector label is human-readable.** Show a localized name, title, academic scope or recognizable description. The internal ID/reference remains an implementation detail sent by the UI and resolved/validated by the Backend.
+3. **New canonical records are created through a dedicated creation path.** Do not provide an “other reference” text box that bypasses the lookup. When a new value legitimately needs to be registered, the operator enters human-readable business data and the Backend generates the internal identifier/reference.
+4. **Every operator-entered field has nearby guidance.** Place a concise instruction and a concrete example beside or directly below the field. Placeholder-only guidance is insufficient because it disappears after entry.
+5. **Derived values are not re-entered.** If board, syllabus, year, status, tenant, owner, permissions or similar values can be derived from the selected canonical entity, show them read-only and derive them server-side. Do not ask the operator to duplicate them.
+6. **Reject forged/stale references server-side.** A constrained selector is a UX control, not an authorization or integrity boundary. Save/generate actions must resolve the selected persisted record again and fail closed if it no longer exists or is not authorized.
+7. **Technical identity is secondary.** Internal codes may appear only in traceability/debug disclosures when operationally necessary; they must not be required knowledge for normal content or academic management.
+
+For academic workflows specifically, selecting an approved Academic Track is the authority for its internal track reference, board reference, syllabus version and year level. The Content Preparation flow must derive that scope from the selected track rather than ask the operator to type the four values again.
+
 ## Reusable primitives
 
 ### `x-admin.metric-card`
@@ -90,7 +104,7 @@ Explain both the absence and the next safe action where one exists. Avoid blank 
 
 ### `x-admin.step-rail`
 
-Use for lifecycle/status sequences such as Content Preparation. Supported state vocabulary should remain small and semantic (`complete`, `active`, `blocked`, `pending`).
+Use for lifecycle/status sequences such as Content Preparation. Supported state vocabulary should remain small and semantic (`complete`, `active`, `blocked`, `pending`). Steps may link to the next authorized surface when that materially reduces workflow ambiguity.
 
 ### `x-admin.audit-timeline`
 
@@ -136,15 +150,30 @@ The Preparation History reference implementation intentionally moves request ID,
 - Use progressive disclosure for advanced/technical configuration.
 - Required vs optional must be clear.
 - Put validation next to the field.
+- Put instruction + example next to every operator-entered field.
+- Use constrained selectors for persisted lookup/reference values; never raw reference text boxes.
 - Secret material is never displayed as plaintext; show status/reference only.
 - Production-sensitive/destructive actions require confirmation and reason when the governing contract requires audit.
 - Stale edits/conflicts must be explicit.
+
+## Content publication journey
+
+Every surface involved in official content must make the end-to-end order discoverable. The canonical operator journey is:
+
+1. **Register or select the Academic Track** — human-readable structure is entered; internal references are generated/resolved by the Backend.
+2. **Create Content Preparation request** — select the approved track and requested human-facing subjects/content types.
+3. **Generate bundle and return ZIP** — keep the request/bundle binding immutable.
+4. **Validate archive and rights** — schema/binding/semantic checks plus rights evidence where required.
+5. **Run deterministic dry-run and review** — inspect the diff/blockers, then approve, reject or request fix.
+6. **Import canonical draft and publish** — only approved, fresh, validated content may be imported and officially published.
+
+A workflow page must not make operators guess which page comes next. Use a visible step rail, next-safe-action CTA, or both. Business gates remain server-authoritative; the visible journey explains them but never bypasses them.
 
 ## Content lifecycle
 
 Content operations should converge on a visible lifecycle model:
 
-`Prepared → Bundle Generated → ZIP Returned → Validated → Dry-run → Reviewed → Imported → Published / Superseded`
+`Prepared → Bundle Generated → ZIP Returned → Validated → Rights Cleared → Dry-run → Reviewed → Imported → Published / Superseded`
 
 Blockers must explain:
 
@@ -202,6 +231,9 @@ Do not mark an Admin UI task complete if it introduces or retains any of these p
 - stock/demo Filament information widgets;
 - giant unstructured forms;
 - raw IDs/hashes as primary record identity;
+- free-text database references / foreign keys / internal codes;
+- a persisted lookup rendered as a text input;
+- an operator-entered field with no persistent instruction and example;
 - raw JSON as the normal operator experience when a structured view is practical;
 - five or more equal-weight CTAs;
 - inconsistent button/status semantics;
@@ -219,6 +251,8 @@ Before a domain PR claims Admin UI completion, verify:
 
 - navigation group and label are operator-friendly;
 - shared theme/components are used;
+- persisted lookups use constrained human-readable selectors;
+- operator-entered fields include instruction + example;
 - loading/empty/error/permission/degraded states exist where relevant;
 - AR/EN/FR and RTL/LTR remain usable;
 - keyboard/focus/zoom behavior is preserved;
