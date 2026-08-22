@@ -16,6 +16,9 @@ const candidate = process.env.MODRIK_E2E_CANDIDATE || "owned-head";
 const appPort = Number(process.env.MODRIK_E2E_APP_PORT || 3200);
 const mockPort = Number(process.env.MODRIK_E2E_MOCK_PORT || 4200);
 const baseURL = `http://127.0.0.1:${appPort}`;
+const learningWorkspacePath = path.join(appDir, "src", "app", "learning-workspace.tsx");
+const hasAcademicTrackWorkspace = fs.existsSync(learningWorkspacePath)
+  && fs.readFileSync(learningWorkspacePath, "utf8").includes('id: "academic"');
 
 const ids = {
   user: "01J00000000000000000000001",
@@ -446,7 +449,8 @@ async function learningViewport(browser, spec, inspectorExpected) {
     await noKeyboardTrap(page, "E2E_LEARNING_KEYBOARD_TRAP");
 
     const nav = page.locator(".student-nav button");
-    check(await nav.count() === 4, "E2E_LEARNING_NAV_COUNT");
+    const expectedNavCount = hasAcademicTrackWorkspace ? 5 : 4;
+    check(await nav.count() === expectedNavCount, "E2E_LEARNING_NAV_COUNT");
     await nav.nth(1).click();
     await reachable(page.locator(".lesson-reader"), page, "E2E_STUDY_WORKSPACE");
     await noHorizontalOverflow(page, "E2E_STUDY_HORIZONTAL_OVERFLOW");
@@ -465,7 +469,7 @@ async function learningViewport(browser, spec, inspectorExpected) {
     await reachable(page.locator(".progress-workspace"), page, "E2E_PROGRESS_WORKSPACE");
     await noHorizontalOverflow(page, "E2E_PROGRESS_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(0).click();
+    await nav.nth(hasAcademicTrackWorkspace ? 4 : 0).click();
     const selector = page.locator(".academic-track-selector select");
     await selector.waitFor({ state: "visible", timeout: 10000 });
     await reachable(selector, page, "E2E_ACADEMIC_TRACK_SELECT");
@@ -474,7 +478,7 @@ async function learningViewport(browser, spec, inspectorExpected) {
     const confirmAction = page.locator(".academic-track-selector .primary-button");
     check(await confirmAction.isDisabled(), "E2E_ACADEMIC_RESET_INITIAL_DISABLED");
     await selector.selectOption(ids.trackB);
-    const consequence = page.locator(".reset-consequence");
+    const consequence = page.locator(".academic-track-selector .reset-consequence");
     await reachable(consequence, page, "E2E_ACADEMIC_RESET_CONSEQUENCE");
     await consequence.locator("input[type=checkbox]").check();
     await reachable(confirmAction, page, "E2E_ACADEMIC_RESET_CONFIRM");
@@ -533,7 +537,13 @@ async function stateAcceptance(browser) {
     mockState.academicTracksStatus = 503;
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitLearning(page);
-    const catalogueRetry = page.locator(".context-panel .empty-panel button").first();
+    const academicNav = page.locator(".student-nav button");
+    const expectedAcademicNavCount = hasAcademicTrackWorkspace ? 5 : 4;
+    check(await academicNav.count() === expectedAcademicNavCount, "E2E_ACADEMIC_NAV_COUNT");
+    if (hasAcademicTrackWorkspace) await academicNav.nth(4).click();
+    const catalogueRetry = hasAcademicTrackWorkspace
+      ? page.locator(".academic-track-workspace .context-panel .empty-panel button").first()
+      : page.locator(".context-panel .empty-panel button").first();
     await catalogueRetry.waitFor({ state: "visible", timeout: 10000 });
     await reachable(catalogueRetry, page, "E2E_ACADEMIC_CATALOGUE_RETRY");
     mockState.academicTracksStatus = 200;
