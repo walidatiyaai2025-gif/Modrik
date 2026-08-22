@@ -91,6 +91,23 @@ async function setLocale(page, locale) {
   await page.getByRole('button', { name: locale.toUpperCase(), exact: true }).click();
 }
 
+async function setTextScale(page) {
+  await page.evaluate(() => {
+    const rule = 'html { font-size: 200% !important; }';
+    let inserted = false;
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        sheet.insertRule(rule, sheet.cssRules.length);
+        inserted = true;
+        break;
+      } catch {
+        // Continue to the next same-origin stylesheet.
+      }
+    }
+    if (!inserted) document.documentElement.style.fontSize = '200%';
+  });
+}
+
 async function runCase(browser, spec) {
   const context = await browser.newContext({ viewport: { width: spec.width, height: spec.height } });
   const page = await context.newPage();
@@ -101,9 +118,7 @@ async function runCase(browser, spec) {
   await landing.waitFor({ state: 'visible' });
   await setLocale(page, spec.locale);
 
-  if (spec.zoom === 2) {
-    await page.evaluate(() => { document.documentElement.style.zoom = '2'; });
-  }
+  if (spec.zoom === 2) await setTextScale(page);
 
   const expectedDirection = spec.locale === 'ar' ? 'rtl' : 'ltr';
   const landingDirection = await landing.getAttribute('dir');
@@ -150,7 +165,7 @@ async function runCase(browser, spec) {
     status: 'PASS',
     locale: spec.locale,
     viewport: [spec.width, spec.height],
-    zoom: spec.zoom,
+    textScale: spec.zoom,
     landing: { geometry: landingGeometry, focus: landingFocus },
     student: { geometry: studentGeometry, submitTarget },
   };
@@ -172,6 +187,7 @@ async function runCase(browser, spec) {
       schema_version: 'modrik.web-portals-runtime.v1',
       status: 'PASS',
       expected_sha: expectedSha,
+      text_scale_method: 'cssom-root-font-size-200-percent',
       cases: results,
     };
     fs.writeFileSync(path.join(evidenceDir, 'acceptance.json'), `${JSON.stringify(payload, null, 2)}\n`);
@@ -181,6 +197,7 @@ async function runCase(browser, spec) {
       schema_version: 'modrik.web-portals-runtime.v1',
       status: 'FAIL',
       expected_sha: expectedSha,
+      text_scale_method: 'cssom-root-font-size-200-percent',
       cases: results,
       error: error instanceof Error ? error.message : String(error),
     };
