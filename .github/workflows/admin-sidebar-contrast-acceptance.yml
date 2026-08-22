@@ -1,0 +1,123 @@
+name: Admin Sidebar Rendered Contrast
+
+on:
+  pull_request:
+    paths:
+      - "apps/backend/resources/css/filament/admin/**"
+      - "apps/backend/app/Providers/Filament/AdminPanelProvider.php"
+      - "apps/backend/resources/views/filament/**"
+      - "qa/admin-sidebar-contrast-acceptance.cjs"
+      - ".github/workflows/admin-sidebar-contrast-acceptance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-sidebar-contrast-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rendered-contrast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ${{ github.workspace }}/apps/backend/database/admin-sidebar-contrast.sqlite
+      CACHE_STORE: array
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: database
+      MODRIK_FIXTURE_MODE: 'true'
+      MODRIK_FIXTURE_BEARER_TOKEN: modrik-admin-sidebar-contrast-token
+      MODRIK_IDEMPOTENCY_SECRET: modrik-admin-sidebar-contrast-idempotency
+      MODRIK_DEMO_ADMIN_EMAIL: admin.evidence@example.test
+      MODRIK_DEMO_ADMIN_PASSWORD: ModrikEvidenceAdmin123!
+
+    steps:
+      - name: Check out exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Build exact Admin candidate
+        working-directory: apps/backend
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm ci --no-audit --no-fund
+          npm run build
+          grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
+
+      - name: Prepare deterministic Admin fixture
+        working-directory: apps/backend
+        run: |
+          touch database/admin-sidebar-contrast.sqlite
+          php artisan migrate:fresh --seed --force
+
+      - name: Cache Chromium runtime
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: admin-sidebar-playwright-1.62.1-chromium-${{ runner.os }}
+
+      - name: Install pinned Playwright runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
+            node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Start exact Laravel Admin runtime
+        working-directory: apps/backend
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 > "$RUNNER_TEMP/admin-sidebar-laravel.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/admin-sidebar-laravel.pid"
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8000/admin/login >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/admin-sidebar-laravel.log" >&2
+          exit 1
+
+      - name: Enforce rendered WCAG sidebar contrast
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_ADMIN_BASE_URL: http://127.0.0.1:8000
+          MODRIK_ADMIN_CONTRAST_EVIDENCE_DIR: ${{ github.workspace }}/admin-sidebar-contrast-evidence
+          MODRIK_ADMIN_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node qa/admin-sidebar-contrast-acceptance.cjs
+
+      - name: Stop Admin runtime
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/admin-sidebar-laravel.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/admin-sidebar-laravel.pid")" 2>/dev/null || true
+          fi
+
+      - name: Upload sanitized contrast evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-sidebar-contrast-${{ github.event.pull_request.head.sha || github.sha }}
+          path: admin-sidebar-contrast-evidence/sidebar-contrast.json
+          if-no-files-found: error
+          retention-days: 14
