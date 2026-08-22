@@ -37,6 +37,37 @@ final class AdvertisingEligibilityService
         'progress',
     ];
 
+    /** @return array<string, string> */
+    public function placementZones(): array
+    {
+        return self::PLACEMENT_ZONES;
+    }
+
+    /** @return list<string> */
+    public function immutableNoAdZones(): array
+    {
+        return self::IMMUTABLE_NO_AD_ZONES;
+    }
+
+    /**
+     * @return null|array{id: string, version: int, global_enabled: bool, effective_at: string, expires_at: string}
+     */
+    public function policyStatus(): ?array
+    {
+        $policy = $this->latestPolicy();
+        if ($policy === null) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $policy['id'],
+            'version' => (int) $policy['version'],
+            'global_enabled' => (bool) $policy['global_enabled'],
+            'effective_at' => (string) $policy['effective_at'],
+            'expires_at' => (string) $policy['expires_at'],
+        ];
+    }
+
     /**
      * @return array{
      *   placement_code: string,
@@ -97,6 +128,16 @@ final class AdvertisingEligibilityService
         if (in_array($zoneCode, self::IMMUTABLE_NO_AD_ZONES, true)) {
             return [false, 'NO_AD_ZONE'];
         }
+
+        // GOV-SURFACE-001 may make the operator surface more restrictive, never
+        // weaker than the immutable Backend safety policy. The registry switch
+        // therefore acts as an additional kill switch before policy evaluation.
+        $operatorEnabled = app(SystemSettingsRegistry::class)
+            ->current('ads.global.enabled', app()->environment())['value'];
+        if ($operatorEnabled !== true) {
+            return [false, 'GLOBAL_KILL_SWITCH'];
+        }
+
         if ($policy === null) {
             return [false, 'CONFIG_MISSING'];
         }
