@@ -10,6 +10,8 @@ use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\WithFileUploads;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -28,6 +30,16 @@ final class ContentPreparationWizard extends Page
     /** @var list<string> */
     public array $locales = ['ar', 'en', 'fr'];
 
+    /** Canonical persisted selection used by normal operator flows. */
+    public string $academicTrackId = '';
+
+    /** Human-readable subject names entered by the operator. */
+    public string $subjectNames = '';
+
+    /**
+     * Legacy/internal scope mirrors retained only for loading existing requests and fixtures.
+     * They are not operator inputs and are never trusted for a new request payload.
+     */
     public string $trackReference = '';
 
     public string $boardReference = '';
@@ -91,6 +103,73 @@ final class ContentPreparationWizard extends Page
     public function getMaxContentWidth(): Width
     {
         return Width::Full;
+    }
+
+    /** @return array<string, string> */
+    public function academicTrackOptions(): array
+    {
+        $query = DB::table('academic_tracks')->orderBy('created_at');
+        if (! (bool) config('modrik.fixture.enabled')) {
+            $query->where('is_fixture', false);
+        }
+
+        $options = [];
+        foreach ($query->get(['id', 'title', 'board_reference', 'syllabus_version', 'year_level', 'is_fixture']) as $track) {
+            $title = json_decode((string) $track->title, true);
+            $title = is_array($title) ? $title : [];
+            $name = (string) ($title[App::getLocale()] ?? $title['en'] ?? $this->translate('Academic track', 'مسار أكاديمي', 'Parcours académique'));
+            $context = array_values(array_filter([
+                $this->humanizeReference((string) ($track->board_reference ?? '')),
+                $this->humanizeReference((string) ($track->syllabus_version ?? '')),
+                $this->humanizeReference((string) $track->year_level),
+            ], fn (string $value): bool => $value !== $this->translate('Not specified', 'غير محدد', 'Non spécifié')));
+            $label = $name;
+            if ($context !== []) {
+                $label .= ' — '.implode(' · ', $context);
+            }
+            if ((bool) $track->is_fixture) {
+                $label .= ' ['.$this->translate('Fixture', 'اختباري', 'Fixture').']';
+            }
+            $options[(string) $track->id] = $label;
+        }
+
+        return $options;
+    }
+
+    /** @return array{title: string, board: string, syllabus: string, year: string}|null */
+    public function selectedAcademicTrackSummary(): ?array
+    {
+        $track = $this->academicTrackRecord($this->academicTrackId);
+        if ($track === null) {
+            return null;
+        }
+        $title = json_decode((string) $track->title, true);
+        $title = is_array($title) ? $title : [];
+
+        return [
+            'title' => (string) ($title[App::getLocale()] ?? $title['en'] ?? $this->translate('Academic track', 'مسار أكاديمي', 'Parcours académique')),
+            'board' => $this->humanizeReference((string) ($track->board_reference ?? '')),
+            'syllabus' => $this->humanizeReference((string) ($track->syllabus_version ?? '')),
+            'year' => $this->humanizeReference((string) $track->year_level),
+        ];
+    }
+
+    public function updatedAcademicTrackId(): void
+    {
+        $track = $this->academicTrackRecord($this->academicTrackId);
+        if ($track === null) {
+            $this->trackReference = '';
+            $this->boardReference = '';
+            $this->syllabusVersion = '';
+            $this->yearLevel = '';
+
+            return;
+        }
+
+        $this->trackReference = (string) $track->code;
+        $this->boardReference = (string) ($track->board_reference ?? '');
+        $this->syllabusVersion = (string) ($track->syllabus_version ?? '');
+        $this->yearLevel = (string) $track->year_level;
     }
 
     public function nextStep(): void
@@ -311,8 +390,10 @@ final class ContentPreparationWizard extends Page
         $this->boardReference = (string) ($scope['board_reference'] ?? '');
         $this->syllabusVersion = (string) ($scope['syllabus_version'] ?? '');
         $this->yearLevel = (string) ($scope['year_level'] ?? '');
-        $subjects = is_array($scope['subject_references'] ?? null) ? $scope['subject_references'] : [];
-        $this->subjectReferences = implode("\n", array_map('strval', $subjects));
+        $subjects = is_array($scope['subject_references'] ?? null) ? array_values(array_map('strval', $scope['subject_references'])) : [];
+        $this->subjectReferences = implode("\n", $subjects);
+        $this->subjectNames = implode("\n", array_map(fn (string $reference): string => $this->humanizeReference($reference), $subjects));
+        $this->academicTrackId = $this->findTrackIdForScope($scope) ?? '';
         $this->contentTypes = array_values(array_map('strval', is_array($settings['content_types'] ?? null) ? $settings['content_types'] : []));
         $generation = is_array($settings['generation'] ?? null) ? $settings['generation'] : [];
         $this->includeAnswerExplanations = (bool) ($generation['include_answer_explanations'] ?? true);
@@ -332,13 +413,34 @@ final class ContentPreparationWizard extends Page
             return;
         }
         if ($step === 2) {
-            $this->validate([
-                'trackReference' => ['required', 'string', 'max:160', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
-                'boardReference' => ['nullable', 'string', 'max:160'],
-                'syllabusVersion' => ['nullable', 'string', 'max:120'],
-                'yearLevel' => ['required', 'string', 'max:40'],
-                'subjectReferences' => ['required', 'string', 'max:4000'],
-            ]);
+            if ($this->preparationRequestId === null) {
+                $this->validate([
+                    'academicTrackId' => ['required', 'string', 'exists:academic_tracks,id'],
+                    'subjectNames' => ['required', 'string', 'max:4000'],
+                ]);
+                $this->assertSelectedTrackAllowed();
+            } else {
+                if ($this->academicTrackId !== '') {
+                    $this->validate(['academicTrackId' => ['string', 'exists:academic_tracks,id']]);
+                    $this->assertSelectedTrackAllowed();
+                } elseif ($this->existingRequestScope() === null) {
+                    throw ValidationException::withMessages([
+                        'academicTrackId' => [$this->translate('Choose an approved academic track.', 'اختر مسارًا أكاديميًا معتمدًا.', 'Choisissez un parcours académique approuvé.')],
+                    ]);
+                }
+
+                if (trim($this->subjectNames) === '' && trim($this->subjectReferences) === '') {
+                    throw ValidationException::withMessages([
+                        'subjectNames' => [__('admin.validation.subject_required')],
+                    ]);
+                }
+            }
+
+            if ($this->subjects() === []) {
+                throw ValidationException::withMessages([
+                    'subjectNames' => [__('admin.validation.subject_required')],
+                ]);
+            }
 
             return;
         }
@@ -355,29 +457,19 @@ final class ContentPreparationWizard extends Page
         $this->validateStep(1);
         $this->validateStep(2);
         $this->validateStep(3);
-        $subjects = $this->subjects();
-        if ($subjects === []) {
-            $this->addError('subjectReferences', __('admin.validation.subject_required'));
-            throw ValidationException::withMessages([
-                'subjectReferences' => [__('admin.validation.subject_required')],
-            ]);
-        }
     }
 
     /** @return array<string, mixed> */
     private function payload(): array
     {
+        $scope = $this->resolvedAcademicScope();
+        $scope['subject_references'] = $this->subjects();
+
         return [
             'schema_version' => (string) config('modrik.content_import.schema_version', '1.0.0'),
             'settings' => [
                 'locales' => array_values(array_unique($this->locales)),
-                'academic_scope' => [
-                    'track_reference' => trim($this->trackReference),
-                    'board_reference' => trim($this->boardReference) === '' ? null : trim($this->boardReference),
-                    'syllabus_version' => trim($this->syllabusVersion) === '' ? null : trim($this->syllabusVersion),
-                    'year_level' => trim($this->yearLevel),
-                    'subject_references' => $this->subjects(),
-                ],
+                'academic_scope' => $scope,
                 'content_types' => array_values(array_unique($this->contentTypes)),
                 'generation' => [
                     'include_answer_explanations' => $this->includeAnswerExplanations,
@@ -388,13 +480,184 @@ final class ContentPreparationWizard extends Page
         ];
     }
 
+    /** @return array{track_reference: string, board_reference: ?string, syllabus_version: ?string, year_level: string} */
+    private function resolvedAcademicScope(): array
+    {
+        if ($this->academicTrackId !== '') {
+            $track = $this->academicTrackRecord($this->academicTrackId);
+            if ($track === null) {
+                throw ValidationException::withMessages([
+                    'academicTrackId' => [$this->translate('The selected track is no longer available. Choose it again.', 'المسار المختار لم يعد متاحًا. اختره مرة أخرى.', 'Le parcours sélectionné n’est plus disponible. Choisissez-le de nouveau.')],
+                ]);
+            }
+            $this->assertTrackAllowed($track);
+
+            return [
+                'track_reference' => (string) $track->code,
+                'board_reference' => is_string($track->board_reference) && $track->board_reference !== '' ? $track->board_reference : null,
+                'syllabus_version' => is_string($track->syllabus_version) && $track->syllabus_version !== '' ? $track->syllabus_version : null,
+                'year_level' => (string) $track->year_level,
+            ];
+        }
+
+        $existing = $this->existingRequestScope();
+        if ($existing !== null && is_string($existing['track_reference'] ?? null) && (string) ($existing['year_level'] ?? '') !== '') {
+            return [
+                'track_reference' => (string) $existing['track_reference'],
+                'board_reference' => is_string($existing['board_reference'] ?? null) && $existing['board_reference'] !== '' ? $existing['board_reference'] : null,
+                'syllabus_version' => is_string($existing['syllabus_version'] ?? null) && $existing['syllabus_version'] !== '' ? $existing['syllabus_version'] : null,
+                'year_level' => (string) $existing['year_level'],
+            ];
+        }
+
+        throw ValidationException::withMessages([
+            'academicTrackId' => [$this->translate('Choose an approved academic track.', 'اختر مسارًا أكاديميًا معتمدًا.', 'Choisissez un parcours académique approuvé.')],
+        ]);
+    }
+
     /** @return list<string> */
     private function subjects(): array
     {
-        $lines = preg_split('/\R/u', $this->subjectReferences) ?: [];
-        $lines = array_map(static fn (string $value): string => trim($value), $lines);
+        if (trim($this->subjectNames) === '') {
+            $existing = $this->existingRequestScope();
+            $references = is_array($existing['subject_references'] ?? null) ? $existing['subject_references'] : [];
+            $references = array_values(array_filter(array_map('strval', $references), static fn (string $value): bool => trim($value) !== ''));
+            if ($references !== []) {
+                return array_values(array_unique($references));
+            }
 
-        return array_values(array_unique(array_filter($lines, static fn (string $value): bool => $value !== '')));
+            $legacy = preg_split('/\R/u', $this->subjectReferences) ?: [];
+            $legacy = array_map(static fn (string $value): string => trim($value), $legacy);
+
+            return array_values(array_unique(array_filter($legacy, static fn (string $value): bool => $value !== '')));
+        }
+
+        $names = preg_split('/\R/u', $this->subjectNames) ?: [];
+        $names = array_values(array_unique(array_filter(
+            array_map(static fn (string $value): string => trim($value), $names),
+            static fn (string $value): bool => $value !== '',
+        )));
+
+        $known = [];
+        $existing = $this->existingRequestScope();
+        $existingReferences = is_array($existing['subject_references'] ?? null) ? $existing['subject_references'] : [];
+        foreach ($existingReferences as $reference) {
+            if (! is_string($reference) || trim($reference) === '') {
+                continue;
+            }
+            $known[$this->normalizeHumanLabel($this->humanizeReference($reference))] = $reference;
+        }
+
+        $references = [];
+        foreach ($names as $name) {
+            $normalized = $this->normalizeHumanLabel($name);
+            $references[] = $known[$normalized] ?? $this->internalSubjectReference($name);
+        }
+
+        return array_values(array_unique($references));
+    }
+
+    /** @return array<string, mixed>|null */
+    private function existingRequestScope(): ?array
+    {
+        if ($this->preparationRequestId === null) {
+            return null;
+        }
+
+        $settingsJson = DB::table('preparation_requests')->where('id', $this->preparationRequestId)->value('normalized_settings');
+        if (! is_string($settingsJson) || $settingsJson === '') {
+            return null;
+        }
+        $settings = json_decode($settingsJson, true);
+        $scope = is_array($settings) && is_array($settings['academic_scope'] ?? null) ? $settings['academic_scope'] : null;
+
+        return is_array($scope) ? $scope : null;
+    }
+
+    /** @param array<string, mixed> $scope */
+    private function findTrackIdForScope(array $scope): ?string
+    {
+        $trackReference = (string) ($scope['track_reference'] ?? '');
+        if ($trackReference === '') {
+            return null;
+        }
+
+        $query = DB::table('academic_tracks')->where('code', $trackReference);
+        $board = $scope['board_reference'] ?? null;
+        $syllabus = $scope['syllabus_version'] ?? null;
+        $query->where('board_reference', is_string($board) && $board !== '' ? $board : null);
+        $query->where('syllabus_version', is_string($syllabus) && $syllabus !== '' ? $syllabus : null);
+        $query->where('year_level', (string) ($scope['year_level'] ?? ''));
+        $id = $query->value('id');
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+
+    private function academicTrackRecord(string $id): ?\stdClass
+    {
+        if ($id === '') {
+            return null;
+        }
+        $track = DB::table('academic_tracks')->where('id', $id)->first();
+
+        return $track instanceof \stdClass ? $track : null;
+    }
+
+    private function assertSelectedTrackAllowed(): void
+    {
+        $track = $this->academicTrackRecord($this->academicTrackId);
+        if ($track === null) {
+            throw ValidationException::withMessages([
+                'academicTrackId' => [$this->translate('Choose an available academic track.', 'اختر مسارًا أكاديميًا متاحًا.', 'Choisissez un parcours académique disponible.')],
+            ]);
+        }
+        $this->assertTrackAllowed($track);
+    }
+
+    private function assertTrackAllowed(\stdClass $track): void
+    {
+        if ((bool) $track->is_fixture && ! (bool) config('modrik.fixture.enabled')) {
+            throw ValidationException::withMessages([
+                'academicTrackId' => [$this->translate('Fixture tracks are unavailable in this environment.', 'المسارات الاختبارية غير متاحة في هذه البيئة.', 'Les parcours fixture ne sont pas disponibles dans cet environnement.')],
+            ]);
+        }
+    }
+
+    private function internalSubjectReference(string $name): string
+    {
+        $slug = Str::upper(Str::slug(Str::ascii($name), '-'));
+        if ($slug === '') {
+            $slug = 'SUBJECT';
+        }
+        $slug = mb_substr($slug, 0, 80);
+        $hash = Str::upper(substr(hash('sha256', $this->normalizeHumanLabel($name)), 0, 8));
+
+        return 'SUBJECT:'.$slug.':'.$hash;
+    }
+
+    private function normalizeHumanLabel(string $value): string
+    {
+        return mb_strtolower(trim(preg_replace('/\s+/u', ' ', $value) ?? $value));
+    }
+
+    private function humanizeReference(string $reference): string
+    {
+        $reference = trim($reference);
+        if ($reference === '') {
+            return $this->translate('Not specified', 'غير محدد', 'Non spécifié');
+        }
+
+        $segments = preg_split('/[:\/]+/', $reference) ?: [$reference];
+        if ($segments !== [] && in_array(Str::upper((string) $segments[0]), ['BOARD', 'SYLLABUS', 'YEAR', 'TRACK', 'SUBJECT', 'FIXTURE'], true)) {
+            array_shift($segments);
+        }
+        if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
+            array_pop($segments);
+        }
+        $readable = trim(implode(' ', $segments));
+        $readable = str_replace(['-', '_', '.'], ' ', $readable);
+
+        return Str::headline($readable === '' ? $reference : $readable);
     }
 
     private function operator(): User
@@ -415,5 +678,14 @@ final class ContentPreparationWizard extends Page
             ->body($exception->problemCode.' — '.$exception->getMessage())
             ->danger()
             ->send();
+    }
+
+    private function translate(string $en, string $ar, string $fr): string
+    {
+        return match (App::getLocale()) {
+            'ar' => $ar,
+            'fr' => $fr,
+            default => $en,
+        };
     }
 }
