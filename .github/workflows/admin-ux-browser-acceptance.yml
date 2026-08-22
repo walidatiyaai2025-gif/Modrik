@@ -14,6 +14,7 @@ on:
       - "apps/backend/tests/Feature/AdminUxFoundationTest.php"
       - "apps/backend/tests/Feature/AdminSystemSettingsSurfaceTest.php"
       - "apps/backend/tests/Feature/AdminIntegrationSettingsSurfacesTest.php"
+      - "apps/backend/tests/Feature/AssessmentQuestionBankTest.php"
       - "docs/brand/ADMIN_UX_SYSTEM.md"
       - ".github/workflows/admin-ux-browser-acceptance.yml"
 
@@ -143,6 +144,7 @@ jobs:
             const surfaces = [
               { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
+              { name: 'assessment-question-bank', url: '/admin/assessment-question-bank', selector: '[data-testid="modrik-assessment-question-bank"]' },
               { name: 'system-settings', url: '/admin/system-settings', selector: '[data-testid="modrik-system-settings"]' },
               { name: 'authentication-providers', url: '/admin/authentication-providers', selector: '[data-testid="modrik-auth-providers"]' },
               { name: 'notification-settings', url: '/admin/notification-settings', selector: '[data-testid="modrik-notification-settings"]' },
