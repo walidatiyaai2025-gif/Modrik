@@ -1,0 +1,148 @@
+name: Web Browser Portal Entry Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/src/app/page.tsx"
+      - "apps/web/src/app/landing-page.tsx"
+      - "apps/web/src/app/landing.css"
+      - "apps/web/src/app/student/page.tsx"
+      - "apps/web/src/app/auth-workspace.tsx"
+      - "apps/web/src/app/auth.css"
+      - "qa/web-e2e/portal-entry-acceptance.cjs"
+      - "scripts/verify-demo-deployment-smoke.sh"
+      - "scripts/demo-deployment-smoke.test.mjs"
+      - "deploy/demo/deploy-demo-cpanel-remote.sh"
+      - ".github/workflows/web-browser-portal-entry.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-browser-portal-entry-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portal-entry-browser:
+    name: Landing and Student Portal browser acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+
+      - name: Resolve exact candidate SHA
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ github.event.pull_request.head.sha }}" ] && [ "$sha" != "${{ github.event.pull_request.head.sha }}" ]; then
+            echo "Exact-head mismatch: checkout=$sha expected=${{ github.event.pull_request.head.sha }}" >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install Web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Build exact portal candidate
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_MODRIK_RELEASE_SHA: ${{ steps.candidate.outputs.sha }}
+          MODRIK_RUNTIME_INSPECTOR_ENABLED: "true"
+          MODRIK_RUNTIME_ENVIRONMENT: pilot
+          MODRIK_BUILD_VERSION: portal-entry-e2e
+          MODRIK_GIT_SHA: ${{ steps.candidate.outputs.sha }}
+        run: npm run build
+
+      - name: Cache Chromium runtime
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: playwright-1.62.1-chromium-${{ runner.os }}
+
+      - name: Install pinned Playwright runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" \
+            node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Start exact production Web candidate
+        working-directory: apps/web
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run start -- --hostname 127.0.0.1 --port 3100 > "$RUNNER_TEMP/modrik-portal-web.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/modrik-portal-web.pid"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error http://127.0.0.1:3100/ >/dev/null \
+              && curl --fail --silent --show-error http://127.0.0.1:3100/student >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/modrik-portal-web.log" >&2 || true
+          exit 1
+
+      - name: Execute exact-head portal browser matrix
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_PORTAL_BASE_URL: http://127.0.0.1:3100
+          MODRIK_PORTAL_EVIDENCE_DIR: ${{ github.workspace }}/evidence/portal-entry
+          MODRIK_PORTAL_EXPECTED_SHA: ${{ steps.candidate.outputs.sha }}
+        run: node qa/web-e2e/portal-entry-acceptance.cjs
+
+      - name: Require exact-head PASS evidence
+        env:
+          EXPECTED_SHA: ${{ steps.candidate.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          path = pathlib.Path('evidence/portal-entry/acceptance.json')
+          if not path.exists():
+              raise SystemExit('missing portal-entry browser evidence')
+          evidence = json.loads(path.read_text(encoding='utf-8'))
+          if evidence.get('expected_sha') != os.environ['EXPECTED_SHA']:
+              raise SystemExit('portal-entry evidence SHA mismatch')
+          if evidence.get('status') != 'PASS':
+              raise SystemExit(f"portal-entry browser status is {evidence.get('status')}")
+          expected = {'landing-en-desktop', 'landing-fr-360-200', 'landing-ar-320-200', 'landing-to-student'}
+          actual = {case.get('name') for case in evidence.get('cases', []) if case.get('status') == 'PASS'}
+          if actual != expected:
+              raise SystemExit(f'unexpected portal-entry PASS matrix: {sorted(actual)}')
+          print('MODRIK portal-entry exact-head browser matrix: 4 PASS / 0 FAIL')
+          PY
+
+      - name: Stop Web candidate
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$RUNNER_TEMP/modrik-portal-web.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/modrik-portal-web.pid")" 2>/dev/null || true
+          fi
+
+      - name: Upload sanitized browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-browser-portal-entry-${{ steps.candidate.outputs.sha }}
+          path: evidence/portal-entry
+          if-no-files-found: warn
+          retention-days: 14
