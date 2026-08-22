@@ -19,8 +19,11 @@ final class AcademicCatalogue extends Page
     protected static ?string $slug = 'academic-catalogue';
 
     public string $search = '';
+
     public string $fixtureFilter = 'all';
+
     public ?string $editingId = null;
+
     public ?string $sourceRequestId = null;
 
     /** @var array<string, mixed> */
@@ -144,6 +147,7 @@ final class AcademicCatalogue extends Page
         if ($row === null) {
             return;
         }
+
         if (! $this->canMutateTrack($id)) {
             throw ValidationException::withMessages([
                 'form.code' => $this->translate('This track is referenced by learner or curriculum history and is read-only.', 'هذا المسار مرتبط بسجل طالب أو منهج وأصبح للقراءة فقط.', 'Ce parcours est référencé par un historique apprenant ou curriculum et devient en lecture seule.'),
@@ -269,13 +273,24 @@ final class AcademicCatalogue extends Page
     private function resetForm(): void
     {
         $this->form = [
-            'code' => '', 'board_reference' => '', 'syllabus_version' => '', 'year_level' => '',
-            'title_en' => '', 'title_ar' => '', 'title_fr' => '', 'is_fixture' => false, 'reason' => '',
+            'code' => '',
+            'board_reference' => '',
+            'syllabus_version' => '',
+            'year_level' => '',
+            'title_en' => '',
+            'title_ar' => '',
+            'title_fr' => '',
+            'is_fixture' => false,
+            'reason' => '',
         ];
     }
 
     private function translate(string $en, string $ar, string $fr): string
     {
-        return match (App::getLocale()) { 'ar' => $ar, 'fr' => $fr, default => $en };
+        return match (App::getLocale()) {
+            'ar' => $ar,
+            'fr' => $fr,
+            default => $en,
+        };
     }
 }
