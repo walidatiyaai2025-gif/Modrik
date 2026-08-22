@@ -3,7 +3,7 @@
  *
  * Filament utility-layer colors can outrank the semantic rules in theme.css
  * after compilation. This asset is loaded after the primary Admin theme so
- * the rendered navigation keeps a deterministic accessible contrast in both
+ * the rendered navigation keeps deterministic accessible contrast in both
  * LTR and RTL without changing navigation structure or authority.
  */
 
@@ -11,9 +11,17 @@
     background-color: #0D1B2A !important;
 }
 
+/* Filament v5.7 uses `.fi-sidebar-group-btn`. Keep the older long-form
+ * selector only as a compatibility fallback during framework upgrades. */
 .fi-sidebar .fi-sidebar-group-label,
+.fi-sidebar .fi-sidebar-group-btn,
+.fi-sidebar .fi-sidebar-group-btn svg,
 .fi-sidebar .fi-sidebar-group-button,
-.fi-sidebar .fi-sidebar-group-button svg {
+.fi-sidebar .fi-sidebar-group-button svg,
+.fi-sidebar .fi-sidebar-group-dropdown-trigger-btn,
+.fi-sidebar .fi-sidebar-group-dropdown-trigger-btn svg,
+.fi-sidebar .fi-sidebar-group-collapse-btn,
+.fi-sidebar .fi-sidebar-group-collapse-btn svg {
     color: #CBD5E1 !important;
 }
 
@@ -27,7 +35,6 @@
 }
 
 .fi-sidebar .fi-sidebar-item-icon,
-.fi-sidebar .fi-sidebar-group-icon,
 .fi-sidebar .fi-sidebar-item-btn svg,
 .fi-sidebar .fi-sidebar-item-button svg {
     color: #CBD5E1 !important;
