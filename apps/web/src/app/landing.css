@@ -1,4 +1,9 @@
+body:has(.landing-shell) {
+  min-width: 0;
+}
+
 .landing-shell {
+  min-width: 0;
   min-height: 100vh;
   background:
     radial-gradient(circle at 15% 12%, rgba(37, 211, 185, 0.14), transparent 26rem),
@@ -8,6 +13,7 @@
 }
 
 .landing-nav {
+  min-width: 0;
   min-height: 88px;
   display: flex;
   align-items: center;
@@ -17,15 +23,28 @@
   margin: 0 auto;
 }
 
+.landing-nav > *,
+.landing-nav-actions,
+.landing-hero,
+.landing-hero-copy,
+.landing-portals,
+.landing-portal-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .landing-brand {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
+  max-width: 100%;
   text-decoration: none;
   color: white;
 }
 
 .landing-brand-mark {
+  flex: 0 0 auto;
   width: 42px;
   height: 42px;
   display: grid;
@@ -38,16 +57,19 @@
 }
 
 .landing-brand span:last-child {
+  min-width: 0;
   display: grid;
   line-height: 1.05;
 }
 
 .landing-brand strong {
+  overflow-wrap: anywhere;
   font-size: 1rem;
   letter-spacing: 0.05em;
 }
 
 .landing-brand small {
+  overflow-wrap: anywhere;
   color: #b7d8dd;
   font-size: 0.72rem;
   margin-top: 0.18rem;
@@ -61,6 +83,8 @@
 
 .landing-locale {
   display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.25rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.9);
@@ -87,11 +111,15 @@
 }
 
 .landing-login-link {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 1.15rem;
+  overflow-wrap: anywhere;
   border-radius: 12px;
   text-decoration: none;
   font-weight: 800;
@@ -119,8 +147,10 @@
 .landing-badge {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 34px;
   padding: 0.35rem 0.8rem;
+  overflow-wrap: anywhere;
   border-radius: 999px;
   background: rgba(89, 234, 213, 0.12);
   border: 1px solid rgba(89, 234, 213, 0.36);
@@ -131,6 +161,7 @@
 
 .landing-eyebrow {
   margin: 2rem 0 0.8rem;
+  overflow-wrap: anywhere;
   color: #8af1e2;
   font-size: 0.9rem;
   font-weight: 800;
@@ -149,6 +180,7 @@
 .landing-lead {
   max-width: 590px;
   margin: 1.6rem 0 0;
+  overflow-wrap: anywhere;
   color: #c3d7df;
   font-size: clamp(1rem, 1.4vw, 1.25rem);
   line-height: 1.7;
@@ -207,6 +239,7 @@
 
 .landing-portal-card p {
   margin: 1rem 0 2rem;
+  overflow-wrap: anywhere;
   color: #536775;
   line-height: 1.65;
 }
@@ -217,6 +250,9 @@
 
 .landing-primary-cta,
 .landing-secondary-cta {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   min-height: 52px;
   display: flex;
   align-items: center;
@@ -243,6 +279,7 @@
 .landing-footer {
   max-width: 1440px;
   margin: 0 auto;
+  overflow-wrap: anywhere;
   color: #71818d;
   font-size: 0.78rem;
   text-align: end;
@@ -291,14 +328,14 @@
   }
 
   .landing-login-link {
-    min-height: 40px;
+    min-height: 44px;
     padding-inline: 0.9rem;
     font-size: 0.82rem;
   }
 
   .landing-locale button {
     min-width: 38px;
-    min-height: 34px;
+    min-height: 38px;
     padding-inline: 0.45rem;
   }
 
@@ -324,5 +361,59 @@
 
   .landing-footer {
     padding-bottom: 1rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .landing-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .landing-nav-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .landing-locale {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .landing-locale button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 0.25rem;
+  }
+
+  .landing-login-link {
+    width: 100%;
+  }
+
+  .landing-shell {
+    padding-inline: 0.75rem;
+  }
+
+  .landing-hero {
+    gap: 1.5rem;
+    padding-top: 1.5rem;
+  }
+
+  .landing-hero h1 {
+    font-size: clamp(1.75rem, 12vw, 2.7rem);
+    line-height: 1.05;
+  }
+
+  .landing-portal-card,
+  .landing-portal-admin {
+    min-height: 0;
+    padding: 1rem;
+  }
+
+  .landing-portal-card h2 {
+    margin-top: 1.25rem;
   }
 }
