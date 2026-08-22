@@ -66,8 +66,13 @@
                                 <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                                     <div><dt class="text-gray-500">{{ $label('الحالة', 'Status', 'État') }}</dt><dd class="font-semibold text-gray-900">{{ $item['status'] }} / {{ $item['operation_state'] }}</dd></div>
                                     <div><dt class="text-gray-500">{{ $label('الحقوق', 'Rights', 'Droits') }}</dt><dd class="font-semibold text-gray-900">{{ $item['rights_review_status'] }}</dd></div>
+                                    @if ($item['preparation_request_id'])<div><dt class="text-gray-500">{{ $label('طلب الإعداد', 'Preparation request', 'Demande de préparation') }}</dt><dd><code class="break-all text-xs">{{ $item['preparation_request_id'] }}</code></dd></div>@endif
+                                    @if ($item['pack_id'])<div><dt class="text-gray-500">{{ $label('حزمة المحتوى', 'Content pack', 'Pack de contenu') }}</dt><dd><code class="break-all text-xs">{{ $item['pack_id'] }}</code></dd></div>@endif
+                                    @if ($item['rights_basis'])<div><dt class="text-gray-500">{{ $label('أساس الحقوق', 'Rights basis', 'Base des droits') }}</dt><dd class="font-medium text-gray-900">{{ $item['rights_basis'] }}</dd></div>@endif
+                                    @if ($item['rights_evidence_reference'])<div><dt class="text-gray-500">{{ $label('مرجع دليل الحقوق', 'Rights evidence reference', 'Référence de preuve des droits') }}</dt><dd><code class="break-all text-xs">{{ $item['rights_evidence_reference'] }}</code></dd></div>@endif
                                     @if ($item['last_error_code'])<div><dt class="text-gray-500">{{ $label('كود الخطأ', 'Error code', 'Code erreur') }}</dt><dd><code class="break-all text-xs">{{ $item['last_error_code'] }}</code></dd></div>@endif
                                     @if ($item['operation_checkpoint'])<div><dt class="text-gray-500">{{ $label('نقطة المعالجة', 'Checkpoint', 'Point de contrôle') }}</dt><dd><code class="break-all text-xs">{{ $item['operation_checkpoint'] }}</code></dd></div>@endif
+                                    <div><dt class="text-gray-500">{{ $label('آخر تحديث', 'Last updated', 'Dernière mise à jour') }}</dt><dd class="font-medium text-gray-900">{{ $item['updated_at'] }}</dd></div>
                                 </dl>
                                 @if ($item['review_reason'])<p class="mt-4 rounded-xl bg-gray-50 p-3 text-sm leading-6 text-gray-700">{{ \Illuminate\Support\Str::limit($item['review_reason'], 320) }}</p>@endif
                                 <div class="mt-5"><x-filament::button tag="a" :href="$item['next_url']" icon="heroicon-o-arrow-up-right">{{ $item['next_label'] }}</x-filament::button></div>
