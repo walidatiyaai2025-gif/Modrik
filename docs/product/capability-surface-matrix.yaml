@@ -198,8 +198,15 @@ capabilities:
   - id: admin.accounts.roles_sessions
     area: auth
     classification: admin_manageable
-    surface: null
-    status: audit_required
+    surface: AccountOperations
+    status: present
+    notes: Integrated through Issue #216 / PR #218. Admin-only account discovery and safe account/session status are surfaced with canonical Auth-backed revoke-all security recovery and immutable actor/target/reason/before/after audit. Fixed repository roles remain read-only because no arbitrary permission editor or contract-authorized role mutation exists.
+  - id: admin.operations.control_center
+    area: operations
+    classification: read_only_operational
+    surface: OperationsControlCenter
+    status: present
+    notes: Integrated through Issue #216 / PR #218. Composes database, queue, storage, runtime/outbox and safe integration health with links to existing SystemCapabilities, RuntimeInspector, Settings and authorized recovery surfaces. Scheduler freshness and storage capacity remain explicitly unobservable where no governed contract exists; no shell, SQL or secret editing is introduced.
   - id: admin.public_legal_help
     area: public
     classification: admin_manageable
