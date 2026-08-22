@@ -25,9 +25,9 @@ capabilities:
   - id: admin.academic.catalogue
     area: academic
     classification: admin_manageable
-    surface: null
-    status: missing
-    blocker: Current real-content dry-run can fail with CONTENT_TARGET_TRACK_MISSING without a supported Admin catalogue-management path.
+    surface: AcademicCatalogue
+    status: present_on_issue_180_branch
+    notes: Admin-only create/list/search/filter/edit for unreferenced tracks, preparation-request scope prefill, immutable audit history, and conservative history locking for referenced tracks. Values must be owner-approved; no board/syllabus/version values are fabricated.
   - id: admin.auth.providers
     area: auth
     classification: admin_manageable
