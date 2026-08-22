@@ -8,6 +8,7 @@ use App\Services\AdvertisingEligibilityService;
 use App\Services\IntegrationStatusService;
 use App\Services\SystemSettingsRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -88,6 +89,8 @@ final class AdminIntegrationSettingsSurfacesTest extends TestCase
             ->call('testPush')
             ->assertHasErrors(['targetReference']);
 
+        $this->assertSame(0, DB::table('integration_operation_audits')->count());
+
         $settings = app(SystemSettingsRegistry::class);
         $settings->update(
             'firebase.fcm.enabled',
@@ -106,6 +109,18 @@ final class AdminIntegrationSettingsSurfacesTest extends TestCase
             ->call('testPush')
             ->assertHasNoErrors()
             ->assertSet('lastTestCode', 'FCM_TRANSPORT_PENDING');
+
+        $audit = DB::table('integration_operation_audits')->sole();
+        $this->assertSame('firebase', $audit->integration);
+        $this->assertSame('test_push', $audit->operation);
+        $this->assertSame('test_device', $audit->target_type);
+        $this->assertSame('FCM_TRANSPORT_PENDING', $audit->result_code);
+        $this->assertSame($admin->id, $audit->actor_id);
+        $this->assertSame(64, strlen((string) $audit->target_fingerprint));
+
+        $serializedAudit = json_encode((array) $audit, JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('QA-DEVICE-01', $serializedAudit);
+        $this->assertStringNotContainsString('external-secret-reference', $serializedAudit);
     }
 
     public function test_operator_ads_switch_is_restrictive_only_and_immutable_no_ad_zone_still_wins(): void
