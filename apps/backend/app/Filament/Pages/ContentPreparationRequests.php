@@ -32,7 +32,7 @@ final class ContentPreparationRequests extends Page
         };
     }
 
-    public static function getNavigationSort(): ?int
+    public static function getNavigationSort(): int
     {
         return 20;
     }
