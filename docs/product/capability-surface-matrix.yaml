@@ -138,14 +138,63 @@ capabilities:
   - id: assessment.authoritative_randomization
     area: assessment
     classification: internal_non_editable
-    surface: Backend authority/tests
+    surface: Backend authority/tests / AssessmentOperations read-only boundary
     status: present
-  - id: admin.exam.question_management
+    notes: New-attempt seed, selected set/order, resume order and immutable grading snapshots remain Backend-owned and are never operator-editable.
+  - id: admin.assessment.question_bank_visibility
     area: assessment
-    classification: admin_manageable
+    classification: read_only_operational
     surface: AssessmentQuestionBank
-    status: audit_required
-    notes: Issue #183 Stage A provides discoverable read/inspection of the Question Bank and implemented quiz/practice catalogue, including approved answers and membership. Safe lifecycle/configuration/availability management remains incomplete and must be finished in Stage B before this capability is considered fully manageable. Attempt seed, student-specific selected set/order, resume order and scoring snapshots remain internal_non_editable.
+    status: present
+    notes: Discoverable AR/EN/FR inspection of prompts, approved answers, explanations, status, content version and quiz membership without exposing attempt authority.
+  - id: admin.assessment.catalogue
+    area: assessment
+    classification: read_only_operational
+    surface: AssessmentOperations / AssessmentQuestionBank
+    status: present
+    notes: Current quiz/practice definitions expose localized title, kind, academic scope, persisted status, blueprint version, membership count and attempt-snapshot impact. No separate exam entity is invented beyond the implemented quizzes contract.
+  - id: admin.assessment.question_membership_coverage
+    area: assessment
+    classification: read_only_operational
+    surface: AssessmentQuestionBank / AssessmentOperations
+    status: present
+    notes: Operators can inspect human-readable quiz membership and question counts. No current Backend Admin mutation service authorizes membership changes, so no UI-only write path is exposed.
+  - id: admin.assessment.question_quality_review
+    area: assessment
+    classification: read_only_operational
+    surface: AssessmentQualityReview / AssessmentQuestionBank
+    status: present
+    notes: Persisted question status, content version, score, assessment metadata, section/difficulty/concept identifiers, explicit option-shuffle safety, membership count and aggregate immutable snapshot usage are visible. No synthetic quality score or student-private answer history is exposed, and no write path is invented.
+  - id: admin.assessment.question_lifecycle_management
+    area: assessment
+    classification: read_only_operational
+    surface: AssessmentQuestionBank / AssessmentQualityReview / AssessmentOperations
+    status: backend_contract_missing
+    notes: Current Backend stores question status but has no operator-authorized service/policy contract for legal lifecycle transitions, stale edit protection and immutable audit evidence. Lifecycle therefore remains read-only.
+  - id: admin.assessment.lifecycle_availability
+    area: assessment
+    classification: read_only_operational
+    surface: AssessmentOperations
+    status: backend_contract_missing
+    notes: Persisted quiz status is visible, but no authoritative Admin service currently defines publish/disable/archive availability transitions with validation, confirmation, reason, optimistic concurrency and audit. No raw Filament table mutation is permitted.
+  - id: admin.assessment.blueprint_configuration
+    area: assessment
+    classification: read_only_operational
+    surface: AssessmentOperations
+    status: backend_contract_missing
+    notes: Persisted blueprint constraints, question-order policy and version are visible together with existing attempt blueprint versions. No operator-authorized versioned mutation contract exists; any future change must apply only according to Backend rules and must never rewrite existing attempt scope/question snapshots.
+  - id: admin.assessment.mistake_bank_operations
+    area: assessment
+    classification: deferred_disabled
+    surface: null
+    status: backend_contract_missing
+    notes: Repository audit found no activated role-safe aggregate mistake-bank operations contract. No broad learner answer/history visibility is created for Admin parity.
+  - id: admin.assessment.ai_composition
+    area: assessment
+    classification: deferred_disabled
+    surface: null
+    status: not_implemented_or_activated
+    notes: No implemented assessment composition proposal/apply contract exists. Optional paid-AI availability does not create Assessment publication authority; no fake provider action is exposed.
   - id: admin.accounts.roles_sessions
     area: auth
     classification: admin_manageable

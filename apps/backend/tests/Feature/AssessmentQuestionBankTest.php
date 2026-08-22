@@ -82,7 +82,7 @@ class AssessmentQuestionBankTest extends TestCase
         $this->assertStringNotContainsString('public array $questionOrder', $page);
     }
 
-    public function test_assessment_navigation_is_localized_and_governance_matrix_records_partial_stage_a_surface(): void
+    public function test_assessment_navigation_is_localized_and_governance_matrix_records_split_contract_boundaries(): void
     {
         App::setLocale('en');
         $this->assertSame('Question Bank & Assessments', AssessmentQuestionBank::getNavigationLabel());
@@ -94,9 +94,14 @@ class AssessmentQuestionBankTest extends TestCase
         $this->assertSame('Banque de questions', AssessmentQuestionBank::getNavigationLabel());
 
         $matrix = (string) file_get_contents(base_path('../../docs/product/capability-surface-matrix.yaml'));
+        $this->assertStringContainsString('id: admin.assessment.question_bank_visibility', $matrix);
         $this->assertStringContainsString('surface: AssessmentQuestionBank', $matrix);
-        $this->assertStringContainsString('status: audit_required', $matrix);
-        $this->assertStringContainsString('Safe lifecycle/configuration/availability management remains incomplete and must be finished in Stage B', $matrix);
-        $this->assertStringContainsString('Attempt seed, student-specific selected set/order, resume order and scoring snapshots remain internal_non_editable.', $matrix);
+        $this->assertStringContainsString('id: admin.assessment.lifecycle_availability', $matrix);
+        $this->assertStringContainsString('id: admin.assessment.blueprint_configuration', $matrix);
+        $this->assertStringContainsString('status: backend_contract_missing', $matrix);
+        $this->assertStringContainsString('id: assessment.authoritative_randomization', $matrix);
+        $this->assertStringContainsString('classification: internal_non_editable', $matrix);
+        $this->assertStringContainsString('New-attempt seed, selected set/order, resume order and immutable grading snapshots remain Backend-owned', $matrix);
+        $this->assertStringNotContainsString('id: admin.exam.question_management', $matrix);
     }
 }
