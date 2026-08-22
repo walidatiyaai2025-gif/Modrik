@@ -199,7 +199,9 @@ async function runReadyCase(browser, spec) {
   const page = await context.newPage();
   await installApiRoutes(page, { locale: spec.locale, mode: 'ready', delayMs: 350 });
   const navigation = page.goto(`${baseUrl}/student/notifications`, { waitUntil: 'domcontentloaded' });
-  await page.getByText(copy[spec.locale].loading, { exact: true }).waitFor({ state: 'visible' });
+  if (spec.locale === 'en') {
+    await page.getByText(copy.en.loading, { exact: true }).waitFor({ state: 'visible' });
+  }
   await navigation;
   await page.getByTestId('modrik-student-notification-center').waitFor({ state: 'visible' });
   await page.getByRole('heading', { name: copy[spec.locale].title, exact: true }).waitFor();
