@@ -1,66 +1,64 @@
 # CURRENT STATE
 
 Updated: 2026-08-22
-Last reconciled baseline: `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`
+Last reconciled baseline: `94b1930bfe73db27dae212b103dabbf5aaec8658`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
 
-## Integrated governance and Admin foundations
+## Integrated capability / Admin surface state
 
-- Issue #179 / `GOV-SURFACE-001` is complete via PR #186 at `003e90a5fb64540d310a35418ce653553b38eee0`.
-- PR #187 / Issue #185 merged at `9cc38ce22b941b2270023ec686bb5e25152f60dd`, integrating the shared professional Filament Admin UX foundation and responsive/browser acceptance evidence.
-- PR #189 / Issue #180 merged at `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2`, integrating discoverable Academic Catalogue Management and the supported `CONTENT_TARGET_TRACK_MISSING` remediation path.
-- PR #196 merged at `78a9f612cc7752750046d8ab371714c1c9c6eb53`, repairing the cPanel packaging boundary so Backend Admin Vite assets are built and re-verified before packaging.
-- PR #153 / Issue #152 merged at `3f0feebcf50721c3cdf646c5a917ca21c8e25374`, integrating fail-closed fixture-only Demo learner sign-in without changing production Auth or learner authority.
-- PR #197 / Issue #190 merged at `4c4b243f31493b9a75ba095e67fe1d4ad893047e`, integrating non-self-staling control-state semantics and the control-state CI guard.
-- PR #198 / Issue #181 merged at `0b086b7d20988a4b1f9927502e6acb9939026cc8`, integrating typed/versioned System Settings plus safe Authentication Provider, Notifications, Firebase Runtime and Advertising & Safety Admin surfaces.
-- PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb`, reconciling the capability matrix so the integrated #181 surfaces are recorded as present.
-- PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`, integrating Content Operations lifecycle/navigation, ingestion/retry, review-exception triage, provenance/traceability, canonical version/coverage visibility and explicit deferred classifications for unsupported Backend capabilities.
+The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
+- Content Operations is integrated via PR #201 / Issue #182.
+- Student academic-track change is integrated via PR #209 / Issue #208 using Backend reset/archive authority.
+- Assessment Admin Stage A PR #207 and Stage B PR #229 are integrated; Issues #217 and #183 are complete. Attempt seed, selected set/order, resume order and authoritative scoring snapshots remain Backend-owned/internal non-editable.
+- Accounts/Sessions/RBAC visibility and Operations Control Center are integrated via PR #218 / Issue #216.
+- Public/Legal/Help operational visibility is integrated via PR #225 / Issues #224/#184. Final legal facts and mutable publication remain owner/legal/backend-contract gated.
+- Capability-surface matrix validation is enforced in contract CI via PR #234 / Issue #233.
+- Demo release identity hardening is integrated via PR #232 / Issue #231; authorized deployment acceptance now requires exact Web and Admin Build SHA identity.
+- PR #239 explicitly classifies the Windows client as `deferred_disabled` under the locked launch scope without activating it.
 
-Every implemented/configurable capability remains classified as exactly one of `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, or `deferred_disabled`.
-
-Security-sensitive values and authority remain non-editable where required. Provider/API secrets remain external secret material; Admin surfaces may expose only safe status/reference/validation information.
+Earlier shared Admin UX, Academic Catalogue, Settings/Auth Provider/Notifications/Firebase/Ads controls, control-state guard, Content Preparation and Demo packaging foundations remain integrated.
 
 ## Active implementation queue at this checkpoint
 
-- #183 / PR #207 — Assessment Question Bank/Exam/Practice Admin surface work. Current PR is a first visibility stage and must be reconciled to the integrated Content Operations baseline before any integration verdict; Issue completion must not overstate `admin_manageable` coverage or expose seed/order/scoring authority.
-- #184 — Accounts/RBAC/Sessions, Public/Legal/Help and remaining operational surfaces.
-- #200 / PR #199 — non-technical Admin lookup/guided content-publication UX hardening; remains a separate integration candidate requiring current-main reconciliation.
-- #208 / PR #209 — first-class Student academic-track change UX; requires exact-head green governed CI before integration.
-- #210 / PR #211 — Admin sidebar readability/contrast; focused candidate requires reconciliation onto the live integrated baseline and fresh exact-head acceptance.
-
-Bounded support/QA packets may publish evidence/findings but do not own domain implementation or merge authority.
+- Issue #235 / PR #236 — Backend-owned Student Notification Center across Backend, Web and Mobile. The PR is still draft and must be evaluated from its live GitHub head. Implemented direction includes durable per-account inbox state, authenticated read/read-all operations, Web and Mobile first-party surfaces, localization/accessibility and fail-closed external-delivery boundaries. OpenAPI/capability/browser/runtime evidence and final exact-head CI remain part of its completion path.
+- No worker should duplicate #235 implementation ownership while that branch is active.
+- Real-content evaluation work remains gated by owner-approved academic scope and evidence-backed content rights.
 
 ## CI / integration evidence
 
-The prior P0/Pilot engineering baseline remains historically valid, including governed run `32493326967`, normal/strict Pilot `PASS=16 FAIL=0 BLOCKED=0`, Chromium core `13 PASS / 0 FAIL`, PR #114 terminal browser acceptance and PR #112 fixture-backed Pilot harness.
+Recent exact-head integration evidence includes:
+- PR #225: Bootstrap #1001, Admin Browser #120, Content Ops #65 and Demo Package #207 green.
+- PR #234: Bootstrap #1008 green, including live capability-matrix validation, SQLite/MariaDB, Web, Mobile/signing, normal/strict Pilot and governed finalizer.
+- PR #232: Bootstrap #1016, Admin Browser #128 and Demo Package #218 green; the combined contract chain preserves capability governance and Demo release-smoke regressions.
+- PR #239: Bootstrap #1024 and Content Operations Browser Acceptance #80 green on reviewed head `24dcf5e0c6eea8aa2eec1ef4a46d267cd9393ae1`; merged to `94b1930bfe73db27dae212b103dabbf5aaec8658`.
 
-Recent follow-on evidence includes green exact-head integration evidence for PRs #187, #189, #196, #197, #198, #204 and #201 before their respective merges. PR #201 exact-head `af8fc852320622085e5a3f5e8ef574ead409c0b6` passed Bootstrap CI #896, Admin UX Browser Acceptance #58, Content Operations Browser Acceptance #9 and Demo cPanel Package #132 before merge. Red CI remains merge-blocking; historical failed runs remain evidence and are not rewritten as successful merely because a later fix exists.
+Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 
 ## Real-content evaluation state
 
-Preparation request `01M0JVVQY8KGQG628BNPWBJBJK` accepted/staged the returned Content Pack archive. Its dry-run reported `CONTENT_TARGET_TRACK_MISSING` because the referenced academic track was absent from canonical `academic_tracks`.
+Preparation request `01M0JVVQY8KGQG628BNPWBJBJK` previously staged a returned Content Pack and exposed `CONTENT_TARGET_TRACK_MISSING`. The integrated Academic Catalogue and Content Operations surfaces provide the supported remediation path. Exact board/syllabus/version values must still come from owner-authorized preparation scope; they must not be fabricated.
 
-The Backend fail-closed check remains correct. The operator gap that caused the hidden-SQL temptation was closed by PR #189 through Academic Catalogue Management, and PR #201 now makes the authorized Content Operations lifecycle, ingestion state, retry, exception triage and traceability discoverable. The actual board/syllabus/version values must still come from owner-authorized preparation scope or another approved source; they must not be fabricated.
-
-Content rights remain a separate gate. `pending_review` content must continue through the evidence-backed rights workflow before official publication.
+Content rights remain a separate fail-closed gate. `pending_review` material must not become official content until evidence-backed rights review and authorized publication succeed.
 
 ## Demo deployment
 
-The authorized evaluation target remains `demo.modrik.org`; confirmed cPanel document root remains `/public_html/demo.modrik.org` (expected absolute `/home/solscool/public_html/demo.modrik.org/`).
+The authorized evaluation target remains `demo.modrik.org`.
 
-Last repository-recorded Demo deployment: `41bb2959387bc1a01995d643d6419713d5ba0e56`.
+Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-Manual deployment run `32563427725` targeted `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2` but failed before FTPS upload because Backend Admin Vite assets were missing. PR #196 fixed that packaging defect, but a new successful deployment is still required before the deployed Demo SHA may advance.
+GitHub Actions run `32563427725`, attempt 2, successfully deployed that immutable source checkpoint. Package assembly, audit retention, FTPS upload, protected bridge execution, cleanup and external smoke passed. See `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
 
-The demo remains separate from the production `modrik.org` Coming Soon cutover boundary. Admin/Student surfaces must continue to expose deployed Build SHA so stale-cache/deployment mismatches are visible.
+Repository source has advanced beyond the deployed Demo. The merge of PR #232 strengthens the next deployment acceptance but does not itself deploy the new source. The next authorized deployment must check out canonical main, resolve its immutable SHA and prove both Web and Admin externally serve that exact release before deployment state advances.
+
+The Demo remains separate from production `modrik.org` cutover and is not a Production Ready claim.
 
 ## External production inputs still explicit
 
-These do not block safe management-surface implementation but remain owner/external gates for affected activation:
-- curriculum/content-rights evidence;
+These remain owner/external gates for affected activation and must never be fabricated:
+- real curriculum/content-rights evidence;
 - final legal entity/controller/contact/jurisdiction and approved legal wording;
-- production Google/Apple/Firebase/store identifiers, secrets, callbacks and signing;
-- production age/ad/community activation policy;
-- RPO/RTO/backup/data-retention decisions;
-- production `modrik.org` cutover approval.
+- production Google/Apple/Firebase/store identifiers, credentials, callbacks and signing;
+- production age/ad/community policy;
+- RPO/RTO, backup retention and data-retention decisions;
+- production hosting and `modrik.org` cutover approval.
