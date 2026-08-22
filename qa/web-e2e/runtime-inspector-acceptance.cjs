@@ -12,6 +12,7 @@ const appDir = path.join(targetDir, "apps", "web");
 const appPort = Number(process.env.MODRIK_E2E_APP_PORT || 3300);
 const mockPort = Number(process.env.MODRIK_E2E_MOCK_PORT || 4300);
 const baseURL = `http://127.0.0.1:${appPort}`;
+const studentURL = `${baseURL}/student`;
 const mode = process.env.MODRIK_E2E_INSPECTOR_MODE || "pilot";
 const candidate = process.env.MODRIK_E2E_CANDIDATE || `runtime-inspector-${mode}`;
 const observedSha = process.env.MODRIK_E2E_OBSERVED_SHA || null;
@@ -198,7 +199,7 @@ function diagnosticSeed(locale) {
     status: index % 7 === 0 ? 401 : 200,
     errorCode: index % 7 === 0 ? "AUTHENTICATION_REQUIRED" : null,
     durationMs: 12,
-    route: "/",
+    route: "/student",
     locale,
     direction,
     online: true,
@@ -268,7 +269,7 @@ async function testPilotCase(browser, spec) {
   await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseURL });
   const page = await context.newPage();
   try {
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     await waitForLogin(page);
     await setLocale(page, spec.locale);
     await seedDiagnostics(page, spec.locale);
@@ -348,7 +349,7 @@ async function testProductionGateOff(browser) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   try {
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     check((await page.locator('[data-runtime-inspector="enabled"]').count()) === 0, "E2E_INSPECTOR_PRODUCTION_HOST_VISIBLE");
     check((await page.locator('button[aria-haspopup="dialog"]').count()) === 0, "E2E_INSPECTOR_PRODUCTION_LAUNCHER_VISIBLE");
   } finally {
@@ -360,7 +361,7 @@ async function testProductionStorageFailClosed(browser) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   try {
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     await waitForLogin(page).catch(() => {
       throw new Error("E2E_INSPECTOR_PRODUCTION_HYDRATION_PRECONDITION");
     });
@@ -393,7 +394,7 @@ async function main() {
   let browser = null;
   try {
     app = startNext();
-    await waitForHttp(baseURL);
+    await waitForHttp(studentURL);
     browser = await chromium.launch({ headless: true });
     if (mode === "production") {
       await runCase("runtime-inspector:production-default-off", { width: 390, height: 844, locale: "en", text_scale: 1, requires_hydration: false }, () => testProductionGateOff(browser));
