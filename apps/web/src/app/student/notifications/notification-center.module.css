@@ -1,3 +1,7 @@
+:global(body):has(.shell) {
+  min-width: 0;
+}
+
 .shell {
   min-height: 100vh;
   background: #f5f7fa;
