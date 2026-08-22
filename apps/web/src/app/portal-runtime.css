@@ -1,0 +1,24 @@
+.student-portal-boundary {
+  display: contents;
+}
+
+.landing-brand:focus-visible,
+.landing-locale button:focus-visible,
+.landing-login-link:focus-visible,
+.landing-primary-cta:focus-visible,
+.landing-secondary-cta:focus-visible {
+  outline: 3px solid #00bfa6;
+  outline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .landing-nav {
+    flex-wrap: wrap;
+  }
+
+  .landing-login-link,
+  .landing-locale button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
