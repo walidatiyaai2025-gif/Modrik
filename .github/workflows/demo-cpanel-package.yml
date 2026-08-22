@@ -47,6 +47,10 @@ jobs:
         working-directory: apps/web
         run: npm run build
 
+      - name: Install Backend production dependencies
+        working-directory: apps/backend
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
       - name: Install Backend Admin asset dependencies
         working-directory: apps/backend
         run: npm install --no-audit --no-fund
@@ -58,10 +62,6 @@ jobs:
       - name: Verify Admin theme entered Vite manifest
         working-directory: apps/backend
         run: grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
-
-      - name: Install Backend production dependencies
-        working-directory: apps/backend
-        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
 
       - name: Assemble cPanel Demo ZIP
         run: bash scripts/package-demo-cpanel.sh
