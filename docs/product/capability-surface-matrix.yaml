@@ -14,9 +14,15 @@ capabilities:
   - id: admin.content.preparation
     area: content
     classification: admin_manageable
-    surface: ContentPreparationWizard / ContentPreparationRequests / ContentReviewQueue
+    surface: ContentOperations / ContentPreparationWizard / ContentPreparationRequests / ContentReviewQueue
     status: present
-    notes: Preparation request discovery and workflow surfaced by PR #178.
+    notes: Preparation request discovery and workflow surfaced by PR #178; Issue #182 adds a discoverable lifecycle hub without weakening Backend gates.
+  - id: admin.content.operations
+    area: content
+    classification: admin_manageable
+    surface: ContentOperations
+    status: present_on_issue_182_branch
+    notes: Guided lifecycle entry point linking Academic Track, Preparation, Ingestion/Processing, Rights and Review/Publish while preserving Backend authority.
   - id: admin.content.rights
     area: content
     classification: admin_manageable
@@ -73,8 +79,9 @@ capabilities:
   - id: admin.content.upload_ingestion
     area: content
     classification: admin_manageable
-    surface: null
-    status: audit_required
+    surface: ContentIngestionOperations / ContentPreparationWizard
+    status: present_on_issue_182_branch
+    notes: Operators can inspect returned-ZIP import state, processing checkpoint, attempts and safe error codes and retry only the existing authorized dry-run; upload remains bound to originating Preparation Requests and Backend validation.
   - id: admin.curriculum.rebuild
     area: content
     classification: admin_manageable
