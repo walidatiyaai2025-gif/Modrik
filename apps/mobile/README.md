@@ -20,7 +20,7 @@ Issue #31 consumes the Backend Auth contract from Issue #15; Flutter does not ow
 - Learning and `POST /v1/sync/answers` read the current opaque bearer dynamically. Existing Assessment question/order/scoring authority and Issue #14 operation-ID/payload/ACK semantics are unchanged.
 - Explicit logout, revoke-all and account deletion are blocked while pending/unsaved learning operations would otherwise be discarded.
 - Google/Apple buttons consume Backend one-time provider intents. The client-side provider launcher fails closed with `PROVIDER_CONFIGURATION_PENDING` until owner-controlled provider/store configuration exists. No production provider IDs, secrets, private keys or Firebase Auth source-of-truth are committed.
-- The old compile-time bearer exists only for the explicit synthetic fixture boundary (`MODRIK_FIXTURE_MODE=true`); production startup does not consume it.
+- Production startup accepts only the runtime API endpoint from compile-time environment configuration. Fixture credentials, academic context and lesson bootstrap data are not accepted from build-time switches; isolated tests inject their controllers and synthetic metadata directly through the test harness.
 
 Auth screens and account security UX provide AR/EN/FR, RTL/LTR, semantic labels/live status, large-text-safe scrolling, >=48px interactive targets, and explicit offline/configuration/provider failure states.
 

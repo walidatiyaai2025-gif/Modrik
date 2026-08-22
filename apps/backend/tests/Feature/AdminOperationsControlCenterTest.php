@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Filament\Pages\OperationsControlCenter;
 use App\Models\User;
 use App\Services\AdminOperationsOverviewService;
+use App\Services\SystemSettingsRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use Livewire\Livewire;
@@ -46,6 +47,27 @@ final class AdminOperationsControlCenterTest extends TestCase
         $this->assertStringNotContainsString('GOOGLE-SECRET-MUST-NOT-LEAK', $serialized);
         $this->assertStringNotContainsString('APPLE-PRIVATE-KEY-MUST-NOT-LEAK', $serialized);
         $this->assertStringNotContainsString('external-firebase-credential-reference', $serialized);
+    }
+
+    public function test_enabled_firebase_without_transport_adapter_is_never_reported_healthy(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
+        app(SystemSettingsRegistry::class)->update(
+            'firebase.fcm.enabled',
+            app()->environment(),
+            true,
+            0,
+            'Enable FCM for the truthful runtime-status regression test.',
+            (string) $admin->id,
+        );
+        config()->set('modrik.firebase.project_id', 'configured-project-reference');
+        config()->set('modrik.firebase.credentials_reference', 'external-credential-reference');
+
+        $overview = app(AdminOperationsOverviewService::class)->overview();
+
+        $this->assertSame('pending_adapter', $overview['integrations']['firebase_fcm_status']);
+        $this->assertSame('attention', $overview['integrations']['status']);
+        $this->assertStringContainsString('not available', $overview['integrations']['detail']);
     }
 
     public function test_operations_page_links_existing_authorized_surfaces_instead_of_exposing_shell_or_sql_controls(): void
