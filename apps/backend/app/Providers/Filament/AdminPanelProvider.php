@@ -12,6 +12,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -45,6 +46,12 @@ class AdminPanelProvider extends PanelProvider
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_LOGO_AFTER,
+                fn (): string => view('filament.release-badge', [
+                    'release' => $this->releaseVersion(),
+                ])->render(),
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -61,5 +68,17 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 RequireAdminPanelRole::class,
             ]);
+    }
+
+    private function releaseVersion(): string
+    {
+        $path = storage_path('app/modrik-release.txt');
+        if (! is_readable($path)) {
+            return 'dev';
+        }
+
+        $release = trim((string) file_get_contents($path));
+
+        return preg_match('/^[0-9a-f]{40}$/i', $release) === 1 ? strtolower($release) : 'dev';
     }
 }

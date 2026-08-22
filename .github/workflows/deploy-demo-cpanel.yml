@@ -67,6 +67,8 @@ jobs:
 
       - name: Build standalone Student Web
         working-directory: apps/web
+        env:
+          NEXT_PUBLIC_MODRIK_RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: npm run build
 
       - name: Install Backend production dependencies
