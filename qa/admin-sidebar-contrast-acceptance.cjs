@@ -90,8 +90,8 @@ async function collectCase(page, locale) {
   const styles = await page.evaluate(() => {
     const visible = (element) => element instanceof HTMLElement && element.getClientRects().length > 0;
     const firstVisible = (selector) => Array.from(document.querySelectorAll(selector)).find(visible);
-    const styleOf = (element) => {
-      if (!(element instanceof Element)) throw new Error("SIDEBAR_ELEMENT_MISSING");
+    const styleOf = (name, element) => {
+      if (!(element instanceof Element)) throw new Error(`SIDEBAR_ELEMENT_MISSING:${name}`);
       const style = getComputedStyle(element);
       return {
         color: style.color,
@@ -104,22 +104,35 @@ async function collectCase(page, locale) {
 
     const sidebarElement = firstVisible(".fi-sidebar");
     const groupLabel = firstVisible(".fi-sidebar-group-label");
-    const inactiveLabel = firstVisible(".fi-sidebar-item:not(.fi-active) .fi-sidebar-item-label");
-    const activeLabel = firstVisible(".fi-sidebar-item.fi-active .fi-sidebar-item-label");
-    const inactiveButton = inactiveLabel?.closest(".fi-sidebar-item-button");
-    const activeButton = activeLabel?.closest(".fi-sidebar-item-button");
-    const inactiveIcon = firstVisible(".fi-sidebar-item:not(.fi-active) .fi-sidebar-item-icon");
-    const activeIcon = firstVisible(".fi-sidebar-item.fi-active .fi-sidebar-item-icon");
+    const buttons = Array.from(document.querySelectorAll(".fi-sidebar-item-button")).filter(visible);
+    if (buttons.length < 2) throw new Error(`SIDEBAR_BUTTON_COUNT:${buttons.length}`);
+
+    const isActiveButton = (button) => {
+      if (!(button instanceof Element)) return false;
+      if (button.matches('[aria-current="page"], .fi-active')) return true;
+      if (button.closest(".fi-active")) return true;
+      const href = button instanceof HTMLAnchorElement ? new URL(button.href, location.href) : null;
+      return !!href && href.pathname.replace(/\/$/, "") === location.pathname.replace(/\/$/, "");
+    };
+
+    const activeButton = buttons.find(isActiveButton);
+    const inactiveButton = buttons.find((button) => !isActiveButton(button));
+    const labelFor = (button) => button?.querySelector(".fi-sidebar-item-label") || button?.closest(".fi-sidebar-item")?.querySelector(".fi-sidebar-item-label");
+    const iconFor = (button) => button?.querySelector(".fi-sidebar-item-icon") || button?.closest(".fi-sidebar-item")?.querySelector(".fi-sidebar-item-icon");
+    const activeLabel = labelFor(activeButton);
+    const inactiveLabel = labelFor(inactiveButton);
+    const activeIcon = iconFor(activeButton);
+    const inactiveIcon = iconFor(inactiveButton);
 
     return {
-      sidebar: styleOf(sidebarElement),
-      groupLabel: styleOf(groupLabel),
-      inactiveLabel: styleOf(inactiveLabel),
-      activeLabel: styleOf(activeLabel),
-      inactiveButton: styleOf(inactiveButton),
-      activeButton: styleOf(activeButton),
-      inactiveIcon: styleOf(inactiveIcon),
-      activeIcon: styleOf(activeIcon),
+      sidebar: styleOf("sidebar", sidebarElement),
+      groupLabel: styleOf("groupLabel", groupLabel),
+      inactiveLabel: styleOf("inactiveLabel", inactiveLabel),
+      activeLabel: styleOf("activeLabel", activeLabel),
+      inactiveButton: styleOf("inactiveButton", inactiveButton),
+      activeButton: styleOf("activeButton", activeButton),
+      inactiveIcon: styleOf("inactiveIcon", inactiveIcon),
+      activeIcon: styleOf("activeIcon", activeIcon),
     };
   });
 
@@ -139,7 +152,7 @@ async function collectCase(page, locale) {
   if (minimum(ratios.inactiveIcon) < 3) throw new Error(`${locale}:INACTIVE_ICON_CONTRAST:${minimum(ratios.inactiveIcon).toFixed(2)}`);
   if (minimum(ratios.activeIcon) < 3) throw new Error(`${locale}:ACTIVE_ICON_CONTRAST:${minimum(ratios.activeIcon).toFixed(2)}`);
 
-  const inactiveButton = page.locator(".fi-sidebar-item:not(.fi-active) .fi-sidebar-item-button").filter({ visible: true }).first();
+  const inactiveButton = page.locator(".fi-sidebar-item-button").filter({ visible: true }).filter({ hasNot: page.locator('[aria-current="page"]') }).first();
   const beforeHover = await inactiveButton.evaluate((element) => getComputedStyle(element).backgroundColor);
   await inactiveButton.hover();
   const afterHover = await inactiveButton.evaluate((element) => getComputedStyle(element).backgroundColor);
