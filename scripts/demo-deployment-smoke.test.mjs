@@ -9,14 +9,18 @@ import test from "node:test";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const smokeScript = path.join(root, "scripts", "verify-demo-deployment-smoke.sh");
 const workflowPath = path.join(root, ".github", "workflows", "deploy-demo-cpanel.yml");
+const remoteRunnerPath = path.join(root, "deploy", "demo", "deploy-demo-cpanel-remote.sh");
 const release = "0123456789abcdef0123456789abcdef01234567";
 const shortRelease = release.slice(0, 12);
+const webRelease = `<div data-testid="modrik-web-release-badge" title="MODRIK deployed release: ${release}">Build ${shortRelease}</div>`;
 
 function runSmoke({
   apiExit = "0",
   webExit = "0",
+  studentExit = "0",
   adminExit = "0",
-  webBody = `<div data-testid="modrik-web-release-badge" title="MODRIK deployed release: ${release}">Build ${shortRelease}</div>`,
+  webBody = `${webRelease}<main data-testid="modrik-landing-page"><a data-testid="modrik-student-portal-cta" href="/student">Student sign in</a></main>`,
+  studentBody = `${webRelease}<span data-testid="modrik-student-portal-route"></span><section class="auth-shell">Student auth</section>`,
   adminBody = `<span data-testid="modrik-release-badge" title="MODRIK deployed release: ${release}">Build ${shortRelease}</span>`,
   releaseSha = release,
 } = {}) {
@@ -33,6 +37,10 @@ case "$url" in
   "https://demo.test/")
     if [[ "\${FAKE_WEB_EXIT:-0}" != "0" ]]; then exit "\${FAKE_WEB_EXIT}"; fi
     printf '%s' "\${FAKE_WEB_BODY:-}"
+    ;;
+  "https://demo.test/student")
+    if [[ "\${FAKE_STUDENT_EXIT:-0}" != "0" ]]; then exit "\${FAKE_STUDENT_EXIT}"; fi
+    printf '%s' "\${FAKE_STUDENT_BODY:-}"
     ;;
   "https://demo.test/admin/login")
     if [[ "\${FAKE_ADMIN_EXIT:-0}" != "0" ]]; then exit "\${FAKE_ADMIN_EXIT}"; fi
@@ -54,11 +62,14 @@ esac
         PATH: `${directory}:${process.env.PATH ?? ""}`,
         MODRIK_DEMO_API_UP_URL: "https://demo.test/up",
         MODRIK_DEMO_WEB_URL: "https://demo.test/",
+        MODRIK_DEMO_STUDENT_URL: "https://demo.test/student",
         MODRIK_DEMO_ADMIN_LOGIN_URL: "https://demo.test/admin/login",
         FAKE_API_EXIT: apiExit,
         FAKE_WEB_EXIT: webExit,
+        FAKE_STUDENT_EXIT: studentExit,
         FAKE_ADMIN_EXIT: adminExit,
         FAKE_WEB_BODY: webBody,
+        FAKE_STUDENT_BODY: studentBody,
         FAKE_ADMIN_BODY: adminBody,
       },
     });
@@ -67,20 +78,45 @@ esac
   }
 }
 
-test("Demo release smoke accepts only matching Web and Admin build identities", () => {
+test("Demo release smoke accepts matching Landing, Student and Admin runtime identities", () => {
   const result = runSmoke();
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, new RegExp(`MODRIK_DEMO_RELEASE_SMOKE_OK release=${shortRelease}`));
-  assert.doesNotMatch(result.stdout, /data-testid|<div|<span/);
+  assert.match(result.stdout, new RegExp(`MODRIK_DEMO_RELEASE_SMOKE_OK release=${shortRelease} landing=PASS student=PASS admin=PASS`));
+  assert.doesNotMatch(result.stdout, /data-testid|<div|<span|<section/);
 });
 
 test("Demo release smoke fails closed when the Web build identity is stale", () => {
-  const stale = "aaaaaaaaaaaa";
-  const result = runSmoke({
-    webBody: `<div data-testid="modrik-web-release-badge">Build ${stale}</div>`,
-  });
+  const result = runSmoke({ webBody: `<div data-testid="modrik-web-release-badge">Build aaaaaaaaaaaa</div>` });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /MODRIK_DEPLOY_WEB_RELEASE_MISMATCH/);
+});
+
+test("Demo release smoke fails closed when Landing loses the Student Portal route", () => {
+  const result = runSmoke({ webBody: `${webRelease}<main data-testid="modrik-landing-page"></main>` });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /MODRIK_DEPLOY_LANDING_ROUTE_MISMATCH/);
+});
+
+test("Demo release smoke classifies an unreachable Student Portal without printing its body", () => {
+  const result = runSmoke({ studentExit: "22", studentBody: "SECRET_STUDENT_BODY" });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /MODRIK_DEPLOY_STUDENT_UNREACHABLE/);
+  assert.doesNotMatch(`${result.stdout}${result.stderr}`, /SECRET_STUDENT_BODY/);
+});
+
+test("Demo release smoke fails closed when Student serves the wrong release", () => {
+  const bad = "b".repeat(40);
+  const result = runSmoke({
+    studentBody: `<div data-testid="modrik-web-release-badge" title="MODRIK deployed release: ${bad}">Build ${bad.slice(0, 12)}</div><span data-testid="modrik-student-portal-route"></span><section class="auth-shell">Student auth</section>`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /MODRIK_DEPLOY_STUDENT_RELEASE_MISMATCH/);
+});
+
+test("Demo release smoke fails closed when Student returns the wrong route shell", () => {
+  const result = runSmoke({ studentBody: `${webRelease}<main data-testid="modrik-landing-page"></main>` });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /MODRIK_DEPLOY_STUDENT_ROUTE_MISMATCH/);
 });
 
 test("Demo release smoke classifies an unreachable Admin login without printing its body", () => {
@@ -109,4 +145,13 @@ test("cPanel deployment workflow keeps the exact release smoke mandatory", () =>
   assert.match(workflow, /name: External post-deploy release smoke/);
   assert.match(workflow, /RELEASE_SHA: \$\{\{ steps\.release\.outputs\.sha \}\}/);
   assert.match(workflow, /bash scripts\/verify-demo-deployment-smoke\.sh "\$RELEASE_SHA"/);
+});
+
+test("remote cPanel runner refuses to record success without Landing and Student runtime markers", () => {
+  const runner = readFileSync(remoteRunnerPath, "utf8");
+  assert.match(runner, /https:\/\/demo\.modrik\.org\/student/);
+  assert.match(runner, /modrik-landing-page/);
+  assert.match(runner, /modrik-student-portal-cta/);
+  assert.match(runner, /modrik-student-portal-route/);
+  assert.match(runner, /Student Portal Auth runtime did not render after copy/);
 });
