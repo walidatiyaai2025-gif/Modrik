@@ -10,10 +10,11 @@ class MobileBootstrapConfig {
   const MobileBootstrapConfig({
     required this.apiBaseUrl,
     this.bearerToken,
-    this.fixtureMode = false,
+    bool fixtureMode = false,
     this.initialLessonId,
-    this.academicTrackId,
-  });
+    String? academicTrackId,
+  })  : academicTrackId = academicTrackId,
+        fixtureMode = fixtureMode || academicTrackId != null;
 
   factory MobileBootstrapConfig.fromEnvironment() {
     const rawBase = String.fromEnvironment('MODRIK_API_BASE_URL');
