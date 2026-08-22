@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\ContentPreparationRequests;
+use App\Filament\Pages\SystemCapabilities;
 use App\Models\User;
 use App\Services\ContentAdminWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,6 +68,44 @@ class CapabilitySurfaceParityTest extends TestCase
 
         App::setLocale('fr');
         $this->assertSame('Demandes de préparation', ContentPreparationRequests::getNavigationLabel());
+    }
+
+    public function test_admin_capability_registry_lists_interactive_student_background_policy_internal_and_gated_surfaces(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'locale' => 'en',
+        ]);
+        $this->actingAs($admin);
+
+        $component = Livewire::test(SystemCapabilities::class)
+            ->assertSee('Content preparation, prompt/bundle and returned ZIP')
+            ->assertSee('Preparation request history and saved settings')
+            ->assertSee('Content rights and evidence review')
+            ->assertSee('Dry-run, review, canonical import, publication and retry')
+            ->assertSee('Registration, login, verification, recovery, sessions and account')
+            ->assertSee('Academic catalogue, activation and reset/change')
+            ->assertSee('Study and lesson reading')
+            ->assertSee('Practice/assessment with server-authoritative order and scoring')
+            ->assertSee('Progress and mastery')
+            ->assertSee('Offline answer sync, retry and conflict recovery')
+            ->assertSee('Advertising eligibility and no-ad policy')
+            ->assertSee('Outbox, idempotency and publication transaction controls')
+            ->assertSee('Runtime Inspector, diagnostics and correlation')
+            ->assertSee('Background')
+            ->assertSee('Policy')
+            ->assertSee('Internal')
+            ->assertSee('Gated');
+
+        $this->assertCount(13, $component->instance()->capabilities());
+
+        $component
+            ->call('setLocale', 'ar')
+            ->assertSee('وظائف النظام')
+            ->assertSeeHtml('dir="rtl"')
+            ->call('setLocale', 'fr')
+            ->assertSee('Fonctions du système')
+            ->assertSeeHtml('dir="ltr"');
     }
 
     public function test_release_badge_shows_short_build_and_preserves_full_sha_for_verification(): void
