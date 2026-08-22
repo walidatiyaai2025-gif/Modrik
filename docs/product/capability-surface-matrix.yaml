@@ -22,12 +22,54 @@ capabilities:
     classification: admin_manageable
     surface: ContentOperations
     status: present_on_issue_182_branch
-    notes: Guided lifecycle entry point linking Academic Track, Preparation, Ingestion/Processing, Rights and Review/Publish while preserving Backend authority.
+    notes: Guided lifecycle entry point with KPI summary linking Academic Track, Preparation, Ingestion/Processing, Rights, Review/Publish, exception triage and traceability while preserving Backend authority.
   - id: admin.content.rights
     area: content
     classification: admin_manageable
     surface: ContentRightsReview
     status: present
+  - id: admin.content.upload_ingestion
+    area: content
+    classification: admin_manageable
+    surface: ContentIngestionOperations / ContentPreparationWizard
+    status: present_on_issue_182_branch
+    notes: Returned-ZIP import state, processing checkpoint, attempts and safe error codes are visible; retry is limited to the existing authorized dry-run and upload stays bound to originating Preparation Requests.
+  - id: admin.content.review_exceptions
+    area: content
+    classification: admin_manageable
+    surface: ContentReviewExceptions
+    status: present_on_issue_182_branch
+    notes: Triage queue is derived from persisted operation failure/block state, rights review status, review decisions and deterministic dry-run blocking codes. It routes to existing authorized mutation surfaces and does not create a parallel workflow.
+  - id: admin.content.traceability_versions
+    area: content
+    classification: read_only_operational
+    surface: ContentTraceability
+    status: present_on_issue_182_branch
+    notes: Read-only request/archive/content/dry-run hash linkage, rights evidence reference, review/publication state, canonical lesson/question/quiz versions and preparation supersession history.
+  - id: admin.content.automated_confidence
+    area: content
+    classification: deferred_disabled
+    surface: ContentReviewExceptions (read-only status)
+    status: backend_contract_missing
+    notes: No Backend confidence-scoring contract exists. Operators see real validation/dry-run/review signals only; no synthetic confidence score is invented.
+  - id: admin.curriculum.rebuild
+    area: content
+    classification: deferred_disabled
+    surface: ContentTraceability (read-only status)
+    status: backend_contract_missing
+    notes: Current Backend implements deterministic dry-run diff, versioned canonical content and supersession protection but no approved curriculum rebuild preview/execution/rollback service. No fake action is exposed.
+  - id: admin.content.official_video
+    area: content
+    classification: deferred_disabled
+    surface: null
+    status: not_implemented_or_activated
+    notes: Official educational video management is not implemented/activated in the current P0 Backend and remains unavailable.
+  - id: admin.content.past_papers
+    area: content
+    classification: deferred_disabled
+    surface: null
+    status: not_implemented_or_activated
+    notes: Past-paper management has no activated P0 Backend contract and remains unavailable rather than being represented by a fake Admin route.
   - id: admin.academic.catalogue
     area: academic
     classification: admin_manageable
@@ -73,17 +115,6 @@ capabilities:
     status: present
   - id: admin.exam.question_management
     area: assessment
-    classification: admin_manageable
-    surface: null
-    status: audit_required
-  - id: admin.content.upload_ingestion
-    area: content
-    classification: admin_manageable
-    surface: ContentIngestionOperations / ContentPreparationWizard
-    status: present_on_issue_182_branch
-    notes: Returned-ZIP import state, processing checkpoint, attempts and safe error codes are visible; retry is limited to the existing authorized dry-run and upload stays bound to originating Preparation Requests.
-  - id: admin.curriculum.rebuild
-    area: content
     classification: admin_manageable
     surface: null
     status: audit_required
