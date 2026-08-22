@@ -498,7 +498,7 @@ final class AcademicCatalogue extends Page
         }
 
         $segments = preg_split('/[:\/]+/', $reference) ?: [$reference];
-        if ($segments !== [] && in_array(Str::upper((string) $segments[0]), ['BOARD', 'SYLLABUS', 'YEAR', 'TRACK', 'SUBJECT'], true)) {
+        if (in_array(Str::upper((string) $segments[0]), ['BOARD', 'SYLLABUS', 'YEAR', 'TRACK', 'SUBJECT'], true)) {
             array_shift($segments);
         }
         if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
