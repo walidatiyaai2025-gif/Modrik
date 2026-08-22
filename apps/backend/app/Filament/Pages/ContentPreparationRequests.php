@@ -2,17 +2,21 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Support\AdminNavigationGroup;
 use App\Models\User;
 use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use UnitEnum;
 
 final class ContentPreparationRequests extends Page
 {
     protected string $view = 'filament.pages.content-preparation-requests';
 
     protected static ?string $slug = 'content-preparation-requests';
+
+    protected static string|UnitEnum|null $navigationGroup = AdminNavigationGroup::Content;
 
     public string $statusFilter = 'all';
 
