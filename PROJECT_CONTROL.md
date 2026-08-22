@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-22
-Last reconciled baseline: `88d4e7c3faed50931ea6de0c604283301c9a28bb`
+Last reconciled baseline: `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -41,16 +41,17 @@ Immutable historical facts known at this checkpoint:
 - PR #197 / Issue #190 merged at `4c4b243f31493b9a75ba095e67fe1d4ad893047e` — non-self-staling control-state semantics and CI guard.
 - PR #198 / Issue #181 merged at `0b086b7d20988a4b1f9927502e6acb9939026cc8` — typed/versioned settings plus Auth Providers, Notifications, Firebase Runtime and Advertising & Safety Admin surfaces.
 - PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb` — capability-matrix reconciliation after #198.
+- PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c` — complete supported Content Operations surfaces, ingestion/retry, exception triage, provenance/traceability, version/coverage visibility and truthful deferred classifications.
 
-Active management-surface implementation at this checkpoint is #182–#184, with separate focused remediation/UX candidates #200/#199, #208/#209 and #210/#211. Support/QA Issues may inspect/report but do not take domain implementation or merge authority.
+Active management-surface implementation at this checkpoint is #183–#184, with separate focused remediation/UX candidates #200/#199, #208/#209 and #210/#211. Support/QA Issues may inspect/report but do not take domain implementation or merge authority.
 
 ## Current execution policy
 
-- #182 / PR #201 remains Draft/incomplete; Content Operations cannot be declared complete until review/exceptions, provenance/versioning, rebuild/rollback/supersession and required KPIs are implemented or explicitly decomposed, and full exact-head CI is green.
+- #182 is integrated via PR #201. Content Pack validation, rights, review/publication and no-UGC-auto-promotion authority remain Backend-owned; unsupported automated confidence/rebuild/video/past-paper capabilities remain explicitly deferred rather than represented by fake controls.
 - #183 / PR #207 is a first Assessment visibility stage only. Its capability-matrix entry must not imply complete Admin management while Issue #183 scope remains broader. Attempt seed, selected set/order, resume order and scoring snapshots remain `internal_non_editable`.
 - #184 remains an independent packet for Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces.
 - #200/#199 must preserve Backend-generated canonical identity and publication authority.
-- #208/#209 must not bypass Backend academic-context reset/archive authority and currently requires CI remediation before integration.
+- #208/#209 must not bypass Backend academic-context reset/archive authority and requires exact-head green CI before integration.
 - #210/#211 is a focused Admin readability fix and requires fresh exact-head validation after reconciliation onto live main.
 
 ## Merge and CI policy

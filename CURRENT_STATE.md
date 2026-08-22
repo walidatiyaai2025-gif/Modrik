@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 Updated: 2026-08-22
-Last reconciled baseline: `88d4e7c3faed50931ea6de0c604283301c9a28bb`
+Last reconciled baseline: `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
 
@@ -15,6 +15,7 @@ Live repository state must be fetched from GitHub before using this checkpoint. 
 - PR #197 / Issue #190 merged at `4c4b243f31493b9a75ba095e67fe1d4ad893047e`, integrating non-self-staling control-state semantics and the control-state CI guard.
 - PR #198 / Issue #181 merged at `0b086b7d20988a4b1f9927502e6acb9939026cc8`, integrating typed/versioned System Settings plus safe Authentication Provider, Notifications, Firebase Runtime and Advertising & Safety Admin surfaces.
 - PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb`, reconciling the capability matrix so the integrated #181 surfaces are recorded as present.
+- PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`, integrating Content Operations lifecycle/navigation, ingestion/retry, review-exception triage, provenance/traceability, canonical version/coverage visibility and explicit deferred classifications for unsupported Backend capabilities.
 
 Every implemented/configurable capability remains classified as exactly one of `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, or `deferred_disabled`.
 
@@ -22,11 +23,10 @@ Security-sensitive values and authority remain non-editable where required. Prov
 
 ## Active implementation queue at this checkpoint
 
-- #182 / PR #201 — Content Operations management surfaces. Draft and not integration-ready; current head remains behind this checkpoint and requires full Issue completion plus fresh governed CI.
-- #183 / PR #207 — Assessment Question Bank/Exam/Practice Admin surface work. Current PR is only a first visibility stage; Issue completion must not overstate `admin_manageable` coverage or expose seed/order/scoring authority.
+- #183 / PR #207 — Assessment Question Bank/Exam/Practice Admin surface work. Current PR is a first visibility stage and must be reconciled to the integrated Content Operations baseline before any integration verdict; Issue completion must not overstate `admin_manageable` coverage or expose seed/order/scoring authority.
 - #184 — Accounts/RBAC/Sessions, Public/Legal/Help and remaining operational surfaces.
-- #200 / PR #199 — non-technical Admin lookup/guided content-publication UX hardening; remains a separate Draft integration candidate requiring current-main reconciliation.
-- #208 / PR #209 — first-class Student academic-track change UX; current CI evidence is red and must be corrected before integration.
+- #200 / PR #199 — non-technical Admin lookup/guided content-publication UX hardening; remains a separate integration candidate requiring current-main reconciliation.
+- #208 / PR #209 — first-class Student academic-track change UX; requires exact-head green governed CI before integration.
 - #210 / PR #211 — Admin sidebar readability/contrast; focused candidate requires reconciliation onto the live integrated baseline and fresh exact-head acceptance.
 
 Bounded support/QA packets may publish evidence/findings but do not own domain implementation or merge authority.
@@ -35,13 +35,13 @@ Bounded support/QA packets may publish evidence/findings but do not own domain i
 
 The prior P0/Pilot engineering baseline remains historically valid, including governed run `32493326967`, normal/strict Pilot `PASS=16 FAIL=0 BLOCKED=0`, Chromium core `13 PASS / 0 FAIL`, PR #114 terminal browser acceptance and PR #112 fixture-backed Pilot harness.
 
-Recent follow-on evidence includes green exact-head integration evidence for PRs #187, #189, #196, #197, #198 and #204 before their respective merges. Red CI remains merge-blocking; historical failed runs remain evidence and are not rewritten as successful merely because a later fix exists.
+Recent follow-on evidence includes green exact-head integration evidence for PRs #187, #189, #196, #197, #198, #204 and #201 before their respective merges. PR #201 exact-head `af8fc852320622085e5a3f5e8ef574ead409c0b6` passed Bootstrap CI #896, Admin UX Browser Acceptance #58, Content Operations Browser Acceptance #9 and Demo cPanel Package #132 before merge. Red CI remains merge-blocking; historical failed runs remain evidence and are not rewritten as successful merely because a later fix exists.
 
 ## Real-content evaluation state
 
 Preparation request `01M0JVVQY8KGQG628BNPWBJBJK` accepted/staged the returned Content Pack archive. Its dry-run reported `CONTENT_TARGET_TRACK_MISSING` because the referenced academic track was absent from canonical `academic_tracks`.
 
-The Backend fail-closed check remains correct. The operator gap that caused the hidden-SQL temptation was closed by PR #189 through Academic Catalogue Management. The actual board/syllabus/version values must still come from owner-authorized preparation scope or another approved source; they must not be fabricated.
+The Backend fail-closed check remains correct. The operator gap that caused the hidden-SQL temptation was closed by PR #189 through Academic Catalogue Management, and PR #201 now makes the authorized Content Operations lifecycle, ingestion state, retry, exception triage and traceability discoverable. The actual board/syllabus/version values must still come from owner-authorized preparation scope or another approved source; they must not be fabricated.
 
 Content rights remain a separate gate. `pending_review` content must continue through the evidence-backed rights workflow before official publication.
 

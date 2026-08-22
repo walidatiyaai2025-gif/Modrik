@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-08-22
-Last reconciled baseline: `88d4e7c3faed50931ea6de0c604283301c9a28bb`
+Last reconciled baseline: `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -15,8 +15,8 @@ All repository-verifiable prior P0/Pilot implementation reached terminal green b
 - [x] #185 — shared professional Admin UX foundation via PR #187.
 - [x] #180 — Academic Catalogue Management via PR #189; `CONTENT_TARGET_TRACK_MISSING` has supported Admin remediation.
 - [x] #181 — typed/versioned System Settings + Auth Providers + Notifications + Firebase Runtime + Advertising & Safety surfaces via PR #198; capability matrix reconciled by PR #204.
-- [ ] #182 — complete Content Operations: Upload/Ingestion/Review/Provenance/Rebuild/media/past-paper lifecycle. PR #201 is active Draft and incomplete.
-- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants. PR #207 is only a first visibility stage and must not overstate capability completion.
+- [x] #182 — Content Operations management surfaces via PR #201; implemented lifecycle, ingestion/retry, review exceptions, provenance/traceability and version/coverage surfaces are integrated, while unsupported Backend capabilities remain explicitly deferred.
+- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants. PR #207 is an active first visibility stage and requires current-main reconciliation plus Issue-level completion review.
 - [ ] #184 — Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces and explicit deferred classifications.
 
 ### Global DoD for this workstream
@@ -32,11 +32,10 @@ All repository-verifiable prior P0/Pilot implementation reached terminal green b
 
 ## Current parallel implementation / remediation queue
 
-- [ ] #182 / PR #201 — finish Content Operations vertical slice, fix current Backend static-analysis defect, reconcile to live main, then obtain full exact-head CI/browser/package evidence.
-- [ ] #183 / PR #207 — reconcile to live main and either complete the coherent manageable assessment slice or keep matrix status explicitly partial/audit-required.
-- [ ] #184 — begin/continue Accounts/RBAC/Sessions + Public/Legal/Help packet without overlapping #182/#183 contracts.
+- [ ] #183 / PR #207 — reconcile onto the post-#201 main baseline; review the broader Issue #183 DoD and complete only dependency-safe Assessment Admin gaps without exposing seed/order/resume/scoring authority.
+- [ ] #184 — begin/continue Accounts/RBAC/Sessions + Public/Legal/Help packet without overlapping #183 contracts.
 - [ ] #200 / PR #199 — reconcile non-technical Admin lookup/guided publication UX onto current main; preserve Backend-generated identities and publication authority.
-- [ ] #208 / PR #209 — fix red integrated browser-runtime academic-track navigation/state acceptance, then reconcile and rerun governed CI.
+- [ ] #208 / PR #209 — obtain full exact-head governed CI for the Student academic-track change flow, then reconcile and integrate only if green.
 - [ ] #210 / PR #211 — reconcile focused sidebar contrast fix onto current main and rerun Bootstrap + Admin Browser + Demo Package.
 
 ## P0 control-plane / release tasks
@@ -45,7 +44,7 @@ All repository-verifiable prior P0/Pilot implementation reached terminal green b
 - [x] #152 / PR #153 — fixture-only Demo learner sign-in integrated at `3f0feebcf50721c3cdf646c5a917ca21c8e25374`.
 - [x] cPanel packaging defect from deployment run `32563427725` fixed by PR #196.
 - [ ] Re-run `Deploy MODRIK Demo to cPanel` with `DEPLOY` from a known integrated main SHA, then verify Backend health, Student Web, Admin and visible Build SHA before advancing deployment state.
-- [ ] #212 — reconcile control checkpoint after #198/#204 without reintroducing self-staling main semantics.
+- [ ] #212 / PR #213 — reconcile the control checkpoint through integrated #201 and update capability truth after Content Operations integration; merge only after governed control-state/Bootstrap CI is green.
 
 ## Real-content evaluation tasks
 
