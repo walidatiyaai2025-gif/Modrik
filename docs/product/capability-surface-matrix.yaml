@@ -234,6 +234,12 @@ capabilities:
     classification: read_only_operational
     surface: Admin/Student header build badge
     status: present
+  - id: client.windows
+    area: platform
+    classification: deferred_disabled
+    surface: null
+    status: deferred_by_locked_launch_scope
+    notes: Locked launch scope includes Student Web plus Android/iOS and Web Admin; Windows is explicitly deferred and must remain unavailable until a future owner-authorized activation changes that decision.
   - id: community.q_and_a
     area: community
     classification: deferred_disabled
