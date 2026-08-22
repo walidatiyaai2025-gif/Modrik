@@ -144,11 +144,18 @@ capabilities:
     classification: admin_manageable
     surface: null
     status: audit_required
-  - id: admin.public_legal_help
+  - id: admin.public_legal_help.visibility
     area: public
-    classification: admin_manageable
-    surface: null
-    status: audit_required
+    classification: read_only_operational
+    surface: PublicLegalStatus
+    status: present
+    notes: Issue #224 exposes the existing AR/EN/FR public/help/legal surface, route/template/indexability state and explicit owner/legal blockers without creating edit or publication authority.
+  - id: admin.public_legal_help.management
+    area: public
+    classification: deferred_disabled
+    surface: PublicLegalStatus (read-only boundary)
+    status: backend_contract_missing
+    notes: No approved Backend mutation/version/publication contract exists for legal wording or owner/legal facts. Final entity/controller, jurisdiction, contact, processing, vendor, transfer, retention, age/safety, effective-date and policy-version values remain owner/legal inputs and cannot be fabricated.
   - id: admin.system.capabilities
     area: operations
     classification: read_only_operational
