@@ -42,10 +42,14 @@ final class AdminPublicLegalStatusTest extends TestCase
             ->assertSee('not_implemented')
             ->assertSee('blocked_pending_owner_legal_inputs');
 
-        $source = file_get_contents(base_path('../../web/src/public-site/content.ts'));
+        $source = file_get_contents(base_path('../web/src/public-site/content.ts'));
         $this->assertIsString($source);
 
-        foreach ($component->instance()->publicPages() as $page) {
+        /** @var PublicLegalStatus $instance */
+        $instance = $component->instance();
+        $this->assertInstanceOf(PublicLegalStatus::class, $instance);
+
+        foreach ($instance->publicPages() as $page) {
             if ($page['key'] === 'landing') {
                 continue;
             }
@@ -53,7 +57,7 @@ final class AdminPublicLegalStatusTest extends TestCase
             $this->assertStringContainsString('key: "'.$page['key'].'"', $source);
         }
 
-        foreach ($component->instance()->legalBlockers() as $blocker) {
+        foreach ($instance->legalBlockers() as $blocker) {
             $this->assertStringContainsString('"'.$blocker.'"', $source);
         }
     }
