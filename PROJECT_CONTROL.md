@@ -1,8 +1,8 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-22
-Control baseline `main` SHA: `41bb2959387bc1a01995d643d6419713d5ba0e56`
-Current owner-authorized follow-on governance: Issue #179 (`P0-GOV-SURFACES-001`).
+Control baseline `main` SHA: `003e90a5fb64540d310a35418ce653553b38eee0`
+Integrated follow-on governance: Issue #179 (`P0-GOV-SURFACES-001`) via PR #186. Active implementation children: #185 and #180–#184.
 
 This file is the repository-level operational control plane. Locked decisions, the full MODRIK Master Product & Engineering Plan, REQ/AC, ADRs, OpenAPI, schemas, migrations and executable tests remain authoritative above status prose.
 
@@ -22,7 +22,7 @@ Only the owner may approve or provide:
 
 Missing owner values block only the affected activation/release task. They must never be fabricated.
 
-The owner directive of 2026-08-22 additionally establishes `GOV-SURFACE-001`: every implemented/configurable capability must have a discoverable intentional UI/status surface or be explicitly classified as internal/non-editable/deferred. This is a completion rule, not permission to weaken security or activate deferred scope.
+The owner directive of 2026-08-22 establishes `GOV-SURFACE-001`: every implemented/configurable capability must have a discoverable intentional UI/status surface or be explicitly classified as internal/non-editable/deferred. This is a completion rule, not permission to weaken security or activate deferred scope.
 
 ### Hands-off owner mode
 
@@ -32,7 +32,9 @@ Engineering, repository, PR, CI, documentation, conflict-resolution and release-
 
 Issues #34 and #43 completed/closed their terminal P0/Pilot integration/orchestration responsibilities. No old Wave is reopened implicitly.
 
-Issue #179 is a newly owner-authorized cross-domain governance/workstream. Its implementation must still enter through focused Issues/PRs with explicit ownership and green CI; no child implementation may redefine Auth, Academic, Assessment, Sync, Content, Safety or publication authority merely to expose a UI.
+Issue #179 governance is integrated and closed via PR #186 at `003e90a5fb64540d310a35418ce653553b38eee0`. Its child implementation work continues through focused Issues #185 and #180–#184 with explicit ownership and green CI. No child implementation may redefine Auth, Academic, Assessment, Sync, Content, Safety or publication authority merely to expose a UI.
+
+The Integration Captain remains the sole merge authority for the active implementation wave. Domain workers do not merge their own PRs.
 
 ### Domain authority
 
@@ -45,7 +47,9 @@ Operator-facing pages configure only the parameters that their owning contract p
 Normative references:
 - `docs/product/CAPABILITY_SURFACE_GOVERNANCE.md`
 - `docs/product/capability-surface-matrix.yaml`
-- Issue #179
+- `REQ-P0-015`
+- `AC-P0-021`
+- completed Issue #179 / merged PR #186
 
 Every capability/setting must be classified as exactly one of:
 - `admin_manageable`
@@ -65,7 +69,16 @@ Project-wide rules:
 - Every new capability/settings change must update the capability-to-surface matrix and automated navigation/surface regression coverage.
 - Applicable UI surfaces cover AR/EN/FR, RTL/LTR, permission, loading, empty, error, retry and degraded states.
 
-The immediate priority under Issue #179 is the missing Academic Catalogue Management surface because the real-content preparation dry-run correctly blocks with `CONTENT_TARGET_TRACK_MISSING` when the referenced owner-approved track is absent. The fix is an authorized Admin catalogue-management workflow, not a hidden SQL insertion and not weakening the Backend check.
+The immediate product-operability priority is Issue #180, the missing Academic Catalogue Management surface, because the real-content preparation dry-run correctly blocks with `CONTENT_TARGET_TRACK_MISSING` when the referenced owner-approved track is absent. The fix is an authorized Admin catalogue-management workflow, not hidden SQL insertion and not weakening the Backend check.
+
+Issue #185 provides the shared Admin design-system/shell/dashboard quality foundation required by #180–#184. Domain capability may progress independently where ownership is safe, but no child Admin UI is complete until it consumes the shared foundation and passes its responsive/accessibility/localization quality gate.
+
+## Current integration / CI state
+
+- Current `main`: `003e90a5fb64540d310a35418ce653553b38eee0`.
+- PR #187 / Issue #185 is open and draft at head `2d8f5e7dbfd93251574a9e262f15571c58b79feb`, based on pre-governance `main` `41bb2959387bc1a01995d643d6419713d5ba0e56`; it requires semantic reconciliation onto current `main`.
+- Bootstrap CI run `32544954895` is red only in `backend-mariadb`: two `AdminUxFoundationTest` HTTP requests return 500 under MariaDB while the SQLite/backend job passes. Contracts, Web, Mobile, secret scan, dependency review and Pilot smoke are green. Demo cPanel Package run `32544954911` is green. This is a merge-blocking portability defect, not infrastructure noise.
+- PR #153 / Issue #152 remains an older Demo fixture-login candidate and must be reconciled onto current `main` with fresh exact-head governed CI before integration consideration.
 
 ## Merge and CI policy
 
@@ -97,7 +110,7 @@ Key terminal evidence remains:
 Follow-on UI/demo evidence:
 - Issue #177 audited immediate capability-to-navigation parity;
 - PR #178 merged at `41bb2959387bc1a01995d643d6419713d5ba0e56`, adding preparation-request discovery, capability links and visible deployed Build SHA;
-- Issue #179 now broadens the rule from immediate parity repair to permanent whole-product capability/settings governance.
+- PR #186 merged at `003e90a5fb64540d310a35418ce653553b38eee0`, integrating permanent whole-product capability/settings governance.
 
 ## Master Plan surface priorities
 
@@ -114,13 +127,15 @@ The full Master Product & Engineering Plan explicitly defines or implies operato
 - Public/Legal/Help content status/configuration;
 - System Settings Registry, runtime/integration health and configuration audit/history.
 
-Child Issues under #179 must close these gaps in dependency-safe, domain-owned packets rather than building one unbounded Settings page.
+Child Issues #180–#184 close these gaps in dependency-safe, domain-owned packets. Issue #185 owns only the shared Admin presentation/interaction foundation; it does not absorb those domain contracts.
 
 ## Demo deployment authorization
 
 The owner has explicitly authorized an **evaluation/demo deployment** at `demo.modrik.org` for visual and functional review.
 
 Confirmed cPanel document root: `/public_html/demo.modrik.org`; expected absolute path from the existing account home: `/home/solscool/public_html/demo.modrik.org/`.
+
+The last repository-recorded deployed Demo build remains `41bb2959387bc1a01995d643d6419713d5ba0e56`. Governance merge `003e90a5fb64540d310a35418ce653553b38eee0` is not recorded as deployed.
 
 This authorization:
 - does **not** replace or modify the `modrik.org` Coming Soon cutover boundary;
