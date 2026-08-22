@@ -47,7 +47,7 @@ All repository-verifiable prior P0/Pilot implementation reached terminal green b
 - [x] #152 / PR #153 — fixture-only Demo learner sign-in integrated at `3f0feebcf50721c3cdf646c5a917ca21c8e25374`.
 - [x] cPanel packaging defect from deployment run `32563427725` fixed by PR #196.
 - [x] Re-run `Deploy MODRIK Demo to cPanel` from an integrated main SHA and verify package, FTPS transfer, protected remote bridge and external Demo/API smoke. Run `32563427725`, attempt 2, succeeded for baseline `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
-- [ ] #212 / PR #213 — integrate/reconcile the control checkpoint only if still needed after the newer live-state reconciliation; do not merge stale control prose over current GitHub truth.
+- [x] #212 / PR #213 — post-Settings/Content project-control reconciliation integrated at `b96e5e638f308c90b4781ad787893c31663bbcbf`; newer checkpoints must preserve GitHub-first semantics rather than reintroducing stale live-main assertions.
 
 ## Real-content evaluation tasks
 
