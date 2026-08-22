@@ -51,9 +51,9 @@ return new class extends Migration
             $table->timestamp('occurred_at');
             $table->timestamps();
 
-            $table->index(['integration', 'operation', 'occurred_at']);
-            $table->index(['environment', 'occurred_at']);
-            $table->index(['actor_id', 'occurred_at']);
+            $table->index(['integration', 'operation', 'occurred_at'], 'ioa_integration_operation_time_idx');
+            $table->index(['environment', 'occurred_at'], 'ioa_environment_time_idx');
+            $table->index(['actor_id', 'occurred_at'], 'ioa_actor_time_idx');
         });
     }
 
