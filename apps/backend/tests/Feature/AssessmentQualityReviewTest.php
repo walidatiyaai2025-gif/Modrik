@@ -14,17 +14,28 @@ class AssessmentQualityReviewTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_review_persisted_quality_metadata_without_student_private_data(): void
+    public function test_admin_can_review_persisted_quality_metadata_and_effective_option_order_safety(): void
     {
         config()->set('modrik.fixture.enabled', true);
         $this->seed(LearningSliceSeeder::class);
 
-        $questionId = (string) DB::table('questions')->orderBy('id')->value('id');
-        DB::table('questions')->where('id', $questionId)->update([
+        $questionIds = DB::table('questions')->orderBy('id')->pluck('id')->map(static fn ($id): string => (string) $id)->values()->all();
+        $this->assertGreaterThanOrEqual(2, count($questionIds));
+
+        DB::table('questions')->where('id', $questionIds[0])->update([
             'assessment_metadata' => json_encode([
                 'section' => 'reading',
                 'difficulty' => 'core',
                 'concepts' => ['review-step'],
+            ], JSON_THROW_ON_ERROR),
+            'option_shuffle_safe' => true,
+            'updated_at' => now(),
+        ]);
+        DB::table('questions')->where('id', $questionIds[1])->update([
+            'assessment_metadata' => json_encode([
+                'section' => 'sequence',
+                'difficulty' => 'core',
+                'option_order_semantics' => 'sequence',
             ], JSON_THROW_ON_ERROR),
             'option_shuffle_safe' => true,
             'updated_at' => now(),
@@ -42,10 +53,12 @@ class AssessmentQualityReviewTest extends TestCase
             ->assertSee('Question Quality Review')
             ->assertSee('Question quality signals — read only')
             ->assertSee('reading')
-            ->assertSee('core')
             ->assertSee('review-step')
             ->assertSee('Shuffle-safe')
-            ->assertSee('Historical snapshots are aggregate-only here.')
+            ->assertSee('Safety override active')
+            ->assertSee('Ordering semantics require preservation.')
+            ->assertSee('sequence')
+            ->assertSee('Historical attempt snapshots are aggregate-only here.')
             ->assertSee('Open Question Bank details')
             ->assertSee('data-testid="modrik-assessment-quality-review"', false)
             ->assertDontSee('seed_encrypted')
@@ -87,6 +100,11 @@ class AssessmentQualityReviewTest extends TestCase
         $this->assertStringContainsString('wire:model.live="metadataFilter"', $view);
         $this->assertStringContainsString('wire:model.live="shuffleFilter"', $view);
         $this->assertStringContainsString('wire:model.live.debounce.250ms="search"', $view);
+        $this->assertStringContainsString("'effective_shuffle_safe'", $page);
+        $this->assertStringContainsString("'option_order_semantics'", $page);
+        $this->assertStringContainsString("'sequence_sensitive'", $page);
+        $this->assertStringContainsString("'image_letter_mapping'", $page);
+        $this->assertStringContainsString("'all_none_semantics'", $page);
         $this->assertStringNotContainsString('wire:click="publish', $view);
         $this->assertStringNotContainsString('wire:click="approve', $view);
         $this->assertStringNotContainsString('wire:model.live="seed', $view);
@@ -96,7 +114,7 @@ class AssessmentQualityReviewTest extends TestCase
         $this->assertStringNotContainsString("DB::table('attempts')->update", $page);
     }
 
-    public function test_navigation_is_localized(): void
+    public function test_navigation_and_governance_are_localized_and_truthful(): void
     {
         App::setLocale('en');
         $this->assertSame('Question Quality Review', AssessmentQualityReview::getNavigationLabel());
@@ -106,5 +124,13 @@ class AssessmentQualityReviewTest extends TestCase
 
         App::setLocale('fr');
         $this->assertSame('Qualité des questions', AssessmentQualityReview::getNavigationLabel());
+
+        $matrix = (string) file_get_contents(base_path('../../docs/product/capability-surface-matrix.yaml'));
+        $this->assertStringContainsString('id: admin.assessment.question_quality_review', $matrix);
+        $this->assertStringContainsString('surface: AssessmentQualityReview / AssessmentQuestionBank', $matrix);
+        $this->assertStringContainsString('id: admin.assessment.mistake_bank_operations', $matrix);
+        $this->assertStringContainsString('id: admin.assessment.ai_composition', $matrix);
+        $this->assertStringContainsString('status: not_implemented_or_activated', $matrix);
+        $this->assertStringContainsString('No broad learner answer/history visibility is created for Admin parity.', $matrix);
     }
 }
