@@ -32,15 +32,6 @@ final class ContentPreparationRequests extends Page
         };
     }
 
-    public static function getNavigationGroup(): ?string
-    {
-        return match (App::getLocale()) {
-            'ar' => 'إدارة المحتوى',
-            'fr' => 'Gestion du contenu',
-            default => 'Content Operations',
-        };
-    }
-
     public static function getNavigationSort(): ?int
     {
         return 20;
