@@ -101,6 +101,53 @@ jobs:
             exit 1
           fi
 
+      - name: Boot packaged Student Web and verify static assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/modrik-packaged-web.log"
+          PORT=3217 \
+          HOSTNAME=127.0.0.1 \
+          NODE_ENV=production \
+          MODRIK_API_BASE_URL=https://api.demo.modrik.org \
+          MODRIK_ADMIN_PORTAL_URL=https://api.demo.modrik.org/admin/login \
+          node .runtime/demo-cpanel/web/startup.cjs >"$log" 2>&1 &
+          server_pid=$!
+          cleanup() {
+            kill "$server_pid" >/dev/null 2>&1 || true
+            wait "$server_pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3217/ >"$RUNNER_TEMP/modrik-packaged-landing.html"; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$ready" != 1 ]]; then
+            cat "$log" >&2
+            echo 'Packaged Student Web did not become reachable.' >&2
+            exit 1
+          fi
+
+          landing="$(cat "$RUNNER_TEMP/modrik-packaged-landing.html")"
+          [[ "$landing" == *'data-testid="modrik-landing-page"'* ]]
+          [[ "$landing" == *'data-testid="modrik-student-portal-entry"'* ]]
+          [[ "$landing" != *'This screen could not be completed.'* ]]
+
+          css_href="$(printf '%s' "$landing" | grep -oE 'href="/_next/static/[^"]+\.css"' | head -1 | cut -d'"' -f2)"
+          test -n "$css_href"
+          curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:3217$css_href" >/dev/null
+
+          student="$(curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3217/student)"
+          [[ "$student" == *'data-testid="modrik-student-portal"'* ]]
+          [[ "$student" == *'class="auth-shell"'* ]]
+          [[ "$student" != *'This screen could not be completed.'* ]]
+          echo 'MODRIK_PACKAGED_WEB_RUNTIME_OK portals=landing,student static_css=ok'
+
       - name: Upload cPanel Demo ZIP
         uses: actions/upload-artifact@v4
         with:

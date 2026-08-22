@@ -26,6 +26,41 @@ fail() {
   exit 1
 }
 
+restart_cloudlinux_node_app() {
+  local selector_bin node_user app_root_rel selector_output
+
+  selector_bin="${MODRIK_CLOUDLINUX_SELECTOR_BIN:-}"
+  if [[ -z "$selector_bin" ]]; then
+    selector_bin="$(command -v cloudlinux-selector 2>/dev/null || true)"
+  fi
+  if [[ -z "$selector_bin" ]]; then
+    for candidate in /usr/bin/cloudlinux-selector /usr/sbin/cloudlinux-selector; do
+      if [[ -x "$candidate" ]]; then
+        selector_bin="$candidate"
+        break
+      fi
+    done
+  fi
+
+  [[ -n "$selector_bin" && -x "$selector_bin" ]] \
+    || fail "CloudLinux Node.js Selector CLI is unavailable; cPanel Web restart cannot be proven."
+
+  node_user="$(id -un)"
+  app_root_rel="$WEB_ROOT"
+  if [[ "$WEB_ROOT" == "$HOME/"* ]]; then
+    app_root_rel="${WEB_ROOT#"$HOME/"}"
+  fi
+
+  log "Restarting Student Web through CloudLinux Node.js Selector user=$node_user app_root=$app_root_rel"
+  if ! selector_output="$("$selector_bin" restart --json --interpreter nodejs --user "$node_user" --app-root "$app_root_rel" 2>&1)"; then
+    fail "CloudLinux Node.js Selector restart failed: ${selector_output:0:2000}"
+  fi
+
+  if ! printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+    fail "CloudLinux Node.js Selector restart did not report success: ${selector_output:0:2000}"
+  fi
+}
+
 command -v unzip >/dev/null 2>&1 || fail "unzip is required on the cPanel host."
 command -v tar >/dev/null 2>&1 || fail "tar is required on the cPanel host."
 command -v curl >/dev/null 2>&1 || fail "curl is required on the cPanel host."
@@ -107,11 +142,15 @@ cd "$BACKEND_ROOT"
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 
-log "Waiting for bounded Student Web restart convergence"
-# Refresh Passenger's restart marker after all copy/cache work, then tolerate only
-# the bounded propagation window configured by the packaged helper. Stale content
-# never advances deployment state; the detailed checks below remain mandatory.
+log "Requesting canonical cPanel Node.js application restart"
+# The cPanel UI for demo.modrik.org is backed by CloudLinux Node.js Selector.
+# tmp/restart.txt is retained as a secondary Passenger signal, but deployment
+# success requires the same selector-level restart path that the cPanel RESTART
+# button uses for Application Root public_html/demo.modrik.org.
 touch "$WEB_ROOT/tmp/restart.txt"
+restart_cloudlinux_node_app
+
+log "Waiting for bounded Student Web restart convergence"
 if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
   MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
   bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
