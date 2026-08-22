@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Support\AdminNavigationGroup;
 use App\Models\User;
 use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
@@ -11,12 +12,15 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use UnitEnum;
 
 final class AcademicCatalogue extends Page
 {
     protected string $view = 'filament.pages.academic-catalogue';
 
     protected static ?string $slug = 'academic-catalogue';
+
+    protected static string|UnitEnum|null $navigationGroup = AdminNavigationGroup::Academic;
 
     public string $search = '';
 
@@ -240,7 +244,7 @@ final class AcademicCatalogue extends Page
         $this->resetForm();
     }
 
-    /** @return array<int, object> */
+    /** @return array<int, array{action: string, status: string, reason: string, actor: string, created_at: string}> */
     public function auditRows(): array
     {
         return DB::table('academic_track_audits')
@@ -254,7 +258,19 @@ final class AcademicCatalogue extends Page
                 'academic_track_audits.occurred_at',
                 'academic_tracks.code as track_code',
                 'users.email as actor_email',
-            ])->all();
+            ])
+            ->map(fn (object $audit): array => [
+                'action' => match ((string) $audit->action) {
+                    'created' => $this->translate('Academic track created', 'تم إنشاء المسار الأكاديمي', 'Parcours académique créé'),
+                    'updated' => $this->translate('Academic track updated', 'تم تحديث المسار الأكاديمي', 'Parcours académique mis à jour'),
+                    default => (string) $audit->action,
+                },
+                'status' => (string) $audit->track_code,
+                'reason' => (string) $audit->reason,
+                'actor' => (string) ($audit->actor_email ?? 'system/removed-user'),
+                'created_at' => (string) $audit->occurred_at,
+            ])
+            ->all();
     }
 
     private function canMutateTrack(string $id): bool
