@@ -3,6 +3,8 @@
     @php($rtl = $locale === 'ar')
     @php($groups = $this->groupedDefinitions())
     @php($history = $this->selectedHistory())
+    @php($confirmSave = $locale === 'ar' ? 'تأكيد حفظ إصدار إعداد جديد؟ سيُسجل المنفذ والسبب والتوقيت في سجل التدقيق.' : ($locale === 'fr' ? 'Confirmer l’enregistrement d’une nouvelle version ? L’acteur, le motif et l’horodatage seront audités.' : 'Confirm saving a new setting version? Actor, reason and timestamp will be audit recorded.'))
+    @php($confirmRestore = $locale === 'ar' ? 'تأكيد الاستعادة؟ لن يُمسح التاريخ؛ سيتم إنشاء إصدار جديد من القيمة السابقة.' : ($locale === 'fr' ? 'Confirmer la restauration ? L’historique ne sera pas réécrit ; une nouvelle version sera créée.' : 'Confirm restore? History will not be rewritten; a new version will be created from the prior value.'))
 
     <div class="space-y-6" dir="{{ $rtl ? 'rtl' : 'ltr' }}" data-testid="modrik-system-settings">
         <x-admin.operational-banner
@@ -18,7 +20,7 @@
                 <div class="border-b border-gray-100 px-5 py-4">
                     <h2 id="settings-group-{{ $group }}" class="text-lg font-semibold text-gray-950">{{ $this->groupLabel($group) }}</h2>
                     <p class="mt-1 text-sm leading-6 text-gray-500">
-                        {{ $locale === 'ar' ? 'كل تغيير يحتاج سببًا، ويُرفض تلقائيًا إذا أصبحت النسخة المعروضة قديمة.' : ($locale === 'fr' ? 'Chaque modification exige un motif et est rejetée si la version affichée est devenue obsolète.' : 'Every change requires a reason and is rejected if the displayed version has become stale.') }}
+                        {{ $locale === 'ar' ? 'كل تغيير يحتاج سببًا وتأكيدًا، ويُرفض تلقائيًا إذا أصبحت النسخة المعروضة قديمة.' : ($locale === 'fr' ? 'Chaque modification exige un motif et une confirmation, et est rejetée si la version affichée est devenue obsolète.' : 'Every change requires a reason and confirmation and is rejected if the displayed version has become stale.') }}
                     </p>
                 </div>
 
@@ -58,7 +60,7 @@
                                 @error('values.'.$stateKey)<span class="block text-xs text-danger-600" role="alert">{{ $message }}</span>@enderror
 
                                 <div class="flex flex-wrap justify-end gap-2">
-                                    <x-filament::button type="button" wire:click="saveSetting('{{ $key }}')">
+                                    <x-filament::button type="button" wire:click="saveSetting('{{ $key }}')" wire:confirm="{{ $confirmSave }}">
                                         {{ $locale === 'ar' ? 'حفظ إصدار جديد' : ($locale === 'fr' ? 'Enregistrer une nouvelle version' : 'Save new version') }}
                                     </x-filament::button>
                                 </div>
@@ -95,7 +97,7 @@
                                 <div class="modrik-code mt-2 text-xs text-gray-500" dir="ltr">{{ $item['occurred_at'] }} · {{ $item['actor_id'] ?: 'system' }}</div>
                             </div>
                             @if (($versions[$this->stateKey($selectedKey)] ?? 0) !== $item['to_version'])
-                                <x-filament::button type="button" size="sm" color="gray" wire:click="restoreSelected({{ $item['to_version'] }})">
+                                <x-filament::button type="button" size="sm" color="gray" wire:click="restoreSelected({{ $item['to_version'] }})" wire:confirm="{{ $confirmRestore }}">
                                     {{ $locale === 'ar' ? 'استعادة كإصدار جديد' : ($locale === 'fr' ? 'Restaurer comme nouvelle version' : 'Restore as new version') }}
                                 </x-filament::button>
                             @endif
