@@ -137,8 +137,9 @@ capabilities:
   - id: admin.exam.question_management
     area: assessment
     classification: admin_manageable
-    surface: null
+    surface: AssessmentQuestionBank
     status: audit_required
+    notes: Issue #183 Stage A provides discoverable read/inspection of the Question Bank and implemented quiz/practice catalogue, including approved answers and membership. Safe lifecycle/configuration/availability management remains incomplete and must be finished in Stage B before this capability is considered fully manageable. Attempt seed, student-specific selected set/order, resume order and scoring snapshots remain internal_non_editable.
   - id: admin.accounts.roles_sessions
     area: auth
     classification: admin_manageable
