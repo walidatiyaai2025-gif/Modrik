@@ -31,7 +31,7 @@ final class IntegrationStatusService
                 'verification' => true,
                 'recovery' => true,
                 'transport_status' => $emailTransportStatus,
-                'secret_set' => $emailTransportStatus === MailTransportStatusService::AVAILABLE,
+                'secret_set' => $this->mailTransportStatus->credentialsConfigured(),
             ],
             'google' => [
                 'enabled' => $this->boolSetting('auth.google.enabled', $environment),
