@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ContentPreparationController;
 use App\Http\Controllers\Api\LearningController;
 use App\Http\Controllers\Api\OfflineAnswerSyncController;
 use App\Http\Controllers\Api\ProviderAuthController;
+use App\Http\Controllers\Api\StudentNotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn (): array => ['status' => 'ok'])
@@ -49,6 +50,9 @@ Route::prefix('/v1')->middleware('auth.modrik')->group(function (): void {
         ->middleware('auth.verified-password')->name('academic-context.reset');
     Route::get('/lessons/{lessonId}', [LearningController::class, 'lesson'])->name('lessons.show');
     Route::get('/progress', [LearningController::class, 'progress'])->name('progress.index');
+    Route::get('/notifications', [StudentNotificationController::class, 'index'])->name('notifications.index');
+    Route::put('/notifications/read-all', [StudentNotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::put('/notifications/{notificationId}/read', [StudentNotificationController::class, 'read'])->name('notifications.read');
     Route::get('/advertising/decisions/{placementCode}', [AdvertisingDecisionController::class, 'show'])
         ->name('advertising-decisions.show');
 
