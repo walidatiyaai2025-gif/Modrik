@@ -8,7 +8,7 @@
   },
   "packageManager": "npm@10.9.8",
   "scripts": {
-    "contracts:check": "node scripts/validate-contracts.mjs && node --test scripts/demo-deployment-smoke.test.mjs",
+    "contracts:check": "node --test scripts/capability-surface-contract.test.mjs && node scripts/validate-capability-surface.mjs && node scripts/validate-contracts.mjs && node --test scripts/demo-deployment-smoke.test.mjs",
     "brand:icons": "node scripts/generate-mobile-icons.mjs",
     "openapi:lint": "redocly lint docs/api/openapi.yaml",
     "tokens:check": "npm --prefix packages/design-tokens test",
