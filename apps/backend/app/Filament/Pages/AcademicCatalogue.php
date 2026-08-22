@@ -135,7 +135,7 @@ final class AcademicCatalogue extends Page
                 'year_level' => (string) $row->year_level,
                 'title' => $title,
                 'is_fixture' => (bool) $row->is_fixture,
-                'locked' => ! $this->canMutateTrack((string) $row->id),
+                'locked' => $this->canMutateTrack((string) $row->id) === false,
                 'updated_at' => (string) $row->updated_at,
             ];
         })->all();
@@ -148,7 +148,7 @@ final class AcademicCatalogue extends Page
             return;
         }
 
-        if (! $this->canMutateTrack($id)) {
+        if ($this->canMutateTrack($id) === false) {
             throw ValidationException::withMessages([
                 'form.code' => $this->translate('This track is referenced by learner or curriculum history and is read-only.', 'هذا المسار مرتبط بسجل طالب أو منهج وأصبح للقراءة فقط.', 'Ce parcours est référencé par un historique apprenant ou curriculum et devient en lecture seule.'),
             ]);
@@ -179,7 +179,7 @@ final class AcademicCatalogue extends Page
     public function save(): void
     {
         $id = $this->editingId;
-        if ($id !== null && ! $this->canMutateTrack($id)) {
+        if ($id !== null && $this->canMutateTrack($id) === false) {
             throw ValidationException::withMessages(['form.code' => 'Referenced academic tracks cannot be edited.']);
         }
 
@@ -259,8 +259,8 @@ final class AcademicCatalogue extends Page
 
     private function canMutateTrack(string $id): bool
     {
-        return ! DB::table('user_academic_contexts')->where('academic_track_id', $id)->exists()
-            && ! DB::table('curriculum_nodes')->where('academic_track_id', $id)->exists();
+        return DB::table('user_academic_contexts')->where('academic_track_id', $id)->doesntExist()
+            && DB::table('curriculum_nodes')->where('academic_track_id', $id)->doesntExist();
     }
 
     private function nullableString(mixed $value): ?string
