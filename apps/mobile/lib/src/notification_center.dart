@@ -28,38 +28,44 @@ class MobileNotificationLauncher extends StatelessWidget {
         final canOpen = controller.session != null && gateway.isConfigured;
         if (!canOpen) return child;
         final copy = MobileNotificationCopy(controller.locale);
-        return Stack(
-          children: [
-            Positioned.fill(child: child),
-            PositionedDirectional(
-              end: 16,
-              bottom: 84,
-              child: SafeArea(
-                minimum: const EdgeInsets.all(4),
-                child: Semantics(
-                  button: true,
-                  label: copy.notifications,
-                  child: FloatingActionButton.small(
-                    heroTag: 'modrik-student-notifications',
-                    tooltip: copy.notifications,
-                    backgroundColor: ModrikColors.navy,
-                    foregroundColor: ModrikColors.white,
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => MobileNotificationCenter(
-                            gateway: gateway,
-                            initialLocale: controller.locale,
+        final direction = controller.locale == ModrikLocale.ar
+            ? TextDirection.rtl
+            : TextDirection.ltr;
+        return Directionality(
+          textDirection: direction,
+          child: Stack(
+            children: [
+              Positioned.fill(child: child),
+              PositionedDirectional(
+                end: 16,
+                bottom: 84,
+                child: SafeArea(
+                  minimum: const EdgeInsets.all(4),
+                  child: Semantics(
+                    button: true,
+                    label: copy.notifications,
+                    child: FloatingActionButton(
+                      heroTag: 'modrik-student-notifications',
+                      tooltip: copy.notifications,
+                      backgroundColor: ModrikColors.navy,
+                      foregroundColor: ModrikColors.white,
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => MobileNotificationCenter(
+                              gateway: gateway,
+                              initialLocale: controller.locale,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    child: const Icon(Icons.notifications_none_outlined),
+                        );
+                      },
+                      child: const Icon(Icons.notifications_none_outlined),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -135,15 +141,15 @@ class _MobileNotificationCenterState extends State<MobileNotificationCenter> {
     try {
       final updated = await widget.gateway.markRead(notification.id);
       if (!mounted) return;
-      final wasUnread = !notification.isRead;
+      final nextUnreadCount = !notification.isRead && _inbox.unreadCount > 0
+          ? _inbox.unreadCount - 1
+          : _inbox.unreadCount;
       setState(() {
         _inbox = StudentNotificationInbox(
           items: _inbox.items
               .map((item) => item.id == updated.id ? updated : item)
               .toList(growable: false),
-          unreadCount: wasUnread
-              ? (_inbox.unreadCount - 1).clamp(0, _inbox.unreadCount)
-              : _inbox.unreadCount,
+          unreadCount: nextUnreadCount,
         );
       });
     } on LearningFailure catch (failure) {
