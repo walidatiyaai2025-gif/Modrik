@@ -32,14 +32,15 @@ Prior terminal evidence remains recorded in Git history and CI, including PR #11
 
 ## OWNER-AUTHORIZED FOLLOW-ON — `GOV-SURFACE-001`
 
-Issue #179 establishes a permanent project-wide completion rule: every implemented/configurable capability must have a discoverable management/user/status surface or an explicit internal/deferred classification.
+Issue #179 established the permanent project-wide completion rule and is complete via merged PR #186 at `003e90a5fb64540d310a35418ce653553b38eee0`. The implementation queue remains open through its child capability-surface Issues.
 
-- [ ] #179 — project-wide capability/settings surface governance and matrix.
-- [ ] #180 — Academic Catalogue Management surface. **Highest priority:** resolves the current `CONTENT_TARGET_TRACK_MISSING` real-content dry-run blocker through supported Admin UI instead of SQL.
-- [ ] #181 — System Settings Registry + Auth Providers + Notifications + Firebase + Ads management/status pages.
-- [ ] #182 — complete Content Operations management surfaces: Upload/Ingestion/Review/Provenance/Rebuild/media/past-paper lifecycle as implemented/activated.
-- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants.
-- [ ] #184 — Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces and explicit deferred classifications.
+- [x] #179 — project-wide capability/settings surface governance and matrix contract integrated by PR #186.
+- [ ] #185 — shared professional Admin UX foundation. PR #187 is active but not merge-ready: Bootstrap CI run `32544954895` fails only in `backend-mariadb`; two `AdminUxFoundationTest` requests return HTTP 500 under MariaDB while SQLite/backend, contracts, Web, Mobile, secret scan, dependency review, Pilot smoke and Demo package are green. The branch must reconcile onto current `main` and restore MariaDB parity before Integration review.
+- [ ] #180 — Academic Catalogue Management surface. **Highest product-operability priority:** resolves the current `CONTENT_TARGET_TRACK_MISSING` real-content dry-run blocker through supported Admin UI instead of SQL. Its UI must consume the shared #185 foundation before completion.
+- [ ] #181 — System Settings Registry + Auth Providers + Notifications + Firebase + Ads management/status pages; consume #185 shared Admin primitives.
+- [ ] #182 — complete Content Operations management surfaces: Upload/Ingestion/Review/Provenance/Rebuild/media/past-paper lifecycle as implemented/activated; consume #185 shared Admin primitives.
+- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants; consume #185 shared Admin primitives.
+- [ ] #184 — Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces and explicit deferred classifications; consume #185 shared Admin primitives.
 
 ### Global DoD for this workstream
 
@@ -54,7 +55,7 @@ Issue #179 establishes a permanent project-wide completion rule: every implement
 
 ## Demo deployment
 
-The owner authorized `demo.modrik.org` evaluation deployment. The deployed build must continue to expose its Build SHA in the Admin/Student header so stale cache/deployment mismatches are obvious.
+The owner authorized `demo.modrik.org` evaluation deployment. The currently repository-recorded deployed build is `41bb2959387bc1a01995d643d6419713d5ba0e56`; the integrated governance merge `003e90a5fb64540d310a35418ce653553b38eee0` is not recorded as deployed. The deployed build must continue to expose its Build SHA in the Admin/Student header so stale cache/deployment mismatches are obvious.
 
 The demo remains separate from the production `modrik.org` Coming Soon cutover boundary.
 
