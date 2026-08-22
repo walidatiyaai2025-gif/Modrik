@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-08-22
-Last reconciled baseline: `defc2518527e7ff3073fda6382bf9b5a36a13da2`
+Last reconciled baseline: `94b1930bfe73db27dae212b103dabbf5aaec8658`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -18,6 +18,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] #184 / #224 / PR #225 — Public/Legal/Help operational visibility and truthful deferred mutable-management boundary.
 - [x] #233 / PR #234 — executable capability-surface contract validation in CI.
 - [x] #231 / PR #232 — exact Demo Web/Admin Build SHA release smoke hardening.
+- [x] PR #239 — Windows client explicitly classified `deferred_disabled`; no Windows implementation or activation added.
 
 ## ACTIVE P0 implementation
 
@@ -58,5 +59,5 @@ These must not be fabricated and do not block unrelated engineering:
 
 ## Deferred beyond current P0
 
-- [ ] Windows client remains deferred.
+- [x] Windows client explicitly recorded as `deferred_disabled` in the capability matrix via PR #239.
 - [ ] Community/P1 and broad social/competition activation remain deferred unless separately authorized; their absence must remain explicit in the capability matrix.

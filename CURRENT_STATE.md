@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 Updated: 2026-08-22
-Last reconciled baseline: `defc2518527e7ff3073fda6382bf9b5a36a13da2`
+Last reconciled baseline: `94b1930bfe73db27dae212b103dabbf5aaec8658`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
 
@@ -15,6 +15,7 @@ The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
 - Public/Legal/Help operational visibility is integrated via PR #225 / Issues #224/#184. Final legal facts and mutable publication remain owner/legal/backend-contract gated.
 - Capability-surface matrix validation is enforced in contract CI via PR #234 / Issue #233.
 - Demo release identity hardening is integrated via PR #232 / Issue #231; authorized deployment acceptance now requires exact Web and Admin Build SHA identity.
+- PR #239 explicitly classifies the Windows client as `deferred_disabled` under the locked launch scope without activating it.
 
 Earlier shared Admin UX, Academic Catalogue, Settings/Auth Provider/Notifications/Firebase/Ads controls, control-state guard, Content Preparation and Demo packaging foundations remain integrated.
 
@@ -30,6 +31,7 @@ Recent exact-head integration evidence includes:
 - PR #225: Bootstrap #1001, Admin Browser #120, Content Ops #65 and Demo Package #207 green.
 - PR #234: Bootstrap #1008 green, including live capability-matrix validation, SQLite/MariaDB, Web, Mobile/signing, normal/strict Pilot and governed finalizer.
 - PR #232: Bootstrap #1016, Admin Browser #128 and Demo Package #218 green; the combined contract chain preserves capability governance and Demo release-smoke regressions.
+- PR #239: Bootstrap #1024 and Content Operations Browser Acceptance #80 green on reviewed head `24dcf5e0c6eea8aa2eec1ef4a46d267cd9393ae1`; merged to `94b1930bfe73db27dae212b103dabbf5aaec8658`.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 

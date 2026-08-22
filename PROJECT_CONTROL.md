@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-22
-Last reconciled baseline: `defc2518527e7ff3073fda6382bf9b5a36a13da2`
+Last reconciled baseline: `94b1930bfe73db27dae212b103dabbf5aaec8658`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -17,7 +17,7 @@ Engineering, repository, PR, CI, documentation, conflict resolution and release 
 
 Every capability remains exactly one of `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, or `deferred_disabled`.
 
-PR #234 / Issue #233 integrated an executable validator into `contracts:check`. The live `docs/product/capability-surface-matrix.yaml` must retain unique IDs, the complete classification inventory, explicit surfaces, truthful `present` semantics and explicit deferred/internal boundaries.
+PR #234 / Issue #233 integrated an executable validator into `contracts:check`. The live `docs/product/capability-surface-matrix.yaml` must retain unique IDs, the complete classification inventory, explicit surfaces, truthful `present` semantics and explicit deferred/internal boundaries. PR #239 records the locked Windows launch exclusion explicitly as `client.windows: deferred_disabled`; it does not activate a Windows client.
 
 ## Reconciled integration checkpoint
 
@@ -31,6 +31,7 @@ Recent integrated milestones at this checkpoint include:
 - PR #225 / Issues #224/#184 — Public/Legal/Help operational visibility with unsupported legal management kept read-only/deferred.
 - PR #234 / Issue #233 — capability-surface governance contract enforced in CI.
 - PR #232 / Issue #231 — exact Demo Web/Admin Build SHA verification added to the authorized deployment smoke.
+- PR #239 — Windows client explicitly classified `deferred_disabled` under the locked launch scope.
 
 The earlier Admin UX, Academic Catalogue, Settings/Integrations, Content, control-state and packaging foundations remain integrated and authoritative through Git history and CI evidence.
 
