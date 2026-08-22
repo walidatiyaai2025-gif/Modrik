@@ -1,6 +1,9 @@
 # TASKS
 
 Updated: 2026-08-22
+Last reconciled baseline: `78a9f612cc7752750046d8ab371714c1c9c6eb53`
+
+Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
 ## COMPLETE — prior P0/Pilot engineering baseline
 
@@ -32,15 +35,13 @@ Prior terminal evidence remains recorded in Git history and CI, including PR #11
 
 ## OWNER-AUTHORIZED FOLLOW-ON — `GOV-SURFACE-001`
 
-Issue #179 established the permanent project-wide completion rule and is complete via merged PR #186 at `003e90a5fb64540d310a35418ce653553b38eee0`. The implementation queue remains open through its child capability-surface Issues.
-
-- [x] #179 — project-wide capability/settings surface governance and matrix contract integrated by PR #186.
-- [ ] #185 — shared professional Admin UX foundation. PR #187 is active but not merge-ready: Bootstrap CI run `32544954895` fails only in `backend-mariadb`; two `AdminUxFoundationTest` requests return HTTP 500 under MariaDB while SQLite/backend, contracts, Web, Mobile, secret scan, dependency review, Pilot smoke and Demo package are green. The branch must reconcile onto current `main` and restore MariaDB parity before Integration review.
-- [ ] #180 — Academic Catalogue Management surface. **Highest product-operability priority:** resolves the current `CONTENT_TARGET_TRACK_MISSING` real-content dry-run blocker through supported Admin UI instead of SQL. Its UI must consume the shared #185 foundation before completion.
-- [ ] #181 — System Settings Registry + Auth Providers + Notifications + Firebase + Ads management/status pages; consume #185 shared Admin primitives.
-- [ ] #182 — complete Content Operations management surfaces: Upload/Ingestion/Review/Provenance/Rebuild/media/past-paper lifecycle as implemented/activated; consume #185 shared Admin primitives.
-- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants; consume #185 shared Admin primitives.
-- [ ] #184 — Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces and explicit deferred classifications; consume #185 shared Admin primitives.
+- [x] #179 — project-wide capability/settings surface governance and matrix contract integrated by PR #186 at `003e90a5fb64540d310a35418ce653553b38eee0`.
+- [x] #185 — shared professional Admin UX foundation integrated by PR #187 at `9cc38ce22b941b2270023ec686bb5e25152f60dd`, including responsive/localization/browser evidence.
+- [x] #180 — Academic Catalogue Management integrated by PR #189 at `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2`; `CONTENT_TARGET_TRACK_MISSING` now has a supported Admin remediation path rather than hidden SQL.
+- [ ] #181 — System Settings Registry + Auth Providers + Notifications + Firebase + Ads management/status pages using shared Admin primitives.
+- [ ] #182 — complete Content Operations management surfaces: Upload/Ingestion/Review/Provenance/Rebuild/media/past-paper lifecycle as implemented/activated.
+- [ ] #183 — Exam, Question Bank and Practice Admin management surfaces while preserving authoritative seed/order/scoring invariants.
+- [ ] #184 — Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces and explicit deferred classifications.
 
 ### Global DoD for this workstream
 
@@ -53,9 +54,26 @@ Issue #179 established the permanent project-wide completion rule and is complet
 - [ ] Automated navigation/capability regression tests fail if a required surface disappears without explicit reclassification.
 - [ ] SQLite + MariaDB 10.11 + full governed CI green for each implementation PR.
 
-## Demo deployment
+## P0 control-plane / release tasks
 
-The owner authorized `demo.modrik.org` evaluation deployment. The currently repository-recorded deployed build is `41bb2959387bc1a01995d643d6419713d5ba0e56`; the integrated governance merge `003e90a5fb64540d310a35418ce653553b38eee0` is not recorded as deployed. The deployed build must continue to expose its Build SHA in the Admin/Student header so stale cache/deployment mismatches are obvious.
+- [ ] #190 — finish non-self-staling project-control semantics, CI contradiction guard and historical changelog reconciliation. The baseline recorded in control docs is intentionally a last-reconciled checkpoint, never a prediction of future live `main`.
+- [x] cPanel packaging defect from deployment run `32563427725` fixed by PR #196 at `78a9f612cc7752750046d8ab371714c1c9c6eb53`; packaging now builds/re-verifies missing Backend Admin Vite assets.
+- [ ] Re-run `Deploy MODRIK Demo to cPanel` with `DEPLOY` after the packaging fix, then verify Backend health, Student Web, Admin and visible Build SHA. Do not advance deployment state until the workflow succeeds.
+- [ ] #152 / PR #153 — reconcile Demo fixture learner sign-in onto live GitHub `main`, obtain fresh exact-head governed CI/security review, then integrate only if still scope-safe.
+
+Read-only support/QA packets #164, #194 and #195 may publish evidence/findings but do not own domain implementation, rebases, merges or deployment mutation.
+
+## Real-content evaluation tasks
+
+- [ ] Use the integrated Academic Catalogue UI to register the owner-approved academic track referenced by preparation request `01M0JVVQY8KGQG628BNPWBJBJK`, then rerun the deterministic content dry-run. Do not invent board/syllabus/version values.
+- [ ] Keep the returned content rights state `pending_review` until evidence-backed rights review permits official publication.
+- [ ] Continue the existing Preparation Review → Rights → Import/Publish workflow only after all fail-closed gates are satisfied.
+
+## Demo deployment checkpoint
+
+Last repository-recorded Demo deployment: `41bb2959387bc1a01995d643d6419713d5ba0e56`.
+
+Deployment run `32563427725` targeted `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2` but failed before FTPS upload, so it did not change the deployed build. A successful new run must be verified before this checkpoint is updated.
 
 The demo remains separate from the production `modrik.org` Coming Soon cutover boundary.
 
