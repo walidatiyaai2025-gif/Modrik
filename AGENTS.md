@@ -31,6 +31,21 @@ A Domain Agent's completion condition is:
 
 Only the Integration Captain may declare a Wave closed after integrated-main verification and repository closure evidence are complete.
 
+## Capability & settings surface governance
+
+Read `docs/product/CAPABILITY_SURFACE_GOVERNANCE.md` and `docs/product/capability-surface-matrix.yaml` before implementing or declaring complete any new capability, settings change, integration, Backend operator action, or user workflow.
+
+Project-wide rule `GOV-SURFACE-001`:
+
+- Every capability/setting must be intentionally classified as `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, or `deferred_disabled`.
+- An Admin-manageable capability is incomplete without a discoverable navigation/list/settings entry point. Operators must not need a hidden URL, API endpoint, table name, internal ID, or source-code knowledge to find it.
+- A Backend route/service/job/configuration is not operationally complete merely because its API or test passes when the Master Plan expects an operator-facing management surface.
+- Internal security/privacy/assessment-authority/integrity invariants must NOT be made editable just to satisfy UI parity. Document them as `internal_non_editable` with owning contracts/tests.
+- Secret values are never reusable plaintext Admin settings. UI may expose safe status/reference only (`Set / Not Set`, alias/reference, last validation result, rotation-needed state).
+- P1/Future/activation-gated features remain `deferred_disabled` until explicitly authorized; do not expose them as active controls merely to fill navigation.
+- Any capability/settings implementation must update the capability-to-surface matrix and add/adjust regression coverage so a required page/menu cannot silently disappear.
+- UI/settings surfaces must include RBAC, permission-safe visibility, confirmation for sensitive/destructive/production actions, audit/history where applicable, AR/EN/FR and RTL/LTR where applicable, and loading/empty/error/retry/degraded states.
+
 ## Locked kickoff facts
 
 - Brand: MODRIK | مُدرك.

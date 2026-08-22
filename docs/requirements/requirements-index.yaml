@@ -1,11 +1,13 @@
 schema_version: 1.0.0
-updated: 2026-08-20
-completeness: kickoff_mirror_only
+updated: 2026-08-22
+completeness: kickoff_mirror_plus_owner_surface_governance
 sources:
   - AGENTS.md
   - docs/product/MASTER_PLAN_START_HERE.md
+  - docs/product/CAPABILITY_SURFACE_GOVERNANCE.md
   - docs/brand/BRAND_SYSTEM.md
   - https://github.com/walidatiyaai2025-gif/Modrik/issues/1
+  - https://github.com/walidatiyaai2025-gif/Modrik/issues/179
 requirements:
   - id: REQ-P0-001
     title: Unified identity and account lifecycle
@@ -105,3 +107,10 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-016, AC-P0-017]
     status: indexed
+  - id: REQ-P0-015
+    title: Discoverable capability and settings surfaces
+    statement: Every implemented or configurable MODRIK capability must have an intentional discoverable Admin, user, or operational surface, or be explicitly classified as an internal non-editable invariant or deferred/disabled capability; authorized operators must not need hidden URLs, API endpoints, database tables, internal IDs, or source-code knowledge to manage supported functions.
+    area: governance
+    priority: P0
+    acceptance_criteria: [AC-P0-021]
+    status: owner_authorized_2026_08_22
