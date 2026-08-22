@@ -82,6 +82,12 @@ find "$BACKEND_ROOT" -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'storage' -e
 [[ -d "$BACKEND_ROOT/storage" ]] || fail "Backend storage was not preserved."
 [[ -d "$BACKEND_ROOT/public" ]] || fail "Backend public document root is missing."
 
+# Persist the immutable deployed commit so Admin can render a build badge without
+# reading Git metadata or exposing secrets. Storage survives code replacement.
+mkdir -p "$BACKEND_ROOT/storage/app"
+printf '%s\n' "$RELEASE_SHA" > "$BACKEND_ROOT/storage/app/modrik-release.txt"
+chmod 600 "$BACKEND_ROOT/storage/app/modrik-release.txt"
+
 # The deployment intentionally uses umask 077 for secrets, backups, and staging.
 # Normalize only the web-served Laravel boundary so the LiteSpeed worker can
 # traverse the project root and read public assets/front-controller files.
