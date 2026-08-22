@@ -220,6 +220,7 @@ jobs:
       - name: Execute browser runtime acceptance
         env:
           NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          NODE_OPTIONS: --require=${{ github.workspace }}/harness/qa/web-e2e/student-entry-route-adapter.cjs
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
           MODRIK_E2E_TARGET_DIR: ${{ github.workspace }}/target
           MODRIK_E2E_EVIDENCE_DIR: ${{ github.workspace }}/evidence/${{ matrix.candidate }}
@@ -260,7 +261,7 @@ jobs:
                 node harness/qa/web-e2e/runtime-inspector-acceptance.cjs
               ;;
             full-command)
-              bash harness/qa/web-e2e/run-browser-runtime.sh target
+              env -u NODE_OPTIONS bash harness/qa/web-e2e/run-browser-runtime.sh target
               ;;
             *)
               echo "Unsupported browser runtime task: $TASK" >&2
