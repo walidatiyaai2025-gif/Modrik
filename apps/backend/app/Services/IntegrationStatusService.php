@@ -14,6 +14,7 @@ final class IntegrationStatusService
         private readonly SystemSettingsRegistry $settings,
         private readonly AdvertisingEligibilityService $advertising,
         private readonly ProviderIdentityVerifier $providerVerifier,
+        private readonly MailTransportStatusService $mailTransportStatus,
     ) {}
 
     /** @return array<string, array<string, mixed>> */
@@ -22,14 +23,15 @@ final class IntegrationStatusService
         $google = (array) config('modrik.auth.providers.google', []);
         $apple = (array) config('modrik.auth.providers.apple', []);
         $providerTransportPending = $this->providerVerifier instanceof PendingProviderIdentityVerifier;
+        $emailTransportStatus = $this->mailTransportStatus->status();
 
         return [
             'email' => [
                 'enabled' => $this->boolSetting('auth.email.enabled', $environment),
                 'verification' => true,
                 'recovery' => true,
-                'transport_status' => 'available',
-                'secret_set' => true,
+                'transport_status' => $emailTransportStatus,
+                'secret_set' => $this->mailTransportStatus->credentialsConfigured(),
             ],
             'google' => [
                 'enabled' => $this->boolSetting('auth.google.enabled', $environment),
@@ -53,13 +55,15 @@ final class IntegrationStatusService
     /** @return array<string, mixed> */
     public function notifications(string $environment): array
     {
+        $emailTransportStatus = $this->mailTransportStatus->status();
+
         return [
             'enabled' => $this->boolSetting('notifications.enabled', $environment),
             'quiet_hours_enabled' => $this->boolSetting('notifications.quiet_hours.enabled', $environment),
             'quiet_hours_start' => $this->settings->current('notifications.quiet_hours.start', $environment)['value'],
             'quiet_hours_end' => $this->settings->current('notifications.quiet_hours.end', $environment)['value'],
-            'email_verification_channel' => 'available',
-            'password_recovery_channel' => 'available',
+            'email_verification_channel' => $emailTransportStatus,
+            'password_recovery_channel' => $emailTransportStatus,
             'student_notification_center' => 'audit_required',
             'push_channel' => $this->boolSetting('firebase.fcm.enabled', $environment) ? 'enabled_pending_transport' : 'disabled',
         ];
