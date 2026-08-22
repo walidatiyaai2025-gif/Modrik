@@ -7,6 +7,7 @@ import "./globals.css";
 import "./learning-responsive-closeout.css";
 import "./auth.css";
 import "./landing.css";
+import "./portal-runtime.css";
 import "./release-badge.css";
 
 export const metadata: Metadata = {
