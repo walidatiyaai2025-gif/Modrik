@@ -77,6 +77,21 @@ class AdminHumanReadableInputContractTest extends TestCase
         $this->assertStringContainsString('Content publication journey', $view);
     }
 
+    public function test_rights_review_keeps_internal_enum_values_behind_human_labels_and_guided_inputs(): void
+    {
+        $view = (string) file_get_contents(resource_path('views/filament/pages/content-rights-review.blade.php'));
+
+        $this->assertStringContainsString('Original content created by the owner', $view);
+        $this->assertStringContainsString('Content covered by a license or permission', $view);
+        $this->assertStringContainsString('Verified public-domain content', $view);
+        $this->assertStringNotContainsString('>owner_created</option>', $view);
+        $this->assertStringNotContainsString('>licensed</option>', $view);
+        $this->assertStringNotContainsString('>public_domain</option>', $view);
+        $this->assertStringContainsString('license agreement LIC-2026-014', $view);
+        $this->assertStringContainsString('Technical traceability', $view);
+        $this->assertStringContainsString('Content publication journey', $view);
+    }
+
     public function test_admin_ux_contract_rejects_free_text_database_references(): void
     {
         $contract = (string) file_get_contents(base_path('../../docs/brand/ADMIN_UX_SYSTEM.md'));
