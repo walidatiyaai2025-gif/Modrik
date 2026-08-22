@@ -25,7 +25,7 @@ final class SystemSettingsRegistry
         'notifications.quiet_hours.end' => ['type' => 'string', 'default' => '07:00', 'group' => 'notifications', 'rollback' => true],
         'firebase.fcm.enabled' => ['type' => 'boolean', 'default' => false, 'group' => 'firebase', 'rollback' => true],
         'firebase.remote_config.enabled' => ['type' => 'boolean', 'default' => false, 'group' => 'firebase', 'rollback' => true],
-        'ads.global.enabled' => ['type' => 'boolean', 'default' => false, 'group' => 'ads', 'rollback' => true],
+        'ads.global.enabled' => ['type' => 'boolean', 'default' => true, 'group' => 'ads', 'rollback' => true],
         'ads.test_mode.enabled' => ['type' => 'boolean', 'default' => true, 'group' => 'ads', 'rollback' => true],
     ];
 
