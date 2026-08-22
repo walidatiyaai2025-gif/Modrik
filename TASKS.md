@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-08-22
-Last reconciled baseline: `814018c14f20976a6819a55e607ca908b320da5d`
+Last reconciled baseline: `034a43eb527949cefb52ef25252834e606ca625d`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -21,13 +21,19 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] PR #239 — Windows client explicitly classified `deferred_disabled`.
 - [x] #235 / PR #236 — Backend-owned Student Notification Center integrated on Web and Mobile.
 - [x] #244 / PR #248 — Landing `/` + Student Portal `/student` runtime/deployment acceptance restored with exact-head multilingual/RTL/narrow/200% and route/release guards.
-- [x] #250 / PR #252 — remote cPanel post-copy success recording now fails closed until exact Landing/Student release identity and meaningful runtime markers pass.
+- [x] #250 / PR #252 — remote cPanel post-copy success recording fails closed until exact Landing/Student release identity and meaningful runtime markers pass.
+- [x] #251 / PR #253 — post-#252 control-state reconciliation.
+- [x] #256 / PR #257 — rendered Admin sidebar text/icon contrast repaired and exact-head browser/Bootstrap/package acceptance passed.
 
 ## Current repository-verifiable P0 queue
 
-Issue #251 / PR #253 is control-state reconciliation only. Its live merge/CI state must be fetched from GitHub; it does not create domain, release or deployment implementation authority.
+1. [ ] #260 — **P0 release blocker:** tolerate bounded cPanel/Passenger Node restart propagation before exact release verification. Preserve fail-closed Landing `/` + Student `/student` SHA/marker checks and never write deployment-success markers before they pass. Required: stale-then-fresh + permanent-stale regression, Demo package, Bootstrap, then authorized external deployment smoke.
+2. [ ] #261 — **P0 security/integrity:** remove Backend runtime fixture bearer identity and Web BFF fixture bearer injection. Exclusive Backend Auth + Web BFF ownership. Can run in parallel with #260. Required: SQLite/MariaDB Auth, Web, contracts/OpenAPI, security gates.
+3. [ ] #262 — **P0 integrity:** audit/remove Mobile/Admin production-reachable mock/fake fallbacks or replace simulated success with truthful unavailable/degraded/fail-closed behavior. Avoid #261 Auth/BFF files. Can run in parallel with #261. Required: Flutter/Admin/runtime tests and relevant browser/capability checks.
+4. [ ] #263 — **P0 acceptance, dependency-gated:** replace fixture-auth Pilot/browser smoke with real Laravel registration/login/session acceptance and add governed anti-regression guard. Start final implementation only after #261/#262 results are available on an integration candidate.
+5. [ ] #264 — control-state reconciliation only; no product/deployment/Auth implementation.
 
-No additional P0 product or release implementation packet is identified at this checkpoint. Before creating or taking engineering scope, fetch live GitHub and use the Master Plan, current capability matrix and explicit owner authorization. Do not turn `backend_contract_missing`, deferred or activation-gated rows into invented product authority.
+Parent #259 remains open until #261/#262/#263 are integrated and the complete runtime source + governed acceptance proves no Demo/production-reachable mock/fixture fallback remains.
 
 ## Control plane / release
 
@@ -37,8 +43,10 @@ No additional P0 product or release implementation packet is identified at this 
 - [x] Exact Web/Admin Build SHA release smoke integrated via PR #232.
 - [x] Landing/Student runtime and external deployment acceptance integrated via PR #248.
 - [x] Remote post-copy route/release validation before success-recording integrated via PR #252.
-- [ ] After an owner-authorized deployment of a newer canonical main, record the new immutable deployed SHA only if API, Web, Admin, Landing and Student external smoke all pass. Source-control merge alone must never advance deployment state.
-- [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
+- [x] Admin sidebar contrast fix integrated via PR #257 into canonical `034a43eb527949cefb52ef25252834e606ca625d`.
+- [ ] Repair #260 after the failed authorized deployment of `034a43eb527949cefb52ef25252834e606ca625d`; failure was stale Landing release identity after copy/restart request, before external smoke.
+- [ ] Re-run an authorized Demo deployment only after #260 integrates; record a new immutable deployed SHA only if API, Web, Admin, Landing and Student external smoke all pass. The currently recorded successful deployed SHA remains `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+- [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md, TASKS.md and CHANGELOG.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
 
 ## Real-content evaluation
 

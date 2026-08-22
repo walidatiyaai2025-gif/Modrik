@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-22
-Last reconciled baseline: `814018c14f20976a6819a55e607ca908b320da5d`
+Last reconciled baseline: `034a43eb527949cefb52ef25252834e606ca625d`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -34,38 +34,43 @@ Recent integrated milestones include:
 - PR #239 — Windows client explicitly classified `deferred_disabled`.
 - PR #230 — successful Demo deployment checkpoint evidence.
 - PR #236 / Issue #235 — Backend-owned Student Notification Center across Backend, Student Web and Student Mobile.
-- PR #248 / Issue #244 — restored explicit public Landing `/` and Student Portal `/student` runtime/deployment gates, including exact-route markers, narrow/200% acceptance, keyboard/focus checks and Student-route release verification.
-- PR #252 / Issue #250 — hardened the remote cPanel post-copy boundary so exact Landing/Student release identity and route/runtime markers must pass before deployment-success markers are recorded.
-
-PR #248 exact head `99f2f2306fcb961b645df9048350fa9e77b2fced` passed Bootstrap #1055, Web Portals Runtime Acceptance #9, Web Runtime #108, Boot Security #92, Learning Responsive #54, Notification Center #23, CSP Hydration #34 and Demo Package #247 before merge.
-
-PR #252 exact head `b765c4fa1004f038359c283d3d462eaff12f79ed` passed Bootstrap #1057 including normal/strict Pilot and the governed finalizer, Web Portals Runtime Acceptance #10 and Demo cPanel Package #248 before merge at `814018c14f20976a6819a55e607ca908b320da5d`.
+- PR #248 / Issue #244 — restored explicit public Landing `/` and Student Portal `/student` runtime/deployment gates.
+- PR #252 / Issue #250 — remote cPanel post-copy exact Landing/Student release verification before success markers.
+- PR #253 / Issue #251 — post-#252 control-state reconciliation.
+- PR #257 / Issue #256 — rendered Admin sidebar contrast repair, integrated at `034a43eb527949cefb52ef25252834e606ca625d` after exact-head Admin Sidebar Contrast #12, Admin UX Browser #151, Demo Package #258 and Bootstrap #1074 passed.
 
 ## Active repository-verifiable work at this checkpoint
 
-Issue #251 / PR #253 is control-state reconciliation only. It records the post-#248/#252 source and release-safety truth and must not invent additional product or deployment implementation scope.
+Highest immediate release blocker:
+- #260 — bounded cPanel/Passenger restart propagation. The authorized Demo deployment of canonical `034a43eb527949cefb52ef25252834e606ca625d` copied Web/Backend and ran migrations/caches, then correctly failed closed because Landing still served stale release identity. #260 must poll Landing `/` and Student `/student` only within a bounded restart window and must never record deployment success until exact release identity and required route markers pass.
 
-No additional repository-verifiable P0 product or release implementation packet is identified at this checkpoint. Any next engineering packet must be selected from live GitHub plus authoritative product/governance evidence rather than inferred from this prose.
+Active P0 runtime-integrity program:
+- #259 — umbrella: eliminate Demo/production-reachable mock/fixture behavior.
+- #261 — exclusive Backend Auth runtime + Web BFF fixture-identity removal; dependency-safe in parallel with #260.
+- #262 — exclusive Mobile/Admin production-reachable mock/fake fallback audit and fail-closed repair; dependency-safe in parallel with #261 when shared files are avoided.
+- #263 — real-auth Pilot/browser acceptance plus governed anti-regression guard; dependency-gated on #261/#262 implementation results.
+
+Control reconciliation #264 owns only project-state documentation for this checkpoint and must not implement domain/release behavior.
 
 Real-content evaluation remains gated by owner-approved academic values, deterministic validation and content-rights review. Production activation remains separately gated by external owner/security/legal inputs.
 
 ## Merge and CI policy
 
-All implementation enters `main` through focused PRs. Never merge red CI or weaken tests/security gates to obtain green.
+All implementation enters `main` through focused PRs. Never merge red CI or weaken tests/security gates to obtain green. Integration Captain retains merge authority.
 
 The governed matrix includes control-state validation, capability-surface validation, repository contracts/REQ/AC/schemas, OpenAPI lint, design tokens, Composer validate/audit, Pint, Larastan, full SQLite PHPUnit, MariaDB 10.11 migration/full suite, Web audit/lint/typecheck/tests/build, Flutter analyze/tests/signing gate, Gitleaks, dependency review, Pilot normal/strict acceptance and relevant browser/runtime/demo acceptance.
 
-Release/deployment changes must preserve exact Web/Admin Build SHA verification from PR #232, Landing/Student route/runtime acceptance from PR #248, and the pre-success remote marker/release validation integrated by PR #252.
+Release/deployment changes must preserve exact Web/Admin Build SHA verification from PR #232, Landing/Student route/runtime acceptance from PR #248, pre-success remote marker/release validation from PR #252, and fail-closed behavior while #260 adds only bounded restart propagation.
 
 ## Demo deployment authorization and state
 
 Evaluation target remains `demo.modrik.org` with the established cPanel boundary.
 
-Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+Last repository-recorded successful Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-GitHub Actions run `32563427725`, attempt 2, successfully completed package assembly, audit retention, FTPS upload, protected one-shot bridge execution, cleanup and external Demo smoke. See `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
+GitHub Actions run `32563427725`, attempt 2, successfully completed package assembly, audit retention, FTPS upload, protected one-shot bridge execution, cleanup and external Demo smoke for that immutable SHA. See `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
 
-Source-control integration has advanced through PR #252 and does not mean the Demo serves those commits. The next authorized deployment must resolve its own immutable canonical-main SHA and pass API health, exact Web/Admin build identity, public Landing `/` identity and Student Portal `/student` identity. The remote post-copy runner now fails closed on those Web route/release markers before it records deployment success, but no newer deployment is recorded by source integration alone.
+A later authorized deployment targeting canonical `034a43eb527949cefb52ef25252834e606ca625d` did not complete successfully: the remote runner failed closed with stale Landing release identity after copy/restart request and before external smoke. Therefore the repository-recorded deployed SHA does not advance. Issue #260 owns the bounded restart-propagation repair before another authorized Demo deployment attempt.
 
 Demo authorization does not imply production `modrik.org` cutover or Production Ready status.
 
