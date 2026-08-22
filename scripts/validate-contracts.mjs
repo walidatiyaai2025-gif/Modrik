@@ -209,6 +209,30 @@ assert(openapi.components.schemas.AnswerSyncAcknowledgement.required.includes("r
 assert(openapi.components.schemas.AnswerSyncAcknowledgement.required.includes("answer_revision"));
 assert(openapi.components.schemas.AnswerSyncAcknowledgement.properties.code.enum.includes("SYNC_OPERATION_ID_REUSED"));
 assert(openapi.components.schemas.AnswerSyncAcknowledgement.properties.code.enum.includes("ANSWER_REVISION_CONFLICT"));
+assert.equal(openapi.paths["/v1/notifications"].get.operationId, "listStudentNotifications");
+assert.equal(openapi.paths["/v1/notifications/read-all"].put.operationId, "markAllStudentNotificationsRead");
+assert.equal(openapi.paths["/v1/notifications/{notificationId}/read"].put.operationId, "markStudentNotificationRead");
+assert(openapi.paths["/v1/notifications/{notificationId}/read"].put.responses["404"]);
+for (const notificationPath of ["/v1/notifications", "/v1/notifications/read-all", "/v1/notifications/{notificationId}/read"]) {
+  const method = notificationPath === "/v1/notifications" ? "get" : "put";
+  assert.equal(
+    openapi.paths[notificationPath][method].responses["200"].headers["Cache-Control"].schema.const,
+    "no-store, private",
+  );
+}
+assert.equal(openapi.components.parameters.NotificationId.required, true);
+assert.deepEqual(openapi.components.schemas.NotificationLocalizedText.required, ["ar", "en", "fr"]);
+assert.equal(openapi.components.schemas.StudentNotification.additionalProperties, false);
+assert.deepEqual(
+  openapi.components.schemas.StudentNotification.properties.action.oneOf[1].enum,
+  ["study", "practice", "progress", "academic", "account"],
+);
+for (const forbiddenNotificationField of ["provider", "fcm_token", "apns_token", "device_token", "delivery_status"]) {
+  assert(!Object.hasOwn(openapi.components.schemas.StudentNotification.properties, forbiddenNotificationField));
+}
+assert.equal(openapi.components.schemas.StudentNotificationInboxResponse.properties.data.properties.items.maxItems, 100);
+assert.equal(openapi.components.schemas.StudentNotificationInboxResponse.properties.data.properties.unread_count.minimum, 0);
+assert.equal(openapi.components.schemas.StudentNotificationReadAllResponse.properties.data.properties.unread_count.const, 0);
 assert(openapi.paths["/v1/admin/preparation-requests"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
 assert(openapi.paths["/v1/admin/preparation-requests"].post.responses["201"].headers["Idempotency-Replayed"]);
 assert(openapi.paths["/v1/admin/preparation-imports/validate"].post.parameters.some(({ $ref }) => $ref?.endsWith("/IdempotencyKey")));
