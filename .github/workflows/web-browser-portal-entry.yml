@@ -123,11 +123,14 @@ jobs:
               raise SystemExit('portal-entry evidence SHA mismatch')
           if evidence.get('status') != 'PASS':
               raise SystemExit(f"portal-entry browser status is {evidence.get('status')}")
-          expected = {'landing-en-desktop', 'landing-fr-360-200', 'landing-ar-320-200', 'landing-to-student'}
+          expected = {
+              'landing-en-desktop', 'landing-fr-360-200', 'landing-ar-320-200',
+              'student-fr-360-200', 'student-ar-320-200', 'landing-to-student'
+          }
           actual = {case.get('name') for case in evidence.get('cases', []) if case.get('status') == 'PASS'}
           if actual != expected:
               raise SystemExit(f'unexpected portal-entry PASS matrix: {sorted(actual)}')
-          print('MODRIK portal-entry exact-head browser matrix: 4 PASS / 0 FAIL')
+          print('MODRIK portal-entry exact-head browser matrix: 6 PASS / 0 FAIL')
           PY
 
       - name: Stop Web candidate
