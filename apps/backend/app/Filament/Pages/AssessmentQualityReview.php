@@ -55,9 +55,9 @@ final class AssessmentQualityReview extends Page
     public function getSubheading(): string
     {
         return $this->translate(
-            'Review persisted assessment metadata, option-order safety and historical snapshot usage without changing the canonical bank or any student attempt.',
-            'راجع بيانات التقييم المحفوظة وسلامة ترتيب الاختيارات واستخدام اللقطات التاريخية دون تغيير بنك الأسئلة أو أي محاولة لطالب.',
-            'Contrôlez les métadonnées persistées, la sûreté de l’ordre des options et l’usage des snapshots historiques sans modifier la banque ni aucune tentative.',
+            'Review persisted assessment metadata, effective option-order safety and historical snapshot usage without changing the canonical bank or any student attempt.',
+            'راجع بيانات التقييم المحفوظة وسلامة ترتيب الاختيارات الفعلية واستخدام اللقطات التاريخية دون تغيير بنك الأسئلة أو أي محاولة لطالب.',
+            'Contrôlez les métadonnées persistées, la sûreté effective de l’ordre des options et l’usage des snapshots historiques sans modifier la banque ni aucune tentative.',
         );
     }
 
@@ -87,11 +87,6 @@ final class AssessmentQualityReview extends Page
             $query->whereNotNull('questions.assessment_metadata');
         } elseif ($this->metadataFilter === 'missing') {
             $query->whereNull('questions.assessment_metadata');
-        }
-        if ($this->shuffleFilter === 'safe') {
-            $query->where('questions.option_shuffle_safe', true);
-        } elseif ($this->shuffleFilter === 'fixed') {
-            $query->where('questions.option_shuffle_safe', false);
         }
         if (trim($this->search) !== '') {
             $needle = '%'.trim($this->search).'%';
@@ -138,7 +133,7 @@ final class AssessmentQualityReview extends Page
             ->groupBy('question_id')
             ->pluck('aggregate_count', 'question_id');
 
-        return array_values($records->map(function (object $record) use ($membershipCounts, $snapshotCounts): array {
+        $rows = $records->map(function (object $record) use ($membershipCounts, $snapshotCounts): array {
             $questionId = (string) $record->id;
             $metadata = $record->assessment_metadata === null
                 ? []
@@ -162,6 +157,9 @@ final class AssessmentQualityReview extends Page
                     $unsafeReasons[] = $flag;
                 }
             }
+            $unsafeReasons = array_values(array_unique($unsafeReasons));
+            $explicitShuffleSafe = (bool) $record->option_shuffle_safe;
+            $effectiveShuffleSafe = $explicitShuffleSafe && $unsafeReasons === [];
 
             return [
                 'id' => $questionId,
@@ -174,8 +172,9 @@ final class AssessmentQualityReview extends Page
                 'section' => is_string($metadata['section'] ?? null) ? (string) $metadata['section'] : null,
                 'difficulty' => is_string($metadata['difficulty'] ?? null) ? (string) $metadata['difficulty'] : null,
                 'concepts' => $concepts,
-                'option_shuffle_safe' => (bool) $record->option_shuffle_safe,
-                'unsafe_reasons' => array_values(array_unique($unsafeReasons)),
+                'explicit_shuffle_safe' => $explicitShuffleSafe,
+                'effective_shuffle_safe' => $effectiveShuffleSafe,
+                'unsafe_reasons' => $unsafeReasons,
                 'membership_count' => (int) ($membershipCounts[$questionId] ?? 0),
                 'snapshot_count' => (int) ($snapshotCounts[$questionId] ?? 0),
                 'track_title' => $this->localizedJson((string) $record->track_title),
@@ -185,7 +184,15 @@ final class AssessmentQualityReview extends Page
                 'is_fixture' => (bool) $record->is_fixture,
                 'updated_at' => (string) $record->updated_at,
             ];
-        })->all());
+        });
+
+        if ($this->shuffleFilter === 'safe') {
+            $rows = $rows->filter(static fn (array $row): bool => (bool) $row['effective_shuffle_safe']);
+        } elseif ($this->shuffleFilter === 'fixed') {
+            $rows = $rows->filter(static fn (array $row): bool => ! (bool) $row['effective_shuffle_safe']);
+        }
+
+        return array_values($rows->values()->all());
     }
 
     /** @return array{questions: int, metadata_present: int, shuffle_safe: int, historical_snapshots: int} */
@@ -196,7 +203,7 @@ final class AssessmentQualityReview extends Page
         return [
             'questions' => count($rows),
             'metadata_present' => count(array_filter($rows, static fn (array $row): bool => (bool) $row['metadata_present'])),
-            'shuffle_safe' => count(array_filter($rows, static fn (array $row): bool => (bool) $row['option_shuffle_safe'])),
+            'shuffle_safe' => count(array_filter($rows, static fn (array $row): bool => (bool) $row['effective_shuffle_safe'])),
             'historical_snapshots' => array_sum(array_map(static fn (array $row): int => (int) $row['snapshot_count'], $rows)),
         ];
     }
