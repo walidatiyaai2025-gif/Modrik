@@ -56,8 +56,9 @@ final class StudentNotificationCenterTest extends TestCase
             ->assertJsonPath('data.items.1.action', 'study')
             ->assertJsonPath('data.items.1.is_read', false);
 
-        $this->assertStringNotContainsString($foreignId, $response->getContent());
-        $this->assertStringNotContainsString('private_other_user', $response->getContent());
+        $content = (string) $response->getContent();
+        $this->assertStringNotContainsString($foreignId, $content);
+        $this->assertStringNotContainsString('private_other_user', $content);
     }
 
     public function test_read_mutations_are_idempotent_and_cross_account_access_is_not_disclosed(): void
@@ -117,6 +118,10 @@ final class StudentNotificationCenterTest extends TestCase
             ->assertJsonPath('code', 'RESOURCE_NOT_FOUND');
     }
 
+    /**
+     * @param  array<string, string>|null  $title
+     * @param  array<string, string>|null  $body
+     */
     private function insertNotification(
         string $userId,
         string $kind,
