@@ -53,6 +53,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.admin.sidebar-contrast')->render(),
+            )
+            ->renderHook(
                 PanelsRenderHook::TOPBAR_LOGO_AFTER,
                 fn (): string => $this->releaseBadge(),
             )
