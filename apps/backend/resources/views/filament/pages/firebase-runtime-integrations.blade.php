@@ -39,6 +39,16 @@
                     <div class="flex justify-between gap-4 border-t border-gray-100 pt-3"><dt class="text-gray-500">Transport</dt><dd><x-filament::badge color="warning">{{ $status['fcm_transport_status'] }}</x-filament::badge></dd></div>
                 </dl>
 
+                @if ($status['last_test'])
+                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $locale === 'ar' ? 'آخر فحص مسجل' : ($locale === 'fr' ? 'Dernier test audité' : 'Last audited test') }}</span>
+                            <x-filament::badge color="warning">{{ $status['last_test']['result_code'] }}</x-filament::badge>
+                        </div>
+                        <div class="modrik-code mt-2 break-all text-xs text-gray-600" dir="ltr">{{ $status['last_test']['occurred_at'] }} · {{ $status['last_test']['target_type'] }} · {{ $status['last_test']['target_fingerprint'] }}</div>
+                    </div>
+                @endif
+
                 <form wire:submit="testPush" class="mt-5 space-y-3 rounded-xl bg-gray-50 p-4">
                     <div>
                         <h3 class="font-semibold text-gray-950">{{ $locale === 'ar' ? 'اختبار Push مضبوط' : ($locale === 'fr' ? 'Test Push contrôlé' : 'Controlled Test Push') }}</h3>
@@ -55,7 +65,11 @@
                     @if ($lastTestCode)
                         <div class="modrik-code rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs" dir="ltr">{{ $lastTestCode }}</div>
                     @endif
-                    <x-filament::button type="submit" color="gray">{{ $locale === 'ar' ? 'تشغيل فحص الحدود' : ($locale === 'fr' ? 'Exécuter le contrôle' : 'Run boundary check') }}</x-filament::button>
+                    <x-filament::button
+                        type="submit"
+                        color="gray"
+                        wire:confirm="{{ $locale === 'ar' ? 'تأكيد تشغيل فحص Firebase على مرجع الاختبار المحدد؟' : ($locale === 'fr' ? 'Confirmer le contrôle Firebase pour la référence de test sélectionnée ?' : 'Confirm the Firebase boundary check for the selected test reference?') }}"
+                    >{{ $locale === 'ar' ? 'تشغيل فحص الحدود' : ($locale === 'fr' ? 'Exécuter le contrôle' : 'Run boundary check') }}</x-filament::button>
                 </form>
             </section>
 
