@@ -44,6 +44,13 @@ return [
             ],
         ],
     ],
+    'firebase' => [
+        'project_id' => (string) env('MODRIK_FIREBASE_PROJECT_ID', ''),
+        'web_app_id' => (string) env('MODRIK_FIREBASE_WEB_APP_ID', ''),
+        'android_app_id' => (string) env('MODRIK_FIREBASE_ANDROID_APP_ID', ''),
+        'ios_app_id' => (string) env('MODRIK_FIREBASE_IOS_APP_ID', ''),
+        'credentials_reference' => (string) env('MODRIK_FIREBASE_CREDENTIALS_REFERENCE', ''),
+    ],
     'idempotency' => [
         'secret' => (string) env('MODRIK_IDEMPOTENCY_SECRET', env('APP_KEY', '')),
         'retention_hours' => 24,
