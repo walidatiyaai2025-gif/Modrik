@@ -5,6 +5,8 @@
         $label = static fn (string $ar, string $en, string $fr): string => $isAr ? $ar : ($isFr ? $fr : $en);
         $steps = $this->lifecycle();
         $metrics = $this->metrics();
+        $coverage = $this->coverage();
+        $policy = $this->processingPolicy();
         $supporting = $this->supportingSurfaces();
         $deferred = $this->deferredCapabilities();
     @endphp
@@ -25,6 +27,37 @@
             ] as $key => $copy)
                 <div class="modrik-panel p-4"><div class="text-xs text-gray-500">{{ $copy }}</div><div class="mt-2 text-2xl font-bold text-gray-950">{{ $metrics[$key] }}</div></div>
             @endforeach
+        </section>
+
+        <section class="modrik-panel" aria-labelledby="content-coverage-title">
+            <div class="modrik-panel-header"><div><h2 id="content-coverage-title" class="modrik-panel-title">{{ $label('تغطية المنهج', 'Curriculum coverage', 'Couverture du programme') }}</h2><p class="modrik-panel-subtitle">{{ $label('أعداد مشتقة مباشرة من الجداول القانونية الحالية، وليست نسبة جودة أو اكتمال مخترعة.', 'Counts derived directly from canonical tables; this is not an invented quality or completeness score.', 'Comptages dérivés directement des tables canoniques ; il ne s’agit pas d’un score de qualité ou de complétude inventé.') }}</p></div></div>
+            <div class="modrik-panel-body grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+                @foreach ([
+                    'tracks' => $label('المسارات', 'Tracks', 'Parcours'),
+                    'tracks_with_nodes' => $label('مسارات بها محتوى', 'Tracks with nodes', 'Parcours avec contenu'),
+                    'curriculum_nodes' => $label('عقد المنهج', 'Curriculum nodes', 'Nœuds du programme'),
+                    'published_nodes' => $label('عقد منشورة', 'Published nodes', 'Nœuds publiés'),
+                    'nodes_with_lessons' => $label('عقد بها دروس', 'Nodes with lessons', 'Nœuds avec leçons'),
+                    'nodes_with_questions' => $label('عقد بها أسئلة', 'Nodes with questions', 'Nœuds avec questions'),
+                    'nodes_with_quizzes' => $label('عقد بها اختبارات', 'Nodes with quizzes', 'Nœuds avec quiz'),
+                ] as $key => $copy)
+                    <div class="rounded-2xl border border-gray-200 bg-white p-4"><div class="text-xs text-gray-500">{{ $copy }}</div><div class="mt-2 text-2xl font-bold text-gray-950">{{ $coverage[$key] }}</div></div>
+                @endforeach
+            </div>
+        </section>
+
+        <section class="modrik-panel" aria-labelledby="content-processing-policy-title" data-testid="content-processing-policy">
+            <div class="modrik-panel-header"><div><h2 id="content-processing-policy-title" class="modrik-panel-title">{{ $label('سياسة المعالجة', 'Processing policy', 'Politique de traitement') }}</h2><p class="modrik-panel-subtitle">{{ $label('حالة قراءة فقط للعقد الفعلي؛ لا تختار الواجهة مزودًا ولا تجعل الذكاء المدفوع شرطًا.', 'Read-only status of the real contract; Admin does not select a provider or make paid AI a requirement.', 'État en lecture seule du contrat réel ; Admin ne choisit pas de fournisseur et ne rend pas l’IA payante obligatoire.') }}</p></div><x-filament::badge color="success">{{ $label('مسار بدون تكلفة مضمون', 'Zero-paid path required', 'Parcours sans coût requis') }}</x-filament::badge></div>
+            <div class="modrik-panel-body space-y-4">
+                <dl class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5 text-sm">
+                    <div class="rounded-xl bg-gray-50 p-4"><dt class="text-gray-500">{{ $label('النمط', 'Mode', 'Mode') }}</dt><dd class="mt-1 break-words font-semibold text-gray-950">{{ $policy['mode'] }}</dd></div>
+                    <div class="rounded-xl bg-gray-50 p-4"><dt class="text-gray-500">{{ $label('المزود', 'Provider', 'Fournisseur') }}</dt><dd class="mt-1 break-words font-semibold text-gray-950">{{ $policy['provider'] }}</dd></div>
+                    <div class="rounded-xl bg-gray-50 p-4"><dt class="text-gray-500">{{ $label('AI مدفوع Runtime', 'Paid AI runtime', 'IA payante runtime') }}</dt><dd class="mt-1 font-semibold text-gray-950">{{ $policy['paid_ai_runtime_enabled'] ? $label('مفعّل كقدرة اختيارية', 'Enabled as optional capability', 'Activée comme capacité optionnelle') : $label('غير مفعّل', 'Disabled', 'Désactivée') }}</dd></div>
+                    <div class="rounded-xl bg-gray-50 p-4"><dt class="text-gray-500">paid_ai_required</dt><dd class="mt-1 font-semibold text-gray-950">false</dd></div>
+                    <div class="rounded-xl bg-gray-50 p-4"><dt class="text-gray-500">{{ $label('سلطة التحقق', 'Validation authority', 'Autorité de validation') }}</dt><dd class="mt-1 break-words font-semibold text-gray-950">{{ $policy['validation_authority'] }}</dd></div>
+                </dl>
+                <x-admin.operational-banner severity="success" :title="$label('الـBackend يفرض المسار بدون AI مدفوع', 'Backend enforces the zero-paid path', 'Le Backend impose le parcours sans IA payante')" :message="$label('طلبات التحضير المقبولة يجب أن تحمل paid_ai_required=false، والنتيجة تعود كحزمة ZIP مرتبطة بالطلب وتخضع للتحقق الحتمي والحقوق والمراجعة قبل النشر.', 'Accepted preparation requests must use paid_ai_required=false. The returned ZIP remains request-bound and must pass deterministic validation, rights review and publication gates.', 'Les demandes acceptées doivent utiliser paid_ai_required=false. Le ZIP retourné reste lié à la demande et doit franchir validation déterministe, droits et publication.')" />
+            </div>
         </section>
 
         <section class="modrik-panel" aria-labelledby="content-lifecycle-title">

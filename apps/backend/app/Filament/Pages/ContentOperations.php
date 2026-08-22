@@ -73,6 +73,33 @@ final class ContentOperations extends Page
         ];
     }
 
+    /** @return array{tracks: int, tracks_with_nodes: int, curriculum_nodes: int, published_nodes: int, nodes_with_lessons: int, nodes_with_questions: int, nodes_with_quizzes: int} */
+    public function coverage(): array
+    {
+        return [
+            'tracks' => DB::table('academic_tracks')->count(),
+            'tracks_with_nodes' => DB::table('curriculum_nodes')->distinct()->count('academic_track_id'),
+            'curriculum_nodes' => DB::table('curriculum_nodes')->count(),
+            'published_nodes' => DB::table('curriculum_nodes')->where('status', 'published')->count(),
+            'nodes_with_lessons' => DB::table('lessons')->distinct()->count('curriculum_node_id'),
+            'nodes_with_questions' => DB::table('questions')->distinct()->count('curriculum_node_id'),
+            'nodes_with_quizzes' => DB::table('quizzes')->distinct()->count('curriculum_node_id'),
+        ];
+    }
+
+    /** @return array{mode: string, provider: string, paid_ai_runtime_enabled: bool, paid_ai_required: bool, zero_paid_fallback: bool, validation_authority: string} */
+    public function processingPolicy(): array
+    {
+        return [
+            'mode' => 'deterministic_preparation_bundle_returned_zip',
+            'provider' => 'not_backend_selected',
+            'paid_ai_runtime_enabled' => (bool) config('modrik.paid_ai.enabled'),
+            'paid_ai_required' => false,
+            'zero_paid_fallback' => true,
+            'validation_authority' => 'backend_content_pack_validator',
+        ];
+    }
+
     /** @return array<int, array{label: string, description: string, url: string, state: string}> */
     public function lifecycle(): array
     {

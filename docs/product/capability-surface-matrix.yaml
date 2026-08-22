@@ -46,6 +46,18 @@ capabilities:
     surface: ContentTraceability
     status: present_on_issue_182_branch
     notes: Read-only request/archive/content/dry-run hash linkage, rights evidence reference, review/publication state, canonical lesson/question/quiz versions and preparation supersession history.
+  - id: admin.content.processing_policy
+    area: content
+    classification: read_only_operational
+    surface: ContentOperations
+    status: present_on_issue_182_branch
+    notes: Backend does not select a preparation provider. The deterministic request/bundle and returned-ZIP contract requires paid_ai_required=false even when optional paid-AI runtime capability is enabled; archive validation and rights/review gates remain Backend-authoritative.
+  - id: admin.content.curriculum_coverage
+    area: content
+    classification: read_only_operational
+    surface: ContentOperations
+    status: present_on_issue_182_branch
+    notes: Coverage is reported as canonical counts for tracks, curriculum nodes and nodes with lessons/questions/quizzes; no synthetic quality or completeness score is invented.
   - id: admin.content.automated_confidence
     area: content
     classification: deferred_disabled
