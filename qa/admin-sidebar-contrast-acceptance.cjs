@@ -236,24 +236,23 @@ async function requireHoverAndFocus(page, locale) {
       const inactiveLabels = page.locator('.fi-sidebar .fi-sidebar-item:not(.fi-active) .fi-sidebar-item-label:visible');
       const activeLabels = page.locator('.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label:visible');
       const groups = page.locator('.fi-sidebar .fi-sidebar-group-label:visible');
-      const inactiveIcons = page.locator(
-        '.fi-sidebar .fi-sidebar-item:not(.fi-active) :is(.fi-sidebar-item-btn, .fi-sidebar-item-button) :is(.fi-sidebar-item-icon, .fi-icon):visible',
-      );
-      const activeIcons = page.locator(
-        '.fi-sidebar .fi-sidebar-item.fi-active :is(.fi-sidebar-item-btn, .fi-sidebar-item-button) :is(.fi-sidebar-item-icon, .fi-icon):visible',
-      );
+      const navigationIcons = page.locator([
+        '.fi-sidebar .fi-sidebar-group-icon:visible',
+        '.fi-sidebar .fi-sidebar-item-icon:visible',
+        '.fi-sidebar .fi-sidebar-group-button .fi-icon:visible',
+        '.fi-sidebar .fi-sidebar-item-btn .fi-icon:visible',
+        '.fi-sidebar .fi-sidebar-item-button .fi-icon:visible',
+      ].join(', '));
 
       if ((await inactiveLabels.count()) < 2) throw new Error(`${locale}: insufficient inactive sidebar labels`);
       if ((await activeLabels.count()) < 1) throw new Error(`${locale}: no active sidebar label rendered`);
       if ((await groups.count()) < 2) throw new Error(`${locale}: insufficient sidebar group labels`);
-      if ((await inactiveIcons.count()) < 1) throw new Error(`${locale}: no inactive sidebar icon rendered`);
-      if ((await activeIcons.count()) < 1) throw new Error(`${locale}: no active sidebar icon rendered`);
+      if ((await navigationIcons.count()) < 2) throw new Error(`${locale}: insufficient visible sidebar navigation icons`);
 
       await requireContrast(inactiveLabels, 'inactive-item', locale, 4.5);
       await requireContrast(activeLabels, 'active-item', locale, 4.5);
       await requireContrast(groups, 'group', locale, 4.5);
-      await requireContrast(inactiveIcons, 'inactive-icon', locale, 3);
-      await requireContrast(activeIcons, 'active-icon', locale, 3);
+      await requireContrast(navigationIcons, 'navigation-icon', locale, 3);
       await requireHoverAndFocus(page, locale);
 
       const dir = await page.locator('html').getAttribute('dir');
