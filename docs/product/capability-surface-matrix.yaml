@@ -153,10 +153,16 @@ capabilities:
     surface: AssessmentQuestionBank / AssessmentOperations
     status: present
     notes: Operators can inspect human-readable quiz membership and question counts. No current Backend Admin mutation service authorizes membership changes, so no UI-only write path is exposed.
+  - id: admin.assessment.question_quality_review
+    area: assessment
+    classification: read_only_operational
+    surface: AssessmentQualityReview / AssessmentQuestionBank
+    status: present
+    notes: Persisted question status, content version, score, assessment metadata, section/difficulty/concept identifiers, explicit option-shuffle safety, membership count and aggregate immutable snapshot usage are visible. No synthetic quality score or student-private answer history is exposed, and no write path is invented.
   - id: admin.assessment.question_lifecycle_management
     area: assessment
     classification: read_only_operational
-    surface: AssessmentQuestionBank / AssessmentOperations
+    surface: AssessmentQuestionBank / AssessmentQualityReview / AssessmentOperations
     status: backend_contract_missing
     notes: Current Backend stores question status but has no operator-authorized service/policy contract for legal lifecycle transitions, stale edit protection and immutable audit evidence. Lifecycle therefore remains read-only.
   - id: admin.assessment.lifecycle_availability
@@ -171,6 +177,18 @@ capabilities:
     surface: AssessmentOperations
     status: backend_contract_missing
     notes: Persisted blueprint constraints, question-order policy and version are visible together with existing attempt blueprint versions. No operator-authorized versioned mutation contract exists; any future change must apply only according to Backend rules and must never rewrite existing attempt scope/question snapshots.
+  - id: admin.assessment.mistake_bank_operations
+    area: assessment
+    classification: deferred_disabled
+    surface: null
+    status: backend_contract_missing
+    notes: Repository audit found no activated role-safe aggregate mistake-bank operations contract. No broad learner answer/history visibility is created for Admin parity.
+  - id: admin.assessment.ai_composition
+    area: assessment
+    classification: deferred_disabled
+    surface: null
+    status: not_implemented_or_activated
+    notes: No implemented assessment composition proposal/apply contract exists. Optional paid-AI availability does not create Assessment publication authority; no fake provider action is exposed.
   - id: admin.accounts.roles_sessions
     area: auth
     classification: admin_manageable
