@@ -14,11 +14,13 @@ import 'src/learning_gateway.dart';
 import 'src/mobile_auth_controller.dart';
 import 'src/mobile_learning_controller.dart';
 import 'src/models.dart';
+import 'src/notification_center.dart';
 import 'src/offline_boundary.dart';
 import 'src/provider_auth_launcher.dart';
 import 'src/runtime_diagnostics.dart';
 import 'src/runtime_inspector.dart';
 import 'src/secure_session_store.dart';
+import 'src/student_notifications.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,7 @@ class ModrikApp extends StatefulWidget {
     super.key,
     this.controller,
     this.authController,
+    this.notificationGateway,
     this.diagnostics,
     this.autoInitialize = true,
   });
@@ -38,6 +41,7 @@ class ModrikApp extends StatefulWidget {
   /// harness. Production startup creates and owns both controllers instead.
   final MobileLearningController? controller;
   final MobileAuthController? authController;
+  final StudentNotificationGateway? notificationGateway;
   final RuntimeDiagnostics? diagnostics;
   final bool autoInitialize;
 
@@ -49,6 +53,7 @@ class _ModrikAppState extends State<ModrikApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   late MobileLearningController _controller;
   MobileAuthController? _authController;
+  late StudentNotificationGateway _notificationGateway;
   RuntimeDiagnostics? _diagnostics;
   late bool _ownsController;
   late bool _ownsAuthController;
@@ -132,6 +137,8 @@ class _ModrikAppState extends State<ModrikApp> {
       _ownsController = false;
       _authController = suppliedAuth;
       _ownsAuthController = false;
+      _notificationGateway = widget.notificationGateway ??
+          const UnconfiguredStudentNotificationGateway();
       return;
     }
 
@@ -145,6 +152,14 @@ class _ModrikAppState extends State<ModrikApp> {
       _ownsController = true;
       _authController = null;
       _ownsAuthController = false;
+      final baseUrl = config.apiBaseUrl;
+      _notificationGateway = baseUrl == null
+          ? const UnconfiguredStudentNotificationGateway()
+          : HttpStudentNotificationGateway(
+              baseUrl: baseUrl,
+              bearerToken: config.bearerToken,
+              diagnostics: _diagnostics,
+            );
       return;
     }
 
@@ -162,6 +177,14 @@ class _ModrikAppState extends State<ModrikApp> {
     );
     _ownsController = true;
     final baseUrl = config.apiBaseUrl;
+    _notificationGateway = baseUrl == null
+        ? const UnconfiguredStudentNotificationGateway()
+        : HttpStudentNotificationGateway(
+            baseUrl: baseUrl,
+            bearerTokenProvider: tokenProvider.call,
+            onAuthenticationRejected: _notifySessionRejected,
+            diagnostics: _diagnostics,
+          );
     final AuthGateway authGateway = baseUrl != null
         ? HttpAuthGateway(
             baseUrl: baseUrl,
@@ -397,15 +420,19 @@ class _ModrikAppState extends State<ModrikApp> {
               child: child ?? const SizedBox.shrink(),
             );
           },
-          home: auth == null
-              ? AcademicContextResetBoundary(
-                  controller: _controller,
-                  child: MobileStudentShell(controller: _controller),
-                )
-              : MobileAuthBoundary(
-                  authController: auth,
-                  learningController: _controller,
-                ),
+          home: MobileNotificationLauncher(
+            controller: _controller,
+            gateway: _notificationGateway,
+            child: auth == null
+                ? AcademicContextResetBoundary(
+                    controller: _controller,
+                    child: MobileStudentShell(controller: _controller),
+                  )
+                : MobileAuthBoundary(
+                    authController: auth,
+                    learningController: _controller,
+                  ),
+          ),
         );
       },
     );
