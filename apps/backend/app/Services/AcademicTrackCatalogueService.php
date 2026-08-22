@@ -59,7 +59,7 @@ final class AcademicTrackCatalogueService
 
     private function authorizedQuery(User $user): Builder
     {
-        $query = DB::table('academic_track_authorizations')
+        return DB::table('academic_track_authorizations')
             ->join(
                 'academic_tracks',
                 'academic_tracks.id',
@@ -68,6 +68,7 @@ final class AcademicTrackCatalogueService
             )
             ->where('academic_track_authorizations.user_id', $user->getKey())
             ->whereNull('academic_track_authorizations.revoked_at')
+            ->where('academic_tracks.is_fixture', false)
             ->select([
                 'academic_tracks.id',
                 'academic_tracks.year_level',
@@ -75,12 +76,6 @@ final class AcademicTrackCatalogueService
                 'academic_tracks.is_fixture',
                 'academic_track_authorizations.sort_order',
             ]);
-
-        if (! (bool) config('modrik.fixture.enabled')) {
-            $query->where('academic_tracks.is_fixture', false);
-        }
-
-        return $query;
     }
 
     /** @return null|array{ar: string, en: string, fr: string} */
