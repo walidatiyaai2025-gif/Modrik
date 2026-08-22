@@ -4,9 +4,9 @@ Updated: 2026-08-22
 
 ## Current integrated `main`
 
-- Authoritative `main`: `41bb2959387bc1a01995d643d6419713d5ba0e56` — merged PR #178 (`UI: close capability discoverability gaps and show deployed build`).
-- The Demo Admin/Student surfaces expose the deployed Build SHA; the owner visually confirmed `Build 41bb2959387b`, matching current `main` and removing ambiguity from stale browser/deployment cache.
-- Issue #177 is complete/closed. Its scope fixed immediate capability discoverability gaps, including Preparation Request history/discovery, but it was narrower than the full Master Product & Engineering Plan.
+- Authoritative `main`: `003e90a5fb64540d310a35418ce653553b38eee0` — merged PR #186 (`Governance: require discoverable capability and settings surfaces`).
+- PR #186 integrated Issue #179 governance contracts, including `GOV-SURFACE-001`, the capability-surface matrix, `REQ-P0-015`, `AC-P0-021`, and project-wide discoverability/internal/deferred completion rules.
+- The last repository-recorded deployed Demo build remains `41bb2959387bc1a01995d643d6419713d5ba0e56` from PR #178. The Admin/Student surfaces expose the deployed Build SHA; no evidence currently records `003e90a...` as deployed.
 - Issues #34 and #43 are closed; their prior P0/Pilot integration/orchestration responsibilities remain historical evidence and are not implicitly reopened.
 
 ## Prior P0/Pilot engineering baseline
@@ -20,32 +20,46 @@ Key evidence remains:
 - PR #114 terminal browser acceptance;
 - PR #112 fixture-backed Pilot harness.
 
-These results remain valid for the prior baseline. The new work below is a follow-on operability/completeness directive, not evidence that server authority or the existing P0 domain contracts should be weakened.
+These results remain valid for the prior baseline. The follow-on work below is an operability/completeness directive, not permission to weaken server authority or existing P0 domain contracts.
 
-## Owner-authorized follow-on: capability/settings surfaces
+## Capability/settings governance
 
-The owner reviewed the deployed Admin and directed a whole-project rule on 2026-08-22: every function/configuration described by the full MODRIK Master Product & Engineering Plan must be intentionally represented in the product UI/operations model. Manageable capabilities require discoverable menus/pages/settings; security/integrity invariants remain explicitly non-editable; P1/Future items remain explicitly deferred.
+Issue #179 (`P0-GOV-SURFACES-001`) is complete/closed after PR #186 merged to `main` at `003e90a5fb64540d310a35418ce653553b38eee0`.
 
-Issue #179 (`P0-GOV-SURFACES-001`) owns this governance workstream.
-
-Current governance branch: `governance/capability-surfaces-179`, based on `41bb2959387bc1a01995d643d6419713d5ba0e56`.
-
-The branch establishes:
+Integrated governance now includes:
 - `docs/product/CAPABILITY_SURFACE_GOVERNANCE.md` (`GOV-SURFACE-001`);
 - `docs/product/capability-surface-matrix.yaml`;
 - `REQ-P0-015` — Discoverable capability and settings surfaces;
 - `AC-P0-021` — capability matrix + discoverable surface/internal/deferred classification + navigation/RBAC/security/audit/localization/regression gate;
 - matching rules in `AGENTS.md`, `PROJECT_CONTROL.md`, `MASTER_PLAN_START_HERE.md`, and `TASKS.md`.
 
-## Child implementation queue
+Every capability is classified as one of:
+- `admin_manageable`;
+- `user_facing`;
+- `read_only_operational`;
+- `internal_non_editable`;
+- `deferred_disabled`.
 
-- #180 — Academic Catalogue Management surface. **Highest priority.**
+Security-sensitive values and authority remain non-editable where required. Provider/API secrets remain external secret material; safe Admin surfaces may show only status/reference such as Set/Not Set, alias/reference and validation state.
+
+## Active implementation queue
+
+- #185 — shared professional Filament Admin design system/shell/dashboard foundation. PR #187 is active and draft.
+- #180 — Academic Catalogue Management surface. **Highest product-operability priority.**
 - #181 — System Settings Registry, Auth Providers, Notifications, Firebase and Ads.
 - #182 — complete Content Operations management surfaces.
 - #183 — Exam, Question Bank and Practice management surfaces.
 - #184 — Accounts/RBAC/Sessions, Public/Legal/Help and remaining operational surfaces.
 
-These child packets are intentionally separated by domain so the result is a maintainable Admin information architecture rather than one unbounded settings page.
+Issue #185 is a shared UX dependency for the Admin completion quality gate of #180–#184; domain capability work may proceed independently where ownership is safe, but each child UI is incomplete until it consumes the shared foundation.
+
+## Current CI / integration state
+
+PR #187 (`issue-185-admin-ux-foundation`) head `2d8f5e7dbfd93251574a9e262f15571c58b79feb` was opened from pre-governance `main` `41bb2959387bc1a01995d643d6419713d5ba0e56` and therefore requires semantic reconciliation onto current `main` before integration.
+
+Bootstrap CI run `32544954895` is red only in `backend-mariadb`. Contracts, Backend SQLite, Web, Mobile, secret scan, dependency review and Pilot smoke are green; Demo cPanel Package run `32544954911` is green. The MariaDB failure is a real code/test portability defect in the new Admin UX surface: two `AdminUxFoundationTest` requests return HTTP 500 under MariaDB while the corresponding SQLite Backend job succeeds. Red CI remains merge-blocking and must not be normalized or bypassed.
+
+Open legacy Demo PR #153 / Issue #152 remains stale against current `main` and requires current-main reconciliation and fresh exact-head governed CI before any Integration Captain decision.
 
 ## Current real-content evaluation state
 
@@ -55,28 +69,19 @@ The Backend fail-closed behavior is correct and remains unchanged. The product g
 
 Content rights remain a separate gate. `pending_review` content must continue through the existing evidence-backed rights workflow before official publication; no UI completion rule authorizes fabrication of curriculum rights.
 
-## Governance rules now expected project-wide
+## Capability-surface priorities
 
-Every capability is classified as one of:
-- `admin_manageable`;
-- `user_facing`;
-- `read_only_operational`;
-- `internal_non_editable`;
-- `deferred_disabled`.
-
-Examples:
-- Academic catalogue, Auth provider status/configuration, Notifications, Firebase status/test operations and Ads controls are Admin-manageable.
-- Build SHA, runtime/integration health and protected diagnostics may be read-only operational.
-- Assessment seed/authoritative order/scoring authority, immutable no-ad protections, privacy/security invariants and secret values remain internal/non-editable.
-- Community/P1, broad public competition/social activation and Windows remain deferred/disabled until separately authorized.
-
-Secrets remain outside normal settings rows. Admin surfaces may show only safe status/reference such as Set/Not Set, alias/reference, last validation or rotation-needed state.
+Examples of intentional classifications:
+- Academic catalogue, Auth provider status/configuration, Notifications, Firebase status/test operations and Ads controls are `admin_manageable`.
+- Build SHA, runtime/integration health and protected diagnostics may be `read_only_operational`.
+- Assessment seed/authoritative order/scoring authority, immutable no-ad protections, privacy/security invariants and secret values remain `internal_non_editable`.
+- Community/P1, broad public competition/social activation and Windows remain `deferred_disabled` until separately authorized.
 
 ## Demo deployment
 
 The owner-authorized evaluation target remains `demo.modrik.org`; confirmed cPanel document root remains `/public_html/demo.modrik.org` (expected absolute `/home/solscool/public_html/demo.modrik.org/`).
 
-The demo remains separate from the production `modrik.org` Coming Soon cutover boundary. Subsequent Admin-surface releases should preserve the visible Build SHA to make deployment/cache verification immediate.
+The demo remains separate from the production `modrik.org` Coming Soon cutover boundary. Subsequent Admin-surface releases must preserve the visible Build SHA so deployment/cache verification remains immediate.
 
 ## External production inputs still explicit
 
