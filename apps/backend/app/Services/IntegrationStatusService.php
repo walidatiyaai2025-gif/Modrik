@@ -64,7 +64,7 @@ final class IntegrationStatusService
             'quiet_hours_end' => $this->settings->current('notifications.quiet_hours.end', $environment)['value'],
             'email_verification_channel' => $emailTransportStatus,
             'password_recovery_channel' => $emailTransportStatus,
-            'student_notification_center' => 'audit_required',
+            'student_notification_center' => 'present',
             'push_channel' => $this->boolSetting('firebase.fcm.enabled', $environment) ? 'enabled_pending_transport' : 'disabled',
         ];
     }
