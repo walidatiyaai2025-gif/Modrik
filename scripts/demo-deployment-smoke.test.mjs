@@ -96,10 +96,26 @@ test("Demo release smoke fails closed when the Web build identity is stale", () 
   assert.match(result.stderr, /MODRIK_DEPLOY_WEB_RELEASE_MISMATCH/);
 });
 
-test("Demo release smoke fails closed when the Student route is unreachable", () => {
-  const result = runSmoke({ studentExit: "22" });
+test("Demo release smoke fails closed when Landing loses the Student Portal route", () => {
+  const result = runSmoke({ webBody: `${webReleaseBadge}<main data-testid="modrik-landing-page"></main>` });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /MODRIK_DEPLOY_LANDING_PORTAL_MISMATCH/);
+});
+
+test("Demo release smoke fails closed when the Student route is unreachable without leaking its body", () => {
+  const result = runSmoke({ studentExit: "22", studentPortalBody: "SECRET_STUDENT_BODY" });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /MODRIK_DEPLOY_STUDENT_UNREACHABLE/);
+  assert.doesNotMatch(`${result.stdout}${result.stderr}`, /SECRET_STUDENT_BODY/);
+});
+
+test("Demo release smoke fails closed when Student serves a stale release", () => {
+  const bad = "b".repeat(40);
+  const result = runSmoke({
+    studentPortalBody: `<div data-testid="modrik-web-release-badge" title="MODRIK deployed release: ${bad}">Build ${bad.slice(0, 12)}</div><div data-testid="modrik-student-portal"><section class="auth-shell"></section></div>`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /MODRIK_DEPLOY_STUDENT_RELEASE_MISMATCH/);
 });
 
 test("Demo release smoke rejects a Student route that serves Landing content", () => {
