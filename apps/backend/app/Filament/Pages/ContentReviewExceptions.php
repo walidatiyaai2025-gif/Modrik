@@ -208,7 +208,7 @@ final class ContentReviewExceptions extends Page
     }
 
     /**
-     * @param object{operation_state: mixed, rights_review_status: mixed, review_decision: mixed} $row
+     * @param  object{operation_state: mixed, rights_review_status: mixed, review_decision: mixed}  $row
      * @return array{category: string, severity: string, label: string, next_url: string, next_label: string}
      */
     private function classify(object $row): array
