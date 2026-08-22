@@ -236,8 +236,12 @@ async function requireHoverAndFocus(page, locale) {
       const inactiveLabels = page.locator('.fi-sidebar .fi-sidebar-item:not(.fi-active) .fi-sidebar-item-label:visible');
       const activeLabels = page.locator('.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label:visible');
       const groups = page.locator('.fi-sidebar .fi-sidebar-group-label:visible');
-      const inactiveIcons = page.locator('.fi-sidebar .fi-sidebar-item:not(.fi-active) .fi-sidebar-item-icon:visible');
-      const activeIcons = page.locator('.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-icon:visible');
+      const inactiveIcons = page.locator(
+        '.fi-sidebar .fi-sidebar-item:not(.fi-active) :is(.fi-sidebar-item-btn, .fi-sidebar-item-button) :is(.fi-sidebar-item-icon, .fi-icon):visible',
+      );
+      const activeIcons = page.locator(
+        '.fi-sidebar .fi-sidebar-item.fi-active :is(.fi-sidebar-item-btn, .fi-sidebar-item-button) :is(.fi-sidebar-item-icon, .fi-icon):visible',
+      );
 
       if ((await inactiveLabels.count()) < 2) throw new Error(`${locale}: insufficient inactive sidebar labels`);
       if ((await activeLabels.count()) < 1) throw new Error(`${locale}: no active sidebar label rendered`);
