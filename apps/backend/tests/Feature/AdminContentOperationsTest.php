@@ -70,7 +70,9 @@ class AdminContentOperationsTest extends TestCase
             ->assertSee('Ingestion log')
             ->assertSee('No ingestion activity yet.');
 
-        $metrics = Livewire::test(ContentIngestionOperations::class)->instance()->metrics();
+        /** @var ContentIngestionOperations $ingestion */
+        $ingestion = Livewire::test(ContentIngestionOperations::class)->instance();
+        $metrics = $ingestion->metrics();
         $this->assertSame(['total' => 0, 'processing' => 0, 'blocked' => 0, 'failed' => 0], $metrics);
     }
 
@@ -80,7 +82,9 @@ class AdminContentOperationsTest extends TestCase
         $this->actingAs($admin);
         App::setLocale('en');
 
-        $steps = Livewire::test(ContentOperations::class)->instance()->lifecycle();
+        /** @var ContentOperations $operations */
+        $operations = Livewire::test(ContentOperations::class)->instance();
+        $steps = $operations->lifecycle();
         $this->assertCount(5, $steps);
         $this->assertSame(['required', 'active', 'active', 'gate', 'gate'], array_column($steps, 'state'));
         $this->assertNotContains('', array_column($steps, 'url'));
