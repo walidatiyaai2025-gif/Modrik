@@ -321,8 +321,26 @@ jobs:
 
       - name: External post-deploy smoke
         shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
+          web_body="$RUNNER_TEMP/modrik-demo-web.html"
+          admin_body="$RUNNER_TEMP/modrik-demo-admin.html"
+          trap 'rm -f "$web_body" "$admin_body"' EXIT
+
           curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://api.demo.modrik.org/up >/dev/null
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://demo.modrik.org/ >/dev/null
-          echo 'MODRIK demo deployment is healthy.'
+
+          if ! curl --fail --silent --show-error --location --max-redirs 3 --retry 5 --retry-delay 2 --max-time 20 --output "$web_body" https://demo.modrik.org/; then
+            echo 'MODRIK_WEB_REACHABILITY_FAILURE' >&2
+            exit 1
+          fi
+          node scripts/assert-release-badge.mjs "$web_body" "modrik-web-release-badge" "$RELEASE_SHA" "MODRIK_WEB_RELEASE_MISMATCH"
+
+          if ! curl --fail --silent --show-error --location --max-redirs 3 --retry 5 --retry-delay 2 --max-time 20 --output "$admin_body" https://api.demo.modrik.org/admin/login; then
+            echo 'MODRIK_ADMIN_REACHABILITY_FAILURE' >&2
+            exit 1
+          fi
+          node scripts/assert-release-badge.mjs "$admin_body" "modrik-release-badge" "$RELEASE_SHA" "MODRIK_ADMIN_RELEASE_MISMATCH"
+
+          echo "MODRIK demo deployment is healthy at Build ${RELEASE_SHA:0:12}."
