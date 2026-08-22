@@ -45,8 +45,11 @@ export default function NotificationCenter() {
     setState("loading");
     setMessage("");
     try {
-      const [session, nextInbox] = await Promise.all([learningApi.session(), learningApi.notifications()]);
+      const sessionRequest = learningApi.session();
+      const inboxRequest = learningApi.notifications();
+      const session = await sessionRequest;
       setLocale(session.locale);
+      const nextInbox = await inboxRequest;
       setInbox(nextInbox);
       setState("ready");
     } catch (error) {
