@@ -17,6 +17,7 @@ Live repository state must be fetched from GitHub before using this checkpoint. 
 - PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb` — capability-matrix reconciliation after #198.
 - PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c` — supported Content Operations surfaces, ingestion/retry, exception triage, provenance/traceability and truthful deferred classifications.
 - PR #211 / Issue #210 merged at `986a696e99fc087c68b9298f403e76ece6627ed5` — Admin sidebar readability/contrast hardening.
+- PR #213 / Issue #212 merged at `b96e5e638f308c90b4781ad787893c31663bbcbf` — post-Settings/Content project-control reconciliation preserving GitHub-first state semantics.
 - PR #199 / Issue #200 merged into the reconciled baseline at `c82604443c5d6b3100e8df03f8fb37f089fc2853` — human-readable Admin lookups and guided publication workflow.
 
 Every implemented/configurable capability remains classified as exactly one of `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, or `deferred_disabled`.
@@ -26,7 +27,7 @@ Security-sensitive values and authority remain non-editable where required. Prov
 ## Active implementation and integration queue
 
 - #183 / PR #207 — Question Bank and Assessment visibility Stage A. Exact-head governed CI is green and the PR is ready for Integration Captain review; Stage A alone does not complete #183.
-- #217 / PR #229 — active stacked Assessment Stage B. It adds Assessment operations and quality-review visibility while preserving seed/order/scoring and immutable attempt snapshots as Backend-owned. Exact-head CI must be green before retarget/integration.
+- #217 / PR #229 — Assessment Stage B. Head `8756b4acb43aa89fbc91ae947157165ad0032ada` passed Bootstrap #961, Admin Browser #107, Content Browser #52 and Demo Package #184 and is Ready for Review while remaining stacked on #207.
 - #184 / PR #218 — Accounts/RBAC/Sessions/Operations Stage A. Head `5e2f51abbc1f3d7f937636b4e6fee16ba4cec28a` passed Bootstrap #952, Admin Browser #98, Content Browser #43 and Demo Package #175 and is Ready for Review.
 - #224 / PR #225 — Public/Legal/Help operational status. Head `93e51c39b970f2e4792b9f8de9eb8e5d86bdd2d7` passed Bootstrap #949, Admin Browser #95, Content Browser #40 and Demo Package #172 and is Ready for Review. Mutable legal/public management remains unavailable because no authoritative edit/version/publication contract exists.
 - #219 / PR #221 — shared Student-entry browser harness repair. Head `24fe021f97e5380fa49e3426a2d868121a3f3457` is exact-head green for Bootstrap, Boot Security, Runtime Acceptance and Learning responsive regression and is Ready for Integration.
@@ -39,6 +40,7 @@ Bounded support/QA packets may publish evidence/findings but do not own domain i
 The historical P0/Pilot evidence remains valid, including governed run `32493326967`, normal/strict Pilot `PASS=16 FAIL=0 BLOCKED=0`, Chromium core `13 PASS / 0 FAIL`, PR #114 terminal browser acceptance and PR #112 fixture-backed Pilot harness.
 
 Recent current-wave exact-head evidence includes:
+- PR #229: Bootstrap #961, Admin UX Browser #107, Content Operations Browser #52, Demo cPanel Package #184 — GREEN.
 - PR #218: Bootstrap #952, Admin UX Browser #98, Content Operations Browser #43, Demo cPanel Package #175 — GREEN.
 - PR #225: Bootstrap #949, Admin UX Browser #95, Content Operations Browser #40, Demo cPanel Package #172 — GREEN.
 - PR #221: Bootstrap #945, Web Browser Boot Security #63, Web Browser Runtime Acceptance #79, Web Browser Learning Responsive Candidate #25 — GREEN.
