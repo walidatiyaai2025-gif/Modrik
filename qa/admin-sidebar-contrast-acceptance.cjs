@@ -25,6 +25,8 @@ function gammaEncode(value) {
 function parseColor(value) {
   const text = String(value).trim().toLowerCase();
 
+  if (text === 'transparent') return { r: 0, g: 0, b: 0, a: 0 };
+
   const rgb = text.match(/^rgba?\(([^)]+)\)$/i);
   if (rgb) {
     const parts = rgb[1].split(/[\s,\/]+/).filter(Boolean);
@@ -93,6 +95,17 @@ function parseColor(value) {
   throw new Error(`Unsupported rendered color: ${value}`);
 }
 
+function composite(foreground, background) {
+  const alpha = foreground.a + background.a * (1 - foreground.a);
+  if (alpha <= 0) return { r: 0, g: 0, b: 0, a: 0 };
+  return {
+    r: (foreground.r * foreground.a + background.r * background.a * (1 - foreground.a)) / alpha,
+    g: (foreground.g * foreground.a + background.g * background.a * (1 - foreground.a)) / alpha,
+    b: (foreground.b * foreground.a + background.b * background.a * (1 - foreground.a)) / alpha,
+    a: alpha,
+  };
+}
+
 function linearChannel(value) {
   const s = clamp01(value / 255);
   return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
@@ -110,20 +123,36 @@ function contrast(foreground, background) {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
 
-async function renderedColors(locator) {
+function gradientColors(backgroundImage) {
+  const source = String(backgroundImage || '');
+  const tokens = source.match(/rgba?\([^)]*\)|oklch\([^)]*\)|color\(srgb\s+[^)]*\)|#[0-9a-f]{6}(?:[0-9a-f]{2})?/gi) || [];
+  return tokens.map(parseColor);
+}
+
+async function renderedModel(locator) {
   return locator.evaluate((node) => {
     const foreground = getComputedStyle(node).color;
+    const sidebar = node.closest('.fi-sidebar');
+    if (!sidebar) throw new Error('sidebar ancestor missing');
+
     let current = node;
-    let background = null;
-    while (current) {
+    let overlay = 'rgba(0, 0, 0, 0)';
+    while (current && current !== sidebar) {
       const candidate = getComputedStyle(current).backgroundColor;
       if (candidate && candidate !== 'transparent' && candidate !== 'rgba(0, 0, 0, 0)') {
-        background = candidate;
+        overlay = candidate;
         break;
       }
       current = current.parentElement;
     }
-    return { foreground, background };
+
+    const sidebarStyle = getComputedStyle(sidebar);
+    return {
+      foreground,
+      overlay,
+      sidebarBackgroundColor: sidebarStyle.backgroundColor,
+      sidebarBackgroundImage: sidebarStyle.backgroundImage,
+    };
   });
 }
 
@@ -131,17 +160,55 @@ async function requireContrast(locator, kind, locale, minimum) {
   const count = await locator.count();
   for (let index = 0; index < count; index += 1) {
     const sample = locator.nth(index);
-    const colors = await renderedColors(sample);
-    if (!colors.background) throw new Error(`${locale} ${kind} ${index}: no effective rendered background`);
-    const ratio = contrast(parseColor(colors.foreground), parseColor(colors.background));
-    if (ratio < minimum) {
-      const text = (await sample.textContent() || '').trim().slice(0, 80);
+    const model = await renderedModel(sample);
+    const stops = gradientColors(model.sidebarBackgroundImage);
+    const sidebarBackgrounds = stops.length > 0
+      ? stops
+      : [parseColor(model.sidebarBackgroundColor)];
+    const foreground = parseColor(model.foreground);
+    const overlay = parseColor(model.overlay);
+    const ratios = sidebarBackgrounds.map((sidebarBackground) => {
+      const effectiveBackground = composite(overlay, sidebarBackground);
+      const effectiveForeground = composite(foreground, effectiveBackground);
+      return contrast(effectiveForeground, effectiveBackground);
+    });
+    const minimumRatio = Math.min(...ratios);
+    if (minimumRatio < minimum) {
       throw new Error(
-        `${locale} ${kind} ${index} contrast ${ratio.toFixed(2)} < ${minimum}: ${text}; `
-        + `fg=${colors.foreground}; bg=${colors.background}`,
+        `${locale} ${kind} ${index} contrast ${minimumRatio.toFixed(2)} < ${minimum}; `
+        + `fg=${model.foreground}; overlay=${model.overlay}; sidebar=${model.sidebarBackgroundImage}`,
       );
     }
   }
+}
+
+async function requireHoverAndFocus(page, locale) {
+  const inactiveButton = page.locator(
+    '.fi-sidebar .fi-sidebar-item:not(.fi-active) :is(.fi-sidebar-item-btn, .fi-sidebar-item-button):visible',
+  ).first();
+  if (!(await inactiveButton.isVisible())) throw new Error(`${locale}: no inactive sidebar button rendered`);
+
+  const beforeHover = await inactiveButton.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await inactiveButton.hover();
+  await page.waitForTimeout(180);
+  const afterHover = await inactiveButton.evaluate((element) => getComputedStyle(element).backgroundColor);
+  if (beforeHover === afterHover) throw new Error(`${locale}: sidebar hover is not visually distinct`);
+
+  await page.mouse.move(1200, 700);
+  await page.locator('body').click({ position: { x: 1000, y: 700 } });
+  let focusVisible = false;
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    await page.keyboard.press('Tab');
+    focusVisible = await page.evaluate(() => {
+      const element = document.activeElement;
+      if (!(element instanceof HTMLElement)) return false;
+      if (!element.matches('.fi-sidebar-item-btn:focus-visible, .fi-sidebar-item-button:focus-visible')) return false;
+      const style = getComputedStyle(element);
+      return parseFloat(style.outlineWidth) >= 2 && style.outlineStyle !== 'none';
+    });
+    if (focusVisible) break;
+  }
+  if (!focusVisible) throw new Error(`${locale}: sidebar keyboard focus is not visibly outlined`);
 }
 
 (async () => {
@@ -166,21 +233,24 @@ async function requireContrast(locator, kind, locale, minimum) {
       const assetCount = await page.locator('link[rel="stylesheet"][href*="sidebar-contrast"]').count();
       if (assetCount < 1) throw new Error(`${locale}: sidebar contrast asset is not loaded after build`);
 
-      const labels = page.locator('.fi-sidebar .fi-sidebar-item-label:visible');
-      const groups = page.locator('.fi-sidebar .fi-sidebar-group-label:visible');
-      const icons = page.locator('.fi-sidebar .fi-sidebar-item-icon:visible');
-
-      if ((await labels.count()) < 3) throw new Error(`${locale}: insufficient rendered sidebar item labels`);
-      if ((await groups.count()) < 2) throw new Error(`${locale}: insufficient rendered sidebar group labels`);
-      if ((await icons.count()) < 1) throw new Error(`${locale}: no visible sidebar icons`);
-
-      await requireContrast(labels, 'item', locale, 4.5);
-      await requireContrast(groups, 'group', locale, 4.5);
-      await requireContrast(icons, 'icon', locale, 3);
-
+      const inactiveLabels = page.locator('.fi-sidebar .fi-sidebar-item:not(.fi-active) .fi-sidebar-item-label:visible');
       const activeLabels = page.locator('.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label:visible');
+      const groups = page.locator('.fi-sidebar .fi-sidebar-group-label:visible');
+      const inactiveIcons = page.locator('.fi-sidebar .fi-sidebar-item:not(.fi-active) .fi-sidebar-item-icon:visible');
+      const activeIcons = page.locator('.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-icon:visible');
+
+      if ((await inactiveLabels.count()) < 2) throw new Error(`${locale}: insufficient inactive sidebar labels`);
       if ((await activeLabels.count()) < 1) throw new Error(`${locale}: no active sidebar label rendered`);
+      if ((await groups.count()) < 2) throw new Error(`${locale}: insufficient sidebar group labels`);
+      if ((await inactiveIcons.count()) < 1) throw new Error(`${locale}: no inactive sidebar icon rendered`);
+      if ((await activeIcons.count()) < 1) throw new Error(`${locale}: no active sidebar icon rendered`);
+
+      await requireContrast(inactiveLabels, 'inactive-item', locale, 4.5);
       await requireContrast(activeLabels, 'active-item', locale, 4.5);
+      await requireContrast(groups, 'group', locale, 4.5);
+      await requireContrast(inactiveIcons, 'inactive-icon', locale, 3);
+      await requireContrast(activeIcons, 'active-icon', locale, 3);
+      await requireHoverAndFocus(page, locale);
 
       const dir = await page.locator('html').getAttribute('dir');
       if (dir !== (locale === 'ar' ? 'rtl' : 'ltr')) {
