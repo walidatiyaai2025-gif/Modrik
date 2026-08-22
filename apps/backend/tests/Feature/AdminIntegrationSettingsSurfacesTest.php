@@ -114,31 +114,48 @@ final class AdminIntegrationSettingsSurfacesTest extends TestCase
             'role' => 'student',
             'account_status' => 'active',
         ]);
-        $service = app(AdvertisingEligibilityService::class);
-
-        $general = $service->decide($user, 'dashboard_sidebar');
-        $this->assertFalse($general['advertising_allowed']);
-        $this->assertSame('GLOBAL_KILL_SWITCH', $general['reason_code']);
-
-        $immutable = $service->decide($user, 'lesson_inline');
-        $this->assertFalse($immutable['advertising_allowed']);
-        $this->assertSame('NO_AD_ZONE', $immutable['reason_code']);
-
         $admin = User::factory()->create([
             'role' => 'admin',
             'account_status' => 'active',
         ]);
-        app(SystemSettingsRegistry::class)->update(
+        $settings = app(SystemSettingsRegistry::class);
+        $service = app(AdvertisingEligibilityService::class);
+
+        // The operator gate defaults to pass-through so existing Backend policy
+        // remains authoritative. With no policy row, eligibility still fails closed.
+        $defaultDecision = $service->decide($user, 'dashboard_sidebar');
+        $this->assertFalse($defaultDecision['advertising_allowed']);
+        $this->assertSame('CONFIG_MISSING', $defaultDecision['reason_code']);
+
+        $settings->update(
             'ads.global.enabled',
             app()->environment(),
-            true,
+            false,
             0,
-            'Allow policy evaluation while preserving all immutable safety gates.',
+            'Activate the operator kill switch for a controlled safety test.',
             (string) $admin->id,
         );
 
-        $afterEnable = $service->decide($user, 'dashboard_sidebar');
-        $this->assertFalse($afterEnable['advertising_allowed']);
-        $this->assertSame('CONFIG_MISSING', $afterEnable['reason_code']);
+        $killed = $service->decide($user, 'dashboard_sidebar');
+        $this->assertFalse($killed['advertising_allowed']);
+        $this->assertSame('GLOBAL_KILL_SWITCH', $killed['reason_code']);
+
+        // Immutable no-ad zones win even before the operator gate is evaluated.
+        $immutable = $service->decide($user, 'lesson_inline');
+        $this->assertFalse($immutable['advertising_allowed']);
+        $this->assertSame('NO_AD_ZONE', $immutable['reason_code']);
+
+        $settings->update(
+            'ads.global.enabled',
+            app()->environment(),
+            true,
+            1,
+            'Release only the operator kill switch while preserving Backend policy gates.',
+            (string) $admin->id,
+        );
+
+        $afterRelease = $service->decide($user, 'dashboard_sidebar');
+        $this->assertFalse($afterRelease['advertising_allowed']);
+        $this->assertSame('CONFIG_MISSING', $afterRelease['reason_code']);
     }
 }
