@@ -106,11 +106,13 @@ cd "$BACKEND_ROOT"
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 
-log "Verifying public health endpoints"
+log "Verifying public health and portal endpoints"
 curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
   https://api.demo.modrik.org/up >/dev/null
 curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
   https://demo.modrik.org/ >/dev/null
+curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
+  https://demo.modrik.org/student >/dev/null
 
 printf '%s\n' "$RELEASE_SHA" > "$DEPLOY_ROOT/current-release.txt"
 printf '%s\n' "$TIMESTAMP" > "$DEPLOY_ROOT/last-successful-deploy-utc.txt"
