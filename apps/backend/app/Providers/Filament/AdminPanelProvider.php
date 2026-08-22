@@ -54,9 +54,11 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->renderHook(
                 PanelsRenderHook::TOPBAR_LOGO_AFTER,
-                fn (): string => view('filament.release-badge', [
-                    'release' => $this->releaseVersion(),
-                ])->render(),
+                fn (): string => $this->releaseBadge(),
+            )
+            ->renderHook(
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn (): string => $this->releaseBadge(),
             )
             ->renderHook(
                 PanelsRenderHook::TOPBAR_END,
@@ -78,6 +80,13 @@ class AdminPanelProvider extends PanelProvider
                 Authenticate::class,
                 RequireAdminPanelRole::class,
             ]);
+    }
+
+    private function releaseBadge(): string
+    {
+        return view('filament.release-badge', [
+            'release' => $this->releaseVersion(),
+        ])->render();
     }
 
     private function releaseVersion(): string
