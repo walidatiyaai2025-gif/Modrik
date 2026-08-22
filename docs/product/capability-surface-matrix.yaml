@@ -1,0 +1,117 @@
+schema_version: 1.0.0
+updated: 2026-08-22
+governance_id: GOV-SURFACE-001
+source:
+  - MODRIK_Master_Product_Engineering_Plan_v1.5_CODEX_READY
+  - docs/product/CAPABILITY_SURFACE_GOVERNANCE.md
+classifications:
+  - admin_manageable
+  - user_facing
+  - read_only_operational
+  - internal_non_editable
+  - deferred_disabled
+capabilities:
+  - id: admin.content.preparation
+    area: content
+    classification: admin_manageable
+    surface: ContentPreparationWizard / ContentPreparationRequests / ContentReviewQueue
+    status: present
+    notes: Preparation request discovery and workflow surfaced by PR #178.
+  - id: admin.content.rights
+    area: content
+    classification: admin_manageable
+    surface: ContentRightsReview
+    status: present
+  - id: admin.academic.catalogue
+    area: academic
+    classification: admin_manageable
+    surface: null
+    status: missing
+    blocker: Current real-content dry-run can fail with CONTENT_TARGET_TRACK_MISSING without a supported Admin catalogue-management path.
+  - id: admin.auth.providers
+    area: auth
+    classification: admin_manageable
+    surface: null
+    status: missing
+    notes: Must expose safe enablement/status/config references for Email/Password, Google and Apple; no plaintext secrets.
+  - id: admin.notifications.settings
+    area: notifications
+    classification: admin_manageable
+    surface: null
+    status: missing
+  - id: student.notifications.center
+    area: notifications
+    classification: user_facing
+    surface: contract-defined Notification Center
+    status: audit_required
+  - id: admin.firebase.integration
+    area: integrations
+    classification: admin_manageable
+    surface: null
+    status: missing
+    notes: Environment/status/test push/Remote Config sync/health only; secrets external.
+  - id: admin.ads.control
+    area: safety
+    classification: admin_manageable
+    surface: null
+    status: missing
+  - id: safety.ads.no_ad_zones
+    area: safety
+    classification: internal_non_editable
+    surface: policy/tests; may be displayed read-only
+    status: present_contract
+  - id: assessment.authoritative_randomization
+    area: assessment
+    classification: internal_non_editable
+    surface: Backend authority/tests
+    status: present
+  - id: admin.exam.question_management
+    area: assessment
+    classification: admin_manageable
+    surface: null
+    status: audit_required
+  - id: admin.content.upload_ingestion
+    area: content
+    classification: admin_manageable
+    surface: null
+    status: audit_required
+  - id: admin.curriculum.rebuild
+    area: content
+    classification: admin_manageable
+    surface: null
+    status: audit_required
+  - id: admin.accounts.roles_sessions
+    area: auth
+    classification: admin_manageable
+    surface: null
+    status: audit_required
+  - id: admin.public_legal_help
+    area: public
+    classification: admin_manageable
+    surface: null
+    status: audit_required
+  - id: admin.system.capabilities
+    area: operations
+    classification: read_only_operational
+    surface: SystemCapabilities
+    status: present
+  - id: admin.runtime.inspector
+    area: operations
+    classification: read_only_operational
+    surface: RuntimeInspector
+    status: present
+  - id: deployment.release_sha
+    area: operations
+    classification: read_only_operational
+    surface: Admin/Student header build badge
+    status: present
+  - id: community.q_and_a
+    area: community
+    classification: deferred_disabled
+    surface: null
+    status: p1_activation_gated
+  - id: competition.public_matchmaking
+    area: competition
+    classification: deferred_disabled
+    surface: null
+    status: activation_gated
