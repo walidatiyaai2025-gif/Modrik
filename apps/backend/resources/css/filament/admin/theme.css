@@ -58,9 +58,9 @@ html[lang='ar'] body,
 .fi-sidebar-nav { padding: 1rem .75rem 1.5rem; gap: .75rem; }
 
 .fi-sidebar-group-label {
-    color: rgb(255 255 255 / .52);
+    color: rgb(255 255 255 / .80);
     font-size: .69rem;
-    font-weight: 700;
+    font-weight: 750;
     letter-spacing: .08em;
     text-transform: uppercase;
 }
@@ -71,15 +71,17 @@ html[lang='ar'] .fi-sidebar-group-label { letter-spacing: 0; text-transform: non
 .fi-sidebar-item-button {
     min-height: 2.75rem;
     border-radius: .85rem;
-    color: rgb(255 255 255 / .76);
+    color: rgb(255 255 255 / .94);
     transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
 }
 
-.fi-sidebar-item-button:hover { background: rgb(255 255 255 / .07); color: var(--modrik-white); }
+.fi-sidebar-item-label { color: inherit; font-weight: 600; }
+
+.fi-sidebar-item-button:hover { background: rgb(255 255 255 / .09); color: var(--modrik-white); }
 
 .fi-sidebar-item.fi-active > .fi-sidebar-item-button,
 .fi-sidebar-item.fi-active .fi-sidebar-item-button {
-    background: rgb(0 191 166 / .14);
+    background: rgb(0 191 166 / .18);
     color: var(--modrik-white);
     box-shadow: inset 3px 0 0 var(--modrik-teal);
 }
@@ -88,7 +90,7 @@ html[dir='rtl'] .fi-sidebar-item.fi-active > .fi-sidebar-item-button,
 html[dir='rtl'] .fi-sidebar-item.fi-active .fi-sidebar-item-button { box-shadow: inset -3px 0 0 var(--modrik-teal); }
 
 .fi-sidebar-item-icon,
-.fi-sidebar-group-icon { color: rgb(255 255 255 / .68); }
+.fi-sidebar-group-icon { color: rgb(255 255 255 / .86); }
 .fi-sidebar-item.fi-active .fi-sidebar-item-icon { color: var(--modrik-teal); }
 
 .fi-topbar {
