@@ -52,6 +52,11 @@ final class ContentIngestionOperations extends Page
         return Width::Full;
     }
 
+    public function uploadSurfaceUrl(): string
+    {
+        return ContentPreparationRequests::getUrl();
+    }
+
     /** @return array<string, int> */
     public function metrics(): array
     {
