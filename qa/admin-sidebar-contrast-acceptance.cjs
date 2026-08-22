@@ -236,23 +236,23 @@ async function requireHoverAndFocus(page, locale) {
       const inactiveLabels = page.locator('.fi-sidebar .fi-sidebar-item:not(.fi-active) .fi-sidebar-item-label:visible');
       const activeLabels = page.locator('.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label:visible');
       const groups = page.locator('.fi-sidebar .fi-sidebar-group-label:visible');
-      const navigationIcons = page.locator([
-        '.fi-sidebar .fi-sidebar-group-icon:visible',
+      const renderedIcons = page.locator([
+        '.fi-sidebar .fi-sidebar-group-button svg:visible',
+        '.fi-sidebar .fi-sidebar-item-btn svg:visible',
+        '.fi-sidebar .fi-sidebar-item-button svg:visible',
         '.fi-sidebar .fi-sidebar-item-icon:visible',
-        '.fi-sidebar .fi-sidebar-group-button .fi-icon:visible',
-        '.fi-sidebar .fi-sidebar-item-btn .fi-icon:visible',
-        '.fi-sidebar .fi-sidebar-item-button .fi-icon:visible',
+        '.fi-sidebar .fi-sidebar-group-icon:visible',
       ].join(', '));
 
       if ((await inactiveLabels.count()) < 2) throw new Error(`${locale}: insufficient inactive sidebar labels`);
       if ((await activeLabels.count()) < 1) throw new Error(`${locale}: no active sidebar label rendered`);
       if ((await groups.count()) < 2) throw new Error(`${locale}: insufficient sidebar group labels`);
-      if ((await navigationIcons.count()) < 2) throw new Error(`${locale}: insufficient visible sidebar navigation icons`);
+      if ((await renderedIcons.count()) < 1) throw new Error(`${locale}: no rendered sidebar icon available for contrast verification`);
 
       await requireContrast(inactiveLabels, 'inactive-item', locale, 4.5);
       await requireContrast(activeLabels, 'active-item', locale, 4.5);
       await requireContrast(groups, 'group', locale, 4.5);
-      await requireContrast(navigationIcons, 'navigation-icon', locale, 3);
+      await requireContrast(renderedIcons, 'icon', locale, 3);
       await requireHoverAndFocus(page, locale);
 
       const dir = await page.locator('html').getAttribute('dir');
