@@ -1,0 +1,73 @@
+/*
+ * MODRIK Admin sidebar contrast guard.
+ *
+ * Filament utility-layer colors can outrank the semantic rules in theme.css
+ * after compilation. This asset is loaded after the primary Admin theme so
+ * the rendered navigation keeps a deterministic accessible contrast in both
+ * LTR and RTL without changing navigation structure or authority.
+ */
+
+.fi-sidebar {
+    background-color: #0D1B2A !important;
+}
+
+.fi-sidebar .fi-sidebar-group-label,
+.fi-sidebar .fi-sidebar-group-button,
+.fi-sidebar .fi-sidebar-group-button svg {
+    color: #CBD5E1 !important;
+}
+
+.fi-sidebar .fi-sidebar-item-button,
+.fi-sidebar .fi-sidebar-item-button .fi-sidebar-item-label {
+    color: #E2E8F0 !important;
+}
+
+.fi-sidebar .fi-sidebar-item-icon,
+.fi-sidebar .fi-sidebar-group-icon,
+.fi-sidebar .fi-sidebar-item-button svg {
+    color: #CBD5E1 !important;
+}
+
+.fi-sidebar .fi-sidebar-item-button:hover {
+    background-color: rgb(255 255 255 / 0.10) !important;
+    color: #FFFFFF !important;
+}
+
+.fi-sidebar .fi-sidebar-item-button:hover .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item-button:hover svg {
+    color: #FFFFFF !important;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-button,
+.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-button,
+.fi-sidebar .fi-sidebar-item-button.fi-active,
+.fi-sidebar .fi-sidebar-item-button[aria-current='page'] {
+    background-color: #F8FAFC !important;
+    color: #0D1B2A !important;
+    box-shadow: inset 3px 0 0 #00BFA6 !important;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item-button.fi-active .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-item-button[aria-current='page'] .fi-sidebar-item-label {
+    color: #0D1B2A !important;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-icon,
+.fi-sidebar .fi-sidebar-item.fi-active svg,
+.fi-sidebar .fi-sidebar-item-button.fi-active svg,
+.fi-sidebar .fi-sidebar-item-button[aria-current='page'] svg {
+    color: #087F73 !important;
+}
+
+html[dir='rtl'] .fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-button,
+html[dir='rtl'] .fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-button,
+html[dir='rtl'] .fi-sidebar .fi-sidebar-item-button.fi-active,
+html[dir='rtl'] .fi-sidebar .fi-sidebar-item-button[aria-current='page'] {
+    box-shadow: inset -3px 0 0 #00BFA6 !important;
+}
+
+.fi-sidebar :where(a, button):focus-visible {
+    outline: 3px solid #5EEAD4 !important;
+    outline-offset: 2px;
+}
