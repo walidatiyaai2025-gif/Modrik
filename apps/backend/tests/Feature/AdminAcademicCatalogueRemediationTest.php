@@ -70,10 +70,12 @@ class AdminAcademicCatalogueRemediationTest extends TestCase
         Livewire::withQueryParams(['request' => $requestId])
             ->test(app(AcademicCatalogue::class))
             ->assertSet('sourceRequestId', $requestId)
-            ->assertSet('form.code', 'OWNER:TRACK:CATALOGUE-GATE')
             ->assertSet('form.board_reference', 'OWNER-BOARD-CATALOGUE-GATE')
             ->assertSet('form.syllabus_version', 'OWNER-SYLLABUS-CATALOGUE-GATE')
             ->assertSet('form.year_level', 'OWNER-YEAR-CATALOGUE-GATE')
+            ->set('form.board_reference', 'FORGED-BROWSER-BOARD')
+            ->set('form.syllabus_version', 'FORGED-BROWSER-SYLLABUS')
+            ->set('form.year_level', 'FORGED-BROWSER-YEAR')
             ->set('form.title_en', 'Owner approved catalogue gate track')
             ->set('form.title_ar', 'مسار معتمد لمعالجة بوابة الكتالوج')
             ->set('form.title_fr', 'Parcours approuvé pour le catalogue')
@@ -87,6 +89,9 @@ class AdminAcademicCatalogueRemediationTest extends TestCase
             'syllabus_version' => 'OWNER-SYLLABUS-CATALOGUE-GATE',
             'year_level' => 'OWNER-YEAR-CATALOGUE-GATE',
             'is_fixture' => false,
+        ]);
+        $this->assertDatabaseMissing('academic_tracks', [
+            'board_reference' => 'FORGED-BROWSER-BOARD',
         ]);
 
         $afterRegistration = $workflow->dryRun($admin, $importId);
