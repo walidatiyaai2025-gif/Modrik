@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         if ((bool) config('modrik.fixture.enabled')) {
             $this->call([
                 LearningSliceSeeder::class,
+                DemoStudentSeeder::class,
                 DemoAdminSeeder::class,
             ]);
         }

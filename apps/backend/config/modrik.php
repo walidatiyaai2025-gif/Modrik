@@ -7,6 +7,10 @@ return [
         'user_id' => '01J00000000000000000000030',
         'lesson_id' => '01J00000000000000000000003',
         'quiz_id' => '01J00000000000000000000020',
+        'student' => [
+            'email' => (string) env('MODRIK_DEMO_STUDENT_EMAIL', ''),
+            'password' => (string) env('MODRIK_DEMO_STUDENT_PASSWORD', ''),
+        ],
         'admin' => [
             'email' => (string) env('MODRIK_DEMO_ADMIN_EMAIL', ''),
             'password' => (string) env('MODRIK_DEMO_ADMIN_PASSWORD', ''),
