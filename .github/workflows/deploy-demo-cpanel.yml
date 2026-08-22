@@ -319,10 +319,10 @@ jobs:
           "
           exit 0
 
-      - name: External post-deploy smoke
+      - name: External post-deploy release smoke
         shell: bash
+        env:
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://api.demo.modrik.org/up >/dev/null
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 https://demo.modrik.org/ >/dev/null
-          echo 'MODRIK demo deployment is healthy.'
+          bash scripts/verify-demo-deployment-smoke.sh "$RELEASE_SHA"

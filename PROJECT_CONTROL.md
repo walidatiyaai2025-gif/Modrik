@@ -1,99 +1,73 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-22
-Last reconciled baseline: `5cb8c9ef3c4ef9d09ed0b9911d1e3179366525b1`
+Last reconciled baseline: `defc2518527e7ff3073fda6382bf9b5a36a13da2`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
-Locked product decisions, the full Master Product & Engineering Plan, REQ/AC, ADRs, OpenAPI, schemas, migrations and executable tests remain authoritative above status prose.
+Locked product decisions, the Master Product & Engineering Plan, REQ/AC, ADRs, OpenAPI, schemas, migrations and executable tests remain authoritative above status prose.
 
 ## Authority model
 
-Only the owner may approve/provide new product scope, exact real academic values not already supplied by an authorized workflow, real content-rights evidence, final legal facts/wording, production credentials/signing, production age/ad/community policy, RPO/RTO/retention decisions and production cutover. Missing owner values block only the affected activation/release task and must never be fabricated.
+Only the owner may approve or provide new product scope, exact real academic values not already supplied by an authorized workflow, real content-rights evidence, final legal facts/wording, production credentials/signing, production age/ad/community policy, RPO/RTO/retention decisions and production cutover. Missing owner values block only the affected activation/release task and must never be fabricated.
 
-Engineering, repository, PR, CI, documentation, conflict-resolution and release-preparation work proceeds autonomously where tooling allows. The Integration Captain is merge authority for implementation waves. Domain workers do not merge their own PRs. Red CI is merge-blocking and must never be normalized or bypassed.
+Engineering, repository, PR, CI, documentation, conflict resolution and release preparation proceed autonomously where tooling allows. Red CI is merge-blocking. Clients and Admin surfaces consume Backend/domain authority and must not redefine Auth, Academic, Assessment, Sync, Content, Safety, notification or publication policy merely to expose UI.
 
-Clients and operator UI consume Backend/domain authority. No client or Admin page may redefine Auth, Academic, Assessment, Sync, Content, Safety or publication policy merely to expose a configurable surface.
+## Capability governance — `GOV-SURFACE-001`
 
-## Capability & settings surface governance — `GOV-SURFACE-001`
+Every capability remains exactly one of `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, or `deferred_disabled`.
 
-Normative references: `docs/product/CAPABILITY_SURFACE_GOVERNANCE.md`, `docs/product/capability-surface-matrix.yaml`, `REQ-P0-015`, `AC-P0-021`, Issue #179 / PR #186.
-
-Every capability/setting is exactly one of `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, `deferred_disabled`.
-
-Project-wide rules:
-- Admin-manageable capabilities require discoverable navigation/list/settings entry points and supported action/detail/history paths where relevant.
-- Operators must not need hidden URLs, API endpoints, database rows, internal IDs or source knowledge for routine supported administration.
-- Security/privacy/assessment-authority/integrity invariants are never made editable solely for UI parity.
-- Provider/API secrets remain external; Admin may show safe Set/Not Set/reference/validation status, never reusable plaintext secrets.
-- Sensitive/destructive/production operations require appropriate RBAC, confirmation and audit.
-- P1/Future/activation-gated capabilities remain `deferred_disabled` until authorized.
-- Applicable UI covers AR/EN/FR, RTL/LTR, permission, loading, empty, error, retry and degraded states.
+PR #234 / Issue #233 integrated an executable validator into `contracts:check`. The live `docs/product/capability-surface-matrix.yaml` must retain unique IDs, the complete classification inventory, explicit surfaces, truthful `present` semantics and explicit deferred/internal boundaries.
 
 ## Reconciled integration checkpoint
 
-Immutable historical facts known at this checkpoint include:
-- PR #186 / Issue #179 merged at `003e90a5fb64540d310a35418ce653553b38eee0` — capability/settings governance.
-- PR #187 / Issue #185 merged at `9cc38ce22b941b2270023ec686bb5e25152f60dd` — shared professional Admin UX foundation.
-- PR #189 / Issue #180 merged at `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2` — Academic Catalogue Management and supported `CONTENT_TARGET_TRACK_MISSING` remediation.
-- PR #196 merged at `78a9f612cc7752750046d8ab371714c1c9c6eb53` — cPanel package self-build/re-verification of Backend Admin Vite assets.
-- PR #153 / Issue #152 merged at `3f0feebcf50721c3cdf646c5a917ca21c8e25374` — fixture-only Demo learner sign-in.
-- PR #197 / Issue #190 merged at `4c4b243f31493b9a75ba095e67fe1d4ad893047e` — non-self-staling control-state semantics and CI guard.
-- PR #198 / Issue #181 merged at `0b086b7d20988a4b1f9927502e6acb9939026cc8` — typed/versioned settings plus Auth Providers, Notifications, Firebase Runtime and Advertising & Safety Admin surfaces.
-- PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb` — capability-matrix reconciliation after #198.
-- PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c` — supported Content Operations surfaces, ingestion/retry, exception triage, provenance/traceability, version/coverage visibility and truthful deferred classifications.
-- PR #211 / Issue #210 merged at `986a696e99fc087c68b9298f403e76ece6627ed5` — Admin sidebar readability/contrast.
-- PR #213 / Issue #212 merged at `b96e5e638f308c90b4781ad787893c31663bbcbf` — post-Settings/Content project-control reconciliation preserving non-self-staling semantics.
-- PR #199 / Issue #200 merged at `c82604443c5d6b3100e8df03f8fb37f089fc2853` — human-readable Admin lookups and guided publication UX.
-- PR #221 / Issue #219 merged at `50ba9960409032ba88784bf8930466301bd1c382` — shared Student-entry browser harness repair.
-- PR #209 / Issue #208 merged at `5cb8c9ef3c4ef9d09ed0b9911d1e3179366525b1` — first-class Student academic-track change UX after full exact-head browser/governed acceptance.
+Recent integrated milestones at this checkpoint include:
+- PR #201 / Issue #182 — Content Operations lifecycle, ingestion/retry, exception triage, provenance/traceability and coverage visibility.
+- PR #221 — shared Student browser QA repair.
+- PR #209 / Issue #208 — discoverable Student academic-track change using Backend reset/archive authority.
+- PR #207 — Assessment Question Bank visibility Stage A.
+- PR #229 / Issues #217/#183 — Assessment operations/quality visibility and truthful immutable-attempt boundaries.
+- PR #218 / Issue #216 — Accounts, Sessions, fixed-role RBAC visibility and Operations Control Center.
+- PR #225 / Issues #224/#184 — Public/Legal/Help operational visibility with unsupported legal management kept read-only/deferred.
+- PR #234 / Issue #233 — capability-surface governance contract enforced in CI.
+- PR #232 / Issue #231 — exact Demo Web/Admin Build SHA verification added to the authorized deployment smoke.
 
-## Current execution policy
+The earlier Admin UX, Academic Catalogue, Settings/Integrations, Content, control-state and packaging foundations remain integrated and authoritative through Git history and CI evidence.
 
-- #183 remains open at the parent level. PR #207 Stage A has been rebuilt on the #209-integrated baseline at `7490e72dfac1049f04769b352ecf6ce7b847c021`; fresh exact-head acceptance is required. PR #229 Stage B remains stacked on #207 until Stage A integrates. No Assessment Admin surface may expose seed, selected set/order, resume order, immutable attempt snapshots or scoring as operator authority.
-- #184 remains open at the parent level. PR #218 (Accounts/RBAC/Sessions/Operations) and PR #225 (Public/Legal/Help status) have independent no-blocker preflight evidence, but their current branches predate the #209 merge and must be reconciled/revalidated before final integration claims. Unsupported authority remains read-only/deferred instead of fabricated.
-- #231 / PR #232 hardens Demo deployment acceptance so API health plus exact Web/Admin deployed Build SHA are mandatory. It does not authorize production cutover and does not alter credentials or Auth authority.
-- #233 / PR #234 makes the capability-surface governance contract executable in CI without changing product behavior. Its final integration claim likewise requires reconciliation onto live `main` and full governed CI.
-- Real-content academic values, rights evidence and final legal facts remain owner-controlled inputs and must not be fabricated.
+## Active implementation at this checkpoint
+
+- Issue #235 / PR #236 — Backend-owned Student Notification Center across Backend/Web/Mobile. It remains an active draft implementation; fetch its live GitHub head and CI before any integration decision. It must preserve per-account isolation, no-store/private responses, Backend authority, AR/EN/FR, RTL/LTR and fail-closed Firebase/FCM boundaries.
+- Real-content evaluation remains gated by owner-approved academic values, deterministic validation and content-rights review.
+- Production activation remains separately gated by external owner/security/legal inputs.
 
 ## Merge and CI policy
 
 All implementation enters `main` through focused PRs. Never merge red CI or weaken tests/security gates to obtain green.
 
-The governed matrix includes contracts/REQ/AC/schemas, OpenAPI lint, canonical tokens, control-state guard, Composer validate/audit, Pint, Larastan, full SQLite PHPUnit, MariaDB 10.11 migration/full suite, Web audit/lint/typecheck/tests/build, Flutter analyze/tests, Gitleaks, dependency review and relevant browser/runtime/demo acceptance.
+The governed matrix includes control-state validation, capability-surface validation, repository contracts/REQ/AC/schemas, OpenAPI lint, design tokens, Composer validate/audit, Pint, Larastan, full SQLite PHPUnit, MariaDB 10.11 migration/full suite, Web audit/lint/typecheck/tests/build, Flutter analyze/tests/signing gate, Gitleaks, dependency review, Pilot normal/strict acceptance and relevant browser/runtime/demo acceptance.
 
-For `GOV-SURFACE-001`, CI/regression evidence must also prove required navigation/page discoverability or an explicit non-editable/deferred classification.
-
-## Historical P0/Pilot evidence
-
-Prior terminal evidence remains valid, including PR #114 terminal browser runtime acceptance, PR #112 fixture-backed Pilot harness, governed run `32493326967`, normal/strict Pilot `PASS=16 FAIL=0 BLOCKED=0`, Chromium core `13 PASS / 0 FAIL`, and PR #178 at `41bb2959387bc1a01995d643d6419713d5ba0e56` adding discoverable preparation/capability surfaces and visible deployed Build SHA.
-
-PR #209 exact head `71e0b61c11ef5f27444218629b935c390a9de770` passed Bootstrap #971, Boot Security #64, Runtime Acceptance #80, Learning Responsive #26, Content Browser #53 and Demo Package #185 before integration.
+Release/deployment changes must also preserve the exact Web/Admin Build SHA smoke now integrated by PR #232.
 
 ## Demo deployment authorization and state
 
-Evaluation target remains `demo.modrik.org` with cPanel document root `/public_html/demo.modrik.org` (expected `/home/solscool/public_html/demo.modrik.org/`).
+Evaluation target remains `demo.modrik.org` with the established cPanel boundary.
 
-Repository-recorded successful Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-GitHub Actions workflow run `32563427725`, attempt 2, successfully checked out canonical main, built Web and Backend dependencies, assembled and retained the verified cPanel package, uploaded over FTPS, executed the protected one-shot deployment bridge, cleaned temporary deployment files and passed external smoke for the Demo API and Web endpoints.
+GitHub Actions run `32563427725`, attempt 2, successfully completed package assembly, audit retention, FTPS upload, protected one-shot bridge execution, cleanup and external Demo smoke. See `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
 
-Attempt 1 of the same authorized run failed before FTPS upload because Backend Admin Vite assets were missing. PR #196 fixed that package boundary; attempt 2 passed it without weakening validation.
+Source-control `main` has advanced since that deployment. Integration of later source commits does not mean the Demo is already serving them. A subsequent authorized deployment must resolve its own immutable main SHA and pass the strengthened PR #232 Web/Admin identity smoke before repository-recorded deployment state advances.
 
-Detailed evidence is recorded in `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
-
-Source-control integration has advanced beyond that deployed SHA through PR #221 and PR #209. Deployment state advances only after another authorized deployment succeeds. PR #232 adds fail-closed Web/Admin exact Build SHA verification for that next deployment.
-
-Demo authorization does not replace production `modrik.org` Coming Soon, does not mean Production Ready, permits only fixture/synthetic or owner-approved real-content evaluation under existing gates, and requires Backend/Web runtime compatibility plus visible Build SHA.
+Demo authorization does not imply production `modrik.org` cutover or Production Ready status.
 
 ## External inputs still explicit
 
-These do not block safe engineering/integration work but remain required for affected activation: curriculum/content-rights evidence; final legal facts/approval; production provider/Firebase/store credentials/signing; production age/ad/community policy; RPO/RTO/retention; production hosting/cutover approval.
+These do not block unrelated engineering but remain required for affected activation: curriculum/content-rights evidence; final legal facts/approval; production provider/Firebase/store credentials/signing; production age/ad/community policy; RPO/RTO/retention; production hosting/cutover approval.
 
 ## Completion language
 
-Domain implementation remains:
+Domain implementation completion is recorded as:
 
 `ISSUE IMPLEMENTATION COMPLETE — PR GREEN AND READY FOR INTEGRATION`
 
-A capability/settings Issue is not complete until its `GOV-SURFACE-001` classification and required surface/regression evidence are present.
+No capability or release task is complete until its required authority classification and exact-head regression evidence are present.

@@ -6,6 +6,8 @@ on:
       - "apps/backend/app/Filament/**"
       - "apps/backend/app/Http/Middleware/SetAdminLocale.php"
       - "apps/backend/app/Providers/Filament/AdminPanelProvider.php"
+      - "apps/backend/app/Services/AdminAccountOperationsService.php"
+      - "apps/backend/app/Services/AdminOperationsOverviewService.php"
       - "apps/backend/app/Services/IntegrationStatusService.php"
       - "apps/backend/app/Services/SystemSettingsRegistry.php"
       - "apps/backend/resources/css/filament/admin/**"
@@ -14,6 +16,11 @@ on:
       - "apps/backend/tests/Feature/AdminUxFoundationTest.php"
       - "apps/backend/tests/Feature/AdminSystemSettingsSurfaceTest.php"
       - "apps/backend/tests/Feature/AdminIntegrationSettingsSurfacesTest.php"
+      - "apps/backend/tests/Feature/AssessmentQuestionBankTest.php"
+      - "apps/backend/tests/Feature/AssessmentOperationsTest.php"
+      - "apps/backend/tests/Feature/AssessmentQualityReviewTest.php"
+      - "apps/backend/tests/Feature/AdminAccountOperationsTest.php"
+      - "apps/backend/tests/Feature/AdminOperationsControlCenterTest.php"
       - "docs/brand/ADMIN_UX_SYSTEM.md"
       - ".github/workflows/admin-ux-browser-acceptance.yml"
 
@@ -143,6 +150,9 @@ jobs:
             const surfaces = [
               { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
+              { name: 'assessment-operations', url: '/admin/assessment-operations', selector: '[data-testid="modrik-assessment-operations"]' },
+              { name: 'assessment-question-bank', url: '/admin/assessment-question-bank', selector: '[data-testid="modrik-assessment-question-bank"]' },
+              { name: 'assessment-quality-review', url: '/admin/assessment-quality-review', selector: '[data-testid="modrik-assessment-quality-review"]' },
               { name: 'content-preparation', url: '/admin/content-preparation', selector: '[data-testid="modrik-content-preparation"]' },
               { name: 'content-rights-review', url: '/admin/content-rights-review', selector: '[data-testid="modrik-content-rights-review"]' },
               { name: 'system-settings', url: '/admin/system-settings', selector: '[data-testid="modrik-system-settings"]' },
@@ -150,6 +160,8 @@ jobs:
               { name: 'notification-settings', url: '/admin/notification-settings', selector: '[data-testid="modrik-notification-settings"]' },
               { name: 'firebase-runtime', url: '/admin/firebase-runtime', selector: '[data-testid="modrik-firebase-runtime"]' },
               { name: 'advertising-safety', url: '/admin/advertising-safety', selector: '[data-testid="modrik-advertising-safety"]' },
+              { name: 'account-operations', url: '/admin/account-operations', selector: '[data-testid="modrik-account-operations"]' },
+              { name: 'operations-control-center', url: '/admin/operations-control-center', selector: '[data-testid="modrik-operations-control-center"]' },
             ];
 
             for (const c of cases) {
@@ -192,7 +204,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v4',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v6',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'PASS',
                 surfaces: surfaces.map(({ name, url }) => ({ name, url })),
@@ -205,7 +217,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v4',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v6',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'FAIL',
                 checks,
