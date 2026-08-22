@@ -38,10 +38,28 @@ return new class extends Migration
             $table->index(['system_setting_id', 'occurred_at']);
             $table->index(['actor_id', 'occurred_at']);
         });
+
+        Schema::create('integration_operation_audits', function (Blueprint $table): void {
+            $table->ulid('id')->primary();
+            $table->foreignUlid('actor_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('environment', 32);
+            $table->string('integration', 40);
+            $table->string('operation', 64);
+            $table->string('target_type', 32)->nullable();
+            $table->char('target_fingerprint', 64)->nullable();
+            $table->string('result_code', 96);
+            $table->timestamp('occurred_at');
+            $table->timestamps();
+
+            $table->index(['integration', 'operation', 'occurred_at']);
+            $table->index(['environment', 'occurred_at']);
+            $table->index(['actor_id', 'occurred_at']);
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('integration_operation_audits');
         Schema::dropIfExists('system_setting_audits');
         Schema::dropIfExists('system_settings');
     }
