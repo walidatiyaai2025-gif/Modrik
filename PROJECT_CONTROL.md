@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-22
-Last reconciled baseline: `395433cb58d9d8eeb5ab77a06fd6300ca78e294c`
+Last reconciled baseline: `c82604443c5d6b3100e8df03f8fb37f089fc2853`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -32,7 +32,7 @@ Project-wide rules:
 
 ## Reconciled integration checkpoint
 
-Immutable historical facts known at this checkpoint:
+Immutable historical facts known at this checkpoint include:
 - PR #186 / Issue #179 merged at `003e90a5fb64540d310a35418ce653553b38eee0` — capability/settings governance.
 - PR #187 / Issue #185 merged at `9cc38ce22b941b2270023ec686bb5e25152f60dd` — shared professional Admin UX foundation.
 - PR #189 / Issue #180 merged at `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2` — Academic Catalogue Management and supported `CONTENT_TARGET_TRACK_MISSING` remediation.
@@ -41,18 +41,16 @@ Immutable historical facts known at this checkpoint:
 - PR #197 / Issue #190 merged at `4c4b243f31493b9a75ba095e67fe1d4ad893047e` — non-self-staling control-state semantics and CI guard.
 - PR #198 / Issue #181 merged at `0b086b7d20988a4b1f9927502e6acb9939026cc8` — typed/versioned settings plus Auth Providers, Notifications, Firebase Runtime and Advertising & Safety Admin surfaces.
 - PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb` — capability-matrix reconciliation after #198.
-- PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c` — complete supported Content Operations surfaces, ingestion/retry, exception triage, provenance/traceability, version/coverage visibility and truthful deferred classifications.
-
-Active management-surface implementation at this checkpoint is #183–#184, with separate focused remediation/UX candidates #200/#199, #208/#209 and #210/#211. Support/QA Issues may inspect/report but do not take domain implementation or merge authority.
+- PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c` — supported Content Operations surfaces, ingestion/retry, exception triage, provenance/traceability, version/coverage visibility and truthful deferred classifications.
+- PR #211 / Issue #210 merged at `986a696e99fc087c68b9298f403e76ece6627ed5` — Admin sidebar readability/contrast.
+- PR #199 / Issue #200 is included in the reconciled baseline `c82604443c5d6b3100e8df03f8fb37f089fc2853` — human-readable Admin lookups and guided publication UX.
 
 ## Current execution policy
 
-- #182 is integrated via PR #201. Content Pack validation, rights, review/publication and no-UGC-auto-promotion authority remain Backend-owned; unsupported automated confidence/rebuild/video/past-paper capabilities remain explicitly deferred rather than represented by fake controls.
-- #183 / PR #207 is a first Assessment visibility stage only. Its capability-matrix entry must not imply complete Admin management while Issue #183 scope remains broader. Attempt seed, selected set/order, resume order and scoring snapshots remain `internal_non_editable`.
-- #184 remains an independent packet for Accounts/RBAC/Sessions + Public/Legal/Help + remaining operational surfaces.
-- #200/#199 must preserve Backend-generated canonical identity and publication authority.
-- #208/#209 must not bypass Backend academic-context reset/archive authority and requires exact-head green CI before integration.
-- #210/#211 is a focused Admin readability fix and requires fresh exact-head validation after reconciliation onto live main.
+- #183 remains open at the parent level. PR #207 is exact-head green Stage A visibility; PR #229 is active Stage B and must preserve Backend-authoritative seed, selected set/order, resume order, immutable attempt snapshots and scoring.
+- #184 remains open at the parent level. PR #218 (Accounts/RBAC/Sessions/Operations) and PR #225 (Public/Legal/Help status) are exact-head green integration candidates; unsupported authority remains read-only/deferred instead of fabricated.
+- PR #221 is the exact-head green shared Student-entry browser-harness repair. PR #209 must be reconciled/re-run after that shared QA fix integrates rather than duplicating it in product code.
+- Real-content academic values, rights evidence and final legal facts remain owner-controlled inputs and must not be fabricated.
 
 ## Merge and CI policy
 
@@ -70,15 +68,19 @@ Prior terminal evidence remains valid, including PR #114 terminal browser runtim
 
 Evaluation target remains `demo.modrik.org` with cPanel document root `/public_html/demo.modrik.org` (expected `/home/solscool/public_html/demo.modrik.org/`).
 
-Last repository-recorded Demo deployment: `41bb2959387bc1a01995d643d6419713d5ba0e56`.
+Repository-recorded successful Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-Manual run `32563427725` targeted `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2` but failed before FTPS upload. PR #196 fixed the packaging defect; a subsequent successful deployment must record the actual deployed SHA separately from source-control integration state.
+GitHub Actions workflow run `32563427725`, attempt 2, successfully checked out canonical main, built Web and Backend dependencies, assembled and retained the verified cPanel package, uploaded over FTPS, executed the protected one-shot deployment bridge, cleaned temporary deployment files and passed external smoke for the Demo API and Web endpoints.
+
+Attempt 1 of the same authorized run failed before FTPS upload because Backend Admin Vite assets were missing. PR #196 fixed that package boundary; attempt 2 passed it without weakening validation.
+
+Detailed evidence is recorded in `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
 
 Demo authorization does not replace production `modrik.org` Coming Soon, does not mean Production Ready, permits only fixture/synthetic or owner-approved real-content evaluation under existing gates, and requires Backend/Web runtime compatibility plus visible Build SHA.
 
 ## External inputs still explicit
 
-These do not block safe management-surface engineering but remain required for affected activation: curriculum/content-rights evidence; final legal facts/approval; production provider/Firebase/store credentials/signing; production age/ad/community policy; RPO/RTO/retention; production hosting/cutover approval.
+These do not block safe engineering/integration work but remain required for affected activation: curriculum/content-rights evidence; final legal facts/approval; production provider/Firebase/store credentials/signing; production age/ad/community policy; RPO/RTO/retention; production hosting/cutover approval.
 
 ## Completion language
 
