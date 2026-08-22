@@ -92,8 +92,8 @@ capabilities:
     area: academic
     classification: user_facing
     surface: Student Web / Academic Track workspace / AcademicTrackSelector
-    status: present_on_issue_208_branch
-    notes: A first-class Student navigation destination shows the current context and Backend-authorized track catalogue, then reuses the existing explicit activate/reset confirmation flow. Prior attempts/progress remain archived, no mastery or answers migrate across tracks, and track IDs are never typed by the learner.
+    status: present
+    notes: Integrated by PR #209. A first-class Student navigation destination shows the current context and Backend-authorized track catalogue, then reuses the existing explicit activate/reset confirmation flow. Prior attempts/progress remain archived, no mastery or answers migrate across tracks, and track IDs are never typed by the learner.
   - id: admin.system.settings
     area: operations
     classification: admin_manageable
@@ -143,8 +143,9 @@ capabilities:
   - id: admin.exam.question_management
     area: assessment
     classification: admin_manageable
-    surface: null
+    surface: AssessmentQuestionBank
     status: audit_required
+    notes: Issue #183 Stage A provides discoverable read/inspection of the Question Bank and implemented quiz/practice catalogue, including approved answers and membership. Safe lifecycle/configuration/availability management remains incomplete and must be finished in Stage B before this capability is considered fully manageable. Attempt seed, student-specific selected set/order, resume order and scoring snapshots remain internal_non_editable.
   - id: admin.accounts.roles_sessions
     area: auth
     classification: admin_manageable
