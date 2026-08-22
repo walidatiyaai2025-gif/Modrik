@@ -139,6 +139,7 @@ jobs:
             const surfaces = [
               { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
+              { name: 'content-preparation', url: '/admin/content-preparation', selector: '[data-testid="modrik-content-preparation"]' },
             ];
 
             for (const c of cases) {
