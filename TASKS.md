@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-08-22
-Last reconciled baseline: `2be35e79444c6110423e9222dcb358458707d07e`
+Last reconciled baseline: `814018c14f20976a6819a55e607ca908b320da5d`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -18,22 +18,26 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] #184 / #224 / PR #225 — Public/Legal/Help operational visibility and truthful deferred mutable-management boundary.
 - [x] #233 / PR #234 — executable capability-surface contract validation in CI.
 - [x] #231 / PR #232 — exact Demo Web/Admin Build SHA release smoke hardening.
-- [x] PR #239 — Windows client explicitly classified `deferred_disabled`; no Windows implementation or activation added.
-- [x] #235 / PR #236 — Backend-owned Student Notification Center integrated on Web and Mobile with own-account list/read/read-all state, AR/EN/FR + RTL/LTR accessibility, canonical OpenAPI/contracts and fail-closed external-push boundaries.
-- [x] #240 / #241 / #242 — independent authority/security, accessibility/localization and exact-head CI preflights published with no blocking findings before #236 integration.
+- [x] PR #239 — Windows client explicitly classified `deferred_disabled`.
+- [x] #235 / PR #236 — Backend-owned Student Notification Center integrated on Web and Mobile.
+- [x] #244 / PR #248 — Landing `/` + Student Portal `/student` runtime/deployment acceptance restored with exact-head multilingual/RTL/narrow/200% and route/release guards.
+- [x] #250 / PR #252 — remote cPanel post-copy success recording now fails closed until exact Landing/Student release identity and meaningful runtime markers pass.
 
 ## Current repository-verifiable P0 queue
 
-No additional P0 product implementation PR is open at this reconciled baseline. Before creating or taking engineering scope, fetch live GitHub and use the Master Plan, current capability matrix and explicit owner authorization. Do not turn `backend_contract_missing`, deferred or activation-gated rows into invented product authority.
+Issue #251 / PR #253 is control-state reconciliation only. Its live merge/CI state must be fetched from GitHub; it does not create domain, release or deployment implementation authority.
+
+No additional P0 product or release implementation packet is identified at this checkpoint. Before creating or taking engineering scope, fetch live GitHub and use the Master Plan, current capability matrix and explicit owner authorization. Do not turn `backend_contract_missing`, deferred or activation-gated rows into invented product authority.
 
 ## Control plane / release
 
 - [x] Non-self-staling control-state semantics and contradiction guard integrated.
 - [x] Demo packaging defect fixed; Backend Admin assets are deterministically built/verified before packaging.
 - [x] Successful authorized Demo deployment evidence recorded for run `32563427725`, attempt 2, deployed SHA `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
-- [x] Next-deployment release smoke requires exact Web and Admin Build SHA identity via PR #232.
-- [x] Control-state checkpoint PR #230 reconciled source/deployment truth through the pre-Notification integration baseline.
-- [ ] After an owner-authorized deployment of a newer canonical main, record the new immutable deployed SHA only if API, Web and Admin external smoke all pass. Source-control merge alone must never advance deployment state.
+- [x] Exact Web/Admin Build SHA release smoke integrated via PR #232.
+- [x] Landing/Student runtime and external deployment acceptance integrated via PR #248.
+- [x] Remote post-copy route/release validation before success-recording integrated via PR #252.
+- [ ] After an owner-authorized deployment of a newer canonical main, record the new immutable deployed SHA only if API, Web, Admin, Landing and Student external smoke all pass. Source-control merge alone must never advance deployment state.
 - [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
 
 ## Real-content evaluation
