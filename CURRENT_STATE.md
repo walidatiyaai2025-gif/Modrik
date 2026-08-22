@@ -1,9 +1,9 @@
 # CURRENT STATE
 
 Updated: 2026-08-22
-Last reconciled live baseline: `c82604443c5d6b3100e8df03f8fb37f089fc2853`
+Last reconciled baseline: `c82604443c5d6b3100e8df03f8fb37f089fc2853`
 
-Live repository state must still be fetched from GitHub before using this checkpoint. This file records a reconciled control-state snapshot; it does not predict the SHA that a later merge will make live `main`.
+Live repository state must be fetched from GitHub before using this checkpoint. This file records a reconciled control-state snapshot; it does not predict the SHA that a later merge will make live `main`.
 
 ## Integrated governance and Admin foundations
 
@@ -17,7 +17,7 @@ Live repository state must still be fetched from GitHub before using this checkp
 - PR #204 merged at `88d4e7c3faed50931ea6de0c604283301c9a28bb` — capability-matrix reconciliation after #198.
 - PR #201 / Issue #182 merged at `395433cb58d9d8eeb5ab77a06fd6300ca78e294c` — supported Content Operations surfaces, ingestion/retry, exception triage, provenance/traceability and truthful deferred classifications.
 - PR #211 / Issue #210 merged at `986a696e99fc087c68b9298f403e76ece6627ed5` — Admin sidebar readability/contrast hardening.
-- PR #199 / Issue #200 merged into live `main` at `c82604443c5d6b3100e8df03f8fb37f089fc2853` — human-readable Admin lookups and guided publication workflow.
+- PR #199 / Issue #200 merged into the reconciled baseline at `c82604443c5d6b3100e8df03f8fb37f089fc2853` — human-readable Admin lookups and guided publication workflow.
 
 Every implemented/configurable capability remains classified as exactly one of `admin_manageable`, `user_facing`, `read_only_operational`, `internal_non_editable`, or `deferred_disabled`.
 
@@ -57,13 +57,9 @@ Content rights remain a separate gate. `pending_review` content must continue th
 
 The authorized evaluation target remains `demo.modrik.org` with cPanel document root `/public_html/demo.modrik.org` (expected absolute `/home/solscool/public_html/demo.modrik.org/`).
 
-GitHub Actions workflow run `32563427725`, attempt 2, completed successfully after PR #196 closed the Backend Admin Vite packaging defect.
+Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-Deployed canonical `main` SHA for that successful run:
-
-`c82604443c5d6b3100e8df03f8fb37f089fc2853`
-
-The successful attempt passed package assembly, audit-artifact retention, FTPS upload, protected one-shot deployment bridge execution, cleanup and external smoke for both `https://api.demo.modrik.org/up` and `https://demo.modrik.org/`.
+GitHub Actions workflow run `32563427725`, attempt 2, completed successfully after PR #196 closed the Backend Admin Vite packaging defect. The successful attempt passed package assembly, audit-artifact retention, FTPS upload, protected one-shot deployment bridge execution, cleanup and external smoke for both `https://api.demo.modrik.org/up` and `https://demo.modrik.org/`.
 
 Detailed evidence is recorded in `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
 
