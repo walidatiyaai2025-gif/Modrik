@@ -80,6 +80,17 @@ find "$BACKEND_ROOT" -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'storage' -e
 
 [[ -f "$BACKEND_ROOT/.env" ]] || fail "Backend .env was not preserved."
 [[ -d "$BACKEND_ROOT/storage" ]] || fail "Backend storage was not preserved."
+[[ -d "$BACKEND_ROOT/public" ]] || fail "Backend public document root is missing."
+
+# The deployment intentionally uses umask 077 for secrets, backups, and staging.
+# Normalize only the web-served Laravel boundary so the LiteSpeed worker can
+# traverse the project root and read public assets/front-controller files.
+# Keep .env private and leave non-public application code/storage untouched.
+log "Normalizing Laravel public permissions for LiteSpeed"
+chmod 711 "$BACKEND_ROOT"
+find "$BACKEND_ROOT/public" -type d -exec chmod 755 {} +
+find "$BACKEND_ROOT/public" -type f -exec chmod 644 {} +
+chmod 600 "$BACKEND_ROOT/.env"
 
 log "Running Laravel migrations and caches"
 cd "$BACKEND_ROOT"
