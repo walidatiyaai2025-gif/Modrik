@@ -71,7 +71,7 @@ export default function LandingPage({ adminUrl }: { adminUrl: string }) {
   const direction = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <main className="landing-shell" lang={locale} dir={direction}>
+    <main className="landing-shell" lang={locale} dir={direction} data-testid="modrik-landing-page">
       <header className="landing-nav">
         <Link className="landing-brand" href="/" aria-label="MODRIK home">
           <span className="landing-brand-mark" aria-hidden="true">M</span>
@@ -85,7 +85,7 @@ export default function LandingPage({ adminUrl }: { adminUrl: string }) {
               </button>
             ))}
           </div>
-          <Link className="landing-login-link" href="/student">{text.loginLabel}</Link>
+          <Link className="landing-login-link" href="/student" data-testid="modrik-student-login-link">{text.loginLabel}</Link>
         </div>
       </header>
 
@@ -102,7 +102,7 @@ export default function LandingPage({ adminUrl }: { adminUrl: string }) {
             <span className="landing-portal-icon" aria-hidden="true">01</span>
             <h2>{text.studentTitle}</h2>
             <p>{text.studentBody}</p>
-            <Link className="landing-primary-cta" href="/student">{text.studentCta}</Link>
+            <Link className="landing-primary-cta" href="/student" data-testid="modrik-student-portal-cta">{text.studentCta}</Link>
           </article>
 
           <article className="landing-portal-card landing-portal-admin">
