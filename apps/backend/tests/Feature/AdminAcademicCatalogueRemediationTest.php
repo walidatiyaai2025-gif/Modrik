@@ -10,7 +10,6 @@ use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Livewire\Component;
 use Livewire\Livewire;
 use Tests\TestCase;
 use ZipArchive;
@@ -63,14 +62,14 @@ class AdminAcademicCatalogueRemediationTest extends TestCase
 
         $this->actingAs($admin);
         $catalogueUrl = AcademicCatalogue::getUrl(['request' => $requestId]);
-        /** @var class-string<Component> $reviewQueueComponent */
+        /** @var class-string<ContentReviewQueue> $reviewQueueComponent */
         $reviewQueueComponent = ContentReviewQueue::class;
         Livewire::test($reviewQueueComponent)
             ->assertSee('CONTENT_TARGET_TRACK_MISSING')
             ->assertSee(AcademicCatalogue::getNavigationLabel())
             ->assertSeeHtml('href="'.e($catalogueUrl).'"');
 
-        /** @var class-string<Component> $catalogueComponent */
+        /** @var class-string<AcademicCatalogue> $catalogueComponent */
         $catalogueComponent = AcademicCatalogue::class;
         Livewire::withQueryParams(['request' => $requestId])
             ->test($catalogueComponent)
