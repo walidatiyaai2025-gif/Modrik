@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-08-22 — capability governance, Admin operability and deploy packaging
+
+- Integrated project-wide `GOV-SURFACE-001` through PR #186 at `003e90a5fb64540d310a35418ce653553b38eee0`, requiring every implemented/configurable capability to have a discoverable intentional surface or an explicit read-only/internal/deferred classification without weakening security or Backend authority.
+- Integrated the shared professional Filament Admin UX foundation through PR #187 at `9cc38ce22b941b2270023ec686bb5e25152f60dd`, including the shared navigation groups/components, responsive AR/EN/FR and RTL/LTR presentation, and exact-head browser evidence.
+- Integrated Academic Catalogue Management through PR #189 at `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2`, adding the supported Admin remediation path for `CONTENT_TARGET_TRACK_MISSING` while keeping academic values owner-approved and historical learner/curriculum references protected.
+- Manual Demo deployment run `32563427725` targeted `a4ad081fc0f0baa46f07d09cfa8361712dfe42c2` but failed during package assembly before any FTPS upload because the Backend Admin Vite build was absent. The repository-recorded deployed Demo therefore remained `41bb2959387bc1a01995d643d6419713d5ba0e56`.
+- PR #196 merged at `78a9f612cc7752750046d8ab371714c1c9c6eb53`, making cPanel packaging self-build and re-verify missing Backend Admin Vite assets before packaging without changing deployment secrets, server paths or package security boundaries.
+- Issue #190 control-plane packet defines live GitHub `main`, last reconciled baseline and last deployed build as separate concepts; rewrites control prose as checkpoints; and adds `scripts/validate-control-state.sh` to Bootstrap CI so a PR cannot reintroduce a self-staling hard-coded `Current/Authoritative main` assertion. Historical tested-head, merge, workflow and deployment SHAs remain immutable evidence.
+
 ## 2026-08-20 — P0-ACADEMIC-CONTRACT-002 authorized learner track catalogue
 
 - Implemented Issue #21 for REQ-P0-002 / AC-P0-010 with authenticated `GET /v1/academic-tracks`, backed by a learner-scoped `academic_track_authorizations` allowlist. Active authorization is `revoked_at IS NULL`; Backend `sort_order` then the stable opaque track ULID defines deterministic response order.
@@ -65,7 +74,7 @@
 - Exact operation replay returns the stored acknowledgement with `replayed: true` and creates no additional answer revision or outbox event. Reusing an operation ID with a changed canonical payload returns `SYNC_OPERATION_ID_REUSED` without replacing the original acknowledgement or mutating domain state.
 - Each operation has an independent transaction, with a nested savepoint around the existing authoritative answer write. Expected revision/resource/value conflicts become durable stable-code acknowledgements without rolling back successful siblings; unexpected server failures roll back reservation, answer, and outbox work so the same operation ID can be retried safely.
 - Added integration coverage for authentication and 1–100 bounds, interrupted-batch resume, exact replay, same-ID changed-payload conflicts, stale-revision isolation, cross-user resource concealment, acknowledgement persistence redaction, and outbox answer redaction. Updated OpenAPI/contract assertions, idempotency/errors, ERD/data dictionary, QA ledger/matrix, threat model, and operations runbook.
-- Final pre-integration PR #25 head `124288931816bcad0f7f0a7bb64fc2d10b4ed558` passed Bootstrap CI run `32380469265` across all seven required jobs: contracts/OpenAPI/tokens; PHP 8.4.24 Composer validation/audit, Pint, Larastan and SQLite Backend tests; MariaDB 10.11.18 fresh migration/seed plus the full Backend suite; Web; Flutter Mobile; Gitleaks; and dependency review. Integration with Web #20 preserves both root documentation histories and requires a fresh full CI run before merge.
+- Final pre-integration PR #25 head `124288931816bcad0f7f0a7bb64fc2d10b4ed558` passed Bootstrap CI run `32380469265` across all seven required jobs: contracts/OpenAPI/tokens; PHP 8.4.24 Composer validation/audit, Pint/Larastan and SQLite Backend tests; MariaDB 10.11.18 fresh migration/seed plus the full Backend suite; Web; Flutter Mobile; Gitleaks; and dependency review. Integration with Web #20 preserves both root documentation histories and requires a fresh full CI run before merge.
 
 ## 2026-08-20 — P0-WEB-001 desktop-first multilingual Student Web
 
