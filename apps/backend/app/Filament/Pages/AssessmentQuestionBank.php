@@ -232,9 +232,9 @@ final class AssessmentQuestionBank extends Page
             return [];
         }
 
-        $trackIds = $records->pluck('track_id')->map(static fn ($value): string => (string) $value)->unique()->values()->all();
+        $trackIds = array_values($records->pluck('track_id')->map(static fn ($value): string => (string) $value)->unique()->values()->all());
         $nodeMap = $this->curriculumNodeMap($trackIds);
-        $questionIds = $records->pluck('id')->map(static fn ($value): string => (string) $value)->all();
+        $questionIds = array_values($records->pluck('id')->map(static fn ($value): string => (string) $value)->values()->all());
         $membership = $this->quizMembershipMap($questionIds);
 
         $rows = [];
@@ -246,6 +246,7 @@ final class AssessmentQuestionBank extends Page
 
             $options = $this->decodeList((string) ($record->options ?? ''));
             $answer = $this->decodeMap((string) $record->answer_contract);
+            /** @var list<array{id: string, label: string, correct: bool}> $optionRows */
             $optionRows = [];
             $correctOptionId = is_string($answer['correct_option_id'] ?? null) ? $answer['correct_option_id'] : null;
             foreach ($options as $option) {
@@ -331,7 +332,7 @@ final class AssessmentQuestionBank extends Page
             $query->where('academic_tracks.is_fixture', false);
         }
 
-        return $query->get([
+        return array_values($query->get([
             'quizzes.id',
             'quizzes.curriculum_node_id',
             'quizzes.kind',
@@ -358,10 +359,13 @@ final class AssessmentQuestionBank extends Page
             'year_level' => (string) $record->year_level,
             'question_count' => (int) $record->question_count,
             'updated_at' => (string) $record->updated_at,
-        ])->all();
+        ])->all());
     }
 
-    /** @param list<string> $trackIds @return array<string, array{id: string, parent_id: ?string, type: string, title: string}> */
+    /**
+     * @param  list<string>  $trackIds
+     * @return array<string, array{id: string, parent_id: ?string, type: string, title: string}>
+     */
     private function curriculumNodeMap(array $trackIds): array
     {
         $map = [];
@@ -378,7 +382,10 @@ final class AssessmentQuestionBank extends Page
         return $map;
     }
 
-    /** @param array<string, array{id: string, parent_id: ?string, type: string, title: string}> $map @return array{id: string, title: string}|null */
+    /**
+     * @param  array<string, array{id: string, parent_id: ?string, type: string, title: string}>  $map
+     * @return array{id: string, title: string}|null
+     */
     private function subjectForNode(string $nodeId, array $map): ?array
     {
         $seen = [];
@@ -442,7 +449,10 @@ final class AssessmentQuestionBank extends Page
         return $result;
     }
 
-    /** @param list<string> $questionIds @return array<string, list<array{id: string, title: string, kind: string, status: string}>> */
+    /**
+     * @param  list<string>  $questionIds
+     * @return array<string, list<array{id: string, title: string, kind: string, status: string}>>
+     */
     private function quizMembershipMap(array $questionIds): array
     {
         if ($questionIds === []) {
@@ -466,7 +476,10 @@ final class AssessmentQuestionBank extends Page
         return $map;
     }
 
-    /** @param array<string, mixed> $answer @param list<array{id: string, label: string, correct: bool}> $options */
+    /**
+     * @param  array<string, mixed>  $answer
+     * @param  list<array{id: string, label: string, correct: bool}>  $options
+     */
     private function answerSummary(array $answer, array $options): string
     {
         $correctOptionId = $answer['correct_option_id'] ?? null;
