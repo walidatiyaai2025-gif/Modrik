@@ -29,7 +29,7 @@ final class SystemCapabilities extends Page
         };
     }
 
-    public static function getNavigationSort(): ?int
+    public static function getNavigationSort(): int
     {
         return 90;
     }
