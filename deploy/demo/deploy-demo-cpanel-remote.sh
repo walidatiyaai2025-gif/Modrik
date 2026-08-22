@@ -113,12 +113,20 @@ log "Pruning old deployment work directories"
 find "$DEPLOY_ROOT/work" -mindepth 1 -maxdepth 1 -type d ! -name "$RELEASE_SHA" -mtime +1 -exec rm -rf -- {} + || true
 
 if [[ "$KEEP_BACKUPS" =~ ^[0-9]+$ ]] && (( KEEP_BACKUPS > 0 )); then
-  mapfile -t backups < <(find "$DEPLOY_ROOT/backups" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -nr | awk '{print $2}')
-  if (( ${#backups[@]} > KEEP_BACKUPS )); then
-    for old_backup in "${backups[@]:KEEP_BACKUPS}"; do
+  backup_list="$WORK_DIR/backups-by-age.txt"
+  find "$DEPLOY_ROOT/backups" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' \
+    | sort -nr \
+    | cut -d' ' -f2- > "$backup_list"
+
+  backup_index=0
+  while IFS= read -r old_backup; do
+    [[ -n "$old_backup" ]] || continue
+    backup_index=$((backup_index + 1))
+    if (( backup_index > KEEP_BACKUPS )); then
       rm -rf -- "$old_backup"
-    done
-  fi
+    fi
+  done < "$backup_list"
+  rm -f "$backup_list"
 fi
 
 log "Deployment succeeded: $RELEASE_SHA"
