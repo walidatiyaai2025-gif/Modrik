@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Auth\PendingProviderIdentityVerifier;
 use App\Auth\ProviderIdentityVerifier;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 final class IntegrationStatusService
@@ -81,6 +83,7 @@ final class IntegrationStatusService
             'remote_config_enabled' => $this->boolSetting('firebase.remote_config.enabled', $environment),
             'fcm_transport_status' => $projectSet && $credentialReferenceSet ? 'pending_adapter' : 'configuration_incomplete',
             'remote_config_transport_status' => $projectSet && $credentialReferenceSet ? 'pending_adapter' : 'configuration_incomplete',
+            'last_test' => $this->lastIntegrationOperation('firebase', 'test_push', $environment),
             'firebase_auth' => 'disabled_by_architecture',
             'firestore' => 'disabled_by_architecture',
             'realtime_database' => 'disabled_by_architecture',
@@ -103,7 +106,8 @@ final class IntegrationStatusService
     /**
      * Boundary-only action until an approved Firebase transport adapter exists.
      * It validates that operators cannot provide an arbitrary raw registration
-     * token and returns a stable unavailable state without sending network data.
+     * token and persists only a SHA-256 target fingerprint plus stable result.
+     * No network send is claimed before a transport adapter is approved.
      *
      * @return array{sent: false, code: string}
      */
@@ -111,6 +115,7 @@ final class IntegrationStatusService
         string $environment,
         string $targetType,
         string $targetReference,
+        ?string $actorId = null,
     ): array {
         if (! in_array($targetType, ['test_user', 'test_device'], true)) {
             throw new InvalidArgumentException('Test push target must be a designated test user or test device reference.');
@@ -118,16 +123,75 @@ final class IntegrationStatusService
         if ($targetReference === '' || mb_strlen($targetReference) > 160) {
             throw new InvalidArgumentException('A bounded designated test target reference is required.');
         }
+
         if (! $this->boolSetting('firebase.fcm.enabled', $environment)) {
-            return ['sent' => false, 'code' => 'FCM_DISABLED'];
+            $code = 'FCM_DISABLED';
+        } else {
+            $firebase = $this->firebase($environment);
+            $code = $firebase['fcm_transport_status'] === 'configuration_incomplete'
+                ? 'FCM_CONFIGURATION_INCOMPLETE'
+                : 'FCM_TRANSPORT_PENDING';
         }
 
-        $firebase = $this->firebase($environment);
-        if ($firebase['fcm_transport_status'] === 'configuration_incomplete') {
-            return ['sent' => false, 'code' => 'FCM_CONFIGURATION_INCOMPLETE'];
+        $this->auditIntegrationOperation(
+            $environment,
+            'firebase',
+            'test_push',
+            $targetType,
+            $targetReference,
+            $code,
+            $actorId,
+        );
+
+        return ['sent' => false, 'code' => $code];
+    }
+
+    /** @return null|array{result_code: string, target_type: string|null, target_fingerprint: string|null, actor_id: string|null, occurred_at: string} */
+    public function lastIntegrationOperation(string $integration, string $operation, string $environment): ?array
+    {
+        $row = DB::table('integration_operation_audits')
+            ->where('integration', $integration)
+            ->where('operation', $operation)
+            ->where('environment', $environment)
+            ->orderByDesc('occurred_at')
+            ->first(['result_code', 'target_type', 'target_fingerprint', 'actor_id', 'occurred_at']);
+
+        if ($row === null) {
+            return null;
         }
 
-        return ['sent' => false, 'code' => 'FCM_TRANSPORT_PENDING'];
+        return [
+            'result_code' => (string) $row->result_code,
+            'target_type' => $row->target_type === null ? null : (string) $row->target_type,
+            'target_fingerprint' => $row->target_fingerprint === null ? null : (string) $row->target_fingerprint,
+            'actor_id' => $row->actor_id === null ? null : (string) $row->actor_id,
+            'occurred_at' => (string) $row->occurred_at,
+        ];
+    }
+
+    private function auditIntegrationOperation(
+        string $environment,
+        string $integration,
+        string $operation,
+        string $targetType,
+        string $targetReference,
+        string $resultCode,
+        ?string $actorId,
+    ): void {
+        $now = now();
+        DB::table('integration_operation_audits')->insert([
+            'id' => (string) Str::ulid(),
+            'actor_id' => $actorId,
+            'environment' => $environment,
+            'integration' => $integration,
+            'operation' => $operation,
+            'target_type' => $targetType,
+            'target_fingerprint' => hash('sha256', $targetType."\0".$targetReference),
+            'result_code' => $resultCode,
+            'occurred_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
     }
 
     private function boolSetting(string $key, string $environment): bool
