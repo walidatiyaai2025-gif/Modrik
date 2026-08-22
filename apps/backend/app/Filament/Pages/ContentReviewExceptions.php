@@ -105,6 +105,7 @@ final class ContentReviewExceptions extends Page
                 'updated_at',
             ])
             ->map(function (object $row): array {
+                /** @var object{operation_state: mixed, rights_review_status: mixed, review_decision: mixed} $row */
                 $classification = $this->classify($row);
 
                 return [
