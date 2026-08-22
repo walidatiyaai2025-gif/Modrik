@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RELEASE_SHA="${1:-}"
+
+if [[ ! "$RELEASE_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+  echo 'MODRIK_DEPLOY_RELEASE_SHA_INVALID' >&2
+  exit 2
+fi
+
+RELEASE_SHA="${RELEASE_SHA,,}"
+SHORT_SHA="${RELEASE_SHA:0:12}"
+API_UP_URL="${MODRIK_DEMO_API_UP_URL:-https://api.demo.modrik.org/up}"
+WEB_URL="${MODRIK_DEMO_WEB_URL:-https://demo.modrik.org/}"
+ADMIN_LOGIN_URL="${MODRIK_DEMO_ADMIN_LOGIN_URL:-https://api.demo.modrik.org/admin/login}"
+
+fetch() {
+  curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 "$1"
+}
+
+if ! fetch "$API_UP_URL" >/dev/null; then
+  echo 'MODRIK_DEPLOY_API_UNREACHABLE' >&2
+  exit 1
+fi
+
+if ! web_body="$(fetch "$WEB_URL")"; then
+  echo 'MODRIK_DEPLOY_WEB_UNREACHABLE' >&2
+  exit 1
+fi
+
+if [[ "$web_body" != *'data-testid="modrik-web-release-badge"'* ]] \
+  || [[ "$web_body" != *"MODRIK deployed release: $RELEASE_SHA"* ]] \
+  || [[ "$web_body" != *"Build $SHORT_SHA"* ]]; then
+  echo 'MODRIK_DEPLOY_WEB_RELEASE_MISMATCH' >&2
+  exit 1
+fi
+
+if ! admin_body="$(fetch "$ADMIN_LOGIN_URL")"; then
+  echo 'MODRIK_DEPLOY_ADMIN_UNREACHABLE' >&2
+  exit 1
+fi
+
+if [[ "$admin_body" != *'data-testid="modrik-release-badge"'* ]] \
+  || [[ "$admin_body" != *"MODRIK deployed release: $RELEASE_SHA"* ]] \
+  || [[ "$admin_body" != *"Build $SHORT_SHA"* ]]; then
+  echo 'MODRIK_DEPLOY_ADMIN_RELEASE_MISMATCH' >&2
+  exit 1
+fi
+
+# Never emit response bodies. The only success output is a stable, non-secret marker.
+echo "MODRIK_DEMO_RELEASE_SMOKE_OK release=$SHORT_SHA"
