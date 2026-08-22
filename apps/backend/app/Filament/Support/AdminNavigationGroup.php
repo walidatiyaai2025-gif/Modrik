@@ -9,7 +9,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Facades\App;
 
-enum AdminNavigationGroup implements HasLabel, HasIcon
+enum AdminNavigationGroup implements HasIcon, HasLabel
 {
     case Overview;
     case Academic;
@@ -60,7 +60,7 @@ enum AdminNavigationGroup implements HasLabel, HasIcon
         };
     }
 
-    public function getIcon(): string | BackedEnum | Htmlable | null
+    public function getIcon(): string|BackedEnum|Htmlable|null
     {
         return match ($this) {
             self::Overview => Heroicon::OutlinedHome,
