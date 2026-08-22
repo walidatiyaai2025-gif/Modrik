@@ -10,12 +10,13 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
 final class AcademicCatalogue extends Page
 {
+    private const NEW_OPTION = '__new__';
+
     protected string $view = 'filament.pages.academic-catalogue';
 
     protected static ?string $slug = 'academic-catalogue';
@@ -32,10 +33,12 @@ final class AcademicCatalogue extends Page
 
     /** @var array<string, mixed> */
     public array $form = [
-        'code' => '',
         'board_reference' => '',
         'syllabus_version' => '',
         'year_level' => '',
+        'new_board_label' => '',
+        'new_syllabus_label' => '',
+        'new_year_level_label' => '',
         'title_en' => '',
         'title_ar' => '',
         'title_fr' => '',
@@ -72,9 +75,9 @@ final class AcademicCatalogue extends Page
     public function getSubheading(): string
     {
         return match (App::getLocale()) {
-            'ar' => 'سجّل فقط المسارات الأكاديمية المعتمدة من المالك. لا يتم اختراع قيم المجلس أو المنهج أو الإصدار.',
-            'fr' => 'Enregistrez uniquement les parcours approuvés par le propriétaire. Les références de board, syllabus et version ne sont jamais inventées.',
-            default => 'Register only owner-approved academic tracks. Board, syllabus and version references are never invented.',
+            'ar' => 'أدخل أسماء مفهومة للمشغل فقط. المراجع والأكواد الداخلية يولدها أو يتحقق منها الخادم.',
+            'fr' => 'Saisissez uniquement des libellés compréhensibles. Le serveur génère ou valide les références internes.',
+            default => 'Enter operator-readable academic data only. Internal references are generated or validated by the server.',
         };
     }
 
@@ -86,7 +89,7 @@ final class AcademicCatalogue extends Page
     public function mount(): void
     {
         $requestId = request()->query('request');
-        if (is_string($requestId) === false || $requestId === '') {
+        if (! is_string($requestId) || $requestId === '') {
             return;
         }
 
@@ -101,7 +104,6 @@ final class AcademicCatalogue extends Page
             : [];
 
         $this->sourceRequestId = (string) $row->id;
-        $this->form['code'] = (string) ($scope['track_reference'] ?? '');
         $this->form['board_reference'] = (string) ($scope['board_reference'] ?? '');
         $this->form['syllabus_version'] = (string) ($scope['syllabus_version'] ?? '');
         $this->form['year_level'] = (string) ($scope['year_level'] ?? '');
@@ -111,7 +113,7 @@ final class AcademicCatalogue extends Page
     /** @return array<int, array<string, mixed>> */
     public function rows(): array
     {
-        $query = DB::table('academic_tracks')->orderBy('code')->limit(200);
+        $query = DB::table('academic_tracks')->orderBy('created_at')->limit(200);
 
         if ($this->search !== '') {
             $needle = '%'.trim($this->search).'%';
@@ -119,7 +121,8 @@ final class AcademicCatalogue extends Page
                 $q->where('code', 'like', $needle)
                     ->orWhere('board_reference', 'like', $needle)
                     ->orWhere('syllabus_version', 'like', $needle)
-                    ->orWhere('year_level', 'like', $needle);
+                    ->orWhere('year_level', 'like', $needle)
+                    ->orWhere('title', 'like', $needle);
             });
         }
 
@@ -135,14 +138,45 @@ final class AcademicCatalogue extends Page
                 'id' => (string) $row->id,
                 'code' => (string) $row->code,
                 'board_reference' => (string) ($row->board_reference ?? ''),
+                'board_label' => $this->humanizeReference((string) ($row->board_reference ?? '')),
                 'syllabus_version' => (string) ($row->syllabus_version ?? ''),
+                'syllabus_label' => $this->humanizeReference((string) ($row->syllabus_version ?? '')),
                 'year_level' => (string) $row->year_level,
+                'year_label' => $this->humanizeReference((string) $row->year_level),
                 'title' => $title,
                 'is_fixture' => (bool) $row->is_fixture,
                 'locked' => $this->canMutateTrack((string) $row->id) === false,
                 'updated_at' => (string) $row->updated_at,
             ];
         })->all();
+    }
+
+    /** @return array<string, string> */
+    public function boardOptions(): array
+    {
+        return $this->referenceOptions('board_reference');
+    }
+
+    /** @return array<string, string> */
+    public function syllabusOptions(): array
+    {
+        return $this->referenceOptions('syllabus_version');
+    }
+
+    /** @return array<string, string> */
+    public function yearLevelOptions(): array
+    {
+        return $this->referenceOptions('year_level');
+    }
+
+    public function newOptionValue(): string
+    {
+        return self::NEW_OPTION;
+    }
+
+    public function displayReference(string $reference): string
+    {
+        return $this->humanizeReference($reference);
     }
 
     public function edit(string $id): void
@@ -154,18 +188,21 @@ final class AcademicCatalogue extends Page
 
         if ($this->canMutateTrack($id) === false) {
             throw ValidationException::withMessages([
-                'form.code' => $this->translate('This track is referenced by learner or curriculum history and is read-only.', 'هذا المسار مرتبط بسجل طالب أو منهج وأصبح للقراءة فقط.', 'Ce parcours est référencé par un historique apprenant ou curriculum et devient en lecture seule.'),
+                'form.title_en' => $this->translate('This track is referenced by learner or curriculum history and is read-only.', 'هذا المسار مرتبط بسجل طالب أو منهج وأصبح للقراءة فقط.', 'Ce parcours est référencé par un historique apprenant ou curriculum et devient en lecture seule.'),
             ]);
         }
 
         $title = json_decode((string) $row->title, true);
         $title = is_array($title) ? $title : [];
         $this->editingId = $id;
+        $this->sourceRequestId = null;
         $this->form = [
-            'code' => (string) $row->code,
             'board_reference' => (string) ($row->board_reference ?? ''),
             'syllabus_version' => (string) ($row->syllabus_version ?? ''),
             'year_level' => (string) $row->year_level,
+            'new_board_label' => '',
+            'new_syllabus_label' => '',
+            'new_year_level_label' => '',
             'title_en' => (string) ($title['en'] ?? ''),
             'title_ar' => (string) ($title['ar'] ?? ''),
             'title_fr' => (string) ($title['fr'] ?? ''),
@@ -177,6 +214,7 @@ final class AcademicCatalogue extends Page
     public function cancelEdit(): void
     {
         $this->editingId = null;
+        $this->sourceRequestId = null;
         $this->resetForm();
     }
 
@@ -184,14 +222,16 @@ final class AcademicCatalogue extends Page
     {
         $id = $this->editingId;
         if ($id !== null && $this->canMutateTrack($id) === false) {
-            throw ValidationException::withMessages(['form.code' => 'Referenced academic tracks cannot be edited.']);
+            throw ValidationException::withMessages(['form.title_en' => 'Referenced academic tracks cannot be edited.']);
         }
 
         $data = Validator::make($this->form, [
-            'code' => ['required', 'string', 'max:120', Rule::unique('academic_tracks', 'code')->ignore($id)],
             'board_reference' => ['nullable', 'string', 'max:160'],
-            'syllabus_version' => ['nullable', 'string', 'max:120'],
-            'year_level' => ['required', 'string', 'max:40'],
+            'syllabus_version' => ['nullable', 'string', 'max:160'],
+            'year_level' => ['required', 'string', 'max:160'],
+            'new_board_label' => ['nullable', 'string', 'min:2', 'max:160'],
+            'new_syllabus_label' => ['nullable', 'string', 'min:2', 'max:160'],
+            'new_year_level_label' => ['nullable', 'string', 'min:1', 'max:120'],
             'title_en' => ['required', 'string', 'max:255'],
             'title_ar' => ['nullable', 'string', 'max:255'],
             'title_fr' => ['nullable', 'string', 'max:255'],
@@ -199,12 +239,74 @@ final class AcademicCatalogue extends Page
             'reason' => ['required', 'string', 'min:8', 'max:500'],
         ])->validate();
 
+        $sourceScope = $this->sourceScope();
+        if ($sourceScope !== null) {
+            $code = trim((string) ($sourceScope['track_reference'] ?? ''));
+            $boardReference = $this->nullableString($sourceScope['board_reference'] ?? null);
+            $syllabusVersion = $this->nullableString($sourceScope['syllabus_version'] ?? null);
+            $yearLevel = trim((string) ($sourceScope['year_level'] ?? ''));
+            if ($code === '' || $yearLevel === '') {
+                throw ValidationException::withMessages([
+                    'form.title_en' => $this->translate('The originating preparation request has an incomplete academic scope.', 'طلب إعداد المحتوى الأصلي يحتوي على نطاق أكاديمي غير مكتمل.', 'La demande de préparation d’origine contient un périmètre académique incomplet.'),
+                ]);
+            }
+        } else {
+            $boardReference = $this->resolveReference(
+                'BOARD',
+                (string) ($data['board_reference'] ?? ''),
+                (string) ($data['new_board_label'] ?? ''),
+                $this->boardOptions(),
+                false,
+                'form.board_reference',
+            );
+            $syllabusVersion = $this->resolveReference(
+                'SYLLABUS',
+                (string) ($data['syllabus_version'] ?? ''),
+                (string) ($data['new_syllabus_label'] ?? ''),
+                $this->syllabusOptions(),
+                false,
+                'form.syllabus_version',
+            );
+            $yearLevel = (string) $this->resolveReference(
+                'YEAR',
+                (string) $data['year_level'],
+                (string) ($data['new_year_level_label'] ?? ''),
+                $this->yearLevelOptions(),
+                true,
+                'form.year_level',
+            );
+
+            if ($id !== null) {
+                $existingCode = DB::table('academic_tracks')->where('id', $id)->value('code');
+                if (! is_string($existingCode) || $existingCode === '') {
+                    throw ValidationException::withMessages(['form.title_en' => 'Academic track identity is missing.']);
+                }
+                $code = $existingCode;
+            } else {
+                $code = $this->internalReference(
+                    'TRACK',
+                    (string) $data['title_en'],
+                    implode('|', [$boardReference ?? '', $syllabusVersion ?? '', $yearLevel]),
+                );
+            }
+        }
+
+        $duplicate = DB::table('academic_tracks')->where('code', $code);
+        if ($id !== null) {
+            $duplicate->where('id', '<>', $id);
+        }
+        if ($duplicate->exists()) {
+            throw ValidationException::withMessages([
+                'form.title_en' => $this->translate('An academic track with the same internal identity already exists.', 'يوجد بالفعل مسار أكاديمي مطابق لهذه البيانات.', 'Un parcours académique avec la même identité existe déjà.'),
+            ]);
+        }
+
         $now = now();
         $payload = [
-            'code' => trim((string) $data['code']),
-            'board_reference' => $this->nullableString($data['board_reference'] ?? null),
-            'syllabus_version' => $this->nullableString($data['syllabus_version'] ?? null),
-            'year_level' => trim((string) $data['year_level']),
+            'code' => $code,
+            'board_reference' => $boardReference,
+            'syllabus_version' => $syllabusVersion,
+            'year_level' => $yearLevel,
             'title' => json_encode(array_filter([
                 'en' => trim((string) $data['title_en']),
                 'ar' => trim((string) ($data['title_ar'] ?? '')),
@@ -256,21 +358,156 @@ final class AcademicCatalogue extends Page
                 'academic_track_audits.action',
                 'academic_track_audits.reason',
                 'academic_track_audits.occurred_at',
-                'academic_tracks.code as track_code',
+                'academic_tracks.title as track_title',
                 'users.email as actor_email',
             ])
-            ->map(fn (object $audit): array => [
-                'action' => match ((string) $audit->action) {
-                    'created' => $this->translate('Academic track created', 'تم إنشاء المسار الأكاديمي', 'Parcours académique créé'),
-                    'updated' => $this->translate('Academic track updated', 'تم تحديث المسار الأكاديمي', 'Parcours académique mis à jour'),
-                    default => (string) $audit->action,
-                },
-                'status' => (string) $audit->track_code,
-                'reason' => (string) $audit->reason,
-                'actor' => (string) ($audit->actor_email ?? 'system/removed-user'),
-                'created_at' => (string) $audit->occurred_at,
-            ])
+            ->map(function (object $audit): array {
+                $title = json_decode((string) $audit->track_title, true);
+                $title = is_array($title) ? $title : [];
+
+                return [
+                    'action' => match ((string) $audit->action) {
+                        'created' => $this->translate('Academic track created', 'تم إنشاء المسار الأكاديمي', 'Parcours académique créé'),
+                        'updated' => $this->translate('Academic track updated', 'تم تحديث المسار الأكاديمي', 'Parcours académique mis à jour'),
+                        default => (string) $audit->action,
+                    },
+                    'status' => (string) ($title[App::getLocale()] ?? $title['en'] ?? $this->translate('Academic track', 'مسار أكاديمي', 'Parcours académique')),
+                    'reason' => (string) $audit->reason,
+                    'actor' => (string) ($audit->actor_email ?? 'system/removed-user'),
+                    'created_at' => (string) $audit->occurred_at,
+                ];
+            })
             ->all();
+    }
+
+    /** @return array<string, string> */
+    private function referenceOptions(string $field): array
+    {
+        $references = DB::table('academic_tracks')
+            ->whereNotNull($field)
+            ->where($field, '<>', '')
+            ->distinct()
+            ->pluck($field)
+            ->map(static fn (mixed $value): string => (string) $value)
+            ->all();
+
+        foreach ($this->preparationScopes() as $scope) {
+            $value = $scope[$field] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                $references[] = trim($value);
+            }
+        }
+
+        $options = [];
+        foreach (array_values(array_unique($references)) as $reference) {
+            $options[$reference] = $this->humanizeReference($reference);
+        }
+        asort($options, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $options;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function preparationScopes(): array
+    {
+        $scopes = [];
+        foreach (DB::table('preparation_requests')->orderByDesc('created_at')->limit(200)->pluck('normalized_settings') as $settingsJson) {
+            $settings = json_decode((string) $settingsJson, true);
+            $scope = is_array($settings) && is_array($settings['academic_scope'] ?? null)
+                ? $settings['academic_scope']
+                : null;
+            if (is_array($scope)) {
+                $scopes[] = $scope;
+            }
+        }
+
+        return $scopes;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function sourceScope(): ?array
+    {
+        if ($this->sourceRequestId === null) {
+            return null;
+        }
+
+        $settingsJson = DB::table('preparation_requests')->where('id', $this->sourceRequestId)->value('normalized_settings');
+        if (! is_string($settingsJson) || $settingsJson === '') {
+            return null;
+        }
+        $settings = json_decode($settingsJson, true);
+        $scope = is_array($settings) && is_array($settings['academic_scope'] ?? null)
+            ? $settings['academic_scope']
+            : null;
+
+        return is_array($scope) ? $scope : null;
+    }
+
+    /** @param array<string, string> $options */
+    private function resolveReference(
+        string $prefix,
+        string $selected,
+        string $newLabel,
+        array $options,
+        bool $required,
+        string $errorKey,
+    ): ?string {
+        $selected = trim($selected);
+        if ($selected === '') {
+            if ($required) {
+                throw ValidationException::withMessages([$errorKey => $this->translate('Choose a value.', 'اختر قيمة من القائمة.', 'Choisissez une valeur.')]);
+            }
+
+            return null;
+        }
+
+        if ($selected === self::NEW_OPTION) {
+            $newLabel = trim($newLabel);
+            if ($newLabel === '') {
+                throw ValidationException::withMessages([$errorKey => $this->translate('Enter the readable name for the new value.', 'اكتب الاسم المقروء للقيمة الجديدة.', 'Saisissez le nom lisible de la nouvelle valeur.')]);
+            }
+
+            return $this->internalReference($prefix, $newLabel);
+        }
+
+        if (! array_key_exists($selected, $options)) {
+            throw ValidationException::withMessages([$errorKey => $this->translate('The selected value is no longer available. Choose it again.', 'القيمة المختارة لم تعد متاحة. اخترها مرة أخرى.', 'La valeur sélectionnée n’est plus disponible. Choisissez-la de nouveau.')]);
+        }
+
+        return $selected;
+    }
+
+    private function internalReference(string $prefix, string $label, string $context = ''): string
+    {
+        $normalized = mb_strtolower(trim($label));
+        $slug = Str::upper(Str::slug(Str::ascii($label), '-'));
+        if ($slug === '') {
+            $slug = 'ITEM';
+        }
+        $slug = mb_substr($slug, 0, 72);
+        $hash = Str::upper(substr(hash('sha256', $normalized.'|'.$context), 0, 8));
+
+        return $prefix.':'.$slug.':'.$hash;
+    }
+
+    private function humanizeReference(string $reference): string
+    {
+        $reference = trim($reference);
+        if ($reference === '') {
+            return $this->translate('Not specified', 'غير محدد', 'Non spécifié');
+        }
+
+        $segments = preg_split('/[:\/]+/', $reference) ?: [$reference];
+        if (in_array(Str::upper((string) $segments[0]), ['BOARD', 'SYLLABUS', 'YEAR', 'TRACK', 'SUBJECT'], true)) {
+            array_shift($segments);
+        }
+        if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
+            array_pop($segments);
+        }
+        $readable = trim(implode(' ', $segments));
+        $readable = str_replace(['-', '_', '.'], ' ', $readable);
+
+        return Str::headline($readable === '' ? $reference : $readable);
     }
 
     private function canMutateTrack(string $id): bool
@@ -289,10 +526,12 @@ final class AcademicCatalogue extends Page
     private function resetForm(): void
     {
         $this->form = [
-            'code' => '',
             'board_reference' => '',
             'syllabus_version' => '',
             'year_level' => '',
+            'new_board_label' => '',
+            'new_syllabus_label' => '',
+            'new_year_level_label' => '',
             'title_en' => '',
             'title_ar' => '',
             'title_fr' => '',
