@@ -17,7 +17,8 @@ final class StudentNotificationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        return ApiResponse::success($request, $this->notifications->inbox($this->user($request)));
+        return ApiResponse::success($request, $this->notifications->inbox($this->user($request)))
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function read(Request $request, string $notificationId): JsonResponse
@@ -31,7 +32,8 @@ final class StudentNotificationController extends Controller
             throw $this->notFound();
         }
 
-        return ApiResponse::success($request, $notification);
+        return ApiResponse::success($request, $notification)
+            ->header('Cache-Control', 'no-store, private');
     }
 
     public function readAll(Request $request): JsonResponse
@@ -41,7 +43,7 @@ final class StudentNotificationController extends Controller
         return ApiResponse::success($request, [
             'updated_count' => $updatedCount,
             'unread_count' => 0,
-        ]);
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     private function user(Request $request): User
