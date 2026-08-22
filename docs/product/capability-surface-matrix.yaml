@@ -14,9 +14,15 @@ capabilities:
   - id: admin.content.preparation
     area: content
     classification: admin_manageable
-    surface: ContentPreparationWizard / ContentPreparationRequests / ContentReviewQueue
+    surface: ContentOperations / ContentPreparationWizard / ContentPreparationRequests / ContentReviewQueue
     status: present
-    notes: Preparation request discovery and workflow surfaced by PR #178.
+    notes: Preparation request discovery and workflow surfaced by PR #178; Issue #182 adds a discoverable lifecycle hub without weakening Backend gates.
+  - id: admin.content.operations
+    area: content
+    classification: admin_manageable
+    surface: ContentOperations
+    status: present_on_issue_182_branch
+    notes: Guided lifecycle entry point linking Academic Track, Preparation, Ingestion/Processing, Rights and Review/Publish while preserving Backend authority.
   - id: admin.content.rights
     area: content
     classification: admin_manageable
@@ -27,25 +33,18 @@ capabilities:
     classification: admin_manageable
     surface: AcademicCatalogue
     status: present
-    notes: Admin-only create/list/search/filter/edit for unreferenced tracks, preparation-request scope prefill, immutable audit history, and conservative history locking for referenced tracks. Values must be owner-approved; no board/syllabus/version values are fabricated.
-  - id: admin.system.settings
-    area: operations
-    classification: admin_manageable
-    surface: SystemSettingsRegistry
-    status: present_on_issue_181_branch
-    notes: Typed non-secret settings with environment scope, optimistic locking, immutable audit history and restore-as-new-version semantics. Secret keys are outside the registry allowlist.
+    notes: Admin-only owner-approved catalogue management with preparation-request remediation and history locking.
   - id: admin.auth.providers
     area: auth
     classification: admin_manageable
     surface: AuthenticationProviders / SystemSettingsRegistry
-    status: present_on_issue_181_branch
-    notes: Email/Password, Google and Apple expose enablement, safe references and Set/Not Set secret state. Google/Apple remain fail-closed while the repository verifier adapter is pending; plaintext secrets are never returned.
+    status: present
+    notes: Safe enablement/status/config references only; provider secrets remain external and non-readable.
   - id: admin.notifications.settings
     area: notifications
     classification: admin_manageable
     surface: NotificationSettings / SystemSettingsRegistry
-    status: present_on_issue_181_branch
-    notes: Global enablement and quiet-hours policy are versioned/audited. Implemented verification/recovery email channels are distinguished from still-audited Student Notification Center scope.
+    status: present
   - id: student.notifications.center
     area: notifications
     classification: user_facing
@@ -55,20 +54,18 @@ capabilities:
     area: integrations
     classification: admin_manageable
     surface: FirebaseRuntimeIntegrations / SystemSettingsRegistry
-    status: present_on_issue_181_branch
-    notes: Safe project/app references, credential Set/Not Set state, FCM/Remote Config enablement and a controlled test-target boundary are surfaced. No network send is claimed while the Firebase transport adapter is pending. Firebase remains auxiliary and secrets stay external.
+    status: present
+    notes: Safe metadata/status/test boundary only; credentials remain external and Firebase remains auxiliary.
   - id: admin.ads.control
     area: safety
     classification: admin_manageable
     surface: AdvertisingSafetyControls / SystemSettingsRegistry
-    status: present_on_issue_181_branch
-    notes: The operator switch is an additional kill switch only. It can make the Backend policy more restrictive but can never weaken immutable no-ad, age, consent, placement or policy gates.
+    status: present
   - id: safety.ads.no_ad_zones
     area: safety
     classification: internal_non_editable
-    surface: AdvertisingSafetyControls read-only / Backend policy tests
+    surface: policy/tests; displayed read-only in AdvertisingSafetyControls
     status: present
-    notes: Account, assessment, help, lesson, onboarding and progress remain immutable no-ad zones with no Admin edit control.
   - id: assessment.authoritative_randomization
     area: assessment
     classification: internal_non_editable
@@ -82,8 +79,9 @@ capabilities:
   - id: admin.content.upload_ingestion
     area: content
     classification: admin_manageable
-    surface: null
-    status: audit_required
+    surface: ContentIngestionOperations / ContentPreparationWizard
+    status: present_on_issue_182_branch
+    notes: Returned-ZIP import state, processing checkpoint, attempts and safe error codes are visible; retry is limited to the existing authorized dry-run and upload stays bound to originating Preparation Requests.
   - id: admin.curriculum.rebuild
     area: content
     classification: admin_manageable
@@ -99,6 +97,12 @@ capabilities:
     classification: admin_manageable
     surface: null
     status: audit_required
+  - id: admin.system.settings_registry
+    area: operations
+    classification: admin_manageable
+    surface: SystemSettingsRegistry
+    status: present
+    notes: Typed/versioned non-secret settings with optimistic locking, immutable audit history and restore-as-new-version semantics.
   - id: admin.system.capabilities
     area: operations
     classification: read_only_operational
