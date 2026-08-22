@@ -536,7 +536,7 @@ async function stateAcceptance(browser) {
     const academicNav = page.locator(".student-nav button");
     check(await academicNav.count() === 5, "E2E_ACADEMIC_NAV_COUNT");
     await academicNav.nth(4).click();
-    const catalogueRetry = page.locator(".academic-track-selector .empty-panel button").first();
+    const catalogueRetry = page.locator(".academic-track-workspace .context-panel .empty-panel button").first();
     await catalogueRetry.waitFor({ state: "visible", timeout: 10000 });
     await reachable(catalogueRetry, page, "E2E_ACADEMIC_CATALOGUE_RETRY");
     mockState.academicTracksStatus = 200;
