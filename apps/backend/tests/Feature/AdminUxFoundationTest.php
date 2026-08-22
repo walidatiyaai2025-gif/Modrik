@@ -20,6 +20,7 @@ class AdminUxFoundationTest extends TestCase
     {
         $admin = User::factory()->create([
             'role' => 'admin',
+            'account_status' => 'active',
             'locale' => 'en',
         ]);
 
@@ -40,6 +41,7 @@ class AdminUxFoundationTest extends TestCase
     {
         $admin = User::factory()->create([
             'role' => 'admin',
+            'account_status' => 'active',
             'locale' => 'en',
         ]);
 
@@ -109,6 +111,7 @@ class AdminUxFoundationTest extends TestCase
     {
         $admin = User::factory()->create([
             'role' => 'admin',
+            'account_status' => 'active',
             'locale' => 'en',
         ]);
 
@@ -156,6 +159,7 @@ class AdminUxFoundationTest extends TestCase
     {
         $admin = User::factory()->create([
             'role' => 'admin',
+            'account_status' => 'active',
             'locale' => 'en',
         ]);
 
