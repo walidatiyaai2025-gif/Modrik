@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-08-23
-Last reconciled baseline: `42c280f9a29245d439a92445033650be511655f9`
+Last reconciled baseline: `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -43,6 +43,8 @@ Recent integrated milestones include:
 - PR #268 and PR #273 / Issue #260 — bounded restart convergence plus CloudLinux Node Selector restart invocation; implementation is integrated, while #260 remains open for a successful governed redeploy.
 - PR #275 / Issue #274 — transport-truthful integration availability and safe secret-state reporting.
 - PR #279 / Issue #277 — truthful first-party Notification Center operational status independent of FCM transport readiness.
+- PR #280 / Issue #264 — post-#279 control-state reconciliation integrated at `9261033fe79446bdaa6521cb6b1031955386b115`.
+- PR #282 / Issue #266 — one-file post-runtime-integrity CHANGELOG reconciliation integrated at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31` after exact-head Bootstrap #1126.
 
 PR #275 exact head `7676e3b5937f67b6e3ffb7cd354b8399b78ae5d9` passed Bootstrap #1114, Admin UX Browser Acceptance #168 and Demo cPanel Package #287 before merge at `65aaa52e1c2c1c4757f96ca32d5ee9b1c503d236`.
 
@@ -50,9 +52,9 @@ PR #279 exact head `1407a160f6fca750fc22ab2387655580e110a931` passed Bootstrap #
 
 ## Active repository-verifiable work at this checkpoint
 
-Issue #264 is control-state reconciliation only. The prior PR #267 became zero-diff and closed after its branch was reset while live `main` advanced. A fresh control-only reconciliation must use current live GitHub state and exactly the owned control files.
+Issue #264 is reopened only for the post-PR #280 self-staleness correction in these three control documents. The previous reconciliation is integrated; this follow-up does not reopen product/runtime scope.
 
-Issue #266 remains CHANGELOG-only reconciliation and must distinguish merged history from still-open implementation work.
+Issue #266 / PR #282 is integrated and closed completed. The CHANGELOG now preserves the post-#257 deployment/runtime-integrity history without advancing the recorded Demo deployment SHA.
 
 Runtime-auth hardening remains sequenced and non-overlapping:
 - #271 / PR #272 owns canonical Backend runtime fixture-auth removal and default/demo seeding hardening. Its last exact-head Bootstrap #1101 is red on Pilot acceptance because the old Pilot flow still requires fixture auth; that failure must not be waived.
