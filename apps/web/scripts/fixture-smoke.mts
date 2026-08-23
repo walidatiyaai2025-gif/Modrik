@@ -1,14 +1,43 @@
 import assert from "node:assert/strict";
+import { POST as AUTH_POST } from "../src/app/api/auth/[...path]/route";
 import { GET, POST, PUT } from "../src/app/api/learning/[...path]/route";
 
 process.env.MODRIK_API_BASE_URL ??= "http://127.0.0.1:8000";
-process.env.MODRIK_FIXTURE_BEARER_TOKEN ??= "modrik-local-fixture-token";
 const runId = crypto.randomUUID();
+const acceptanceEmail = process.env.MODRIK_ACCEPTANCE_STUDENT_EMAIL;
+const acceptancePassword = process.env.MODRIK_ACCEPTANCE_STUDENT_PASSWORD;
+
+assert.ok(acceptanceEmail, "MODRIK_ACCEPTANCE_STUDENT_EMAIL is required for real-session smoke");
+assert.ok(acceptancePassword, "MODRIK_ACCEPTANCE_STUDENT_PASSWORD is required for real-session smoke");
 
 type Handler = (
   request: Request,
   context: { params: Promise<{ path: string[] }> },
 ) => Promise<Response> | Response;
+
+const loginResponse = await AUTH_POST(
+  new Request("http://localhost/api/auth/login", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Origin: "http://localhost",
+      "Sec-Fetch-Site": "same-origin",
+    },
+    body: JSON.stringify({ email: acceptanceEmail, password: acceptancePassword }),
+  }),
+  { params: Promise.resolve({ path: ["login"] }) },
+);
+const loginPayload = (await loginResponse.json()) as { code?: string; detail?: string };
+assert.equal(
+  loginResponse.ok,
+  true,
+  `login: ${loginPayload.code ?? loginResponse.status} ${loginPayload.detail ?? ""}`,
+);
+const setCookie = loginResponse.headers.get("set-cookie");
+assert.ok(setCookie, "login: missing HttpOnly session cookie");
+const sessionCookie = setCookie.split(";", 1)[0];
+assert.match(sessionCookie, /^modrik_web_session=/);
 
 async function request<T>(
   handler: Handler,
@@ -16,7 +45,7 @@ async function request<T>(
   body?: object,
   idempotencyKey?: string,
 ): Promise<T> {
-  const headers = new Headers({ Accept: "application/json" });
+  const headers = new Headers({ Accept: "application/json", Cookie: sessionCookie });
   if (body !== undefined) headers.set("Content-Type", "application/json");
   if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
   if (handler !== GET) {
@@ -87,4 +116,4 @@ const progress = await request<Array<{ mastery: number }>>(GET, "progress");
 assert.equal(progress.length, 1);
 assert.equal(progress[0].mastery, 1);
 
-console.log("Fixture smoke passed: session → context → lesson → 3 answers → submit → progress.");
+console.log("Real-session smoke passed: login cookie → session → context → lesson → attempt → submit → progress.");
