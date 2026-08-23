@@ -128,7 +128,9 @@ export default function AcademicTrackSelector({
   const yearOptions = useMemo(() => {
     const options = new Map<string, string>();
     for (const track of tracks) {
-      if (!options.has(track.year.key)) options.set(track.year.key, track.year.label);
+      if (!options.has(track.year.key)) {
+        options.set(track.year.key, track.year.label);
+      }
     }
     return Array.from(options, ([key, label]) => ({ key, label }));
   }, [tracks]);
@@ -211,9 +213,9 @@ export default function AcademicTrackSelector({
       <div className="empty-panel" role={state === "error" || state === "permission" ? "alert" : "status"} aria-live="polite">
         <p>{stateMessage}</p>
         {state !== "loading" && (
-<button type="button" className="secondary-button" disabled={offline} onClick={() => void loadCatalogue()}>
-  {labels.retry}
-</button>
+          <button type="button" className="secondary-button" disabled={offline} onClick={() => void loadCatalogue()}>
+            {labels.retry}
+          </button>
         )}
       </div>
     );
@@ -226,56 +228,56 @@ export default function AcademicTrackSelector({
       <label className="text-answer-label">
         <span>{labels.yearLabel}</span>
         <select
-value={selectedYearKey}
-disabled={busy || offline}
-onChange={(event) => {
-  const nextYearKey = event.target.value;
-  const nextTracks = tracks.filter((track) => track.year.key === nextYearKey);
-  const currentInYear = nextTracks.find((track) => track.id === currentTrackId);
-  setSelectedYearKey(nextYearKey);
-  setSelectedId(currentInYear?.id ?? nextTracks[0]?.id ?? "");
-  setConfirmed(false);
-  setMessage("");
-}}
+          value={selectedYearKey}
+          disabled={busy || offline}
+          onChange={(event) => {
+            const nextYearKey = event.target.value;
+            const nextTracks = tracks.filter((track) => track.year.key === nextYearKey);
+            const currentInYear = nextTracks.find((track) => track.id === currentTrackId);
+            setSelectedYearKey(nextYearKey);
+            setSelectedId(currentInYear?.id ?? nextTracks[0]?.id ?? "");
+            setConfirmed(false);
+            setMessage("");
+          }}
         >
-{yearOptions.map((year) => (
-  <option key={year.key} value={year.key}>{year.label}</option>
-))}
+          {yearOptions.map((year) => (
+            <option key={year.key} value={year.key}>{year.label}</option>
+          ))}
         </select>
         <small className="muted-copy">{labels.yearHelp}</small>
       </label>
       <label className="text-answer-label">
         <span>{labels.label}</span>
         <select
-value={selectedId}
-disabled={busy || offline || visibleTracks.length === 0}
-onChange={(event) => {
-  setSelectedId(event.target.value);
-  setConfirmed(false);
-  setMessage("");
-}}
+          value={selectedId}
+          disabled={busy || offline || visibleTracks.length === 0}
+          onChange={(event) => {
+            setSelectedId(event.target.value);
+            setConfirmed(false);
+            setMessage("");
+          }}
         >
-{visibleTracks.map((track) => (
-  <option key={track.id} value={track.id}>{track.labels[locale]}</option>
-))}
+          {visibleTracks.map((track) => (
+            <option key={track.id} value={track.id}>{track.labels[locale]}</option>
+          ))}
         </select>
       </label>
 
       {isReset && (
         <div className="reset-consequence">
-<h3>{labels.resetTitle}</h3>
-<p>{labels.resetBody}</p>
-<p>{labels.syncWarning}</p>
-<label className="answer-option">
-  <input
-    type="checkbox"
-    checked={confirmed}
-    disabled={busy || selectedId === currentTrackId}
-    onChange={(event) => setConfirmed(event.target.checked)}
-  />
-  <span>{labels.confirm}</span>
-</label>
-{selectedId === currentTrackId && <p className="muted-copy">{labels.same}</p>}
+          <h3>{labels.resetTitle}</h3>
+          <p>{labels.resetBody}</p>
+          <p>{labels.syncWarning}</p>
+          <label className="answer-option">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              disabled={busy || selectedId === currentTrackId}
+              onChange={(event) => setConfirmed(event.target.checked)}
+            />
+            <span>{labels.confirm}</span>
+          </label>
+          {selectedId === currentTrackId && <p className="muted-copy">{labels.same}</p>}
         </div>
       )}
 
