@@ -28,7 +28,7 @@ test("LiteSpeed canonical startup is one root-level NAME.js server", () => {
   assert.match(constitution, /nested startup registration such as `apps\/web\/server\.js` is prohibited/);
   assert.match(constitution, /`startup\.cjs` may exist only as a compatibility\/rollback bridge/);
   assert.match(runbook, /If it contains `\.`, the canonical startup is `server\.js`/);
-  assert.match(packager, /printf '\\.\\n' > "\$OUT_ROOT\/web\/WEB_APPLICATION_ROOT\.txt"/);
+  assert.match(packager, /printf '\.\\n' > "\$OUT_ROOT\/web\/WEB_APPLICATION_ROOT\.txt"/);
   assert.match(packager, /cat > "\$OUT_ROOT\/web\/server\.js"/);
   assert.match(packager, /require\(modrikPath\.join\(modrikAppRoot, "server\.js"\)\)/);
   assert.match(packager, /require\("\.\/server\.js"\)/);
