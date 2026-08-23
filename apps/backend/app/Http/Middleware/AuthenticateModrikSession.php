@@ -27,21 +27,6 @@ final class AuthenticateModrikSession
             return $next($request);
         }
 
-        $expected = (string) config('modrik.fixture.bearer_token');
-        $provided = $request->bearerToken();
-        if ((bool) config('modrik.fixture.enabled')
-            && $expected !== ''
-            && is_string($provided)
-            && hash_equals($expected, $provided)) {
-            $user = User::query()->find((string) config('modrik.fixture.user_id'));
-            if ($user instanceof User) {
-                $request->setUserResolver(static fn (): User => $user);
-                $request->attributes->set('auth_mode', 'fixture');
-
-                return $next($request);
-            }
-        }
-
         return ApiResponse::problem($request, new ApiProblemException(
             401,
             'AUTHENTICATION_REQUIRED',

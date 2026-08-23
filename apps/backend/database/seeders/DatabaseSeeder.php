@@ -10,16 +10,15 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Seed only explicitly configured operational demo accounts.
+     * Synthetic learning/content datasets are test-only and must be invoked
+     * explicitly by the test or acceptance harness that owns them.
      */
     public function run(): void
     {
-        if ((bool) config('modrik.fixture.enabled')) {
-            $this->call([
-                LearningSliceSeeder::class,
-                DemoStudentSeeder::class,
-                DemoAdminSeeder::class,
-            ]);
-        }
+        $this->call([
+            DemoStudentSeeder::class,
+            DemoAdminSeeder::class,
+        ]);
     }
 }

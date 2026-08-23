@@ -44,8 +44,6 @@ jobs:
       CACHE_STORE: array
       SESSION_DRIVER: file
       QUEUE_CONNECTION: database
-      MODRIK_FIXTURE_MODE: 'true'
-      MODRIK_FIXTURE_BEARER_TOKEN: modrik-admin-evidence-fixture-token
       MODRIK_IDEMPOTENCY_SECRET: modrik-admin-evidence-idempotency-secret
       MODRIK_DEMO_ADMIN_EMAIL: admin.evidence@example.test
       MODRIK_DEMO_ADMIN_PASSWORD: ModrikEvidenceAdmin123!
@@ -72,7 +70,7 @@ jobs:
           npm run build
           grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
 
-      - name: Prepare deterministic Admin fixture
+      - name: Prepare deterministic Admin test dataset
         working-directory: apps/backend
         run: |
           touch database/admin-evidence.sqlite

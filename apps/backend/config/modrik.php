@@ -1,21 +1,6 @@
 <?php
 
 return [
-    'fixture' => [
-        'enabled' => (bool) env('MODRIK_FIXTURE_MODE', false),
-        'bearer_token' => (string) env('MODRIK_FIXTURE_BEARER_TOKEN', ''),
-        'user_id' => '01J00000000000000000000030',
-        'lesson_id' => '01J00000000000000000000003',
-        'quiz_id' => '01J00000000000000000000020',
-        'student' => [
-            'email' => (string) env('MODRIK_DEMO_STUDENT_EMAIL', ''),
-            'password' => (string) env('MODRIK_DEMO_STUDENT_PASSWORD', ''),
-        ],
-        'admin' => [
-            'email' => (string) env('MODRIK_DEMO_ADMIN_EMAIL', ''),
-            'password' => (string) env('MODRIK_DEMO_ADMIN_PASSWORD', ''),
-        ],
-    ],
     'auth' => [
         'hash_secret' => (string) env('MODRIK_AUTH_HASH_SECRET', env('APP_KEY', '')),
         'session_ttl_minutes' => (int) env('MODRIK_AUTH_SESSION_TTL_MINUTES', 43_200),
@@ -42,6 +27,16 @@ return [
                 'private_key' => (string) env('MODRIK_APPLE_PRIVATE_KEY', ''),
                 'callback_url' => (string) env('MODRIK_APPLE_CALLBACK_URL', ''),
             ],
+        ],
+    ],
+    'demo' => [
+        'student' => [
+            'email' => (string) env('MODRIK_DEMO_STUDENT_EMAIL', ''),
+            'password' => (string) env('MODRIK_DEMO_STUDENT_PASSWORD', ''),
+        ],
+        'admin' => [
+            'email' => (string) env('MODRIK_DEMO_ADMIN_EMAIL', ''),
+            'password' => (string) env('MODRIK_DEMO_ADMIN_PASSWORD', ''),
         ],
     ],
     'firebase' => [
