@@ -6,11 +6,14 @@ const layout = readFileSync(new URL("./layout.tsx", import.meta.url), "utf8");
 const css = readFileSync(new URL("./release-badge.css", import.meta.url), "utf8");
 
 test("root layout renders immutable deployed build identity when injected", () => {
+  assert.match(layout, /process\.env\.MODRIK_RELEASE_SHA/);
   assert.match(layout, /process\.env\.NEXT_PUBLIC_MODRIK_RELEASE_SHA/);
   assert.match(layout, /release\.slice\(0, 12\)/);
   assert.match(layout, /data-testid="modrik-web-release-badge"/);
+  assert.match(layout, /data-modrik-release-sha=\{release\}/);
+  assert.match(layout, /data-modrik-release-short=\{shortRelease\}/);
   assert.match(layout, /title=\{`MODRIK deployed release: \$\{release\}`\}/);
-  assert.match(layout, /Build \{shortRelease\}/);
+  assert.match(layout, /\{`Build \$\{shortRelease\}`\}/);
 });
 
 test("release badge stays globally visible without intercepting product controls", () => {
