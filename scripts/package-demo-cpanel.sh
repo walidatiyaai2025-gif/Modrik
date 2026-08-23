@@ -13,6 +13,7 @@ PORTALS_DOC="$ROOT/deploy/demo/PORTALS.md"
 WEB_ENV_TEMPLATE="$ROOT/deploy/demo/web.env.example"
 BACKEND_ENV_TEMPLATE="$ROOT/deploy/demo/backend.env.example"
 WEB_RELEASE_WAIT_SOURCE="$ROOT/deploy/demo/wait-for-demo-web-release.sh"
+CLOUDLINUX_STATE_VALIDATOR_SOURCE="$ROOT/deploy/demo/validate-cloudlinux-node-state.php"
 
 fail() {
   echo "DEMO_PACKAGE_ERROR: $*" >&2
@@ -53,6 +54,7 @@ grep -q 'resources/css/filament/admin/theme.css' "$BACKEND_SOURCE/public/build/m
 [[ -f "$WEB_ENV_TEMPLATE" ]] || fail "Web demo environment template is missing."
 [[ -f "$BACKEND_ENV_TEMPLATE" ]] || fail "Backend demo environment template is missing."
 [[ -f "$WEB_RELEASE_WAIT_SOURCE" ]] || fail "Demo Web restart convergence helper is missing."
+[[ -f "$CLOUDLINUX_STATE_VALIDATOR_SOURCE" ]] || fail "CloudLinux desired-state validator is missing."
 
 rm -rf "$OUT_ROOT"
 mkdir -p "$OUT_ROOT/web" "$OUT_ROOT/backend" "$OUT_ROOT/deploy"
@@ -162,7 +164,9 @@ cmp -s "$LEARNING_FIXTURE_SOURCE" "$OUT_ROOT/backend/resources/fixtures/content-
 cp "$DEPLOY_DOC" "$OUT_ROOT/DEPLOY.md"
 cp "$PORTALS_DOC" "$OUT_ROOT/PORTALS.md"
 cp "$WEB_RELEASE_WAIT_SOURCE" "$OUT_ROOT/deploy/wait-for-demo-web-release.sh"
+cp "$CLOUDLINUX_STATE_VALIDATOR_SOURCE" "$OUT_ROOT/deploy/validate-cloudlinux-node-state.php"
 [[ -f "$OUT_ROOT/deploy/wait-for-demo-web-release.sh" ]] || fail "Packaged Demo Web restart convergence helper is missing."
+[[ -f "$OUT_ROOT/deploy/validate-cloudlinux-node-state.php" ]] || fail "Packaged CloudLinux desired-state validator is missing."
 
 ZIP_PARENT="$(dirname "$OUT_ROOT")"
 ZIP_NAME="modrik-demo-cpanel-${RELEASE_SHA:0:12}.zip"
