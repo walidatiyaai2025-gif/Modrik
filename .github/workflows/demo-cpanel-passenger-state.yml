@@ -1,0 +1,76 @@
+name: Demo cPanel Passenger registration state
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-cpanel-passenger-state.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+      CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
+      CPANEL_API_TOKEN: ${{ secrets.CPANEL_API_TOKEN }}
+    steps:
+      - name: Validate cPanel API credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CPANEL_HOST"
+          test -n "$CPANEL_USERNAME"
+          test -n "$CPANEL_API_TOKEN"
+
+      - name: Record run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "CPANEL PASSENGER REGISTRATION CHECK STARTED — run \`$GITHUB_RUN_ID\`"
+
+      - name: Query cPanel UAPI safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          auth="Authorization: cpanel $CPANEL_USERNAME:$CPANEL_API_TOKEN"
+          info="$RUNNER_TEMP/server-info.json"
+          apps="$RUNNER_TEMP/passenger-apps.json"
+
+          curl --fail --silent --show-error --connect-timeout 15 --max-time 30 \
+            -H "$auth" -H 'Accept: application/json' \
+            "https://$CPANEL_HOST:2083/execute/Variables/get_server_information" > "$info"
+          curl --fail --silent --show-error --connect-timeout 15 --max-time 30 \
+            -H "$auth" -H 'Accept: application/json' \
+            "https://$CPANEL_HOST:2083/execute/PassengerApps/list_applications" > "$apps"
+
+          jq -e '.result.status == 1' "$info" >/dev/null
+          jq -e '.result.status == 1' "$apps" >/dev/null
+
+          info_keys="$(jq -c '(.result.data // {}) | if type=="object" then keys else [] end' "$info")"
+          apps_type="$(jq -r '(.result.data // null) | type' "$apps")"
+          app_count="$(jq -r '(.result.data // null) | if type=="array" then length elif type=="object" then length else 0 end' "$apps")"
+          demo_present="$(jq -r '((.result.data // null) | tostring | contains("demo.modrik.org"))' "$apps")"
+          webroot_present="$(jq -r '((.result.data // null) | tostring | contains("public_html/demo.modrik.org"))' "$apps")"
+
+          jq -n \
+            --arg user "$CPANEL_USERNAME" \
+            --arg apps_type "$apps_type" \
+            --argjson app_count "$app_count" \
+            --argjson demo_present "$demo_present" \
+            --argjson webroot_present "$webroot_present" \
+            --argjson server_info_keys "$info_keys" \
+            '{ok:true,cpanel_user:$user,passenger_data_type:$apps_type,passenger_app_count:$app_count,demo_domain_registered:$demo_present,demo_webroot_registered:$webroot_present,server_info_keys:$server_info_keys}' \
+            > "$RUNNER_TEMP/safe.json"
+          jq . "$RUNNER_TEMP/safe.json"
+
+      - name: Publish sanitized registration evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          compact="$(jq -c . "$RUNNER_TEMP/safe.json")"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "CPANEL PASSENGER REGISTRATION CHECK COMPLETED\n\n- run: \`$GITHUB_RUN_ID\`\n\n\`\`\`json\n$compact\n\`\`\`"
