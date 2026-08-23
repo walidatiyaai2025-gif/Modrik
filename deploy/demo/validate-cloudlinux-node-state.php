@@ -6,7 +6,10 @@ declare(strict_types=1);
  * GOV-DEPLOY-001 CloudLinux Node Selector desired-state validator.
  *
  * Usage:
- *   php validate-cloudlinux-node-state.php <app-root> <domain> <node-major> [expected-startup]
+ *   php validate-cloudlinux-node-state.php <app-root> <domain> <node-major> [expected-startup] [status-policy]
+ *
+ * status-policy is `started` (default) or `any`. `any` is used only for
+ * registration read-back during a bounded stop/start or rollback transition.
  *
  * Reads the raw `cloudlinux-selector get --json --interpreter nodejs` response
  * from STDIN. Emits one sanitized machine-readable line on success and no
@@ -16,7 +19,8 @@ declare(strict_types=1);
 $appRoot = trim((string) ($argv[1] ?? ''), '/');
 $expectedDomain = strtolower(trim((string) ($argv[2] ?? '')));
 $expectedNodeMajor = trim((string) ($argv[3] ?? ''));
-$expectedStartup = isset($argv[4]) ? trim((string) $argv[4]) : null;
+$expectedStartup = isset($argv[4]) && (string) $argv[4] !== '' ? trim((string) $argv[4]) : null;
+$statusPolicy = strtolower(trim((string) ($argv[5] ?? 'started')));
 
 $fail = static function (string $message): never {
     fwrite(STDERR, "MODRIK_SELECTOR_STATE_ERROR: {$message}\n");
@@ -34,6 +38,9 @@ if (!preg_match('/^\d+$/', $expectedNodeMajor)) {
 }
 if ($expectedStartup !== null && ($expectedStartup === '' || str_starts_with($expectedStartup, '/') || str_contains($expectedStartup, '..') || preg_match('/[^A-Za-z0-9._\/-]/', $expectedStartup))) {
     $fail('expected startup file is invalid');
+}
+if (!in_array($statusPolicy, ['started', 'any'], true)) {
+    $fail('status policy is invalid');
 }
 
 $raw = stream_get_contents(STDIN);
@@ -120,8 +127,11 @@ if (!preg_match('/^(\d+)\./', $state['version'], $majorMatch) || $majorMatch[1] 
 if ($state['mode'] !== 'production') {
     $fail('registered application mode is not production');
 }
-if ($state['status'] !== 'started') {
+if ($statusPolicy === 'started' && $state['status'] !== 'started') {
     $fail('registered application is not started');
+}
+if ($state['status'] === '') {
+    $fail('registered application status is missing');
 }
 if ($state['startup_file'] === '' || str_starts_with($state['startup_file'], '/') || str_contains($state['startup_file'], '..') || preg_match('/[^A-Za-z0-9._\/-]/', $state['startup_file'])) {
     $fail('registered startup file is missing or unsafe');
