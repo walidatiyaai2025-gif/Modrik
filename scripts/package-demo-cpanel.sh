@@ -84,19 +84,30 @@ if [[ -d "$ROOT/apps/web/public" ]]; then
 fi
 cp "$WEB_ENV_TEMPLATE" "$OUT_ROOT/web/.env.demo.example"
 printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt"
+printf '%s\n' "$RELEASE_SHA" > "$WEB_APP/RELEASE_SHA.txt"
 
-# cPanel Passenger can always use the Web payload root as Application Root.
-# The release identity is artifact-owned so Passenger and exact-Node preflight
-# render the same immutable SHA without relying on mutable cPanel env state.
-cat > "$OUT_ROOT/web/startup.cjs" <<EOF
+# LiteSpeed's CloudLinux Node Selector documentation recommends the generated
+# Next standalone server.js itself as the startup script. Make that generated
+# server artifact self-contained by injecting the immutable release identity
+# before Next loads, without depending on mutable cPanel environment state.
+SERVER_BOOTSTRAP="$WEB_APP/server.js.modrik-bootstrap"
+cat > "$SERVER_BOOTSTRAP" <<'EOF'
 const fs = require("node:fs");
 const path = require("node:path");
-const release = fs.readFileSync(path.join(__dirname, "RELEASE_SHA.txt"), "utf8").trim();
-if (!release) {
-  throw new Error("Packaged MODRIK release identity is empty.");
+const modrikRelease = fs.readFileSync(path.join(__dirname, "RELEASE_SHA.txt"), "utf8").trim();
+if (!/^[0-9a-f]{40}$/i.test(modrikRelease)) {
+  throw new Error("Packaged MODRIK release identity is invalid.");
 }
-process.env.MODRIK_RELEASE_SHA = release;
-process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = release;
+process.env.MODRIK_RELEASE_SHA = modrikRelease;
+process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = modrikRelease;
+EOF
+cat "$WEB_APP/server.js" >> "$SERVER_BOOTSTRAP"
+mv "$SERVER_BOOTSTRAP" "$WEB_APP/server.js"
+
+# Retain the historical root wrapper as a rollback/compatibility startup target.
+# New LiteSpeed activations use the direct standalone server path above.
+cat > "$OUT_ROOT/web/startup.cjs" <<EOF
+const path = require("node:path");
 const appRoot = path.resolve(__dirname, ${WEB_APP_REL@Q});
 process.chdir(appRoot);
 require(path.join(appRoot, "server.js"));
@@ -123,11 +134,14 @@ if find "$OUT_ROOT" -type f -name '.env' -print -quit | grep -q .; then
   fail "A live .env file entered the deployment package."
 fi
 
-[[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web startup wrapper is missing."
+[[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web compatibility startup wrapper is missing."
 [[ -f "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt" ]] || fail "cPanel Web application-root metadata is missing from the deployable Web payload."
 [[ -s "$OUT_ROOT/web/RELEASE_SHA.txt" ]] || fail "cPanel Web immutable release identity is missing from the deployable Web payload."
 cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$OUT_ROOT/web/RELEASE_SHA.txt" || fail "Web release identity differs from the package release identity."
+[[ -s "$WEB_APP/RELEASE_SHA.txt" ]] || fail "Standalone Next app release identity is missing."
+cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$WEB_APP/RELEASE_SHA.txt" || fail "Standalone Next app release identity differs from the package release identity."
 [[ -f "$WEB_APP/server.js" ]] || fail "Packaged Web startup server.js is missing."
+grep -q 'Packaged MODRIK release identity is invalid' "$WEB_APP/server.js" || fail "Standalone Next server is missing the artifact-owned release bootstrap."
 [[ -d "$WEB_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
 [[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
 [[ -f "$OUT_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
@@ -154,5 +168,5 @@ rm -f "$ZIP_PARENT/$ZIP_NAME"
 
 echo "Demo cPanel package ready: $ZIP_PARENT/$ZIP_NAME"
 echo "cPanel Node Application Root: web payload root"
-echo "cPanel Node startup file: startup.cjs"
-echo "Actual Next standalone app below payload root: $WEB_APP_REL"
+echo "cPanel LiteSpeed startup file: $WEB_APP_REL/server.js"
+echo "Compatibility startup file retained: startup.cjs"
