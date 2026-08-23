@@ -51,6 +51,30 @@ test("remote deploy configures a private Passenger log before canonical restart"
   assert.ok(restart > configureCall);
 });
 
+test("Passenger restart marker is traversable despite the runner's restrictive umask", () => {
+  const runner = readFileSync(runnerPath, "utf8");
+
+  assert.match(runner, /umask 077/);
+  assert.match(runner, /prepare_passenger_restart_marker\(\)/);
+  assert.match(runner, /mkdir -p "\$WEB_ROOT\/tmp"/);
+  assert.match(runner, /chmod 755 "\$WEB_ROOT\/tmp"/);
+  assert.match(runner, /touch "\$WEB_ROOT\/tmp\/restart\.txt"/);
+  assert.match(runner, /chmod 644 "\$WEB_ROOT\/tmp\/restart\.txt"/);
+
+  const update = runner.indexOf('log "Updating Student Web payload"');
+  const copied = runner.indexOf('cp -a "$SOURCE_ROOT/web/." "$WEB_ROOT/"', update);
+  const preparedAfterCopy = runner.indexOf("prepare_passenger_restart_marker", copied);
+  const canonicalRestart = runner.indexOf('log "Requesting canonical cPanel Node.js application restart"', preparedAfterCopy);
+  const preparedBeforeRestart = runner.indexOf("prepare_passenger_restart_marker", canonicalRestart);
+  const restartCall = runner.indexOf("\nrestart_cloudlinux_node_app\n", preparedBeforeRestart);
+
+  assert.ok(copied > update);
+  assert.ok(preparedAfterCopy > copied);
+  assert.ok(canonicalRestart > preparedAfterCopy);
+  assert.ok(preparedBeforeRestart > canonicalRestart);
+  assert.ok(restartCall > preparedBeforeRestart);
+});
+
 test("remote deploy uses the canonical restart path before release convergence", () => {
   const runner = readFileSync(runnerPath, "utf8");
 
@@ -76,7 +100,8 @@ test("remote deploy escalates one failed restart window to stop-start recycle be
     runner.indexOf('log "Waiting for bounded Student Web restart convergence"'),
   );
   const recycleMarker = runner.indexOf("escalating to one bounded stop/start recycle", firstWait);
-  const recycleCall = runner.indexOf("recycle_cloudlinux_node_app", recycleMarker);
+  const markerRefresh = runner.indexOf("prepare_passenger_restart_marker", recycleMarker);
+  const recycleCall = runner.indexOf("recycle_cloudlinux_node_app", markerRefresh);
   const recycleFn = runner.indexOf("recycle_cloudlinux_node_app() {");
   const stopCall = runner.indexOf("cloudlinux_node_action stop", recycleFn);
   const startCall = runner.indexOf("cloudlinux_node_action start", stopCall);
@@ -86,7 +111,8 @@ test("remote deploy escalates one failed restart window to stop-start recycle be
 
   assert.ok(firstWait >= 0);
   assert.ok(recycleMarker > firstWait);
-  assert.ok(recycleCall > recycleMarker);
+  assert.ok(markerRefresh > recycleMarker);
+  assert.ok(recycleCall > markerRefresh);
   assert.ok(stopCall > recycleFn);
   assert.ok(startCall > stopCall);
   assert.ok(recycleAttempts > recycleCall);
@@ -114,7 +140,7 @@ test("final convergence failure emits redacted Passenger diagnostics before roll
   assert.ok(terminalFailure > diagnostics);
 });
 
-test("failed live Web mutation restores the pre-deploy payload without recording deployment success", () => {
+test("failed live Web mutation restores the pre-deploy payload and a readable restart marker without recording deployment success", () => {
   const runner = readFileSync(runnerPath, "utf8");
 
   assert.match(runner, /recover_previous_web_on_failure\(\)/);
@@ -127,6 +153,13 @@ test("failed live Web mutation restores the pre-deploy payload without recording
   const recoveryStart = runner.indexOf("recover_previous_web_on_failure() {");
   const recoveryEnd = runner.indexOf("\n}\n\ntrap recover_previous_web_on_failure EXIT", recoveryStart);
   const recovery = runner.slice(recoveryStart, recoveryEnd);
+  const restore = recovery.indexOf('tar -xzf "$BACKUP_DIR/web.tar.gz" -C "$WEB_ROOT"');
+  const marker = recovery.indexOf("prepare_passenger_restart_marker", restore);
+  const restart = recovery.indexOf("restart_cloudlinux_node_app", marker);
+
+  assert.ok(restore >= 0);
+  assert.ok(marker > restore);
+  assert.ok(restart > marker);
   assert.doesNotMatch(recovery, /artisan (migrate:rollback|down)/);
 
   const verification = runner.indexOf('log "Verifying public health and portal runtime markers"');

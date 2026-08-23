@@ -150,6 +150,17 @@ emit_passenger_startup_diagnostics() {
   printf '[MODRIK_PASSENGER_DIAG_BEGIN]\n%s\n[MODRIK_PASSENGER_DIAG_END]\n' "$diagnostic" >&2
 }
 
+prepare_passenger_restart_marker() {
+  # cPanel documents <app-root>/tmp/restart.txt as Passenger's restart signal.
+  # This runner intentionally uses umask 077 for secrets and backups, so the
+  # restart boundary must be normalized explicitly after every Web replacement.
+  mkdir -p "$WEB_ROOT/tmp"
+  chmod 755 "$WEB_ROOT/tmp"
+  touch "$WEB_ROOT/tmp/restart.txt"
+  chmod 644 "$WEB_ROOT/tmp/restart.txt"
+  log "Passenger restart marker normalized for web-server traversal"
+}
+
 restart_cloudlinux_node_app() {
   if ! cloudlinux_node_action restart; then
     fail "CloudLinux Node.js Selector restart failed: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
@@ -182,8 +193,7 @@ recover_previous_web_on_failure() {
   log "Deployment failed after Student Web mutation; restoring the pre-deploy Web payload"
   find "$WEB_ROOT" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf -- {} +
   tar -xzf "$BACKUP_DIR/web.tar.gz" -C "$WEB_ROOT"
-  mkdir -p "$WEB_ROOT/tmp"
-  touch "$WEB_ROOT/tmp/restart.txt"
+  prepare_passenger_restart_marker
 
   if ( restart_cloudlinux_node_app ); then
     log "Pre-deploy Student Web payload restored and canonical restart requested"
@@ -238,8 +248,7 @@ log "Updating Student Web payload"
 WEB_MUTATED=1
 find "$WEB_ROOT" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf -- {} +
 cp -a "$SOURCE_ROOT/web/." "$WEB_ROOT/"
-mkdir -p "$WEB_ROOT/tmp"
-touch "$WEB_ROOT/tmp/restart.txt"
+prepare_passenger_restart_marker
 
 log "Updating Laravel Backend while preserving .env and storage"
 find "$BACKEND_ROOT" -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'storage' -exec rm -rf -- {} +
@@ -279,7 +288,7 @@ if ! configure_cloudlinux_passenger_log; then
 fi
 
 log "Requesting canonical cPanel Node.js application restart"
-touch "$WEB_ROOT/tmp/restart.txt"
+prepare_passenger_restart_marker
 restart_cloudlinux_node_app
 
 log "Waiting for bounded Student Web restart convergence"
@@ -287,7 +296,7 @@ if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
   MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
   bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
   log "Initial Student Web convergence window expired; escalating to one bounded stop/start recycle"
-  touch "$WEB_ROOT/tmp/restart.txt"
+  prepare_passenger_restart_marker
   recycle_cloudlinux_node_app
 
   if ! MODRIK_WEB_RESTART_ATTEMPTS="${MODRIK_WEB_RECYCLE_ATTEMPTS:-${MODRIK_WEB_RESTART_RETRY_ATTEMPTS:-12}}" \
