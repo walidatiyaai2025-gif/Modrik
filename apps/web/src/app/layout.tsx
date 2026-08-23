@@ -22,7 +22,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   await headers();
 
   const inspector = resolveRuntimeInspectorConfig();
-  const release = process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA?.trim();
+  // MODRIK_RELEASE_SHA is intentionally server-runtime owned. NEXT_PUBLIC_*
+  // remains a compatibility fallback for older build/deploy paths, but Next can
+  // inline public variables during compilation and must not be the authoritative
+  // cPanel release identity.
+  const release =
+    process.env.MODRIK_RELEASE_SHA?.trim() || process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA?.trim();
   const shortRelease = release ? release.slice(0, 12) : null;
 
   return (
