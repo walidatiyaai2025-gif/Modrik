@@ -1,0 +1,207 @@
+name: Owner-authorized Demo Web permission remediation
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-web-permission-remediation.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_URL: https://50sols.com
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+      DEMO_HOST: demo.modrik.org
+
+    steps:
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Prepare protected permission remediation bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 12)"
+          bridge="modrik-perm-fix-$nonce.php"
+          token_file=".modrik-perm-fix-token-$nonce"
+          echo "::add-mask::$token"
+          printf '%s' "$token" > /tmp/modrik-perm-token
+
+          cat > /tmp/modrik-perm-fix.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          set_time_limit(90);
+          header('Content-Type: application/json; charset=utf-8');
+          header('Cache-Control: no-store');
+
+          $expected = trim((string) @file_get_contents(__DIR__ . '/__TOKEN_FILE__'));
+          $provided = (string) ($_SERVER['HTTP_X_MODRIK_DEPLOY_TOKEN'] ?? '');
+          if ($expected === '' || !hash_equals($expected, $provided)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
+
+          $home = '/home/solscool';
+          $root = $home . '/public_html/demo.modrik.org';
+          $appRootRel = 'public_html/demo.modrik.org';
+          $run = static function (array $cmd, ?string $cwd = null): array {
+              $d = [0 => ['pipe','r'], 1 => ['pipe','w'], 2 => ['pipe','w']];
+              $p = @proc_open($cmd, $d, $pipes, $cwd, null, ['bypass_shell' => true]);
+              if (!is_resource($p)) return ['exit' => -1, 'stdout' => '', 'stderr' => 'proc_open_failed'];
+              fclose($pipes[0]);
+              $out = (string) stream_get_contents($pipes[1]);
+              $err = (string) stream_get_contents($pipes[2]);
+              fclose($pipes[1]); fclose($pipes[2]);
+              return ['exit' => proc_close($p), 'stdout' => trim($out), 'stderr' => trim($err)];
+          };
+          $mode = static function (string $path): ?string {
+              $p = @fileperms($path);
+              return is_int($p) ? substr(sprintf('%o', $p), -4) : null;
+          };
+
+          if (!is_dir($root) || !is_file($root . '/.htaccess')) {
+              http_response_code(500);
+              echo json_encode(['ok' => false, 'error' => 'web_root_or_htaccess_missing']);
+              exit;
+          }
+
+          $before = [
+              'root' => $mode($root),
+              'htaccess' => $mode($root . '/.htaccess'),
+              'startup_cjs' => is_file($root . '/startup.cjs') ? $mode($root . '/startup.cjs') : null,
+              'server_js' => is_file($root . '/server.js') ? $mode($root . '/server.js') : null,
+          ];
+
+          // cPanel/LiteSpeed-safe minimum: traverse-only document root for non-owner,
+          // world-readable non-secret routing/startup files. No env/storage secrets changed.
+          @chmod($root, 0711);
+          @chmod($root . '/.htaccess', 0644);
+          if (is_file($root . '/startup.cjs')) @chmod($root . '/startup.cjs', 0644);
+          if (is_file($root . '/server.js')) @chmod($root . '/server.js', 0644);
+          if (is_file($root . '/WEB_APPLICATION_ROOT.txt')) @chmod($root . '/WEB_APPLICATION_ROOT.txt', 0644);
+          if (is_file($root . '/RELEASE_SHA.txt')) @chmod($root . '/RELEASE_SHA.txt', 0644);
+          if (is_dir($root . '/tmp')) @chmod($root . '/tmp', 0755);
+          if (is_file($root . '/tmp/restart.txt')) @chmod($root . '/tmp/restart.txt', 0644);
+
+          $after = [
+              'root' => $mode($root),
+              'htaccess' => $mode($root . '/.htaccess'),
+              'startup_cjs' => is_file($root . '/startup.cjs') ? $mode($root . '/startup.cjs') : null,
+              'server_js' => is_file($root . '/server.js') ? $mode($root . '/server.js') : null,
+          ];
+          if ($after['root'] !== '0711' || $after['htaccess'] !== '0644') {
+              http_response_code(500);
+              echo json_encode(['ok' => false, 'error' => 'permission_convergence_failed', 'before' => $before, 'after' => $after]);
+              exit;
+          }
+
+          @touch($root . '/tmp/restart.txt');
+          @chmod($root . '/tmp/restart.txt', 0644);
+
+          $selector = '/usr/sbin/cloudlinux-selector';
+          $cagefs = '/bin/cagefs_enter.proxied';
+          $restart = $run([$cagefs, $selector, 'restart', '--json', '--interpreter', 'nodejs', '--app-root', $appRootRel], $home);
+          if ($restart['exit'] !== 0 || stripos($restart['stdout'], '"result": "success"') === false && stripos($restart['stdout'], '"result":"success"') === false) {
+              http_response_code(500);
+              echo json_encode(['ok' => false, 'error' => 'selector_restart_failed', 'before' => $before, 'after' => $after, 'selector_exit' => $restart['exit']]);
+              exit;
+          }
+
+          $runtimeSeen = false;
+          $runtimeName = null;
+          for ($i = 0; $i < 20; $i++) {
+              // Trigger the virtual host so LiteSpeed has to materialize the Node service.
+              @file_get_contents('https://demo.modrik.org/?perm_fix_probe=' . bin2hex(random_bytes(4)));
+              usleep(500000);
+              $ps = $run(['/usr/bin/ps', '-u', 'solscool', '-o', 'comm=']);
+              if ($ps['exit'] === 0 && preg_match('/^(lsnode|node)$/mi', $ps['stdout'], $m)) {
+                  $runtimeSeen = true;
+                  $runtimeName = strtolower($m[1]);
+                  break;
+              }
+          }
+
+          echo json_encode([
+              'ok' => true,
+              'before' => $before,
+              'after' => $after,
+              'selector_restart' => 'success',
+              'node_runtime_seen' => $runtimeSeen,
+              'runtime_name' => $runtimeName,
+          ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+          PHP
+
+          sed -i -e "s|__TOKEN_FILE__|$token_file|g" /tmp/modrik-perm-fix.php
+          {
+            echo "REMOTE_BRIDGE=$bridge"
+            echo "REMOTE_TOKEN_FILE=$token_file"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload remediation bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            put /tmp/modrik-perm-token -o $REMOTE_TOKEN_FILE;
+            put /tmp/modrik-perm-fix.php -o $REMOTE_BRIDGE;
+            bye;
+          "
+
+      - name: Apply permissions and restart Node application
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(cat /tmp/modrik-perm-token)"
+          body="$RUNNER_TEMP/permission-remediation.json"
+          curl --fail --silent --show-error --max-time 100 \
+            --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
+            -H "X-MODRIK-Deploy-Token: $token" \
+            "$BRIDGE_URL/$REMOTE_BRIDGE" > "$body"
+          jq . "$body"
+          jq -e '.ok == true and .after.root == "0711" and .after.htaccess == "0644"' "$body" >/dev/null
+
+      - name: Publish remediation evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          compact="$(jq -c . "$RUNNER_TEMP/permission-remediation.json")"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO WEB PERMISSION REMEDIATION COMPLETED\n\n- run: \`$GITHUB_RUN_ID\`\n- branch SHA: \`$GITHUB_SHA\`\n\n\`\`\`json\n$compact\n\`\`\`"
+
+      - name: Remove one-shot files
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          timeout 30 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            rm -f ${REMOTE_TOKEN_FILE:-.missing};
+            rm -f ${REMOTE_BRIDGE:-.missing};
+            bye;
+          "
+          exit 0
