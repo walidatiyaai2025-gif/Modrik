@@ -89,7 +89,7 @@ final class AcademicTrackCatalogueService
         }
 
         $segments = preg_split('/[:\/]+/', $key) ?: [$key];
-        if (Str::upper((string) ($segments[0] ?? '')) === 'YEAR') {
+        if (Str::upper((string) $segments[0]) === 'YEAR') {
             array_shift($segments);
         }
         if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
