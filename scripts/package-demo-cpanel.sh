@@ -66,36 +66,37 @@ printf '%s\n' "$RELEASE_SHA" > "$OUT_ROOT/web/RELEASE_SHA.txt"
 
 cp -a "$WEB_STANDALONE/." "$OUT_ROOT/web/"
 
-if [[ -f "$OUT_ROOT/web/server.js" ]]; then
-  WEB_APP_REL="."
-elif [[ -f "$OUT_ROOT/web/apps/web/server.js" ]]; then
-  WEB_APP_REL="apps/web"
+# In a monorepo, Next standalone output can place the generated application
+# server below apps/web. Keep that generated layout intact, but expose one
+# root-level NAME.js startup because CloudLinux Node Selector's cPanel contract
+# treats the startup file as a JavaScript filename inside the Application Root.
+if [[ -f "$OUT_ROOT/web/apps/web/server.js" ]]; then
+  NEXT_APP_REL="apps/web"
+elif [[ -f "$OUT_ROOT/web/server.js" ]]; then
+  NEXT_APP_REL="."
 else
   SERVER_PATH="$(find "$OUT_ROOT/web" -type f -name server.js -print -quit || true)"
   [[ -n "$SERVER_PATH" ]] || fail "Could not locate the standalone Next server.js."
-  WEB_APP_REL="${SERVER_PATH#"$OUT_ROOT/web/"}"
-  WEB_APP_REL="${WEB_APP_REL%/server.js}"
+  NEXT_APP_REL="${SERVER_PATH#"$OUT_ROOT/web/"}"
+  NEXT_APP_REL="${NEXT_APP_REL%/server.js}"
 fi
 
-WEB_APP="$OUT_ROOT/web/$WEB_APP_REL"
-mkdir -p "$WEB_APP/.next"
-cp -a "$WEB_STATIC" "$WEB_APP/.next/static"
+NEXT_APP="$OUT_ROOT/web/$NEXT_APP_REL"
+mkdir -p "$NEXT_APP/.next"
+cp -a "$WEB_STATIC" "$NEXT_APP/.next/static"
 if [[ -d "$ROOT/apps/web/public" ]]; then
-  rm -rf "$WEB_APP/public"
-  cp -a "$ROOT/apps/web/public" "$WEB_APP/public"
+  rm -rf "$NEXT_APP/public"
+  cp -a "$ROOT/apps/web/public" "$NEXT_APP/public"
 fi
 cp "$WEB_ENV_TEMPLATE" "$OUT_ROOT/web/.env.demo.example"
-printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt"
-printf '%s\n' "$RELEASE_SHA" > "$WEB_APP/RELEASE_SHA.txt"
+printf '%s\n' "$RELEASE_SHA" > "$NEXT_APP/RELEASE_SHA.txt"
 
-# LiteSpeed's CloudLinux Node Selector documentation recommends the generated
-# Next standalone server.js itself as the startup script. Make that generated
-# server artifact self-contained by injecting the immutable release identity
-# before Next loads, without depending on mutable cPanel environment state.
-# Keep the bootstrap inside an IIFE with MODRIK-specific identifiers so it can
-# never collide with top-level declarations emitted by a future Next version.
-SERVER_BOOTSTRAP="$WEB_APP/server.js.modrik-bootstrap"
-cat > "$SERVER_BOOTSTRAP" <<'EOF'
+# The hosting Application Root is the Web payload root. The canonical startup
+# must therefore be a root-level server.js (NAME.js), not startup.cjs and not a
+# nested path such as apps/web/server.js. This adapter injects immutable release
+# identity, changes into the untouched Next standalone app directory, and then
+# loads Next's generated server.js.
+cat > "$OUT_ROOT/web/server.js" <<EOF
 ;(() => {
   const modrikFs = require("node:fs");
   const modrikPath = require("node:path");
@@ -107,18 +108,21 @@ cat > "$SERVER_BOOTSTRAP" <<'EOF'
   }
   process.env.MODRIK_RELEASE_SHA = modrikRelease;
   process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = modrikRelease;
+  const modrikAppRoot = modrikPath.resolve(__dirname, ${NEXT_APP_REL@Q});
+  process.chdir(modrikAppRoot);
+  require(modrikPath.join(modrikAppRoot, "server.js"));
 })();
 EOF
-cat "$WEB_APP/server.js" >> "$SERVER_BOOTSTRAP"
-mv "$SERVER_BOOTSTRAP" "$WEB_APP/server.js"
 
-# Retain the historical root wrapper as a rollback/compatibility startup target.
-# New LiteSpeed activations use the direct standalone server path above.
-cat > "$OUT_ROOT/web/startup.cjs" <<EOF
-const path = require("node:path");
-const appRoot = path.resolve(__dirname, ${WEB_APP_REL@Q});
-process.chdir(appRoot);
-require(path.join(appRoot, "server.js"));
+# The remote deployment runner derives the hosting startup from this metadata.
+# Dot means the cPanel Application Root itself, making the canonical startup
+# exactly `server.js` for CloudLinux/LiteSpeed.
+printf '.\n' > "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt"
+
+# Historical compatibility target only. It now delegates to the same canonical
+# root server.js so rollback does not create a second application bootstrap.
+cat > "$OUT_ROOT/web/startup.cjs" <<'EOF'
+require("./server.js");
 EOF
 
 cp -a "$BACKEND_SOURCE/." "$OUT_ROOT/backend/"
@@ -142,15 +146,19 @@ if find "$OUT_ROOT" -type f -name '.env' -print -quit | grep -q .; then
   fail "A live .env file entered the deployment package."
 fi
 
+[[ -f "$OUT_ROOT/web/server.js" ]] || fail "Canonical root cPanel server.js is missing."
+node --check "$OUT_ROOT/web/server.js" >/dev/null 2>&1 || fail "Canonical root cPanel server.js is not valid JavaScript."
 [[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web compatibility startup wrapper is missing."
 [[ -f "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt" ]] || fail "cPanel Web application-root metadata is missing from the deployable Web payload."
+[[ "$(tr -d '\r\n' < "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt")" == "." ]] || fail "cPanel Web application root metadata must target the Web payload root."
 [[ -s "$OUT_ROOT/web/RELEASE_SHA.txt" ]] || fail "cPanel Web immutable release identity is missing from the deployable Web payload."
 cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$OUT_ROOT/web/RELEASE_SHA.txt" || fail "Web release identity differs from the package release identity."
-[[ -s "$WEB_APP/RELEASE_SHA.txt" ]] || fail "Standalone Next app release identity is missing."
-cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$WEB_APP/RELEASE_SHA.txt" || fail "Standalone Next app release identity differs from the package release identity."
-[[ -f "$WEB_APP/server.js" ]] || fail "Packaged Web startup server.js is missing."
-grep -q 'Packaged MODRIK release identity is invalid' "$WEB_APP/server.js" || fail "Standalone Next server is missing the artifact-owned release bootstrap."
-[[ -d "$WEB_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
+[[ -s "$NEXT_APP/RELEASE_SHA.txt" ]] || fail "Standalone Next app release identity is missing."
+cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$NEXT_APP/RELEASE_SHA.txt" || fail "Standalone Next app release identity differs from the package release identity."
+[[ -f "$NEXT_APP/server.js" ]] || fail "Generated standalone Next server.js is missing."
+grep -q 'Packaged MODRIK release identity is invalid' "$OUT_ROOT/web/server.js" || fail "Canonical root server is missing the artifact-owned release bootstrap."
+grep -q 'require(modrikPath.join(modrikAppRoot, "server.js"))' "$OUT_ROOT/web/server.js" || fail "Canonical root server does not delegate to the generated Next standalone server."
+[[ -d "$NEXT_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
 [[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
 [[ -f "$OUT_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
 [[ -f "$OUT_ROOT/backend/vendor/autoload.php" ]] || fail "Packaged Backend vendor/autoload.php is missing."
@@ -178,5 +186,6 @@ rm -f "$ZIP_PARENT/$ZIP_NAME"
 
 echo "Demo cPanel package ready: $ZIP_PARENT/$ZIP_NAME"
 echo "cPanel Node Application Root: web payload root"
-echo "cPanel LiteSpeed startup file: $WEB_APP_REL/server.js"
+echo "cPanel LiteSpeed startup file: server.js"
+echo "Generated Next standalone target: $NEXT_APP_REL/server.js"
 echo "Compatibility startup file retained: startup.cjs"
