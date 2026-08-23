@@ -13,6 +13,7 @@ PORTALS_DOC="$ROOT/deploy/demo/PORTALS.md"
 WEB_ENV_TEMPLATE="$ROOT/deploy/demo/web.env.example"
 BACKEND_ENV_TEMPLATE="$ROOT/deploy/demo/backend.env.example"
 WEB_RELEASE_WAIT_SOURCE="$ROOT/deploy/demo/wait-for-demo-web-release.sh"
+CLOUDLINUX_STATE_VALIDATOR_SOURCE="$ROOT/deploy/demo/validate-cloudlinux-node-state.php"
 
 fail() {
   echo "DEMO_PACKAGE_ERROR: $*" >&2
@@ -53,6 +54,7 @@ grep -q 'resources/css/filament/admin/theme.css' "$BACKEND_SOURCE/public/build/m
 [[ -f "$WEB_ENV_TEMPLATE" ]] || fail "Web demo environment template is missing."
 [[ -f "$BACKEND_ENV_TEMPLATE" ]] || fail "Backend demo environment template is missing."
 [[ -f "$WEB_RELEASE_WAIT_SOURCE" ]] || fail "Demo Web restart convergence helper is missing."
+[[ -f "$CLOUDLINUX_STATE_VALIDATOR_SOURCE" ]] || fail "CloudLinux desired-state validator is missing."
 
 rm -rf "$OUT_ROOT"
 mkdir -p "$OUT_ROOT/web" "$OUT_ROOT/backend" "$OUT_ROOT/deploy"
@@ -84,19 +86,36 @@ if [[ -d "$ROOT/apps/web/public" ]]; then
 fi
 cp "$WEB_ENV_TEMPLATE" "$OUT_ROOT/web/.env.demo.example"
 printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt"
+printf '%s\n' "$RELEASE_SHA" > "$WEB_APP/RELEASE_SHA.txt"
 
-# cPanel Passenger can always use the Web payload root as Application Root.
-# The release identity is artifact-owned so Passenger and exact-Node preflight
-# render the same immutable SHA without relying on mutable cPanel env state.
+# LiteSpeed's CloudLinux Node Selector documentation recommends the generated
+# Next standalone server.js itself as the startup script. Make that generated
+# server artifact self-contained by injecting the immutable release identity
+# before Next loads, without depending on mutable cPanel environment state.
+# Keep the bootstrap inside an IIFE with MODRIK-specific identifiers so it can
+# never collide with top-level declarations emitted by a future Next version.
+SERVER_BOOTSTRAP="$WEB_APP/server.js.modrik-bootstrap"
+cat > "$SERVER_BOOTSTRAP" <<'EOF'
+;(() => {
+  const modrikFs = require("node:fs");
+  const modrikPath = require("node:path");
+  const modrikRelease = modrikFs
+    .readFileSync(modrikPath.join(__dirname, "RELEASE_SHA.txt"), "utf8")
+    .trim();
+  if (!/^[0-9a-f]{40}$/i.test(modrikRelease)) {
+    throw new Error("Packaged MODRIK release identity is invalid.");
+  }
+  process.env.MODRIK_RELEASE_SHA = modrikRelease;
+  process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = modrikRelease;
+})();
+EOF
+cat "$WEB_APP/server.js" >> "$SERVER_BOOTSTRAP"
+mv "$SERVER_BOOTSTRAP" "$WEB_APP/server.js"
+
+# Retain the historical root wrapper as a rollback/compatibility startup target.
+# New LiteSpeed activations use the direct standalone server path above.
 cat > "$OUT_ROOT/web/startup.cjs" <<EOF
-const fs = require("node:fs");
 const path = require("node:path");
-const release = fs.readFileSync(path.join(__dirname, "RELEASE_SHA.txt"), "utf8").trim();
-if (!release) {
-  throw new Error("Packaged MODRIK release identity is empty.");
-}
-process.env.MODRIK_RELEASE_SHA = release;
-process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = release;
 const appRoot = path.resolve(__dirname, ${WEB_APP_REL@Q});
 process.chdir(appRoot);
 require(path.join(appRoot, "server.js"));
@@ -123,11 +142,14 @@ if find "$OUT_ROOT" -type f -name '.env' -print -quit | grep -q .; then
   fail "A live .env file entered the deployment package."
 fi
 
-[[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web startup wrapper is missing."
+[[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web compatibility startup wrapper is missing."
 [[ -f "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt" ]] || fail "cPanel Web application-root metadata is missing from the deployable Web payload."
 [[ -s "$OUT_ROOT/web/RELEASE_SHA.txt" ]] || fail "cPanel Web immutable release identity is missing from the deployable Web payload."
 cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$OUT_ROOT/web/RELEASE_SHA.txt" || fail "Web release identity differs from the package release identity."
+[[ -s "$WEB_APP/RELEASE_SHA.txt" ]] || fail "Standalone Next app release identity is missing."
+cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$WEB_APP/RELEASE_SHA.txt" || fail "Standalone Next app release identity differs from the package release identity."
 [[ -f "$WEB_APP/server.js" ]] || fail "Packaged Web startup server.js is missing."
+grep -q 'Packaged MODRIK release identity is invalid' "$WEB_APP/server.js" || fail "Standalone Next server is missing the artifact-owned release bootstrap."
 [[ -d "$WEB_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
 [[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
 [[ -f "$OUT_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
@@ -142,7 +164,9 @@ cmp -s "$LEARNING_FIXTURE_SOURCE" "$OUT_ROOT/backend/resources/fixtures/content-
 cp "$DEPLOY_DOC" "$OUT_ROOT/DEPLOY.md"
 cp "$PORTALS_DOC" "$OUT_ROOT/PORTALS.md"
 cp "$WEB_RELEASE_WAIT_SOURCE" "$OUT_ROOT/deploy/wait-for-demo-web-release.sh"
+cp "$CLOUDLINUX_STATE_VALIDATOR_SOURCE" "$OUT_ROOT/deploy/validate-cloudlinux-node-state.php"
 [[ -f "$OUT_ROOT/deploy/wait-for-demo-web-release.sh" ]] || fail "Packaged Demo Web restart convergence helper is missing."
+[[ -f "$OUT_ROOT/deploy/validate-cloudlinux-node-state.php" ]] || fail "Packaged CloudLinux desired-state validator is missing."
 
 ZIP_PARENT="$(dirname "$OUT_ROOT")"
 ZIP_NAME="modrik-demo-cpanel-${RELEASE_SHA:0:12}.zip"
@@ -154,5 +178,5 @@ rm -f "$ZIP_PARENT/$ZIP_NAME"
 
 echo "Demo cPanel package ready: $ZIP_PARENT/$ZIP_NAME"
 echo "cPanel Node Application Root: web payload root"
-echo "cPanel Node startup file: startup.cjs"
-echo "Actual Next standalone app below payload root: $WEB_APP_REL"
+echo "cPanel LiteSpeed startup file: $WEB_APP_REL/server.js"
+echo "Compatibility startup file retained: startup.cjs"

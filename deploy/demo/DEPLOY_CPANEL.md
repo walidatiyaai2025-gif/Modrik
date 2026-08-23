@@ -7,17 +7,19 @@ Expected absolute account path: `/home/solscool/public_html/demo.modrik.org/`
 
 This deployment is **evaluation only**. It does not replace `modrik.org`, does not alter root `.cpanel.yml`, and does not declare Production Ready.
 
+`docs/project/DEPLOYMENT_CONSTITUTION.md` (`GOV-DEPLOY-001`) is authoritative for deployment invariants. This file is the operational cPanel runbook and must not weaken that constitution.
+
 ## Required topology
 
 The Student Web is a Next.js server application, not a static export. Its same-origin `/api/auth/*` and `/api/learning/*` BFF routes must execute on Node.js.
 
-Recommended cPanel layout:
+Locked Demo layout:
 
-- `demo.modrik.org` → Next.js standalone Node application.
+- `demo.modrik.org` → Next.js standalone Node application through CloudLinux Node Selector + LiteSpeed.
 - `api.demo.modrik.org` → Laravel Backend/API/Admin with its document root ending in `/public`.
 - Next environment `MODRIK_API_BASE_URL=https://api.demo.modrik.org`.
 
-A different Backend origin is acceptable if cPanel already provides one and it is reachable over HTTPS. Do not attempt to replace the BFF with a static-only build.
+A different Backend origin requires an explicitly authorized hosting change. Do not attempt to replace the BFF with a static-only build.
 
 ## 1. Package contents
 
@@ -27,11 +29,17 @@ The CI artifact contains:
 demo-cpanel/
   DEPLOY.md
   RELEASE_SHA.txt
-  WEB_APPLICATION_ROOT.txt
   web/
-    startup.cjs
+    RELEASE_SHA.txt
+    WEB_APPLICATION_ROOT.txt
+    startup.cjs                 # compatibility/rollback only
     .env.demo.example
     ...Next standalone traced runtime...
+    <WEB_APPLICATION_ROOT>/
+      server.js                 # canonical LiteSpeed startup
+      RELEASE_SHA.txt
+      .next/
+      public/
   backend/
     .env.demo.example
     artisan
@@ -48,6 +56,8 @@ demo-cpanel/
 
 There is intentionally no live `.env` and no production secret in the ZIP.
 
+The three release identities (`demo-cpanel/RELEASE_SHA.txt`, `web/RELEASE_SHA.txt`, and the release file beside the canonical standalone `server.js`) must be identical.
+
 ## 2. Web — `demo.modrik.org`
 
 In cPanel File Manager:
@@ -56,36 +66,73 @@ In cPanel File Manager:
 2. Copy the contents of `demo-cpanel/web/` into:
    `/home/solscool/public_html/demo.modrik.org/`
 3. Keep the whole standalone tree intact. Do not move only `server.js`; traced monorepo dependencies may live in ancestor directories inside the Web payload.
+4. Read `WEB_APPLICATION_ROOT.txt`. If it contains `apps/web`, the canonical startup file is `apps/web/server.js`. If it contains `.`, the canonical startup is `server.js`.
 
-In **Setup Node.js App** (or the cPanel Node/Passenger equivalent):
+In **Setup Node.js App** / CloudLinux Node Selector:
 
-- Node version: **22.x**, matching the repository Node 22 line where available.
+- Node version: **22.x**, matching repository Node `22.23.2` where installed.
 - Application mode: `Production`.
 - Application root: `public_html/demo.modrik.org`.
 - Application URL: `demo.modrik.org`.
-- Startup file: `startup.cjs`.
+- Startup file: **`<WEB_APPLICATION_ROOT>/server.js`** from the packaged metadata.
 
-Set server-side environment variables from `web/.env.demo.example`:
+`startup.cjs` is retained only so a failed deployment can restore an older registration safely. It is not the canonical LiteSpeed startup for a new release.
+
+This direct `server.js` requirement follows LiteSpeed's CloudLinux Node Selector guidance for Next.js standalone deployments. LiteSpeed consumes Passenger-compatible directives but implements the Node runtime differently behind the scenes; do not diagnose it as Apache Passenger merely because `.htaccess` contains `Passenger*` directives.
+
+Set stable server-side environment variables from `web/.env.demo.example` as applicable:
 
 ```text
 NODE_ENV=production
-HOSTNAME=0.0.0.0
 MODRIK_API_BASE_URL=https://api.demo.modrik.org
-MODRIK_FIXTURE_MODE=true
-MODRIK_FIXTURE_BEARER_TOKEN=<same long random Demo token used by Backend>
 ```
 
-Let cPanel/Passenger provide its assigned port when it injects `PORT`; if the panel requires a value, use the value allocated by the Node application UI rather than exposing a public custom port.
+Do not add a per-release SHA environment variable. The release identity is packaged into the immutable artifact and injected by the canonical standalone `server.js` bootstrap.
 
-Restart the Node application after every environment or Web-package change.
+Let LiteSpeed/CloudLinux provide the socket/port runtime integration. The Next standalone server must not depend on a manually exposed public custom port.
+
+Routine deployments must use the governed automation to reconcile startup state and restart. Manual cPanel **RESTART** is emergency diagnostic/recovery only, not normal deployment acceptance.
 
 ### If `Setup Node.js App` is missing
 
 Stop. Uploading `.next` or HTML files alone will not produce the full MODRIK Demo because Auth/Learning BFF routes require a server process. The hosting account must expose a compatible Node application runtime before this package can be used as a functional Demo.
 
-## 3. Backend — recommended `api.demo.modrik.org`
+## 3. Runtime desired-state verification
 
-Create a cPanel subdomain/domain entry:
+Before activation, the deployment automation must verify the existing CloudLinux application instead of blindly restarting it.
+
+Expected values:
+
+```text
+application root: public_html/demo.modrik.org
+domain/url:       demo.modrik.org
+mode:             production
+node:             Node 22 compatible with repository 22.23.2
+startup file:     <WEB_APPLICATION_ROOT>/server.js
+status:           started (after activation)
+```
+
+A missing/ambiguous application, wrong root, wrong domain, or wrong Node line is a hard failure unless the active Issue explicitly owns a hosting migration. Do not implicitly destroy/recreate the application.
+
+The startup file is the only normal deploy-time runtime-registration reconciliation: set it to the artifact-derived standalone `server.js`, then read the generated Selector/`.htaccess` state back and prove it changed before restarting.
+
+## 4. Exact-Node live-payload preflight
+
+After the new Web payload is copied and before public activation, the deploy runner launches the actual copied `<WEB_APPLICATION_ROOT>/server.js` using the exact Node binary configured for the cPanel application, on a bounded `127.0.0.1` port.
+
+The preflight must prove:
+
+- Landing marker renders;
+- exact full release SHA renders;
+- short Build SHA renders;
+- the global error boundary is absent;
+- the temporary process remains reachable.
+
+The temporary process is always terminated. If this preflight fails, the public hosting runtime is not touched further and the previous Web payload is restored.
+
+## 5. Backend — `api.demo.modrik.org`
+
+Create/retain the cPanel subdomain/domain entry:
 
 - hostname: `api.demo.modrik.org`
 - application folder: `/home/solscool/public_html/api.demo.modrik.org/`
@@ -110,7 +157,7 @@ storage/
 bootstrap/cache/
 ```
 
-## 4. MariaDB
+## 6. MariaDB
 
 In cPanel **MySQL® Databases** / **Database Wizard**:
 
@@ -121,7 +168,7 @@ In cPanel **MySQL® Databases** / **Database Wizard**:
 
 Do not commit these values to GitHub or copy them into issue comments.
 
-## 5. Backend environment
+## 7. Backend environment
 
 Copy:
 
@@ -134,9 +181,7 @@ Replace every `REPLACE_*` value. At minimum set:
 - `APP_URL=https://api.demo.modrik.org`
 - a generated `APP_KEY`;
 - Demo MariaDB database/user/password;
-- a long random `MODRIK_IDEMPOTENCY_SECRET`;
-- a long random `MODRIK_AUTH_HASH_SECRET`;
-- a long random `MODRIK_FIXTURE_BEARER_TOKEN` identical to the Web Node variable when fixture mode is enabled.
+- required internal security secrets that the current Backend template declares.
 
 Keep:
 
@@ -146,15 +191,9 @@ APP_DEBUG=false
 MODRIK_PAID_AI_ENABLED=false
 ```
 
-Google/Apple provider values may remain blank; those adapters must fail closed until real owner configuration exists.
+External provider values may remain blank where current contracts explicitly permit disabled transport; those adapters must fail closed until real owner configuration exists.
 
-### Demo fixture mode
-
-For the first visual/evaluation deployment, the package template intentionally allows synthetic fixture mode. This uses synthetic repository fixtures only and lets the learning workspace be exercised without pretending real curriculum or production identity exists.
-
-Because a fixture bearer grants synthetic learner access, protect the Demo from uncontrolled public use while fixture mode is enabled (for example with cPanel access restriction/Directory Privacy or another host-level access control). Never reuse the Demo fixture token anywhere else.
-
-## 6. Backend activation commands
+## 8. Backend activation commands
 
 Use the host's actual PHP 8.4 CLI binary. From:
 
@@ -162,74 +201,95 @@ Use the host's actual PHP 8.4 CLI binary. From:
 /home/solscool/public_html/api.demo.modrik.org
 ```
 
-run:
+run through the governed deploy path:
 
 ```text
-<PHP84_BIN> artisan optimize:clear
 <PHP84_BIN> artisan migrate --force
-<PHP84_BIN> artisan db:seed --force
+<PHP84_BIN> artisan optimize:clear
 <PHP84_BIN> artisan config:cache
 <PHP84_BIN> artisan route:cache
 <PHP84_BIN> artisan view:cache
 ```
 
-`db:seed --force` is appropriate only for this synthetic Demo setup. Do not interpret fixture seed data as production curriculum.
+Do not add ad-hoc seed/reset commands to routine deployment unless the current Demo data contract explicitly requires them.
 
-If `APP_KEY` has not yet been generated, run the host PHP 8.4 binary with:
+## 9. Queue and scheduler
 
-```text
-<PHP84_BIN> artisan key:generate --force
-```
-
-before caching configuration.
-
-## 7. Queue and scheduler
-
-Use cPanel Cron Jobs with the host's exact PHP 8.4 CLI binary and absolute Backend path. The established P0 model uses the database queue; Redis/permanent daemons are not required.
-
-```text
-* * * * * cd /home/solscool/public_html/api.demo.modrik.org && <PHP84_BIN> artisan schedule:run >> /dev/null 2>&1
-* * * * * cd /home/solscool/public_html/api.demo.modrik.org && <PHP84_BIN> artisan queue:work database --stop-when-empty --max-time=50 --tries=3 >> /dev/null 2>&1
-```
+Use cPanel Cron Jobs with the host's exact PHP 8.4 CLI binary and absolute Backend path where the current release still requires scheduled/queued work.
 
 Do not guess the PHP binary path. Use the PHP 8.4 CLI command shown by cPanel or hosting support.
 
-## 8. SSL
+## 10. Activation/restart sequence
 
-Run/verify cPanel AutoSSL for both:
+The governed runner performs exactly this bounded sequence:
+
+1. backup current Web payload and current startup-file registration;
+2. copy new Web payload;
+3. update Backend while preserving `.env` and `storage`;
+4. run Laravel migration/cache work;
+5. pass direct standalone exact-Node preflight;
+6. reconcile CloudLinux startup to `<WEB_APPLICATION_ROOT>/server.js` and read it back;
+7. normalize `<app-root>/tmp/restart.txt` permissions;
+8. request one CageFS-backed CloudLinux restart;
+9. verify direct cPanel origin exact SHA;
+10. if needed, perform one bounded stop/start recycle and verify again;
+11. run public API/Landing/Student/Admin smoke;
+12. only then write deployment-success markers.
+
+Do not add repeated/unbounded restart attempts.
+
+## 11. LiteSpeed diagnostics
+
+When exact-Node preflight passes but public activation fails:
+
+- inspect application-root `stderr.log` when present;
+- inspect safe LiteSpeed Node runtime evidence (`lsnode`) without exposing environment variables or arbitrary request data;
+- treat custom Passenger log output as compatibility evidence only, not the sole source of truth;
+- redact tokens, cookies, secrets, passwords and authorization values from any emitted diagnostic.
+
+If exact-Node preflight passes, runtime desired state matches, Selector restart reports success, and LiteSpeed still cannot spawn a serving runtime, classify it as a hosting-runtime blocker rather than changing application code blindly.
+
+## 12. SSL
+
+Verify cPanel AutoSSL for both:
 
 - `demo.modrik.org`
-- the selected Backend host (recommended `api.demo.modrik.org`).
+- `api.demo.modrik.org`.
 
 Do not switch the Web BFF to an HTTP Backend origin on an HTTPS Demo.
 
-## 9. Post-deploy smoke
+## 13. Post-deploy smoke
 
-Backend first:
+Backend/API:
 
-- `https://api.demo.modrik.org/health` returns the expected health response;
+- `https://api.demo.modrik.org/up` returns the expected health response;
 - migrations complete without error;
 - no Laravel debug page is exposed;
-- Admin boundary loads and remains authorization-protected.
+- Admin boundary loads and remains authorization-protected;
+- Admin build/release identity matches the requested release where the governed workflow requires it.
 
-Then Web:
+Web:
 
-- `https://demo.modrik.org` loads without 502/503;
-- public routes/assets/logo/fonts load;
-- Auth BFF returns controlled responses rather than `AUTH_SERVICE_UNAVAILABLE`;
-- Learning BFF reaches the Backend;
-- academic context → lesson/study → practice/attempt → progress can be exercised using the selected Demo identity/fixture mode;
-- AR/RTL, EN/LTR and FR/LTR render correctly;
-- narrow 320/360px and 200% text do not reintroduce critical horizontal clipping;
-- offline/retry/session-expiry states remain reachable and controlled.
+- `https://demo.modrik.org/` returns the exact requested release identity;
+- `https://demo.modrik.org/student` returns the same exact release identity;
+- Landing and Student route markers are correct;
+- no global `This screen could not be completed.` boundary is rendered;
+- static CSS/assets load;
+- required runtime/BFF acceptance remains controlled.
 
-## 10. Rollback
+Origin verification and external public verification are both required. Public success may not be inferred from files on disk.
 
-Keep the previous Demo ZIP/release folder. To roll back:
+## 14. Rollback
 
-1. restore the previous Web payload and restart the Node app;
-2. restore the previous Backend code package;
-3. clear/cache Laravel configuration again;
-4. do not reverse database migrations unless that exact migration rollback has been proven safe; prefer forward repair.
+Rollback is transactional across code **and runtime registration**.
+
+On any post-Web-mutation failure:
+
+1. restore the previous Web payload;
+2. restore the previous CloudLinux startup-file registration;
+3. normalize the restart marker;
+4. request restart of the restored application;
+5. leave deployment-success markers unchanged;
+6. do not reverse database migrations automatically unless that exact rollback has been proven safe; prefer forward repair.
 
 The main-domain Coming Soon deployment is separate and must not be modified during Demo rollback.

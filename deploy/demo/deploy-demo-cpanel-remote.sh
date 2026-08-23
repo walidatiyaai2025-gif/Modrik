@@ -12,6 +12,8 @@ DEPLOY_ROOT="${MODRIK_DEPLOY_ROOT:-$HOME/deploy/modrik-demo}"
 KEEP_BACKUPS="${MODRIK_KEEP_BACKUPS:-5}"
 CAGEFS_ENTER_BIN="${MODRIK_CAGEFS_ENTER_BIN:-/bin/cagefs_enter.proxied}"
 PASSENGER_LOG_FILE="${MODRIK_PASSENGER_LOG_FILE:-$DEPLOY_ROOT/logs/student-web-passenger.log}"
+DEMO_DOMAIN="${MODRIK_DEMO_DOMAIN:-demo.modrik.org}"
+EXPECTED_NODE_MAJOR="${MODRIK_DEMO_NODE_MAJOR:-22}"
 
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK_DIR="$DEPLOY_ROOT/work/$RELEASE_SHA"
@@ -23,6 +25,10 @@ WEB_BACKUP_READY=0
 WEB_MUTATED=0
 DEPLOY_SUCCEEDED=0
 CLOUDLINUX_SELECTOR_LAST_OUTPUT=""
+SELECTOR_TARGET_STATE_LINE=""
+SELECTOR_TARGET_STARTUP=""
+ORIGINAL_STARTUP_FILE=""
+DIRECT_STARTUP_FILE=""
 
 log() {
   printf '[MODRIK_DEPLOY] %s\n' "$*"
@@ -68,6 +74,81 @@ resolve_node_runtime_bin() {
   printf '%s\n' "$node_bin"
 }
 
+# Compatibility-only read of generated Selector configuration. Desired-state
+# authority comes from cloudlinux-selector get + the packaged validator below.
+resolve_current_startup_file() {
+  local startup_file=""
+
+  if [[ -f "$WEB_ROOT/.htaccess" ]]; then
+    startup_file="$(awk '$1 == "PassengerStartupFile" { gsub(/\"/, "", $2); print $2; exit }' "$WEB_ROOT/.htaccess" 2>/dev/null || true)"
+  fi
+  printf '%s\n' "${startup_file:-startup.cjs}"
+}
+
+cloudlinux_get_node_state_json() {
+  local selector_bin node_user selector_output
+
+  selector_bin="$(resolve_cloudlinux_selector_bin)" \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="CloudLinux Node.js Selector CLI is unavailable."; return 1; }
+  node_user="$(id -un)"
+
+  if [[ -x "$CAGEFS_ENTER_BIN" ]]; then
+    if selector_output="$("$CAGEFS_ENTER_BIN" "$selector_bin" get --json --interpreter nodejs 2>&1)" \
+      && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+      printf '%s\n' "$selector_output"
+      return 0
+    fi
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+  fi
+
+  if selector_output="$("$selector_bin" get --json --interpreter nodejs --user "$node_user" 2>&1)" \
+    && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    printf '%s\n' "$selector_output"
+    return 0
+  fi
+
+  CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+  return 1
+}
+
+read_cloudlinux_node_desired_state() {
+  local expected_startup="${1:-}"
+  local status_policy="${2:-started}"
+  local app_root_rel selector_json state_line startup
+
+  app_root_rel="$WEB_ROOT"
+  if [[ "$WEB_ROOT" == "$HOME/"* ]]; then
+    app_root_rel="${WEB_ROOT#"$HOME/"}"
+  fi
+
+  [[ -f "$SOURCE_ROOT/deploy/validate-cloudlinux-node-state.php" ]] \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="Packaged CloudLinux desired-state validator is unavailable."; return 1; }
+
+  selector_json="$(cloudlinux_get_node_state_json)" \
+    || return 1
+
+  if ! state_line="$(printf '%s' "$selector_json" \
+    | "$PHP_BIN" "$SOURCE_ROOT/deploy/validate-cloudlinux-node-state.php" \
+      "$app_root_rel" "$DEMO_DOMAIN" "$EXPECTED_NODE_MAJOR" "$expected_startup" "$status_policy" 2>&1)"; then
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$state_line"
+    return 1
+  fi
+
+  [[ "$state_line" == MODRIK_SELECTOR_STATE_OK* ]] \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="CloudLinux desired-state validator returned an unexpected result."; return 1; }
+
+  startup="$(printf '%s\n' "$state_line" | sed -n 's/.* startup_file=\([^[:space:]]*\)$/\1/p')"
+  [[ -n "$startup" ]] \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="CloudLinux desired-state validator omitted startup_file."; return 1; }
+
+  SELECTOR_TARGET_STATE_LINE="$state_line"
+  SELECTOR_TARGET_STARTUP="$startup"
+  CLOUDLINUX_SELECTOR_LAST_OUTPUT="$state_line"
+  return 0
+}
+
 cloudlinux_node_action() {
   local action="${1:?cloudlinux_node_action requires an action}"
   local selector_bin node_user app_root_rel selector_output
@@ -104,6 +185,51 @@ cloudlinux_node_action() {
   return 1
 }
 
+cloudlinux_set_startup_file() {
+  local startup_file="${1:?cloudlinux_set_startup_file requires a startup file}"
+  local selector_bin node_user app_root_rel selector_output
+
+  [[ -n "$startup_file" && "$startup_file" != /* && "$startup_file" != *'..'* ]] \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="Invalid startup-file path."; return 1; }
+
+  selector_bin="$(resolve_cloudlinux_selector_bin)" \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="CloudLinux Node.js Selector CLI is unavailable."; return 1; }
+
+  node_user="$(id -un)"
+  app_root_rel="$WEB_ROOT"
+  if [[ "$WEB_ROOT" == "$HOME/"* ]]; then
+    app_root_rel="${WEB_ROOT#"$HOME/"}"
+  fi
+
+  if [[ -x "$CAGEFS_ENTER_BIN" ]]; then
+    log "Setting Student Web startup file through CageFS-backed CloudLinux Node.js Selector app_root=$app_root_rel startup=$startup_file"
+    if selector_output="$("$CAGEFS_ENTER_BIN" "$selector_bin" set --json --interpreter nodejs --app-root "$app_root_rel" --startup-file "$startup_file" 2>&1)" \
+      && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+      if read_cloudlinux_node_desired_state "$startup_file" any; then
+        log "CloudLinux startup-file read-back converged: $SELECTOR_TARGET_STATE_LINE"
+        return 0
+      fi
+    else
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    fi
+    log "CageFS-backed startup-file update did not converge; trying direct compatibility path"
+  fi
+
+  if selector_output="$("$selector_bin" set --json --interpreter nodejs --user "$node_user" --app-root "$app_root_rel" --startup-file "$startup_file" 2>&1)" \
+    && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    if read_cloudlinux_node_desired_state "$startup_file" any; then
+      log "CloudLinux startup-file read-back converged: $SELECTOR_TARGET_STATE_LINE"
+      return 0
+    fi
+  else
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+  fi
+
+  return 1
+}
+
 configure_cloudlinux_passenger_log() {
   local selector_bin node_user app_root_rel selector_output
 
@@ -122,7 +248,7 @@ configure_cloudlinux_passenger_log() {
   chmod 600 "$PASSENGER_LOG_FILE"
 
   if [[ -x "$CAGEFS_ENTER_BIN" ]]; then
-    log "Configuring private Student Web Passenger log through CageFS app_root=$app_root_rel"
+    log "Configuring optional private Passenger-compatibility log through CageFS app_root=$app_root_rel"
     if selector_output="$("$CAGEFS_ENTER_BIN" "$selector_bin" set --json --interpreter nodejs --app-root "$app_root_rel" --passenger-log-file="$PASSENGER_LOG_FILE" 2>&1)" \
       && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
       CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
@@ -130,7 +256,7 @@ configure_cloudlinux_passenger_log() {
     fi
 
     CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
-    log "CageFS-backed Passenger log configuration did not complete successfully; trying direct compatibility path"
+    log "CageFS-backed compatibility log configuration did not complete successfully; trying direct compatibility path"
   fi
 
   if selector_output="$("$selector_bin" set --json --interpreter nodejs --user "$node_user" --app-root "$app_root_rel" --passenger-log-file="$PASSENGER_LOG_FILE" 2>&1)" \
@@ -143,26 +269,58 @@ configure_cloudlinux_passenger_log() {
   return 1
 }
 
+redact_diagnostic_stream() {
+  sed -E \
+    -e 's/([Aa]uthorization|[Cc]ookie|[Pp]assword|[Pp]asswd|[Ss]ecret|[Tt]oken|[Aa][Pp][Ii][_-]?[Kk]ey)([[:space:]]*[:=][[:space:]]*)[^[:space:],;]+/\1\2[REDACTED]/g' \
+    -e 's/[Bb]earer[[:space:]]+[A-Za-z0-9._~+\/=:-]+/Bearer [REDACTED]/g'
+}
+
 emit_passenger_startup_diagnostics() {
   local diagnostic
 
   if [[ ! -f "$PASSENGER_LOG_FILE" ]]; then
-    printf '[MODRIK_PASSENGER_DIAG] private Passenger log is unavailable.\n' >&2
+    printf '[MODRIK_PASSENGER_DIAG] private Passenger-compatibility log is unavailable.\n' >&2
     return 0
   fi
 
   diagnostic="$(tail -n 120 "$PASSENGER_LOG_FILE" 2>/dev/null \
-    | sed -E \
-        -e 's/([Aa]uthorization|[Cc]ookie|[Pp]assword|[Pp]asswd|[Ss]ecret|[Tt]oken|[Aa][Pp][Ii][_-]?[Kk]ey)([[:space:]]*[:=][[:space:]]*)[^[:space:],;]+/\1\2[REDACTED]/g' \
-        -e 's/[Bb]earer[[:space:]]+[A-Za-z0-9._~+\/=:-]+/Bearer [REDACTED]/g' \
+    | redact_diagnostic_stream \
     | tail -c 16000 || true)"
 
   if [[ -z "$diagnostic" ]]; then
-    printf '[MODRIK_PASSENGER_DIAG] Passenger log exists but contains no startup output.\n' >&2
+    printf '[MODRIK_PASSENGER_DIAG] compatibility log exists but contains no startup output.\n' >&2
     return 0
   fi
 
   printf '[MODRIK_PASSENGER_DIAG_BEGIN]\n%s\n[MODRIK_PASSENGER_DIAG_END]\n' "$diagnostic" >&2
+}
+
+emit_litespeed_startup_diagnostics() {
+  local stderr_file="$WEB_ROOT/stderr.log"
+  local diagnostic process_diag user
+
+  if [[ -f "$stderr_file" ]]; then
+    diagnostic="$(tail -n 120 "$stderr_file" 2>/dev/null \
+      | redact_diagnostic_stream \
+      | tail -c 16000 || true)"
+    if [[ -n "$diagnostic" ]]; then
+      printf '[MODRIK_LITESPEED_STDERR_DIAG_BEGIN]\n%s\n[MODRIK_LITESPEED_STDERR_DIAG_END]\n' "$diagnostic" >&2
+    else
+      printf '[MODRIK_LITESPEED_DIAG] application stderr.log exists but contains no startup output.\n' >&2
+    fi
+  else
+    printf '[MODRIK_LITESPEED_DIAG] application stderr.log is unavailable.\n' >&2
+  fi
+
+  user="$(id -un)"
+  process_diag="$(ps -u "$user" -o pid=,ppid=,etime=,comm= 2>/dev/null \
+    | awk '$4 ~ /^(lsnode|node)$/ { print }' \
+    | head -n 20 || true)"
+  if [[ -n "$process_diag" ]]; then
+    printf '[MODRIK_LITESPEED_PROCESS_DIAG_BEGIN]\n%s\n[MODRIK_LITESPEED_PROCESS_DIAG_END]\n' "$process_diag" >&2
+  else
+    printf '[MODRIK_LITESPEED_DIAG] no user-owned lsnode/node runtime process is visible.\n' >&2
+  fi
 }
 
 emit_node_startup_preflight_diagnostics() {
@@ -175,9 +333,7 @@ emit_node_startup_preflight_diagnostics() {
   fi
 
   diagnostic="$(tail -n 120 "$log_file" 2>/dev/null \
-    | sed -E \
-        -e 's/([Aa]uthorization|[Cc]ookie|[Pp]assword|[Pp]asswd|[Ss]ecret|[Tt]oken|[Aa][Pp][Ii][_-]?[Kk]ey)([[:space:]]*[:=][[:space:]]*)[^[:space:],;]+/\1\2[REDACTED]/g' \
-        -e 's/[Bb]earer[[:space:]]+[A-Za-z0-9._~+\/=:-]+/Bearer [REDACTED]/g' \
+    | redact_diagnostic_stream \
     | tail -c 16000 || true)"
 
   if [[ -z "$diagnostic" ]]; then
@@ -221,8 +377,8 @@ run_exact_node_startup_preflight() {
     || fail "Live Student Web application root metadata is invalid."
   server_file="$WEB_ROOT/$app_rel/server.js"
 
-  [[ -f "$WEB_ROOT/startup.cjs" ]] || fail "Live Student Web startup.cjs is missing before exact-Node preflight."
   [[ -f "$server_file" ]] || fail "Live Student Web standalone server.js is missing before exact-Node preflight."
+  [[ -s "$WEB_ROOT/$app_rel/RELEASE_SHA.txt" ]] || fail "Live standalone Next release identity is missing before exact-Node preflight."
   [[ "$port_start" =~ ^[0-9]+$ && "$attempts" =~ ^[0-9]+$ ]] \
     || fail "Node startup preflight bounds must be positive integers."
   (( port_start >= 1024 && port_start <= 65000 && attempts > 0 && attempts <= 60 )) \
@@ -243,15 +399,15 @@ run_exact_node_startup_preflight() {
   chmod 600 "$log_file"
   short_sha="${RELEASE_SHA:0:12}"
 
-  log "Preflighting live Student Web with exact cPanel Node runtime=$node_bin app_root=$app_rel loopback_port=$port"
+  log "Preflighting direct Next standalone server with exact cPanel Node runtime=$node_bin startup=$app_rel/server.js loopback_port=$port"
   (
-    cd "$WEB_ROOT"
+    cd "$WEB_ROOT/$app_rel"
     PORT="$port" \
     HOSTNAME=127.0.0.1 \
     NODE_ENV=production \
     MODRIK_API_BASE_URL=https://api.demo.modrik.org \
     MODRIK_ADMIN_PORTAL_URL=https://api.demo.modrik.org/admin/login \
-    "$node_bin" "$WEB_ROOT/startup.cjs"
+    "$node_bin" "$server_file"
   ) >"$log_file" 2>&1 &
   pid=$!
 
@@ -260,7 +416,8 @@ run_exact_node_startup_preflight() {
       if [[ "$body" == *'data-testid="modrik-web-release-badge"'* ]] \
         && [[ "$body" == *"MODRIK deployed release: $RELEASE_SHA"* ]] \
         && [[ "$body" == *"Build $short_sha"* ]] \
-        && [[ "$body" == *'data-testid="modrik-landing-page"'* ]]; then
+        && [[ "$body" == *'data-testid="modrik-landing-page"'* ]] \
+        && [[ "$body" != *'This screen could not be completed.'* ]]; then
         success=1
         break
       fi
@@ -276,11 +433,11 @@ run_exact_node_startup_preflight() {
 
   if (( success != 1 )); then
     emit_node_startup_preflight_diagnostics "$log_file"
-    fail "Live Student Web failed the exact cPanel Node startup preflight before Passenger activation."
+    fail "Live Student Web failed the direct standalone exact-Node startup preflight before LiteSpeed activation."
   fi
 
   rm -f "$log_file"
-  log "Exact cPanel Node startup preflight passed for release $RELEASE_SHA"
+  log "Direct standalone exact cPanel Node startup preflight passed for release $RELEASE_SHA"
 }
 
 prepare_passenger_restart_marker() {
@@ -323,6 +480,15 @@ recover_previous_web_on_failure() {
   log "Deployment failed after Student Web mutation; restoring the pre-deploy Web payload"
   find "$WEB_ROOT" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf -- {} +
   tar -xzf "$BACKUP_DIR/web.tar.gz" -C "$WEB_ROOT"
+
+  if [[ -n "$ORIGINAL_STARTUP_FILE" ]]; then
+    if cloudlinux_set_startup_file "$ORIGINAL_STARTUP_FILE"; then
+      log "Restored pre-deploy CloudLinux startup file: $ORIGINAL_STARTUP_FILE"
+    else
+      printf '[MODRIK_DEPLOY_ERROR] Web payload restored but pre-deploy startup-file restoration failed: %s\n' "${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}" >&2
+    fi
+  fi
+
   prepare_passenger_restart_marker
 
   if ( restart_cloudlinux_node_app ); then
@@ -352,11 +518,13 @@ mkdir -p "$EXTRACT_DIR" "$BACKUP_DIR"
 log "Extracting release $RELEASE_SHA"
 unzip -q "$PACKAGE_ZIP" -d "$EXTRACT_DIR"
 
-[[ -f "$SOURCE_ROOT/web/startup.cjs" ]] || fail "Packaged Web startup.cjs is missing."
+[[ -f "$SOURCE_ROOT/web/startup.cjs" ]] || fail "Packaged Web compatibility startup.cjs is missing."
+[[ -f "$SOURCE_ROOT/web/WEB_APPLICATION_ROOT.txt" ]] || fail "Packaged Web application-root metadata is missing."
 [[ -f "$SOURCE_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
 [[ -f "$SOURCE_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
 [[ -f "$SOURCE_ROOT/backend/vendor/autoload.php" ]] || fail "Packaged Backend vendor/autoload.php is missing."
 [[ -f "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" ]] || fail "Packaged Demo Web restart convergence helper is missing."
+[[ -f "$SOURCE_ROOT/deploy/validate-cloudlinux-node-state.php" ]] || fail "Packaged CloudLinux desired-state validator is missing."
 [[ -f "$SOURCE_ROOT/RELEASE_SHA.txt" ]] || fail "Packaged RELEASE_SHA.txt is missing."
 
 PACKAGED_SHA="$(tr -d '\r\n' < "$SOURCE_ROOT/RELEASE_SHA.txt")"
@@ -366,12 +534,21 @@ if find "$SOURCE_ROOT" -type f -name '.env' -print -quit | grep -q .; then
   fail "Package contains a live .env file."
 fi
 
+log "Validating locked CloudLinux/LiteSpeed desired state before any live mutation"
+if ! read_cloudlinux_node_desired_state "" started; then
+  fail "CloudLinux Node application drift detected before deployment: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
+fi
+ORIGINAL_STARTUP_FILE="$SELECTOR_TARGET_STARTUP"
+log "Locked hosting state verified: $SELECTOR_TARGET_STATE_LINE"
+log "Captured pre-deploy CloudLinux startup file: $ORIGINAL_STARTUP_FILE"
+
 log "Creating code backups in $BACKUP_DIR"
 tar -czf "$BACKUP_DIR/web.tar.gz" -C "$WEB_ROOT" .
 tar --exclude='./storage' -czf "$BACKUP_DIR/backend-code.tar.gz" -C "$BACKEND_ROOT" .
 cp "$BACKEND_ROOT/.env" "$BACKUP_DIR/backend.env"
 chmod 600 "$BACKUP_DIR/backend.env"
 printf '%s\n' "$RELEASE_SHA" > "$BACKUP_DIR/target-release.txt"
+printf '%s\n' "$ORIGINAL_STARTUP_FILE" > "$BACKUP_DIR/original-startup-file.txt"
 WEB_BACKUP_READY=1
 
 log "Updating Student Web payload"
@@ -414,9 +591,22 @@ cd "$BACKEND_ROOT"
 
 run_exact_node_startup_preflight
 
-log "Configuring private Passenger diagnostics before Student Web restart"
+WEB_APP_REL="$(tr -d '\r\n' < "$WEB_ROOT/WEB_APPLICATION_ROOT.txt")"
+if [[ "$WEB_APP_REL" == "." ]]; then
+  DIRECT_STARTUP_FILE="server.js"
+else
+  DIRECT_STARTUP_FILE="$WEB_APP_REL/server.js"
+fi
+[[ -f "$WEB_ROOT/$DIRECT_STARTUP_FILE" ]] || fail "Direct LiteSpeed Next startup file is missing: $DIRECT_STARTUP_FILE"
+
+log "Switching CloudLinux/LiteSpeed startup to direct Next standalone server: $DIRECT_STARTUP_FILE"
+if ! cloudlinux_set_startup_file "$DIRECT_STARTUP_FILE"; then
+  fail "CloudLinux Node.js Selector could not activate direct Next startup: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
+fi
+
+log "Configuring optional Passenger-compatible diagnostics before Student Web restart"
 if ! configure_cloudlinux_passenger_log; then
-  fail "CloudLinux Node.js Selector could not configure private Passenger logging: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
+  log "Optional Passenger-compatible log configuration unavailable; LiteSpeed stderr/process diagnostics remain authoritative"
 fi
 
 log "Requesting canonical cPanel Node.js application restart"
@@ -435,8 +625,9 @@ if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
     MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
     MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
     bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
+    emit_litespeed_startup_diagnostics
     emit_passenger_startup_diagnostics
-    fail "Demo Web runtime did not reach the requested release after the bounded stop/start recycle."
+    fail "Demo Web runtime did not reach the requested release after direct Next startup plus bounded stop/start recycle."
   fi
 fi
 
@@ -458,6 +649,8 @@ SHORT_SHA="${RELEASE_SHA:0:12}"
 [[ "$landing_body" == *'data-testid="modrik-student-portal-entry"'* ]] \
   && [[ "$landing_body" == *'href="/student"'* ]] \
   || fail "Demo Landing Student Portal entry is missing after copy."
+[[ "$landing_body" != *'This screen could not be completed.'* ]] \
+  || fail "Demo Landing rendered the global error boundary after copy."
 
 [[ "$student_body" == *'data-testid="modrik-web-release-badge"'* ]] \
   && [[ "$student_body" == *"MODRIK deployed release: $RELEASE_SHA"* ]] \
@@ -469,6 +662,8 @@ SHORT_SHA="${RELEASE_SHA:0:12}"
   || fail "Student Portal Auth runtime did not render after copy."
 [[ "$student_body" != *'data-testid="modrik-landing-page"'* ]] \
   || fail "Student Portal served Landing content after copy."
+[[ "$student_body" != *'This screen could not be completed.'* ]] \
+  || fail "Student Portal rendered the global error boundary after copy."
 
 printf '%s\n' "$RELEASE_SHA" > "$DEPLOY_ROOT/current-release.txt"
 printf '%s\n' "$TIMESTAMP" > "$DEPLOY_ROOT/last-successful-deploy-utc.txt"
