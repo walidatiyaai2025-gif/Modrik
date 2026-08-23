@@ -1,5 +1,6 @@
 name: Owner-authorized one-shot Demo dispatch
 
+# One-shot dispatch checkpoint for Issue #260 latest-main Demo verification.
 on:
   push:
     branches:
