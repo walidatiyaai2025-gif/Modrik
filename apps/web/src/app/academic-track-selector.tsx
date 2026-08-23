@@ -14,11 +14,13 @@ type CatalogueState = "loading" | "ready" | "empty" | "error" | "offline" | "per
 export const academicTrackCopy = {
   en: {
     label: "Academic track",
-    authorized: "These are the academic tracks currently available for your account.",
-    loading: "Loading your academic tracks…",
-    empty: "No academic tracks are available for your account right now.",
-    error: "We couldn’t load your academic tracks. Nothing has changed. Try again.",
-    offline: "Reconnect to load your academic tracks or change your track.",
+    yearLabel: "School year",
+    yearHelp: "Choose your school year first. Every available track for that year will appear automatically.",
+    authorized: "Choose your school year, then choose any academic track available for that year.",
+    loading: "Loading school years and academic tracks…",
+    empty: "No academic tracks are available for the configured school years right now.",
+    error: "We couldn’t load school years and academic tracks. Nothing has changed. Try again.",
+    offline: "Reconnect to load school years and academic tracks or change your track.",
     permission: "We can’t load academic tracks with this session. Sign in again, then try again.",
     retry: "Try again",
     activate: "Start with this track",
@@ -35,11 +37,13 @@ export const academicTrackCopy = {
   },
   ar: {
     label: "المسار الأكاديمي",
-    authorized: "هذه هي المسارات الأكاديمية المتاحة لحسابك حاليًا.",
-    loading: "جارٍ تحميل مساراتك الأكاديمية…",
-    empty: "لا توجد مسارات أكاديمية متاحة لحسابك حاليًا.",
-    error: "تعذر تحميل مساراتك الأكاديمية. لم يتغير شيء. حاول مرة أخرى.",
-    offline: "اتصل بالإنترنت لتحميل مساراتك الأكاديمية أو تغيير مسارك.",
+    yearLabel: "السنة الدراسية",
+    yearHelp: "اختر السنة الدراسية أولًا. ستظهر تلقائيًا كل المسارات المتاحة لهذه السنة.",
+    authorized: "اختر السنة الدراسية، ثم اختر أي مسار أكاديمي متاح لهذه السنة.",
+    loading: "جارٍ تحميل السنوات الدراسية والمسارات الأكاديمية…",
+    empty: "لا توجد مسارات أكاديمية متاحة للسنوات الدراسية المسجلة حاليًا.",
+    error: "تعذر تحميل السنوات الدراسية والمسارات الأكاديمية. لم يتغير شيء. حاول مرة أخرى.",
+    offline: "اتصل بالإنترنت لتحميل السنوات الدراسية والمسارات الأكاديمية أو تغيير مسارك.",
     permission: "لا يمكن تحميل المسارات الأكاديمية بهذه الجلسة. سجّل الدخول من جديد ثم حاول مرة أخرى.",
     retry: "حاول مرة أخرى",
     activate: "ابدأ بهذا المسار",
@@ -56,12 +60,14 @@ export const academicTrackCopy = {
   },
   fr: {
     label: "Parcours académique",
-    authorized: "Voici les parcours académiques actuellement disponibles pour votre compte.",
-    loading: "Chargement de vos parcours académiques…",
-    empty: "Aucun parcours académique n’est disponible pour votre compte pour le moment.",
-    error: "Nous n’avons pas pu charger vos parcours académiques. Rien n’a changé. Réessayez.",
-    offline: "Reconnectez-vous pour charger vos parcours académiques ou changer de parcours.",
-    permission: "Cette session ne permet pas de charger vos parcours académiques. Reconnectez-vous à votre compte, puis réessayez.",
+    yearLabel: "Année scolaire",
+    yearHelp: "Choisissez d’abord votre année scolaire. Tous les parcours disponibles pour cette année apparaîtront automatiquement.",
+    authorized: "Choisissez votre année scolaire, puis n’importe quel parcours académique disponible pour cette année.",
+    loading: "Chargement des années scolaires et des parcours académiques…",
+    empty: "Aucun parcours académique n’est disponible pour les années scolaires configurées pour le moment.",
+    error: "Nous n’avons pas pu charger les années scolaires et les parcours académiques. Rien n’a changé. Réessayez.",
+    offline: "Reconnectez-vous pour charger les années scolaires et les parcours académiques ou changer de parcours.",
+    permission: "Cette session ne permet pas de charger les parcours académiques. Reconnectez-vous à votre compte, puis réessayez.",
     retry: "Réessayer",
     activate: "Commencer avec ce parcours",
     change: "Changer de parcours académique",
@@ -108,6 +114,7 @@ export default function AcademicTrackSelector({
   const labels = academicTrackCopy[locale];
   const [state, setState] = useState<CatalogueState>(offline ? "offline" : "loading");
   const [tracks, setTracks] = useState<AcademicTrack[]>([]);
+  const [selectedYearKey, setSelectedYearKey] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,6 +124,19 @@ export default function AcademicTrackSelector({
   const selectedTrack = useMemo(
     () => tracks.find((track) => track.id === selectedId) ?? null,
     [selectedId, tracks],
+  );
+  const yearOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const track of tracks) {
+      if (!options.has(track.year.key)) {
+        options.set(track.year.key, track.year.label);
+      }
+    }
+    return Array.from(options, ([key, label]) => ({ key, label }));
+  }, [tracks]);
+  const visibleTracks = useMemo(
+    () => tracks.filter((track) => track.year.key === selectedYearKey),
+    [selectedYearKey, tracks],
   );
 
   const loadCatalogue = useCallback(async () => {
@@ -129,10 +149,11 @@ export default function AcademicTrackSelector({
     try {
       const nextTracks = await learningApi.academicTracks();
       setTracks(nextTracks);
-      const preferred = nextTracks.some((track) => track.id === currentTrackId)
-        ? currentTrackId
-        : nextTracks[0]?.id ?? "";
-      setSelectedId(preferred ?? "");
+      const currentTrack = nextTracks.find((track) => track.id === currentTrackId) ?? null;
+      const preferredYear = currentTrack?.year.key ?? nextTracks[0]?.year.key ?? "";
+      const preferredTracks = nextTracks.filter((track) => track.year.key === preferredYear);
+      setSelectedYearKey(preferredYear);
+      setSelectedId(currentTrack?.id ?? preferredTracks[0]?.id ?? "");
       setConfirmed(false);
       setState(nextTracks.length === 0 ? "empty" : "ready");
     } catch (error) {
@@ -205,17 +226,38 @@ export default function AcademicTrackSelector({
     <div className="academic-track-selector">
       <p className="muted-copy">{labels.authorized}</p>
       <label className="text-answer-label">
+        <span>{labels.yearLabel}</span>
+        <select
+          value={selectedYearKey}
+          disabled={busy || offline}
+          onChange={(event) => {
+            const nextYearKey = event.target.value;
+            const nextTracks = tracks.filter((track) => track.year.key === nextYearKey);
+            const currentInYear = nextTracks.find((track) => track.id === currentTrackId);
+            setSelectedYearKey(nextYearKey);
+            setSelectedId(currentInYear?.id ?? nextTracks[0]?.id ?? "");
+            setConfirmed(false);
+            setMessage("");
+          }}
+        >
+          {yearOptions.map((year) => (
+            <option key={year.key} value={year.key}>{year.label}</option>
+          ))}
+        </select>
+        <small className="muted-copy">{labels.yearHelp}</small>
+      </label>
+      <label className="text-answer-label">
         <span>{labels.label}</span>
         <select
           value={selectedId}
-          disabled={busy || offline}
+          disabled={busy || offline || visibleTracks.length === 0}
           onChange={(event) => {
             setSelectedId(event.target.value);
             setConfirmed(false);
             setMessage("");
           }}
         >
-          {tracks.map((track) => (
+          {visibleTracks.map((track) => (
             <option key={track.id} value={track.id}>{track.labels[locale]}</option>
           ))}
         </select>

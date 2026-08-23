@@ -28,6 +28,12 @@ The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
 
 The capability matrix has no remaining `audit_required` row. Remaining unsupported capabilities are explicitly represented by truthful `backend_contract_missing`, deferred or activation-gated states rather than fake operator authority.
 
+## Owner-directed academic selection change
+
+Issue #305 records the 2026-08-23 owner decision that academic-track eligibility is school-year scoped rather than assigned per learner. The implementation candidate changes the Backend catalogue from `academic_track_authorizations` to display-safe `academic_tracks`, adds year metadata, and makes Student Web choose **year → track** while preserving the existing full reset/archive transition.
+
+Gap audit from this contract change is explicit: `academic_tracks` still lacks a publication/availability lifecycle; Mobile still needs year-first UX parity; the old authorization table needs a later non-destructive retirement after residual-consumer proof; and canonical localized school-year labels / operator-curated track ordering need dedicated metadata rather than inferred references.
+
 ## Repository-verifiable work queue at this checkpoint
 
 Issue #264 is reopened only for a narrow post-merge self-staleness correction: the merged PR #280 control files retained the older baseline and pre-merge #264 wording. The follow-up is control-only and does not reopen product/runtime scope.

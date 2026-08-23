@@ -22,7 +22,7 @@ tags:
   - name: Session
     description: Current authenticated identity shell.
   - name: Academics
-    description: Backend-owned authorized academic-track catalogue and active academic context.
+    description: Backend-owned school-year-scoped academic-track catalogue, learner self-selection, and active academic context.
   - name: Lessons
     description: Published lesson reads for the active context.
   - name: Attempts
@@ -319,16 +319,16 @@ paths:
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
   /v1/academic-tracks:
     get:
-      summary: List academic tracks authorized for the current learner
-      operationId: listAuthorizedAcademicTracks
+      summary: List school-year-scoped academic tracks available for learner self-selection
+      operationId: listAvailableAcademicTracks
       tags: [Academics]
-      description: Returns only Backend-authorized learner choices in deterministic order. Opaque IDs are selection handles; board, syllabus, internal codes, year levels, authorization metadata, and eligibility rules are intentionally not exposed. Synthetic fixture tracks are never returned while fixture mode is disabled.
+      description: Returns every display-safe academic track currently configured for learner self-selection, grouped by an opaque school-year key supplied by the Backend. No per-user Admin track assignment is required. Internal board, syllabus, track codes, fixture markers, and operator metadata are not exposed. Synthetic fixture tracks are never returned while fixture mode is disabled.
       responses:
         '200':
-          description: Authorized display-safe catalogue, which may be empty.
+          description: Display-safe year-scoped catalogue, which may be empty.
           headers:
             Cache-Control:
-              description: Learner-specific catalogue responses must not be shared or reused after authorization changes.
+              description: Academic catalogue responses must not be shared or reused after catalogue changes.
               schema: {type: string, const: 'no-store, private'}
           content:
             application/json:
@@ -353,7 +353,7 @@ paths:
       summary: Activate the first academic context after onboarding
       operationId: activateAcademicContext
       tags: [Academics]
-      description: The academic_track_id must identify a currently authorized catalogue choice for this learner. The Backend remains authoritative for eligibility and active-context transition rules.
+      description: The academic_track_id must identify a currently available display-safe catalogue choice. The selected track carries its Backend-owned school-year scope; no per-user Admin assignment is required. The Backend remains authoritative for active-context transition rules.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -384,7 +384,7 @@ paths:
       summary: Archive the active academic context and activate a different track
       operationId: resetAcademicContext
       tags: [Academics]
-      description: The target academic_track_id must remain a currently authorized catalogue choice for this learner. Existing archival, history-preservation, and different-track rules remain Backend-owned.
+      description: The target academic_track_id must remain a currently available display-safe catalogue choice. The selected track carries its Backend-owned school-year scope; no per-user Admin assignment is required. Existing archival, history-preservation, and different-track rules remain Backend-owned.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -1017,9 +1017,16 @@ components:
     AcademicTrackCatalogueItem:
       type: object
       additionalProperties: false
-      required: [id, labels]
+      required: [id, year, labels]
       properties:
         id: {$ref: '#/components/schemas/Ulid'}
+        year:
+          type: object
+          additionalProperties: false
+          required: [key, label]
+          properties:
+            key: {type: string, minLength: 1, maxLength: 160}
+            label: {type: string, minLength: 1, maxLength: 160}
         labels: {$ref: '#/components/schemas/AcademicTrackLabels'}
     AcademicTrackCatalogueResponse:
       type: object

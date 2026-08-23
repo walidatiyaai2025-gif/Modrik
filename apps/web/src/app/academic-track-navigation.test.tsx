@@ -33,6 +33,10 @@ test("home links to track settings instead of embedding the destructive reset se
 
 test("student track change reuses the existing catalogue and reset authority", () => {
   assert.match(selector, /learningApi\.academicTracks\(\)/);
+  assert.match(selector, /labels\.yearLabel/);
+  assert.match(selector, /yearOptions\.map/);
+  assert.match(selector, /visibleTracks\.map/);
+  assert.match(selector, /track\.year\.key === nextYearKey/);
   assert.match(selector, /learningApi\.resetAcademicContext\(selectedTrack\.id, key\)/);
   assert.match(selector, /learningApi\.activateAcademicContext\(selectedTrack\.id, key\)/);
   assert.match(selector, /selectedId === currentTrackId \|\| !confirmed/);

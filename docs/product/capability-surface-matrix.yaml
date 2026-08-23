@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-updated: 2026-08-22
+updated: 2026-08-23
 governance_id: GOV-SURFACE-001
 source:
   - MODRIK_Master_Product_Engineering_Plan_v1.5_CODEX_READY
@@ -93,7 +93,7 @@ capabilities:
     classification: user_facing
     surface: Student Web / Academic Track workspace / AcademicTrackSelector
     status: present
-    notes: Integrated by PR #209. A first-class Student navigation destination shows the current context and Backend-authorized track catalogue, then reuses the existing explicit activate/reset confirmation flow. Prior attempts/progress remain archived, no mastery or answers migrate across tracks, and track IDs are never typed by the learner.
+    notes: PR #209 supplied the discoverable reset/archive workspace; owner directive #305 changes catalogue eligibility to learner self-selection by school year. Student Web chooses a year first and automatically shows every display-safe track configured for that year, with no per-user Admin track assignment. Existing explicit activate/reset confirmation, history archival, no mastery/answer migration, and opaque track-ID handling remain authoritative.
   - id: admin.system.settings
     area: operations
     classification: admin_manageable

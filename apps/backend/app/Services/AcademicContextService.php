@@ -18,7 +18,7 @@ final class AcademicContextService
     {
         return DB::transaction(function () use ($user, $academicTrackId): array {
             $this->lockUser($user);
-            $track = $this->catalogue->requireAuthorizedTrack($user, $academicTrackId);
+            $track = $this->catalogue->requireAvailableTrack($academicTrackId);
             $current = $this->activeContext($user);
             if ($current !== null) {
                 $code = $current['academic_track_id'] === $academicTrackId
@@ -39,7 +39,7 @@ final class AcademicContextService
     {
         return DB::transaction(function () use ($user, $academicTrackId): array {
             $this->lockUser($user);
-            $track = $this->catalogue->requireAuthorizedTrack($user, $academicTrackId);
+            $track = $this->catalogue->requireAvailableTrack($academicTrackId);
             $current = $this->activeContext($user);
             if ($current === null) {
                 throw new ApiProblemException(409, 'ACADEMIC_CONTEXT_ONBOARDING_REQUIRED', 'Academic context reset unavailable', 'Activate an academic context before requesting a reset.');

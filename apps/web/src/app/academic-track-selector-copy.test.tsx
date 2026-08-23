@@ -22,6 +22,8 @@ test("academic transition copy stays learner-first in AR EN FR", () => {
       assert.doesNotMatch(learnerCopy, term, `${locale} copy exposed ${term}`);
     }
 
+    assert.ok(labels.yearLabel.length > 0);
+    assert.ok(labels.yearHelp.length > 0);
     assert.ok(labels.resetBody.length > 0);
     assert.ok(labels.syncWarning.length > 0);
     assert.ok(labels.confirm.length > 0);
