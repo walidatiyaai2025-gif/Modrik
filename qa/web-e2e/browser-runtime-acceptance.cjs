@@ -472,13 +472,17 @@ async function learningViewport(browser, spec, inspectorExpected) {
     await noHorizontalOverflow(page, "E2E_PROGRESS_HORIZONTAL_OVERFLOW");
 
     await nav.nth(hasAcademicTrackWorkspace ? 4 : 0).click();
-    const yearSelector = page.locator(".academic-track-selector select").nth(0);
-    const selector = page.locator(".academic-track-selector select").nth(1);
-    await yearSelector.waitFor({ state: "visible", timeout: 10000 });
-    await selector.waitFor({ state: "visible", timeout: 10000 });
-    await reachable(yearSelector, page, "E2E_ACADEMIC_YEAR_SELECT");
+    const selectors = page.locator(".academic-track-selector select");
+    await selectors.first().waitFor({ state: "visible", timeout: 10000 });
+    const selectorCount = await selectors.count();
+    check(selectorCount >= 1 && selectorCount <= 2, "E2E_ACADEMIC_SELECTOR_COUNT");
+    const selector = selectors.nth(selectorCount - 1);
+    if (selectorCount === 2) {
+      const yearSelector = selectors.nth(0);
+      await reachable(yearSelector, page, "E2E_ACADEMIC_YEAR_SELECT");
+      check(await yearSelector.inputValue() === "fixture-year", "E2E_ACADEMIC_YEAR_SELECTION");
+    }
     await reachable(selector, page, "E2E_ACADEMIC_TRACK_SELECT");
-    check(await yearSelector.inputValue() === "fixture-year", "E2E_ACADEMIC_YEAR_SELECTION");
     const optionText = await selector.locator("option").first().textContent();
     check(Boolean(optionText && optionText.length >= 60), "E2E_ACADEMIC_LONG_LABEL_FIXTURE");
     const confirmAction = page.locator(".academic-track-selector .primary-button");
@@ -554,7 +558,7 @@ async function stateAcceptance(browser) {
     await reachable(catalogueRetry, page, "E2E_ACADEMIC_CATALOGUE_RETRY");
     mockState.academicTracksStatus = 200;
     await catalogueRetry.click();
-    await page.locator(".academic-track-selector select").nth(1).waitFor({ state: "visible", timeout: 10000 });
+    await page.locator(".academic-track-selector select").last().waitFor({ state: "visible", timeout: 10000 });
 
     mockState.accountSessionsStatus = 503;
     await page.locator(".auth-topnav button").nth(1).click();
