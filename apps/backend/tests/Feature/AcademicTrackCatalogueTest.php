@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +18,10 @@ class AcademicTrackCatalogueTest extends TestCase
         parent::setUp();
 
         config([
-  'modrik.fixture.enabled' => true,
-  'modrik.fixture.bearer_token' => self::TOKEN,
-  'modrik.fixture.user_id' => LearningSliceSeeder::USER_ID,
-  'modrik.idempotency.secret' => 'test-only-idempotency-secret',
+            'modrik.fixture.enabled' => true,
+            'modrik.fixture.bearer_token' => self::TOKEN,
+            'modrik.fixture.user_id' => LearningSliceSeeder::USER_ID,
+            'modrik.idempotency.secret' => 'test-only-idempotency-secret',
         ]);
         $this->seed(LearningSliceSeeder::class);
     }
@@ -30,27 +29,27 @@ class AcademicTrackCatalogueTest extends TestCase
     public function test_catalogue_requires_authentication_and_does_not_require_per_user_assignment(): void
     {
         $this->getJson('/v1/academic-tracks')->assertUnauthorized()
-  ->assertJsonPath('code', 'AUTHENTICATION_REQUIRED');
+            ->assertJsonPath('code', 'AUTHENTICATION_REQUIRED');
 
         DB::table('academic_track_authorizations')->delete();
 
         $sameYearId = '01J00000000000000000000050';
         $otherYearId = '01J00000000000000000000051';
         $this->createTrack($sameYearId, 'FIXTURE:CATALOGUE:SAME-YEAR', 'FIXTURE-YEAR-6-7', [
-  'ar' => 'مسار ثانٍ لنفس السنة',
-  'en' => 'Second track for same year',
-  'fr' => 'Deuxième parcours de la même année',
+            'ar' => 'مسار ثانٍ لنفس السنة',
+            'en' => 'Second track for same year',
+            'fr' => 'Deuxième parcours de la même année',
         ]);
         $this->createTrack($otherYearId, 'FIXTURE:CATALOGUE:OTHER-YEAR', 'FIXTURE-YEAR-8', [
-  'ar' => 'مسار سنة أخرى',
-  'en' => 'Another year track',
-  'fr' => 'Parcours d’une autre année',
+            'ar' => 'مسار سنة أخرى',
+            'en' => 'Another year track',
+            'fr' => 'Parcours d’une autre année',
         ]);
 
         $response = $this->withToken(self::TOKEN)
-  ->getJson('/v1/academic-tracks')
-  ->assertOk()
-  ->assertHeader('Cache-Control', 'no-store, private');
+            ->getJson('/v1/academic-tracks')
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private');
 
         $tracks = $response->json('data.tracks');
         $this->assertIsArray($tracks);
@@ -60,6 +59,7 @@ class AcademicTrackCatalogueTest extends TestCase
         $this->assertContains($otherYearId, $ids);
 
         $sameYear = collect($tracks)->firstWhere('id', $sameYearId);
+        $this->assertIsArray($sameYear);
         $this->assertSame(['id', 'year', 'labels'], array_keys($sameYear));
         $this->assertSame(['key', 'label'], array_keys($sameYear['year']));
         $this->assertSame('FIXTURE-YEAR-6-7', $sameYear['year']['key']);
@@ -73,21 +73,22 @@ class AcademicTrackCatalogueTest extends TestCase
         $firstId = '01J00000000000000000000052';
         $secondId = '01J00000000000000000000053';
         foreach ([
-  [$firstId, 'A'],
-  [$secondId, 'B'],
+            [$firstId, 'A'],
+            [$secondId, 'B'],
         ] as [$id, $suffix]) {
-  $this->createTrack($id, 'FIXTURE:YEAR:SCOPE:'.$suffix, 'YEAR:GRADE-6:ABCDEF12', [
-      'ar' => 'مسار السنة '.$suffix,
-      'en' => 'Year track '.$suffix,
-      'fr' => 'Parcours année '.$suffix,
-  ]);
+            $this->createTrack($id, 'FIXTURE:YEAR:SCOPE:'.$suffix, 'YEAR:GRADE-6:ABCDEF12', [
+                'ar' => 'مسار السنة '.$suffix,
+                'en' => 'Year track '.$suffix,
+                'fr' => 'Parcours année '.$suffix,
+            ]);
         }
 
         $tracks = $this->withToken(self::TOKEN)
-  ->getJson('/v1/academic-tracks')
-  ->assertOk()
-  ->json('data.tracks');
+            ->getJson('/v1/academic-tracks')
+            ->assertOk()
+            ->json('data.tracks');
 
+        $this->assertIsArray($tracks);
         $scoped = collect($tracks)->whereIn('id', [$firstId, $secondId])->values();
         $this->assertCount(2, $scoped);
         $this->assertSame(['YEAR:GRADE-6:ABCDEF12'], $scoped->pluck('year.key')->unique()->values()->all());
@@ -102,25 +103,26 @@ class AcademicTrackCatalogueTest extends TestCase
         $markupId = '01J00000000000000000000056';
 
         $this->createTrack($missingLocaleId, 'FIXTURE:INVALID:MISSING', 'FIXTURE-YEAR', [
-  'ar' => 'مسار ناقص',
-  'en' => 'Missing localization',
+            'ar' => 'مسار ناقص',
+            'en' => 'Missing localization',
         ]);
         $this->createTrack($unsafeYearId, 'FIXTURE:INVALID:YEAR', "YEAR:GRADE-6\u{0007}", [
-  'ar' => 'مسار سنة غير آمنة',
-  'en' => 'Unsafe year',
-  'fr' => 'Année non sûre',
+            'ar' => 'مسار سنة غير آمنة',
+            'en' => 'Unsafe year',
+            'fr' => 'Année non sûre',
         ]);
         $this->createTrack($markupId, 'FIXTURE:INVALID:MARKUP', 'FIXTURE-YEAR', [
-  'ar' => 'مسار آمن',
-  'en' => '<b>Unsafe markup</b>',
-  'fr' => 'Balisage non sûr',
+            'ar' => 'مسار آمن',
+            'en' => '<b>Unsafe markup</b>',
+            'fr' => 'Balisage non sûr',
         ]);
 
         $tracks = $this->withToken(self::TOKEN)
-  ->getJson('/v1/academic-tracks')
-  ->assertOk()
-  ->json('data.tracks');
+            ->getJson('/v1/academic-tracks')
+            ->assertOk()
+            ->json('data.tracks');
 
+        $this->assertIsArray($tracks);
         $ids = array_column($tracks, 'id');
         $this->assertNotContains($missingLocaleId, $ids);
         $this->assertNotContains($unsafeYearId, $ids);
@@ -133,22 +135,22 @@ class AcademicTrackCatalogueTest extends TestCase
         DB::table('academic_track_authorizations')->delete();
         $targetId = '01J00000000000000000000057';
         $this->createTrack($targetId, 'FIXTURE:SELF-SELECT:TARGET', 'YEAR:GRADE-7:1234ABCD', [
-  'ar' => 'مسار يختاره الطالب',
-  'en' => 'Learner selected track',
-  'fr' => 'Parcours choisi par l’apprenant',
+            'ar' => 'مسار يختاره الطالب',
+            'en' => 'Learner selected track',
+            'fr' => 'Parcours choisi par l’apprenant',
         ]);
 
         $this->withToken(self::TOKEN)
-  ->withHeader('Idempotency-Key', 'year-self-select-reset-0001')
-  ->postJson('/v1/academic-context/reset', ['academic_track_id' => $targetId])
-  ->assertOk()
-  ->assertJsonPath('data.academic_track_id', $targetId)
-  ->assertJsonPath('data.year_level', 'YEAR:GRADE-7:1234ABCD');
+            ->withHeader('Idempotency-Key', 'year-self-select-reset-0001')
+            ->postJson('/v1/academic-context/reset', ['academic_track_id' => $targetId])
+            ->assertOk()
+            ->assertJsonPath('data.academic_track_id', $targetId)
+            ->assertJsonPath('data.year_level', 'YEAR:GRADE-7:1234ABCD');
 
         $this->assertDatabaseHas('user_academic_contexts', [
-  'user_id' => LearningSliceSeeder::USER_ID,
-  'academic_track_id' => $targetId,
-  'status' => 'active',
+            'user_id' => LearningSliceSeeder::USER_ID,
+            'academic_track_id' => $targetId,
+            'status' => 'active',
         ]);
     }
 
@@ -157,29 +159,29 @@ class AcademicTrackCatalogueTest extends TestCase
         config(['modrik.fixture.enabled' => false]);
 
         $registration = $this->postJson('/v1/auth/register', [
-  'name' => 'Year Scope Production Boundary Learner',
-  'email' => 'year-scope-production-boundary@example.test',
-  'password' => 'year-scope-production-boundary-password',
+            'name' => 'Year Scope Production Boundary Learner',
+            'email' => 'year-scope-production-boundary@example.test',
+            'password' => 'year-scope-production-boundary-password',
         ])->assertCreated();
         $token = (string) $registration->json('data.access_token');
 
         $this->withToken($token)
-  ->getJson('/v1/academic-tracks')
-  ->assertOk()
-  ->assertJsonPath('data.tracks', []);
+            ->getJson('/v1/academic-tracks')
+            ->assertOk()
+            ->assertJsonPath('data.tracks', []);
 
         $realTrackId = '01J00000000000000000000058';
         $this->createTrack($realTrackId, 'TEST:NONFIXTURE:YEAR-SCOPE', 'YEAR:GRADE-6:87654321', [
-  'ar' => 'مسار اختبار غير تجريبي',
-  'en' => 'Non-fixture test track',
-  'fr' => 'Parcours de test non-fixture',
+            'ar' => 'مسار اختبار غير تجريبي',
+            'en' => 'Non-fixture test track',
+            'fr' => 'Parcours de test non-fixture',
         ], false);
 
         $this->withToken($token)
-  ->getJson('/v1/academic-tracks')
-  ->assertOk()
-  ->assertJsonPath('data.tracks.0.id', $realTrackId)
-  ->assertJsonPath('data.tracks.0.year.label', 'Grade 6');
+            ->getJson('/v1/academic-tracks')
+            ->assertOk()
+            ->assertJsonPath('data.tracks.0.id', $realTrackId)
+            ->assertJsonPath('data.tracks.0.year.label', 'Grade 6');
     }
 
     /** @param array<string, string> $labels */
@@ -187,15 +189,15 @@ class AcademicTrackCatalogueTest extends TestCase
     {
         $now = now();
         DB::table('academic_tracks')->insert([
-  'id' => $id,
-  'code' => $code,
-  'board_reference' => null,
-  'syllabus_version' => null,
-  'year_level' => $yearLevel,
-  'title' => json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-  'is_fixture' => $fixture,
-  'created_at' => $now,
-  'updated_at' => $now,
+            'id' => $id,
+            'code' => $code,
+            'board_reference' => null,
+            'syllabus_version' => null,
+            'year_level' => $yearLevel,
+            'title' => json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            'is_fixture' => $fixture,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
     }
 }
