@@ -1,0 +1,238 @@
+name: Owner-authorized one-shot Demo Node Selector structure diagnostic
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/demo-node-selector-structure-once.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[OWNER-DEMO-SELECTOR-DIAG]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_URL: https://50sols.com
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+
+    steps:
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_USER"
+          test -n "$FTP_PASSWORD"
+
+      - name: Record diagnostic start
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO NODE SELECTOR STRUCTURE DIAGNOSTIC STARTED\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\nRead-only diagnostic; no application mutation or selector action."
+
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Prepare protected diagnostic bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 12)"
+          bridge="modrik-selector-diag-$nonce.php"
+          token_file=".modrik-selector-diag-token-$nonce"
+          echo "::add-mask::$token"
+          printf '%s' "$token" > /tmp/modrik-selector-diag-token
+
+          cat > /tmp/modrik-selector-diag.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          set_time_limit(30);
+          header('Content-Type: application/json; charset=utf-8');
+          header('Cache-Control: no-store');
+
+          $expected = trim((string) @file_get_contents(__DIR__ . '/__TOKEN_FILE__'));
+          $provided = (string) ($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN'] ?? '');
+          if ($expected === '' || !hash_equals($expected, $provided)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
+
+          $home = '/home/solscool';
+          $webRoot = $home . '/public_html/demo.modrik.org';
+          $targetRel = 'public_html/demo.modrik.org';
+
+          $run = static function (array $command, ?string $cwd = null): array {
+              $spec = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+              $proc = @proc_open($command, $spec, $pipes, $cwd, null, ['bypass_shell' => true]);
+              if (!is_resource($proc)) return ['exit' => -1, 'stdout' => '', 'stderr' => 'proc_open_failed'];
+              fclose($pipes[0]);
+              $stdout = (string) stream_get_contents($pipes[1]);
+              $stderr = (string) stream_get_contents($pipes[2]);
+              fclose($pipes[1]);
+              fclose($pipes[2]);
+              return ['exit' => proc_close($proc), 'stdout' => trim($stdout), 'stderr' => trim($stderr)];
+          };
+
+          $safeKeys = [
+              'app_root','app-root','app_uri','app-uri','domain','version','startup_file','startup-file',
+              'app_mode','mode','status','app_status','enabled','passenger_log_file'
+          ];
+
+          $matches = [];
+          $walk = static function (mixed $value, array $path = []) use (&$walk, &$matches, $safeKeys, $targetRel, $webRoot): void {
+              if (!is_array($value)) return;
+              foreach ($value as $key => $child) {
+                  $keyString = is_string($key) ? trim($key, '/') : '';
+                  $isTargetKey = $keyString === $targetRel || $keyString === trim($webRoot, '/');
+                  if ($isTargetKey && is_array($child)) {
+                      $safe = ['selector_key' => (string) $key];
+                      foreach ($safeKeys as $safeKey) {
+                          if (array_key_exists($safeKey, $child) && (is_scalar($child[$safeKey]) || $child[$safeKey] === null)) {
+                              $safe[$safeKey] = $child[$safeKey];
+                          }
+                      }
+                      $safe['path'] = implode(' > ', array_map('strval', $path));
+                      $matches[] = $safe;
+                  }
+                  if (is_array($child)) $walk($child, [...$path, (string) $key]);
+              }
+          };
+
+          $id = $run(['/usr/bin/id', '-un']);
+          $user = $id['exit'] === 0 && $id['stdout'] !== '' ? $id['stdout'] : 'unknown';
+          $selectorBin = is_executable('/usr/sbin/cloudlinux-selector') ? '/usr/sbin/cloudlinux-selector' : (is_executable('/usr/bin/cloudlinux-selector') ? '/usr/bin/cloudlinux-selector' : null);
+          $cagefs = is_executable('/bin/cagefs_enter.proxied') ? '/bin/cagefs_enter.proxied' : null;
+          $selector = ['available' => $selectorBin !== null, 'cagefs_available' => $cagefs !== null, 'exit' => null, 'result' => null, 'target_apps' => []];
+
+          if ($selectorBin !== null) {
+              $cmd = $cagefs !== null
+                  ? [$cagefs, $selectorBin, 'get', '--json', '--interpreter', 'nodejs']
+                  : [$selectorBin, 'get', '--json', '--interpreter', 'nodejs', '--user', $user];
+              $res = $run($cmd, $home);
+              $selector['exit'] = $res['exit'];
+              $decoded = json_decode($res['stdout'], true);
+              if (is_array($decoded)) {
+                  $selector['result'] = isset($decoded['result']) && is_scalar($decoded['result']) ? (string) $decoded['result'] : null;
+                  $walk($decoded);
+                  $selector['target_apps'] = array_slice($matches, 0, 10);
+              } else {
+                  $selector['result'] = 'non_json_output';
+              }
+          }
+
+          $processes = [];
+          if ($user !== 'unknown') {
+              $ps = $run(['/usr/bin/ps', '-u', $user, '-o', 'pid=,ppid=,etime=,comm=']);
+              if ($ps['exit'] === 0) {
+                  foreach (preg_split('/\R/', $ps['stdout']) ?: [] as $line) {
+                      if (!preg_match('/^\s*(\d+)\s+(\d+)\s+(\S+)\s+(\S+)/', $line, $m)) continue;
+                      $comm = $m[4];
+                      if (!preg_match('/node|passenger|lsapi|lsphp|httpd/i', $comm)) continue;
+                      $pid = (int) $m[1];
+                      $cwd = @readlink('/proc/' . $pid . '/cwd');
+                      $exe = @readlink('/proc/' . $pid . '/exe');
+                      $processes[] = [
+                          'pid' => $pid,
+                          'ppid' => (int) $m[2],
+                          'etime' => $m[3],
+                          'comm' => $comm,
+                          'cwd' => is_string($cwd) ? $cwd : null,
+                          'exe' => is_string($exe) ? $exe : null,
+                      ];
+                      if (count($processes) >= 30) break;
+                  }
+              }
+          }
+
+          $nodevenv = [];
+          foreach (glob($home . '/nodevenv/public_html/demo.modrik.org/*', GLOB_ONLYDIR) ?: [] as $dir) {
+              $nodevenv[] = basename($dir);
+          }
+
+          echo json_encode([
+              'ok' => true,
+              'user' => $user,
+              'web_root_realpath' => realpath($webRoot) ?: null,
+              'startup_exists' => is_file($webRoot . '/startup.cjs'),
+              'startup_mtime' => is_file($webRoot . '/startup.cjs') ? @filemtime($webRoot . '/startup.cjs') : null,
+              'restart_marker_mtime' => is_file($webRoot . '/tmp/restart.txt') ? @filemtime($webRoot . '/tmp/restart.txt') : null,
+              'nodevenv_versions' => $nodevenv,
+              'selector' => $selector,
+              'runtime_processes' => $processes,
+          ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+          PHP
+
+          sed -i -e "s|__TOKEN_FILE__|$token_file|g" /tmp/modrik-selector-diag.php
+          {
+            echo "REMOTE_DIAG_BRIDGE=$bridge"
+            echo "REMOTE_DIAG_TOKEN_FILE=$token_file"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload and execute diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            put /tmp/modrik-selector-diag-token -o $REMOTE_DIAG_TOKEN_FILE;
+            put /tmp/modrik-selector-diag.php -o $REMOTE_DIAG_BRIDGE;
+            bye;
+          "
+          token="$(cat /tmp/modrik-selector-diag-token)"
+          body="$RUNNER_TEMP/modrik-selector-structure.json"
+          code="$(curl --silent --show-error --output "$body" --write-out '%{http_code}' --max-time 35 --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" -H "X-MODRIK-Diag-Token: $token" "$BRIDGE_URL/$REMOTE_DIAG_BRIDGE")"
+          echo "diagnostic_http_status=$code"
+          jq . "$body"
+          jq -e '.ok == true' "$body" >/dev/null
+
+      - name: Publish sanitized evidence
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$RUNNER_TEMP/modrik-selector-structure.json"
+          if [[ -f "$body" ]] && jq -e '.ok == true' "$body" >/dev/null 2>&1; then
+            safe_json="$(jq -c '{user,web_root_realpath,startup_exists,startup_mtime,restart_marker_mtime,nodevenv_versions,selector,runtime_processes}' "$body")"
+            status='COMPLETED'
+          else
+            safe_json='{"diagnostic_result":"unavailable"}'
+            status='FAILED_OR_INCOMPLETE'
+          fi
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO NODE SELECTOR STRUCTURE DIAGNOSTIC $status\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\n\`\`\`json\n$safe_json\n\`\`\`"
+
+      - name: Remove one-shot files
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          timeout 45 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            rm -f ${REMOTE_DIAG_TOKEN_FILE:-.missing};
+            rm -f ${REMOTE_DIAG_BRIDGE:-.missing};
+            bye;
+          "
+          exit 0
