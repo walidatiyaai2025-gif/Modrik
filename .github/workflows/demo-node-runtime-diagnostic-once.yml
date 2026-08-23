@@ -1,0 +1,278 @@
+name: Owner-authorized one-shot Demo Node runtime diagnostic
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/demo-node-runtime-diagnostic-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: ${{ contains(github.event.head_commit.message, '[OWNER-DEMO-DIAG]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_URL: https://50sols.com
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+      DEMO_HOST: demo.modrik.org
+
+    steps:
+      - name: Validate diagnostic secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_USER" || { echo 'Missing secret: CPANEL_FTP_USERNAME' >&2; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo 'Missing secret: CPANEL_FTP_PASSWORD' >&2; exit 1; }
+
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Prepare protected read-only diagnostic bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 12)"
+          bridge="modrik-node-diag-$nonce.php"
+          token_file=".modrik-node-diag-token-$nonce"
+
+          echo "::add-mask::$token"
+          printf '%s' "$token" > /tmp/modrik-node-diag-token
+
+          cat > /tmp/modrik-node-diag.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+
+          set_time_limit(30);
+          header('Content-Type: application/json; charset=utf-8');
+          header('Cache-Control: no-store');
+
+          $expectedToken = trim((string) @file_get_contents(__DIR__ . '/__TOKEN_FILE__'));
+          $providedToken = (string) ($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN'] ?? '');
+          if ($expectedToken === '' || !hash_equals($expectedToken, $providedToken)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
+
+          $home = '/home/solscool';
+          $webRoot = $home . '/public_html/demo.modrik.org';
+          $appRootRel = 'public_html/demo.modrik.org';
+          $safeAppKeys = [
+              'app_root', 'app_uri', 'domain', 'version', 'startup_file', 'startup-file',
+              'app_mode', 'mode', 'status', 'app_status', 'enabled', 'passenger_log_file',
+          ];
+
+          $run = static function (array $command, ?string $cwd = null): array {
+              $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+              $process = @proc_open($command, $descriptors, $pipes, $cwd, null, ['bypass_shell' => true]);
+              if (!is_resource($process)) {
+                  return ['exit' => -1, 'stdout' => '', 'stderr' => 'proc_open_failed'];
+              }
+              fclose($pipes[0]);
+              $stdout = (string) stream_get_contents($pipes[1]);
+              $stderr = (string) stream_get_contents($pipes[2]);
+              fclose($pipes[1]);
+              fclose($pipes[2]);
+              $exit = proc_close($process);
+              return ['exit' => $exit, 'stdout' => trim($stdout), 'stderr' => trim($stderr)];
+          };
+
+          $extractApps = static function (mixed $value) use (&$extractApps, $safeAppKeys, $appRootRel): array {
+              $matches = [];
+              if (!is_array($value)) {
+                  return $matches;
+              }
+
+              $root = $value['app_root'] ?? $value['app-root'] ?? null;
+              if (is_string($root) && trim($root, '/') === $appRootRel) {
+                  $safe = [];
+                  foreach ($safeAppKeys as $key) {
+                      if (array_key_exists($key, $value) && (is_scalar($value[$key]) || $value[$key] === null)) {
+                          $safe[$key] = $value[$key];
+                      }
+                  }
+                  $matches[] = $safe;
+              }
+
+              foreach ($value as $child) {
+                  if (is_array($child)) {
+                      array_push($matches, ...$extractApps($child));
+                  }
+              }
+              return $matches;
+          };
+
+          try {
+              $identity = $run(['/usr/bin/id', '-un']);
+              $user = $identity['exit'] === 0 && $identity['stdout'] !== '' ? $identity['stdout'] : 'unknown';
+
+              $htaccess = [];
+              $htaccessPath = $webRoot . '/.htaccess';
+              if (is_file($htaccessPath)) {
+                  foreach ((array) @file($htaccessPath, FILE_IGNORE_NEW_LINES) as $line) {
+                      if (preg_match('/^\s*Passenger(?:AppRoot|BaseURI|Nodejs|AppType|StartupFile|AppEnv)\b/i', (string) $line)) {
+                          $htaccess[] = trim((string) $line);
+                      }
+                  }
+              }
+
+              $releaseFile = $webRoot . '/RELEASE_SHA.txt';
+              $releaseSha = is_file($releaseFile) ? trim((string) @file_get_contents($releaseFile)) : null;
+              if (!is_string($releaseSha) || !preg_match('/^[0-9a-f]{40}$/i', $releaseSha)) {
+                  $releaseSha = null;
+              }
+
+              $selectorBin = is_executable('/usr/sbin/cloudlinux-selector')
+                  ? '/usr/sbin/cloudlinux-selector'
+                  : (is_executable('/usr/bin/cloudlinux-selector') ? '/usr/bin/cloudlinux-selector' : null);
+              $cagefsBin = is_executable('/bin/cagefs_enter.proxied') ? '/bin/cagefs_enter.proxied' : null;
+
+              $selector = [
+                  'available' => $selectorBin !== null,
+                  'cagefs_available' => $cagefsBin !== null,
+                  'exit' => null,
+                  'result' => null,
+                  'apps' => [],
+              ];
+
+              if ($selectorBin !== null) {
+                  $command = $cagefsBin !== null
+                      ? [$cagefsBin, $selectorBin, 'get', '--json', '--interpreter', 'nodejs']
+                      : [$selectorBin, 'get', '--json', '--interpreter', 'nodejs', '--user', $user];
+                  $selectorResult = $run($command, $home);
+                  $selector['exit'] = $selectorResult['exit'];
+                  $decoded = json_decode($selectorResult['stdout'], true);
+                  if (is_array($decoded)) {
+                      $selector['result'] = isset($decoded['result']) && is_scalar($decoded['result']) ? (string) $decoded['result'] : null;
+                      $selector['apps'] = $extractApps($decoded);
+                  } else {
+                      $selector['result'] = 'non_json_output';
+                  }
+              }
+
+              $processes = [];
+              if ($user !== 'unknown') {
+                  $ps = $run(['/usr/bin/ps', '-u', $user, '-o', 'pid=,ppid=,etime=,comm=']);
+                  if ($ps['exit'] === 0) {
+                      foreach (preg_split('/\R/', $ps['stdout']) ?: [] as $line) {
+                          if (!preg_match('/^\s*(\d+)\s+(\d+)\s+(\S+)\s+(\S+)/', $line, $m)) {
+                              continue;
+                          }
+                          $pid = (int) $m[1];
+                          $comm = $m[4];
+                          if (!preg_match('/node|passenger/i', $comm)) {
+                              continue;
+                          }
+                          $cwd = @readlink('/proc/' . $pid . '/cwd');
+                          $exe = @readlink('/proc/' . $pid . '/exe');
+                          $processes[] = [
+                              'pid' => $pid,
+                              'ppid' => (int) $m[2],
+                              'etime' => $m[3],
+                              'comm' => $comm,
+                              'cwd' => is_string($cwd) ? $cwd : null,
+                              'exe' => is_string($exe) ? $exe : null,
+                          ];
+                          if (count($processes) >= 20) {
+                              break;
+                          }
+                      }
+                  }
+              }
+
+              echo json_encode([
+                  'ok' => true,
+                  'user' => $user,
+                  'web_root' => $webRoot,
+                  'web_root_realpath' => realpath($webRoot) ?: null,
+                  'startup_exists' => is_file($webRoot . '/startup.cjs'),
+                  'release_file_sha' => $releaseSha,
+                  'restart_marker_mtime' => is_file($webRoot . '/tmp/restart.txt') ? @filemtime($webRoot . '/tmp/restart.txt') : null,
+                  'passenger_directives' => array_slice($htaccess, 0, 20),
+                  'selector' => $selector,
+                  'node_processes' => $processes,
+              ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+          } catch (Throwable $e) {
+              http_response_code(500);
+              echo json_encode(['ok' => false, 'error' => 'diagnostic_failed']);
+          }
+          PHP
+
+          sed -i -e "s|__TOKEN_FILE__|$token_file|g" /tmp/modrik-node-diag.php
+          {
+            echo "REMOTE_DIAG_BRIDGE=$bridge"
+            echo "REMOTE_DIAG_TOKEN_FILE=$token_file"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload one-shot diagnostic over FTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 2;
+            set net:timeout 20;
+            put /tmp/modrik-node-diag-token -o $REMOTE_DIAG_TOKEN_FILE;
+            put /tmp/modrik-node-diag.php -o $REMOTE_DIAG_BRIDGE;
+            bye;
+          "
+
+      - name: Execute read-only Node runtime diagnostic at cPanel origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(cat /tmp/modrik-node-diag-token)"
+          body="$RUNNER_TEMP/modrik-node-runtime-diagnostic.json"
+          http_code="$(curl --silent --show-error \
+            --output "$body" \
+            --write-out '%{http_code}' \
+            --max-time 35 \
+            --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
+            -H "X-MODRIK-Diag-Token: $token" \
+            "$BRIDGE_URL/$REMOTE_DIAG_BRIDGE")"
+          echo "diagnostic_http_status=$http_code"
+          jq . "$body"
+          jq -e '.ok == true' "$body" >/dev/null
+
+          public_body="$RUNNER_TEMP/modrik-demo-public.html"
+          curl --fail --silent --show-error --max-time 20 \
+            -H 'Cache-Control: no-cache, no-store, max-age=0' \
+            "https://$DEMO_HOST/?modrik_runtime_diag=${GITHUB_SHA::12}" > "$public_body"
+          observed_sha="$(grep -oE 'MODRIK deployed release: [0-9a-f]{40}' "$public_body" | head -n1 | awk '{print $4}' || true)"
+          echo "MODRIK_DEMO_OBSERVED_RENDERED_RELEASE=${observed_sha:-unknown}"
+
+      - name: Remove one-shot diagnostic files
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          [[ -n "${FTP_USER:-}" && -n "${FTP_PASSWORD:-}" ]] || exit 0
+          timeout 45 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            set net:max-retries 1;
+            set net:timeout 10;
+            rm -f ${REMOTE_DIAG_TOKEN_FILE:-.missing};
+            rm -f ${REMOTE_DIAG_BRIDGE:-.missing};
+            bye;
+          "
+          exit 0
