@@ -23,6 +23,8 @@ WEB_BACKUP_READY=0
 WEB_MUTATED=0
 DEPLOY_SUCCEEDED=0
 CLOUDLINUX_SELECTOR_LAST_OUTPUT=""
+ORIGINAL_STARTUP_FILE=""
+DIRECT_STARTUP_FILE=""
 
 log() {
   printf '[MODRIK_DEPLOY] %s\n' "$*"
@@ -68,6 +70,15 @@ resolve_node_runtime_bin() {
   printf '%s\n' "$node_bin"
 }
 
+resolve_current_startup_file() {
+  local startup_file=""
+
+  if [[ -f "$WEB_ROOT/.htaccess" ]]; then
+    startup_file="$(awk '$1 == "PassengerStartupFile" { gsub(/\"/, "", $2); print $2; exit }' "$WEB_ROOT/.htaccess" 2>/dev/null || true)"
+  fi
+  printf '%s\n' "${startup_file:-startup.cjs}"
+}
+
 cloudlinux_node_action() {
   local action="${1:?cloudlinux_node_action requires an action}"
   local selector_bin node_user app_root_rel selector_output
@@ -101,6 +112,53 @@ cloudlinux_node_action() {
   fi
 
   CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+  return 1
+}
+
+cloudlinux_set_startup_file() {
+  local startup_file="${1:?cloudlinux_set_startup_file requires a startup file}"
+  local selector_bin node_user app_root_rel selector_output actual_startup
+
+  [[ -n "$startup_file" && "$startup_file" != /* && "$startup_file" != *'..'* ]] \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="Invalid startup-file path."; return 1; }
+
+  selector_bin="$(resolve_cloudlinux_selector_bin)" \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="CloudLinux Node.js Selector CLI is unavailable."; return 1; }
+
+  node_user="$(id -un)"
+  app_root_rel="$WEB_ROOT"
+  if [[ "$WEB_ROOT" == "$HOME/"* ]]; then
+    app_root_rel="${WEB_ROOT#"$HOME/"}"
+  fi
+
+  if [[ -x "$CAGEFS_ENTER_BIN" ]]; then
+    log "Setting Student Web startup file through CageFS-backed CloudLinux Node.js Selector app_root=$app_root_rel startup=$startup_file"
+    if selector_output="$("$CAGEFS_ENTER_BIN" "$selector_bin" set --json --interpreter nodejs --app-root "$app_root_rel" --startup-file "$startup_file" 2>&1)" \
+      && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+      actual_startup="$(resolve_current_startup_file)"
+      if [[ "$actual_startup" == "$startup_file" ]]; then
+        return 0
+      fi
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="Selector reported success but PassengerStartupFile is $actual_startup instead of $startup_file."
+    else
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    fi
+    log "CageFS-backed startup-file update did not converge; trying direct compatibility path"
+  fi
+
+  if selector_output="$("$selector_bin" set --json --interpreter nodejs --user "$node_user" --app-root "$app_root_rel" --startup-file "$startup_file" 2>&1)" \
+    && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    actual_startup="$(resolve_current_startup_file)"
+    if [[ "$actual_startup" == "$startup_file" ]]; then
+      return 0
+    fi
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="Selector reported success but PassengerStartupFile is $actual_startup instead of $startup_file."
+  else
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+  fi
+
   return 1
 }
 
@@ -221,8 +279,8 @@ run_exact_node_startup_preflight() {
     || fail "Live Student Web application root metadata is invalid."
   server_file="$WEB_ROOT/$app_rel/server.js"
 
-  [[ -f "$WEB_ROOT/startup.cjs" ]] || fail "Live Student Web startup.cjs is missing before exact-Node preflight."
   [[ -f "$server_file" ]] || fail "Live Student Web standalone server.js is missing before exact-Node preflight."
+  [[ -s "$WEB_ROOT/$app_rel/RELEASE_SHA.txt" ]] || fail "Live standalone Next release identity is missing before exact-Node preflight."
   [[ "$port_start" =~ ^[0-9]+$ && "$attempts" =~ ^[0-9]+$ ]] \
     || fail "Node startup preflight bounds must be positive integers."
   (( port_start >= 1024 && port_start <= 65000 && attempts > 0 && attempts <= 60 )) \
@@ -243,15 +301,15 @@ run_exact_node_startup_preflight() {
   chmod 600 "$log_file"
   short_sha="${RELEASE_SHA:0:12}"
 
-  log "Preflighting live Student Web with exact cPanel Node runtime=$node_bin app_root=$app_rel loopback_port=$port"
+  log "Preflighting direct Next standalone server with exact cPanel Node runtime=$node_bin startup=$app_rel/server.js loopback_port=$port"
   (
-    cd "$WEB_ROOT"
+    cd "$WEB_ROOT/$app_rel"
     PORT="$port" \
     HOSTNAME=127.0.0.1 \
     NODE_ENV=production \
     MODRIK_API_BASE_URL=https://api.demo.modrik.org \
     MODRIK_ADMIN_PORTAL_URL=https://api.demo.modrik.org/admin/login \
-    "$node_bin" "$WEB_ROOT/startup.cjs"
+    "$node_bin" "$server_file"
   ) >"$log_file" 2>&1 &
   pid=$!
 
@@ -276,11 +334,11 @@ run_exact_node_startup_preflight() {
 
   if (( success != 1 )); then
     emit_node_startup_preflight_diagnostics "$log_file"
-    fail "Live Student Web failed the exact cPanel Node startup preflight before Passenger activation."
+    fail "Live Student Web failed the direct standalone exact-Node startup preflight before LiteSpeed activation."
   fi
 
   rm -f "$log_file"
-  log "Exact cPanel Node startup preflight passed for release $RELEASE_SHA"
+  log "Direct standalone exact cPanel Node startup preflight passed for release $RELEASE_SHA"
 }
 
 prepare_passenger_restart_marker() {
@@ -323,6 +381,15 @@ recover_previous_web_on_failure() {
   log "Deployment failed after Student Web mutation; restoring the pre-deploy Web payload"
   find "$WEB_ROOT" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf -- {} +
   tar -xzf "$BACKUP_DIR/web.tar.gz" -C "$WEB_ROOT"
+
+  if [[ -n "$ORIGINAL_STARTUP_FILE" ]]; then
+    if cloudlinux_set_startup_file "$ORIGINAL_STARTUP_FILE"; then
+      log "Restored pre-deploy CloudLinux startup file: $ORIGINAL_STARTUP_FILE"
+    else
+      printf '[MODRIK_DEPLOY_ERROR] Web payload restored but pre-deploy startup-file restoration failed: %s\n' "${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}" >&2
+    fi
+  fi
+
   prepare_passenger_restart_marker
 
   if ( restart_cloudlinux_node_app ); then
@@ -352,7 +419,8 @@ mkdir -p "$EXTRACT_DIR" "$BACKUP_DIR"
 log "Extracting release $RELEASE_SHA"
 unzip -q "$PACKAGE_ZIP" -d "$EXTRACT_DIR"
 
-[[ -f "$SOURCE_ROOT/web/startup.cjs" ]] || fail "Packaged Web startup.cjs is missing."
+[[ -f "$SOURCE_ROOT/web/startup.cjs" ]] || fail "Packaged Web compatibility startup.cjs is missing."
+[[ -f "$SOURCE_ROOT/web/WEB_APPLICATION_ROOT.txt" ]] || fail "Packaged Web application-root metadata is missing."
 [[ -f "$SOURCE_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
 [[ -f "$SOURCE_ROOT/backend/public/index.php" ]] || fail "Packaged Backend public/index.php is missing."
 [[ -f "$SOURCE_ROOT/backend/vendor/autoload.php" ]] || fail "Packaged Backend vendor/autoload.php is missing."
@@ -365,6 +433,9 @@ PACKAGED_SHA="$(tr -d '\r\n' < "$SOURCE_ROOT/RELEASE_SHA.txt")"
 if find "$SOURCE_ROOT" -type f -name '.env' -print -quit | grep -q .; then
   fail "Package contains a live .env file."
 fi
+
+ORIGINAL_STARTUP_FILE="$(resolve_current_startup_file)"
+log "Captured pre-deploy CloudLinux startup file: $ORIGINAL_STARTUP_FILE"
 
 log "Creating code backups in $BACKUP_DIR"
 tar -czf "$BACKUP_DIR/web.tar.gz" -C "$WEB_ROOT" .
@@ -414,6 +485,19 @@ cd "$BACKEND_ROOT"
 
 run_exact_node_startup_preflight
 
+WEB_APP_REL="$(tr -d '\r\n' < "$WEB_ROOT/WEB_APPLICATION_ROOT.txt")"
+if [[ "$WEB_APP_REL" == "." ]]; then
+  DIRECT_STARTUP_FILE="server.js"
+else
+  DIRECT_STARTUP_FILE="$WEB_APP_REL/server.js"
+fi
+[[ -f "$WEB_ROOT/$DIRECT_STARTUP_FILE" ]] || fail "Direct LiteSpeed Next startup file is missing: $DIRECT_STARTUP_FILE"
+
+log "Switching CloudLinux/LiteSpeed startup to direct Next standalone server: $DIRECT_STARTUP_FILE"
+if ! cloudlinux_set_startup_file "$DIRECT_STARTUP_FILE"; then
+  fail "CloudLinux Node.js Selector could not activate direct Next startup: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
+fi
+
 log "Configuring private Passenger diagnostics before Student Web restart"
 if ! configure_cloudlinux_passenger_log; then
   fail "CloudLinux Node.js Selector could not configure private Passenger logging: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
@@ -436,7 +520,7 @@ if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
     MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
     bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
     emit_passenger_startup_diagnostics
-    fail "Demo Web runtime did not reach the requested release after the bounded stop/start recycle."
+    fail "Demo Web runtime did not reach the requested release after direct Next startup plus bounded stop/start recycle."
   fi
 fi
 
