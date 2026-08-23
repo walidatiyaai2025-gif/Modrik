@@ -1,49 +1,47 @@
 # CURRENT STATE
 
-Updated: 2026-08-22
-Last reconciled baseline: `814018c14f20976a6819a55e607ca908b320da5d`
+Updated: 2026-08-23
+Last reconciled baseline: `42c280f9a29245d439a92445033650be511655f9`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
 
-## Integrated capability / Admin / Student state
+## Integrated capability / runtime state
 
-The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
-- Content Operations via PR #201 / Issue #182.
-- Student academic-track change via PR #209 / Issue #208.
-- Assessment Admin Stages A/B via PR #207 and PR #229; immutable attempt seed/order/resume/scoring authority remains Backend-owned.
-- Accounts/Sessions/RBAC visibility and Operations Control Center via PR #218 / Issue #216.
-- Public/Legal/Help operational visibility via PR #225 / Issues #224/#184; mutable legal publication remains owner/legal/backend-contract gated.
-- Capability-surface validation in CI via PR #234 / Issue #233.
-- Demo exact Web/Admin release identity via PR #232 / Issue #231.
-- Windows explicitly `deferred_disabled` via PR #239.
-- Student Notification Center via PR #236 / Issue #235 across Backend, Web and Mobile.
-- Landing `/` and Student Portal `/student` runtime/release acceptance via PR #248 / Issue #244.
-- Remote cPanel pre-success Landing/Student route and release verification via PR #252 / Issue #250.
+The owner-authorized `GOV-SURFACE-001` follow-on remains substantially integrated. The capability matrix has no remaining `audit_required` capability row. Unsupported capabilities remain explicitly represented as internal, deferred, contract-missing or activation-gated rather than exposed as fake operator authority.
 
-The capability matrix has no remaining `audit_required` row. Remaining unsupported capabilities are explicitly represented by truthful `backend_contract_missing`, deferred or activation-gated states rather than fake operator authority.
+Current canonical `main` includes:
+- PR #270 / Issue #262 — Mobile/Admin simulated runtime fallback removal;
+- PR #273 / Issue #260 — bounded CloudLinux/cPanel restart propagation implementation;
+- PR #275 / Issue #274 — truthful external integration transport readiness;
+- PR #279 / Issue #277 — truthful Student Notification Center operational status independent of FCM readiness.
 
-## Repository-verifiable work queue at this checkpoint
+Issue #260 remains open only for governed Demo redeploy acceptance. Its code implementation is integrated.
 
-Issue #250 is completed through merged PR #252. The remote cPanel post-copy runner now validates exact Web release identity plus meaningful Landing/Student markers before `current-release.txt` and successful-deploy evidence can be written.
+## Current repository-verifiable P0 queue
 
-Issue #251 / PR #253 is control-state reconciliation only. Its live merge/CI state must be fetched from GitHub; it does not own domain or deployment implementation.
+- #271 / PR #272 — Backend runtime fixture-auth/default synthetic-seeding hardening. Draft. Bootstrap #1101 is red on Pilot acceptance because the acceptance harness still depended on fixture authentication after runtime fixture auth was removed. This is a real dependency/acceptance defect, not a waiver candidate.
+- #261 / PR #265 — Web BFF fixture identity removal + focused real-session smoke only. Draft/stale and still contains historical Backend overlap; it must be reconciled after the canonical Backend Auth candidate and drop Backend-owned changes.
+- #263 / PR #278 — real Laravel-session Pilot/browser acceptance + global runtime-mock/fixture guard. Draft on a stale dependency base; current head needs canonical #271 + cleaned #261 composition before fresh governed CI can establish readiness.
+- #264 / PR #267 — three-file control-state reconciliation only.
+- #266 — CHANGELOG-only factual reconciliation after current implementation truth stabilizes.
 
-No additional repository-verifiable P0 product or release implementation packet is identified at this checkpoint. New implementation must come from live GitHub and current authoritative product/governance evidence rather than inferred from stale status prose.
+No new parallel issue is required for the current Auth/Web/Pilot chain: ownership is already decomposed and the safe path is reconciliation/composition rather than duplicating scope.
 
-Real-content evaluation remains gated by owner-approved academic scope and evidence-backed content rights. Production activation remains gated by external owner/security/legal inputs.
+## Notification capability truth
+
+`student.notifications.center` is `user_facing` / `present` in the capability contract and, after merged PR #279, operational integration status now matches that truth. Firebase/FCM remains separately fail-closed as disabled or pending transport when not actually available.
 
 ## CI / integration evidence
 
-Recent exact-head evidence includes:
-- PR #236 exact head `12adaca2e2eed2cee09d4e3d286e01db668f3dbc`: Bootstrap #1038, Notification Center Browser #9, Boot Security #78, Runtime #94, Learning Responsive #40, Mobile Native Compile #90, Content Operations Browser #90 and Demo Package #233 green.
-- PR #248 exact head `99f2f2306fcb961b645df9048350fa9e77b2fced`: Bootstrap #1055, Web Portals Runtime Acceptance #9, Web Runtime #108, Boot Security #92, Learning Responsive #54, Notification Center #23, CSP Hydration #34 and Demo Package #247 green before merge.
-- PR #252 exact head `b765c4fa1004f038359c283d3d462eaff12f79ed`: Bootstrap #1057 including normal/strict Pilot and governed finalizer, Web Portals Runtime Acceptance #10 and Demo cPanel Package #248 green before merge at `814018c14f20976a6819a55e607ca908b320da5d`.
+Current high-value exact-head evidence:
+- PR #279 implementation head `1407a160f6fca750fc22ab2387655580e110a931`: Bootstrap #1118, Admin UX Browser #169 and Demo Package #288 green before merge at `42c280f9a29245d439a92445033650be511655f9`.
+- PR #275 integrated only after its current exact head passed Bootstrap #1114, Admin UX Browser #168 and Demo Package #287.
 
-Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
+Historical failed runs remain evidence and are not rewritten as successful because later work passes.
 
 ## Real-content evaluation state
 
-Preparation request `01M0JVVQY8KGQG628BNPWBJBJK` previously staged a returned Content Pack and exposed `CONTENT_TARGET_TRACK_MISSING`. The integrated Academic Catalogue and Content Operations surfaces provide the supported remediation path. Exact board/syllabus/version values must still come from owner-authorized preparation scope; they must not be fabricated.
+Preparation request `01M0JVVQY8KGQG628BNPWBJBJK` previously exposed `CONTENT_TARGET_TRACK_MISSING`. The integrated Academic Catalogue and Content Operations surfaces provide the supported remediation path, but exact board/syllabus/version values must still come from owner-authorized preparation scope and must not be fabricated.
 
 Content rights remain a separate fail-closed gate. `pending_review` material must not become official content until evidence-backed rights review and authorized publication succeed.
 
@@ -53,9 +51,7 @@ The authorized evaluation target remains `demo.modrik.org`.
 
 Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-GitHub Actions run `32563427725`, attempt 2, successfully deployed that immutable source checkpoint. Repository source is now ahead through PR #252; source integration alone does not update deployed state.
-
-The next authorized deployment must check out canonical main, resolve its immutable SHA and prove API health, exact Web/Admin release identity, Landing `/` identity and Student `/student` identity. PR #252 closes the prior remote-runner success-recording gap by requiring meaningful route/release validation before success markers are written.
+Repository source has advanced beyond that deployment. Source integration and manual restart evidence do not update deployed state. The next authorized deployment must check out canonical main, resolve its immutable SHA and prove API health, exact Web/Admin release identity, Landing `/` identity and Student `/student` identity before successful deployment markers are recorded.
 
 The Demo remains separate from production `modrik.org` cutover and is not a Production Ready claim.
 
