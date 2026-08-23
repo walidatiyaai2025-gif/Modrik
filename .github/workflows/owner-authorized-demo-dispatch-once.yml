@@ -10,6 +10,7 @@ on:
 permissions:
   actions: write
   contents: read
+  issues: write
 
 jobs:
   dispatch:
@@ -17,14 +18,48 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Dispatch current canonical Demo deployment workflow
+      - name: Dispatch current canonical Demo deployment workflow and record run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+
+          target_sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          dispatched_after="$(date -u +%s)"
+
           gh api \
             --method POST \
             "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-demo-cpanel.yml/dispatches" \
             -f ref=main \
             -f 'inputs[confirm]=DEPLOY'
           echo 'MODRIK_OWNER_AUTHORIZED_DEMO_DISPATCH_SENT'
+
+          run_id=''
+          run_url=''
+          for attempt in $(seq 1 30); do
+            runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-demo-cpanel.yml/runs?event=workflow_dispatch&branch=main&per_page=20")"
+            match="$(printf '%s' "$runs" | jq -c --arg sha "$target_sha" --argjson after "$dispatched_after" '
+              .workflow_runs
+              | map(select(.head_sha == $sha))
+              | map(select((.created_at | fromdateiso8601) >= ($after - 5)))
+              | sort_by(.created_at)
+              | reverse
+              | .[0] // empty
+            ')"
+            if [[ -n "$match" ]]; then
+              run_id="$(printf '%s' "$match" | jq -r '.id')"
+              run_url="$(printf '%s' "$match" | jq -r '.html_url')"
+              break
+            fi
+            sleep 2
+          done
+
+          if [[ -z "$run_id" || -z "$run_url" ]]; then
+            gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "OWNER-AUTHORIZED FRESH DEMO DISPATCH SENT for canonical main \`$target_sha\`, but the new workflow run ID could not be resolved within the bounded lookup window. No deployment-success claim is made."
+            echo 'Unable to resolve fresh Demo deployment run ID.' >&2
+            exit 1
+          fi
+
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "OWNER-AUTHORIZED FRESH DEMO DEPLOYMENT STARTED\n\n- canonical main: \`$target_sha\`\n- fresh workflow run: \`$run_id\`\n- run URL: $run_url\n\nThis is a new workflow_dispatch run using the current canonical deploy workflow. Deployment state must not advance until its protected remote success path and external smoke are green."
+          echo "MODRIK_FRESH_DEMO_RUN_ID=$run_id"
+          echo "MODRIK_FRESH_DEMO_RUN_URL=$run_url"
