@@ -10,6 +10,7 @@ WEB_ROOT="${MODRIK_WEB_ROOT:-$HOME/public_html/demo.modrik.org}"
 BACKEND_ROOT="${MODRIK_BACKEND_ROOT:-$HOME/public_html/api.demo.modrik.org}"
 DEPLOY_ROOT="${MODRIK_DEPLOY_ROOT:-$HOME/deploy/modrik-demo}"
 KEEP_BACKUPS="${MODRIK_KEEP_BACKUPS:-5}"
+CAGEFS_ENTER_BIN="${MODRIK_CAGEFS_ENTER_BIN:-/bin/cagefs_enter.proxied}"
 
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK_DIR="$DEPLOY_ROOT/work/$RELEASE_SHA"
@@ -20,6 +21,7 @@ SOURCE_ROOT="$EXTRACT_DIR/demo-cpanel"
 WEB_BACKUP_READY=0
 WEB_MUTATED=0
 DEPLOY_SUCCEEDED=0
+CLOUDLINUX_SELECTOR_LAST_OUTPUT=""
 
 log() {
   printf '[MODRIK_DEPLOY] %s\n' "$*"
@@ -30,24 +32,34 @@ fail() {
   exit 1
 }
 
-restart_cloudlinux_node_app() {
-  local selector_bin node_user app_root_rel selector_output
+resolve_cloudlinux_selector_bin() {
+  local selector_bin candidate
 
   selector_bin="${MODRIK_CLOUDLINUX_SELECTOR_BIN:-}"
   if [[ -z "$selector_bin" ]]; then
-    selector_bin="$(command -v cloudlinux-selector 2>/dev/null || true)"
-  fi
-  if [[ -z "$selector_bin" ]]; then
-    for candidate in /usr/bin/cloudlinux-selector /usr/sbin/cloudlinux-selector; do
+    # CloudLinux documents /usr/sbin/cloudlinux-selector for CageFS-backed
+    # end-user operations. Prefer that canonical path when installed.
+    for candidate in /usr/sbin/cloudlinux-selector /usr/bin/cloudlinux-selector; do
       if [[ -x "$candidate" ]]; then
         selector_bin="$candidate"
         break
       fi
     done
   fi
+  if [[ -z "$selector_bin" ]]; then
+    selector_bin="$(command -v cloudlinux-selector 2>/dev/null || true)"
+  fi
 
-  [[ -n "$selector_bin" && -x "$selector_bin" ]] \
-    || fail "CloudLinux Node.js Selector CLI is unavailable; cPanel Web restart cannot be proven."
+  [[ -n "$selector_bin" && -x "$selector_bin" ]] || return 1
+  printf '%s\n' "$selector_bin"
+}
+
+cloudlinux_node_action() {
+  local action="${1:?cloudlinux_node_action requires an action}"
+  local selector_bin node_user app_root_rel selector_output
+
+  selector_bin="$(resolve_cloudlinux_selector_bin)" \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="CloudLinux Node.js Selector CLI is unavailable."; return 1; }
 
   node_user="$(id -un)"
   app_root_rel="$WEB_ROOT"
@@ -55,13 +67,50 @@ restart_cloudlinux_node_app() {
     app_root_rel="${WEB_ROOT#"$HOME/"}"
   fi
 
-  log "Restarting Student Web through CloudLinux Node.js Selector user=$node_user app_root=$app_root_rel"
-  if ! selector_output="$("$selector_bin" restart --json --interpreter nodejs --user "$node_user" --app-root "$app_root_rel" 2>&1)"; then
-    fail "CloudLinux Node.js Selector restart failed: ${selector_output:0:2000}"
+  # CloudLinux's end-user CLI contract requires selector actions to enter the
+  # user's CageFS. When this host exposes the documented proxy, execute there
+  # first and omit --user because the command already runs in the cPanel user's
+  # identity. Retain direct invocation only as a compatibility fallback for
+  # hosts without a usable CageFS proxy.
+  if [[ -x "$CAGEFS_ENTER_BIN" ]]; then
+    log "Requesting Student Web $action through CageFS-backed CloudLinux Node.js Selector app_root=$app_root_rel"
+    if selector_output="$("$CAGEFS_ENTER_BIN" "$selector_bin" "$action" --json --interpreter nodejs --app-root "$app_root_rel" 2>&1)" \
+      && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+      return 0
+    fi
+
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    log "CageFS-backed Node.js Selector $action did not complete successfully; trying direct compatibility path"
   fi
 
-  if ! printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
-    fail "CloudLinux Node.js Selector restart did not report success: ${selector_output:0:2000}"
+  log "Requesting Student Web $action through direct CloudLinux Node.js Selector user=$node_user app_root=$app_root_rel"
+  if selector_output="$("$selector_bin" "$action" --json --interpreter nodejs --user "$node_user" --app-root "$app_root_rel" 2>&1)" \
+    && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    return 0
+  fi
+
+  CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+  return 1
+}
+
+restart_cloudlinux_node_app() {
+  if ! cloudlinux_node_action restart; then
+    fail "CloudLinux Node.js Selector restart failed: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
+  fi
+}
+
+recycle_cloudlinux_node_app() {
+  log "Recycling Student Web with an explicit CloudLinux stop/start cycle"
+  if ! cloudlinux_node_action stop; then
+    fail "CloudLinux Node.js Selector stop failed: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
+  fi
+
+  sleep "${MODRIK_NODE_RECYCLE_STOP_DELAY_SECONDS:-2}"
+
+  if ! cloudlinux_node_action start; then
+    fail "CloudLinux Node.js Selector start failed: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
   fi
 }
 
@@ -179,9 +228,8 @@ cd "$BACKEND_ROOT"
 
 log "Requesting canonical cPanel Node.js application restart"
 # The cPanel UI for demo.modrik.org is backed by CloudLinux Node.js Selector.
-# tmp/restart.txt is retained as a secondary Passenger signal, but deployment
-# success requires the same selector-level restart path that the cPanel RESTART
-# button uses for Application Root public_html/demo.modrik.org.
+# tmp/restart.txt is retained as a secondary Passenger signal, while the
+# selector operation follows the documented CageFS end-user control plane.
 touch "$WEB_ROOT/tmp/restart.txt"
 restart_cloudlinux_node_app
 
@@ -189,15 +237,15 @@ log "Waiting for bounded Student Web restart convergence"
 if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
   MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
   bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
-  log "Initial Student Web convergence window expired; requesting one bounded canonical restart retry"
+  log "Initial Student Web convergence window expired; escalating to one bounded stop/start recycle"
   touch "$WEB_ROOT/tmp/restart.txt"
-  restart_cloudlinux_node_app
+  recycle_cloudlinux_node_app
 
-  if ! MODRIK_WEB_RESTART_ATTEMPTS="${MODRIK_WEB_RESTART_RETRY_ATTEMPTS:-12}" \
+  if ! MODRIK_WEB_RESTART_ATTEMPTS="${MODRIK_WEB_RECYCLE_ATTEMPTS:-${MODRIK_WEB_RESTART_RETRY_ATTEMPTS:-12}}" \
     MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
     MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
     bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
-    fail "Demo Web runtime did not reach the requested release after the bounded restart retry."
+    fail "Demo Web runtime did not reach the requested release after the bounded stop/start recycle."
   fi
 fi
 
