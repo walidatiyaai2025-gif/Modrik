@@ -1,0 +1,54 @@
+name: Issue 305 Restore Contract Validator Once
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.head_ref == 'issue-305-year-scoped-self-selection'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: issue-305-year-scoped-self-selection
+          fetch-depth: 0
+      - name: Restore validator and apply academic-only contract deltas
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git show origin/main:scripts/validate-contracts.mjs > scripts/validate-contracts.mjs
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('scripts/validate-contracts.mjs')
+          s = p.read_text(encoding='utf-8')
+          old = 'assert.equal(openapi.paths["/v1/academic-tracks"].get.operationId, "listAuthorizedAcademicTracks");'
+          new = 'assert.equal(openapi.paths["/v1/academic-tracks"].get.operationId, "listAvailableAcademicTracks");'
+          if s.count(old) != 1:
+              raise SystemExit('operationId assertion not found exactly once')
+          s = s.replace(old, new)
+          old = 'assert.deepEqual(openapi.components.schemas.AcademicTrackCatalogueItem.required, ["id", "labels"]);'
+          new = '''assert.deepEqual(openapi.components.schemas.AcademicTrackCatalogueItem.required, ["id", "year", "labels"]);
+          assert.deepEqual(openapi.components.schemas.AcademicTrackCatalogueItem.properties.year.required, ["key", "label"]);
+          assert.equal(openapi.components.schemas.AcademicTrackCatalogueItem.properties.year.additionalProperties, false);'''
+          if s.count(old) != 1:
+              raise SystemExit('catalogue required assertion not found exactly once')
+          s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+          PY
+          rm -f .github/workflows/issue-305-validator-restore-once.yml
+          git diff --check
+          git diff -- scripts/validate-contracts.mjs
+          test "$(git diff --numstat origin/main -- scripts/validate-contracts.mjs | awk '{print $1+$2}')" -le 8
+          grep -q 'listAvailableAcademicTracks' scripts/validate-contracts.mjs
+          grep -q 'AcademicTrackCatalogueItem.properties.year.required' scripts/validate-contracts.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/validate-contracts.mjs .github/workflows/issue-305-validator-restore-once.yml
+          git commit -m "fix: restore governed contract validator for academic catalogue (#305)"
+          git push origin HEAD:issue-305-year-scoped-self-selection
