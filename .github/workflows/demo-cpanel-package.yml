@@ -70,26 +70,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -f .runtime/demo-cpanel/web/server.js
+          node --check .runtime/demo-cpanel/web/server.js
+          grep -q 'Packaged MODRIK release identity is invalid' .runtime/demo-cpanel/web/server.js
+          grep -q 'require(modrikPath.join(modrikAppRoot, "server.js"))' .runtime/demo-cpanel/web/server.js
           test -f .runtime/demo-cpanel/web/startup.cjs
           node --check .runtime/demo-cpanel/web/startup.cjs
+          grep -q 'require("./server.js")' .runtime/demo-cpanel/web/startup.cjs
           test -s .runtime/demo-cpanel/web/RELEASE_SHA.txt
           test -s .runtime/demo-cpanel/RELEASE_SHA.txt
           cmp -s .runtime/demo-cpanel/RELEASE_SHA.txt .runtime/demo-cpanel/web/RELEASE_SHA.txt
           test -f .runtime/demo-cpanel/web/WEB_APPLICATION_ROOT.txt
           web_app_rel="$(tr -d '\r\n' < .runtime/demo-cpanel/web/WEB_APPLICATION_ROOT.txt)"
-          test -n "$web_app_rel"
-          direct_server=".runtime/demo-cpanel/web/$web_app_rel/server.js"
-          direct_release=".runtime/demo-cpanel/web/$web_app_rel/RELEASE_SHA.txt"
+          test "$web_app_rel" = "."
+          direct_server=".runtime/demo-cpanel/web/server.js"
+          direct_release=".runtime/demo-cpanel/web/RELEASE_SHA.txt"
           test -f "$direct_server"
           node --check "$direct_server"
           test -s "$direct_release"
           cmp -s .runtime/demo-cpanel/RELEASE_SHA.txt "$direct_release"
-          grep -q 'Packaged MODRIK release identity is invalid' "$direct_server"
 
           validator=.runtime/demo-cpanel/deploy/validate-cloudlinux-node-state.php
           test -f "$validator"
           php -l "$validator"
-          cat <<'JSON' | php "$validator" public_html/demo.modrik.org demo.modrik.org 22 startup.cjs started | grep -q '^MODRIK_SELECTOR_STATE_OK '
+          cat <<'JSON' | php "$validator" public_html/demo.modrik.org demo.modrik.org 22 server.js started | grep -q '^MODRIK_SELECTOR_STATE_OK '
           {
             "result": "success",
             "available_versions": {
@@ -99,7 +103,7 @@ jobs:
                     "applications": {
                       "public_html/demo.modrik.org": {
                         "domain": "demo.modrik.org",
-                        "startup_file": "startup.cjs",
+                        "startup_file": "server.js",
                         "app_mode": "production",
                         "app_status": "started"
                       }
@@ -130,11 +134,10 @@ jobs:
           test -n "$ZIP_FILE"
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/DEPLOY.md'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/PORTALS.md'
+          unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/web/server.js'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/web/startup.cjs'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/web/RELEASE_SHA.txt'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/web/WEB_APPLICATION_ROOT.txt'
-          unzip -l "$ZIP_FILE" | grep -q "demo-cpanel/web/$web_app_rel/server.js"
-          unzip -l "$ZIP_FILE" | grep -q "demo-cpanel/web/$web_app_rel/RELEASE_SHA.txt"
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/deploy/validate-cloudlinux-node-state.php'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/public/index.php'
           unzip -l "$ZIP_FILE" | grep -q 'demo-cpanel/backend/public/build/manifest.json'
@@ -145,7 +148,7 @@ jobs:
             exit 1
           fi
 
-      - name: Boot direct packaged Next server and verify static assets
+      - name: Boot canonical root server.js and verify static assets
         shell: bash
         run: |
           set -euo pipefail
@@ -153,8 +156,9 @@ jobs:
           packaged_release="$(tr -d '\r\n' < .runtime/demo-cpanel/web/RELEASE_SHA.txt)"
           short_release="${packaged_release:0:12}"
           web_app_rel="$(tr -d '\r\n' < .runtime/demo-cpanel/web/WEB_APPLICATION_ROOT.txt)"
-          direct_server="$PWD/.runtime/demo-cpanel/web/$web_app_rel/server.js"
+          direct_server="$PWD/.runtime/demo-cpanel/web/server.js"
           test -n "$packaged_release"
+          test "$web_app_rel" = "."
           test -f "$direct_server"
 
           require_contains() {
@@ -179,12 +183,15 @@ jobs:
             echo "MODRIK_PACKAGE_ASSERT_OK $label"
           }
 
-          PORT=3217 \
-          HOSTNAME=127.0.0.1 \
-          NODE_ENV=production \
-          MODRIK_API_BASE_URL=https://api.demo.modrik.org \
-          MODRIK_ADMIN_PORTAL_URL=https://api.demo.modrik.org/admin/login \
-          node "$direct_server" >"$log" 2>&1 &
+          (
+            cd .runtime/demo-cpanel/web
+            PORT=3217 \
+            HOSTNAME=127.0.0.1 \
+            NODE_ENV=production \
+            MODRIK_API_BASE_URL=https://api.demo.modrik.org \
+            MODRIK_ADMIN_PORTAL_URL=https://api.demo.modrik.org/admin/login \
+            node server.js
+          ) >"$log" 2>&1 &
           server_pid=$!
           cleanup() {
             kill "$server_pid" >/dev/null 2>&1 || true
@@ -202,7 +209,7 @@ jobs:
           done
           if [[ "$ready" != 1 ]]; then
             cat "$log" >&2
-            echo 'Direct packaged Next server did not become reachable.' >&2
+            echo 'Canonical root server.js did not become reachable.' >&2
             exit 1
           fi
 
@@ -229,7 +236,7 @@ jobs:
           require_contains student-release-badge "$student" 'data-testid="modrik-web-release-badge"'
           require_contains student-short-release "$student" "Build $short_release"
           require_absent student-error-boundary "$student" 'This screen could not be completed.'
-          echo "MODRIK_PACKAGED_WEB_RUNTIME_OK release=$short_release startup=$web_app_rel/server.js portals=landing,student static_css=ok"
+          echo "MODRIK_PACKAGED_WEB_RUNTIME_OK release=$short_release startup=server.js portals=landing,student static_css=ok"
 
       - name: Upload cPanel Demo ZIP
         uses: actions/upload-artifact@v4
