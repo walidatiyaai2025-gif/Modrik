@@ -28,6 +28,7 @@ jobs:
           start = next(i for i, line in enumerate(workflow) if "python3 <<'PY'" in line) + 1
           end = next(i for i in range(start, len(workflow)) if workflow[i].strip() == 'PY')
           source = textwrap.dedent('\n'.join(workflow[start:end]))
+          source = source.replace('AcademicTrack:', 'AcademicTrackCatalogueItem:')
           exec(compile(source, 'issue-305-owner-patch.py', 'exec'), {})
           PY
           rm -f .github/workflows/issue-305-apply-patch-once.yml .github/workflows/issue-305-pr-patch-trigger.yml
