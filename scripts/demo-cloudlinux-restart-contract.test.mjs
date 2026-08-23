@@ -34,6 +34,23 @@ test("remote deploy follows CloudLinux end-user CageFS selector semantics before
   assert.ok(directCall > cagefsCall);
 });
 
+test("remote deploy configures a private Passenger log before canonical restart", () => {
+  const runner = readFileSync(runnerPath, "utf8");
+
+  assert.match(runner, /PASSENGER_LOG_FILE="\$\{MODRIK_PASSENGER_LOG_FILE:-\$DEPLOY_ROOT\/logs\/student-web-passenger\.log\}"/);
+  assert.match(runner, /configure_cloudlinux_passenger_log\(\)/);
+  assert.match(runner, /--passenger-log-file="\$PASSENGER_LOG_FILE"/);
+  assert.match(runner, /chmod 600 "\$PASSENGER_LOG_FILE"/);
+
+  const config = runner.indexOf('log "Configuring private Passenger diagnostics before Student Web restart"');
+  const configureCall = runner.indexOf("configure_cloudlinux_passenger_log", config);
+  const restart = runner.indexOf('log "Requesting canonical cPanel Node.js application restart"', configureCall);
+
+  assert.ok(config >= 0);
+  assert.ok(configureCall > config);
+  assert.ok(restart > configureCall);
+});
+
 test("remote deploy uses the canonical restart path before release convergence", () => {
   const runner = readFileSync(runnerPath, "utf8");
 
@@ -75,6 +92,26 @@ test("remote deploy escalates one failed restart window to stop-start recycle be
   assert.ok(recycleAttempts > recycleCall);
   assert.ok(recycleWait > recycleAttempts);
   assert.ok(terminalFailure > recycleWait);
+});
+
+test("final convergence failure emits redacted Passenger diagnostics before rollback failure", () => {
+  const runner = readFileSync(runnerPath, "utf8");
+
+  assert.match(runner, /emit_passenger_startup_diagnostics\(\)/);
+  assert.match(runner, /MODRIK_PASSENGER_DIAG_BEGIN/);
+  assert.match(runner, /\[REDACTED\]/);
+  assert.match(runner, /tail -n 120 "\$PASSENGER_LOG_FILE"/);
+
+  const recycleWait = runner.indexOf(
+    "wait-for-demo-web-release.sh",
+    runner.indexOf("MODRIK_WEB_RECYCLE_ATTEMPTS"),
+  );
+  const diagnostics = runner.indexOf("emit_passenger_startup_diagnostics", recycleWait);
+  const terminalFailure = runner.indexOf("did not reach the requested release after the bounded stop/start recycle", diagnostics);
+
+  assert.ok(recycleWait >= 0);
+  assert.ok(diagnostics > recycleWait);
+  assert.ok(terminalFailure > diagnostics);
 });
 
 test("failed live Web mutation restores the pre-deploy payload without recording deployment success", () => {
