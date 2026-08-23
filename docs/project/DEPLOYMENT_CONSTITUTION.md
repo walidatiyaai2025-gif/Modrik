@@ -43,16 +43,21 @@ Until an owner-authorized hosting migration changes this contract, the Demo Web 
 
 - Host: `demo.modrik.org`.
 - Platform: cPanel + CloudLinux Node.js Selector + LiteSpeed Web Server.
-- cPanel account application root: `public_html/demo.modrik.org`.
+- cPanel account Application Root: `public_html/demo.modrik.org`.
 - Node line: repository-locked Node `22.23.2` / compatible installed Node 22 runtime.
 - Application mode: `production`.
 - Application URL/domain: `demo.modrik.org`.
 - Web product: Next.js standalone server runtime; **not** a static export.
-- Canonical startup: the generated Next standalone `server.js` inside the packaged standalone application path recorded by `web/WEB_APPLICATION_ROOT.txt`.
-- `startup.cjs` may exist only as a compatibility/rollback bridge; it is not the canonical LiteSpeed startup for new successful deployments.
+- Canonical CloudLinux startup file: **root-level `server.js`** in the cPanel Application Root.
+- `WEB_APPLICATION_ROOT.txt` must contain `.` for this topology so the deployment runner and CloudLinux resolve the same root startup.
+- The root `server.js` is an artifact-owned CommonJS bootstrap that injects immutable release identity, changes into the untouched generated Next standalone application directory, and loads Next's generated `server.js`.
+- A nested startup registration such as `apps/web/server.js` is prohibited for this topology even when that is where a monorepo build places Next's generated server internally.
+- `startup.cjs` may exist only as a compatibility/rollback bridge and must delegate to root `server.js`; it is not the canonical LiteSpeed startup.
 - Backend: Laravel under `api.demo.modrik.org`, preserving its live `.env` and `storage` boundary.
 
-LiteSpeed officially supports CloudLinux Selector-generated mod_passenger configuration but uses its own implementation internally. Its documented Next.js path is to compile standalone and use the generated `server.js` as the startup script. Deployment logic must therefore reason about LiteSpeed/CloudLinux state, not assume Apache Passenger process/log behavior.
+CloudLinux's cPanel Node.js Selector UI defines the startup as a `NAME.js` file, while LiteSpeed documents Next.js standalone `server.js` as the supported startup form. MODRIK therefore exposes one root-level `server.js` that satisfies the Selector filename contract while preserving Next's traced monorepo standalone layout behind it.
+
+The governed incident evidence from 2026-08-23 is binding until disproven: Selector accepted both `startup.cjs` and nested `apps/web/server.js`, but LiteSpeed produced neither a serving `lsnode` runtime nor application `stderr.log`; the exact Node 22 standalone server itself passed loopback preflight. Repeating those registrations is prohibited.
 
 ## 3. Immutable artifact contract
 
@@ -61,14 +66,15 @@ Every deployable Web artifact must contain all information required to identify 
 Required Web payload invariants:
 
 - `RELEASE_SHA.txt` at Web payload root;
-- `WEB_APPLICATION_ROOT.txt` at Web payload root;
-- `RELEASE_SHA.txt` beside the canonical standalone `server.js`;
+- `WEB_APPLICATION_ROOT.txt` at Web payload root and its value is exactly `.`;
+- canonical root-level `server.js` at Web payload root;
 - package-level and Web-level release SHA values are byte-identical;
-- canonical standalone `server.js` injects the packaged release identity before Next runtime loads;
-- `.next/static` and `public` assets are co-located as required by Next standalone runtime;
+- canonical root `server.js` injects the packaged release identity before Next runtime loads;
+- canonical root `server.js` delegates to the generated Next standalone `server.js` without flattening or deleting traced monorepo dependencies;
+- `.next/static` and `public` assets are co-located with the generated Next standalone application as required by Next runtime;
 - no live `.env`, credential, token or production data enters the artifact.
 
-A package that cannot boot its **direct canonical standalone `server.js`** in CI is undeployable.
+A package that cannot boot its **canonical root `server.js`** in CI is undeployable.
 
 ## 4. Runtime reconciliation, not blind restart
 
@@ -87,14 +93,14 @@ Rules:
 
 - A missing or ambiguous target application is a hard failure; do not create/destroy an application implicitly.
 - Root/domain/version drift is a hard failure unless the current Issue explicitly owns that migration.
-- Startup-file drift may be reconciled only to the artifact-derived canonical standalone `server.js`, followed by read-back verification.
+- Startup-file drift may be reconciled only to root-level `server.js`, followed by read-back verification.
 - Selector `success` output is not enough; the generated/observable runtime configuration must match the requested value.
 - Do not directly hand-edit Selector-managed `.htaccess` as a normal deployment mechanism.
 - Do not repeat unbounded restart loops.
 
 ## 5. Exact-Node preflight is mandatory
 
-After the live Web payload is copied but before public activation, deployment must launch the exact live canonical standalone `server.js` using the same Node binary selected by the hosting runtime, on a bounded loopback-only port.
+After the live Web payload is copied but before public activation, deployment must launch the exact live canonical **root `server.js`** using the same Node binary selected by the hosting runtime, on a bounded loopback-only port.
 
 It must verify:
 
@@ -112,12 +118,13 @@ This isolates application/package failure from hosting activation failure and mu
 
 After preflight and desired-state reconciliation:
 
-1. normalize the hosting restart marker permissions required by LiteSpeed/Selector;
-2. request one canonical CloudLinux restart through the documented CageFS end-user path;
-3. probe the cPanel origin for exact release identity;
-4. if needed, perform one bounded `stop -> start` recycle;
-5. probe again;
-6. if exact identity still does not converge, fail closed and rollback.
+1. reconcile CloudLinux startup to root-level `server.js` and verify Selector read-back;
+2. normalize the hosting restart marker permissions required by LiteSpeed/Selector;
+3. request one canonical CloudLinux restart through the documented CageFS end-user path;
+4. probe the cPanel origin for exact release identity;
+5. if needed, perform one bounded `stop -> start` recycle;
+6. probe again;
+7. if exact identity still does not converge, fail closed and rollback.
 
 Manual cPanel restart is an emergency diagnostic or recovery tool only. It is never accepted as normal release evidence and must not be required for routine deployment.
 
@@ -149,7 +156,7 @@ Diagnostics must follow the actual hosting implementation.
 - Diagnostic logging is observability; inability to configure an optional custom log must not itself make an otherwise healthy release undeployable.
 - All emitted diagnostics must be bounded and redact credentials/tokens/cookies/secrets.
 
-If exact-Node preflight passes, desired state matches, Selector activation returns success, but no LiteSpeed Node runtime can be spawned, classify the event as a hosting-runtime blocker rather than modifying application code blindly.
+If exact-Node preflight passes, desired state matches, Selector activation returns success, but no LiteSpeed Node runtime can be spawned, classify the event as a hosting-runtime blocker. Before escalating outside the repository, verify the startup registration conforms to this root `NAME.js` contract; do not regress to `.cjs` or nested startup paths.
 
 ## 9. External acceptance
 
@@ -175,7 +182,7 @@ Any PR changing deployment packaging, runtime startup, cPanel/CloudLinux integra
 - never weaken exact-SHA or route gates;
 - enter `main` through a focused PR.
 
-`GOV-DEPLOY-001` itself is enforced by repository contract tests. Removing its references from `AGENTS.md` / `PROJECT_CONTROL.md`, restoring wrapper-first startup, or removing direct standalone runtime checks must make CI fail.
+`GOV-DEPLOY-001` itself is enforced by repository contract tests. Removing its references from `AGENTS.md` / `PROJECT_CONTROL.md`, restoring wrapper-first `.cjs` startup, restoring nested CloudLinux startup paths, or removing root `server.js` runtime checks must make CI fail.
 
 ## 11. Prohibited recurring failure patterns
 
@@ -185,7 +192,9 @@ The following are explicitly prohibited:
 - treating a stale public runtime as a cache issue without origin evidence;
 - changing release gates to match stale output;
 - relying on a mutable release environment variable when the release can be artifact-owned;
-- using `startup.cjs` as the canonical LiteSpeed Next startup after the direct standalone contract is available;
+- using `startup.cjs` as the canonical LiteSpeed Next startup;
+- registering a nested startup path such as `apps/web/server.js` for the locked Demo Application Root;
+- changing `WEB_APPLICATION_ROOT.txt` away from `.` without an explicit topology migration;
 - blind repeated restart/stop/start loops without state reconciliation;
 - assuming Passenger logs/processes exist because CloudLinux uses Passenger-compatible directives;
 - leaving new files active after a failed runtime transition;
