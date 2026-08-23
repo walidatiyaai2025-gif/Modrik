@@ -1,0 +1,61 @@
+name: Demo LiteSpeed build report
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-litespeed-build-report.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+    steps:
+      - name: Record run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "LITESPEED BUILD CHECK STARTED — run \`$GITHUB_RUN_ID\`"
+      - name: Install FTPS client
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends lftp >/dev/null
+      - name: Probe build files
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"; nonce="$(openssl rand -hex 12)"
+          bridge="modrik-lsws-build-$nonce.php"; token_file=".modrik-lsws-build-token-$nonce"
+          echo "::add-mask::$token"; printf '%s' "$token" >/tmp/token
+          cat >/tmp/probe.php <<'PHP'
+          <?php
+          declare(strict_types=1); header('Content-Type: application/json');
+          $e=trim((string)@file_get_contents(__DIR__.'/__TOKEN_FILE__')); if($e===''||!hash_equals($e,(string)($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN']??''))){http_response_code(404);exit;}
+          $files=['VERSION'=>'/usr/local/lsws/VERSION','BUILD'=>'/usr/local/lsws/BUILD','autoupdate_build'=>'/usr/local/lsws/autoupdate/build','autoupdate_release'=>'/usr/local/lsws/autoupdate/release'];
+          $out=[]; foreach($files as $k=>$p){$v=is_readable($p)?trim((string)@file_get_contents($p)):null; $out[$k]=is_string($v)?substr($v,0,100):null;}
+          echo json_encode(['ok'=>true,'litespeed'=>$out],JSON_UNESCAPED_SLASHES);
+          PHP
+          sed -i "s|__TOKEN_FILE__|$token_file|g" /tmp/probe.php
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set cmd:fail-exit yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; put /tmp/token -o $token_file; put /tmp/probe.php -o $bridge; bye;"
+          curl --fail --silent --show-error --max-time 30 --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" -H "X-MODRIK-Diag-Token: $token" "https://$BRIDGE_HOST/$bridge" > "$RUNNER_TEMP/build.json"
+          jq . "$RUNNER_TEMP/build.json"
+          echo "REMOTE_BRIDGE=$bridge" >> "$GITHUB_ENV"; echo "REMOTE_TOKEN_FILE=$token_file" >> "$GITHUB_ENV"
+      - name: Publish build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          compact="$(jq -c . "$RUNNER_TEMP/build.json")"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "LITESPEED BUILD CHECK COMPLETED\n\n- run: \`$GITHUB_RUN_ID\`\n\n\`\`\`json\n$compact\n\`\`\`"
+      - name: Cleanup
+        if: always()
+        run: |
+          set +e
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; rm -f ${REMOTE_TOKEN_FILE:-.missing}; rm -f ${REMOTE_BRIDGE:-.missing}; bye;" || true
