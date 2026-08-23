@@ -1,0 +1,92 @@
+name: Demo host control-plane probe
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-host-control-plane-probe.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+    steps:
+      - name: Record run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "HOST CONTROL-PLANE PROBE STARTED — run \`$GITHUB_RUN_ID\`"
+      - name: Install FTPS client
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends lftp >/dev/null
+      - name: Run protected read-only host probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"; nonce="$(openssl rand -hex 12)"
+          bridge="modrik-host-probe-$nonce.php"; token_file=".modrik-host-probe-token-$nonce"
+          echo "::add-mask::$token"; printf '%s' "$token" >/tmp/token
+          cat >/tmp/probe.php <<'PHP'
+          <?php
+          declare(strict_types=1); header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+          $expected=trim((string)@file_get_contents(__DIR__.'/__TOKEN_FILE__'));
+          if($expected===''||!hash_equals($expected,(string)($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN']??''))){http_response_code(404);exit;}
+          $run=static function(array $cmd):array{$d=[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']];$p=@proc_open($cmd,$d,$pipes,'/home/solscool',null,['bypass_shell'=>true]);if(!is_resource($p))return ['exit'=>-1,'out'=>''];fclose($pipes[0]);$o=(string)stream_get_contents($pipes[1]);$e=(string)stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);return ['exit'=>proc_close($p),'out'=>trim($o."\n".$e)];};
+
+          $lsv=$run(['/usr/local/lsws/bin/lshttpd','-v']);
+          $versionFile=is_readable('/usr/local/lsws/VERSION')?trim((string)@file_get_contents('/usr/local/lsws/VERSION')):null;
+
+          $uapi='/usr/local/cpanel/bin/uapi';
+          $apps=['available'=>is_executable($uapi),'exit'=>null,'status'=>null,'demo_present'=>null,'count'=>null];
+          if($apps['available']){
+              $r=$run([$uapi,'--output=json','PassengerApps','list_applications']);
+              $apps['exit']=$r['exit']; $j=json_decode($r['out'],true);
+              if(is_array($j)){
+                  $apps['status']=$j['result']['status']??null;
+                  $data=$j['result']['data']??null;
+                  $apps['demo_present']=str_contains(json_encode($data,JSON_UNESCAPED_SLASHES)?:'', 'demo.modrik.org');
+                  $apps['count']=is_array($data)?count($data):0;
+              }
+          }
+
+          $paths=['/usr/local/lsws/logs/error.log','/usr/local/lsws/conf/httpd_config.xml','/tmp/lshttpd'];
+          $access=[]; foreach($paths as $p){$access[$p]=['exists'=>file_exists($p),'readable'=>is_readable($p),'executable'=>is_executable($p)];}
+
+          $signals=['demo_lines'=>0,'lsnode'=>0,'socket'=>0,'permission'=>0,'fork'=>0,'eagain'=>0,'503'=>0];
+          $log='/usr/local/lsws/logs/error.log';
+          if(is_readable($log)){
+              $fh=@fopen($log,'rb'); if($fh){@fseek($fh,-min(1048576,(int)@filesize($log)),SEEK_END); $tail=(string)stream_get_contents($fh); fclose($fh);
+                  foreach(preg_split('/\R/',$tail)?:[] as $line){if(stripos($line,'demo.modrik.org')===false && stripos($line,'lsnode')===false)continue; $signals['demo_lines']++; foreach(['lsnode','socket','permission','fork','eagain','503'] as $k){if(stripos($line,$k)!==false)$signals[$k]++;}}
+              }
+          }
+
+          $tmp=['accessible'=>is_readable('/tmp/lshttpd'),'user_owned_entries'=>0,'socket_entries'=>0];
+          if($tmp['accessible']){foreach(glob('/tmp/lshttpd/*')?:[] as $p){if(@fileowner($p)===1103){$tmp['user_owned_entries']++; if(@filetype($p)==='socket'||str_ends_with($p,'.sock'))$tmp['socket_entries']++;}}}
+
+          echo json_encode(['ok'=>true,'lshttpd'=>['exit'=>$lsv['exit'],'output'=>substr($lsv['out'],0,500),'version_file'=>$versionFile],'local_passenger_uapi'=>$apps,'access'=>$access,'log_signals'=>$signals,'tmp_lshttpd'=>$tmp],JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT);
+          PHP
+          sed -i "s|__TOKEN_FILE__|$token_file|g" /tmp/probe.php
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set cmd:fail-exit yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; put /tmp/token -o $token_file; put /tmp/probe.php -o $bridge; bye;"
+          curl --fail --silent --show-error --max-time 45 --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" -H "X-MODRIK-Diag-Token: $token" "https://$BRIDGE_HOST/$bridge" > "$RUNNER_TEMP/probe.json"
+          jq . "$RUNNER_TEMP/probe.json"
+          echo "REMOTE_BRIDGE=$bridge" >> "$GITHUB_ENV"; echo "REMOTE_TOKEN_FILE=$token_file" >> "$GITHUB_ENV"
+      - name: Publish sanitized probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          compact="$(jq -c . "$RUNNER_TEMP/probe.json")"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "HOST CONTROL-PLANE PROBE COMPLETED\n\n- run: \`$GITHUB_RUN_ID\`\n\n\`\`\`json\n$compact\n\`\`\`"
+      - name: Cleanup
+        if: always()
+        run: |
+          set +e
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; rm -f ${REMOTE_TOKEN_FILE:-.missing}; rm -f ${REMOTE_BRIDGE:-.missing}; bye;" || true
