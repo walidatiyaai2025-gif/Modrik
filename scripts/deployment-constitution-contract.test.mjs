@@ -34,7 +34,8 @@ test("LiteSpeed canonical startup is the direct Next standalone server", () => {
 });
 
 test("release identity remains artifact-owned and exact-SHA gated", () => {
-  assert.match(constitution, /Release identity is artifact-owned/i);
+  assert.match(constitution, /without mutable per-release cPanel environment edits/);
+  assert.match(constitution, /RELEASE_SHA\.txt` beside the canonical standalone `server\.js`/);
   assert.match(packager, /RELEASE_SHA\.txt/);
   assert.match(packager, /process\.env\.MODRIK_RELEASE_SHA = modrikRelease/);
   assert.match(remote, /MODRIK deployed release: \$RELEASE_SHA/);
@@ -43,7 +44,10 @@ test("release identity remains artifact-owned and exact-SHA gated", () => {
 });
 
 test("deployment rollback covers payload and runtime registration", () => {
-  assert.match(constitution, /restore both Web payload and any mutated runtime registration/);
+  assert.match(
+    constitution,
+    /restore previous Web payload;[\s\S]*restore previous startup-file registration;/,
+  );
   assert.match(remote, /ORIGINAL_STARTUP_FILE/);
   assert.match(remote, /cloudlinux_set_startup_file "\$ORIGINAL_STARTUP_FILE"/);
   assert.match(remote, /tar -xzf "\$BACKUP_DIR\/web\.tar\.gz"/);
