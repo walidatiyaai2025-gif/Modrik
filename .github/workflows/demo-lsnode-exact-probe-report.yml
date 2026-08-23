@@ -1,0 +1,136 @@
+name: Exact LiteSpeed lsnode integration report
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-lsnode-exact-probe-report.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_URL: https://50sols.com
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+
+    steps:
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Prepare protected read-only probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 12)"
+          bridge="modrik-lsnode-report-$nonce.php"
+          token_file=".modrik-lsnode-report-token-$nonce"
+          echo "::add-mask::$token"
+          printf '%s' "$token" > /tmp/modrik-lsnode-report-token
+
+          cat > /tmp/modrik-lsnode-report.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          header('Content-Type: application/json; charset=utf-8');
+          header('Cache-Control: no-store');
+          $expected = trim((string) @file_get_contents(__DIR__ . '/__TOKEN_FILE__'));
+          $provided = (string) ($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN'] ?? '');
+          if ($expected === '' || !hash_equals($expected, $provided)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
+          $path = '/usr/local/lsws/fcgi-bin/lsnode.js';
+          $script = '/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh';
+          $scriptText = is_readable($script) ? (string) @file_get_contents($script) : '';
+          $cagefsOut = '';
+          if (is_executable('/bin/cagefs_enter.proxied')) {
+              $d = [0 => ['pipe','r'], 1 => ['pipe','w'], 2 => ['pipe','w']];
+              $p = @proc_open(['/bin/cagefs_enter.proxied','/bin/bash','-lc','if test -f /usr/local/lsws/fcgi-bin/lsnode.js; then echo yes; else echo no; fi'], $d, $pipes, '/home/solscool', null, ['bypass_shell' => true]);
+              if (is_resource($p)) {
+                  fclose($pipes[0]);
+                  $cagefsOut = trim((string) stream_get_contents($pipes[1]));
+                  stream_get_contents($pipes[2]);
+                  fclose($pipes[1]);
+                  fclose($pipes[2]);
+                  proc_close($p);
+              }
+          }
+          echo json_encode([
+              'ok' => true,
+              'lsnode_js_exists' => is_file($path),
+              'lsnode_js_readable' => is_readable($path),
+              'lsnode_js_size' => is_file($path) ? @filesize($path) : null,
+              'cagefs_lsnode_js_exists' => $cagefsOut === 'yes',
+              'enable_script_exists' => is_file($script),
+              'enable_script_executable' => is_executable($script),
+              'enable_script_mentions_lsnode_js' => $scriptText !== '' && stripos($scriptText, 'lsnode.js') !== false,
+          ], JSON_UNESCAPED_SLASHES);
+          PHP
+
+          sed -i -e "s|__TOKEN_FILE__|$token_file|g" /tmp/modrik-lsnode-report.php
+          {
+            echo "REMOTE_BRIDGE=$bridge"
+            echo "REMOTE_TOKEN_FILE=$token_file"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload and execute probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            put /tmp/modrik-lsnode-report-token -o $REMOTE_TOKEN_FILE;
+            put /tmp/modrik-lsnode-report.php -o $REMOTE_BRIDGE;
+            bye;
+          "
+          token="$(cat /tmp/modrik-lsnode-report-token)"
+          body="$RUNNER_TEMP/lsnode-report.json"
+          curl --fail --silent --show-error --max-time 30 \
+            --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
+            -H "X-MODRIK-Diag-Token: $token" \
+            "$BRIDGE_URL/$REMOTE_BRIDGE" > "$body"
+          jq . "$body"
+          jq -e '.ok == true' "$body" >/dev/null
+
+      - name: Publish exact result to Issue 260
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$RUNNER_TEMP/lsnode-report.json"
+          compact="$(jq -c . "$body")"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "EXACT LITESPEED LSNODE INTEGRATION PROBE COMPLETED\n\n- run: \`$GITHUB_RUN_ID\`\n- branch SHA: \`$GITHUB_SHA\`\n\n\`\`\`json\n$compact\n\`\`\`"
+
+      - name: Remove one-shot files
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          timeout 30 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            rm -f ${REMOTE_TOKEN_FILE:-.missing};
+            rm -f ${REMOTE_BRIDGE:-.missing};
+            bye;
+          "
+          exit 0
