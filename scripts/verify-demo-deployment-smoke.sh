@@ -15,8 +15,26 @@ WEB_URL="${MODRIK_DEMO_WEB_URL:-https://demo.modrik.org/}"
 STUDENT_URL="${MODRIK_DEMO_STUDENT_URL:-https://demo.modrik.org/student}"
 ADMIN_LOGIN_URL="${MODRIK_DEMO_ADMIN_LOGIN_URL:-https://api.demo.modrik.org/admin/login}"
 
+cache_busted_url() {
+  local url="$1"
+  local label="$2"
+  local separator='?'
+
+  if [[ "$url" == *'?'* ]]; then
+    separator='&'
+  fi
+
+  printf '%s%smodrik_release_probe=%s-%s' "$url" "$separator" "$SHORT_SHA" "$label"
+}
+
 fetch() {
-  curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 "$1"
+  local url="$1"
+  local label="$2"
+
+  curl --fail --silent --show-error --retry 5 --retry-delay 2 --max-time 20 \
+    -H 'Cache-Control: no-cache, no-store, max-age=0' \
+    -H 'Pragma: no-cache' \
+    "$(cache_busted_url "$url" "$label")"
 }
 
 require_release_identity() {
@@ -31,12 +49,12 @@ require_release_identity() {
   fi
 }
 
-if ! fetch "$API_UP_URL" >/dev/null; then
+if ! fetch "$API_UP_URL" api >/dev/null; then
   echo 'MODRIK_DEPLOY_API_UNREACHABLE' >&2
   exit 1
 fi
 
-if ! web_body="$(fetch "$WEB_URL")"; then
+if ! web_body="$(fetch "$WEB_URL" web)"; then
   echo 'MODRIK_DEPLOY_WEB_UNREACHABLE' >&2
   exit 1
 fi
@@ -50,7 +68,7 @@ if [[ "$web_body" != *'data-testid="modrik-landing-page"'* ]] \
   exit 1
 fi
 
-if ! student_body="$(fetch "$STUDENT_URL")"; then
+if ! student_body="$(fetch "$STUDENT_URL" student)"; then
   echo 'MODRIK_DEPLOY_STUDENT_UNREACHABLE' >&2
   exit 1
 fi
@@ -64,7 +82,7 @@ if [[ "$student_body" != *'data-testid="modrik-student-portal"'* ]] \
   exit 1
 fi
 
-if ! admin_body="$(fetch "$ADMIN_LOGIN_URL")"; then
+if ! admin_body="$(fetch "$ADMIN_LOGIN_URL" admin)"; then
   echo 'MODRIK_DEPLOY_ADMIN_UNREACHABLE' >&2
   exit 1
 fi
