@@ -95,6 +95,7 @@ const release = fs.readFileSync(path.join(__dirname, "RELEASE_SHA.txt"), "utf8")
 if (!release) {
   throw new Error("Packaged MODRIK release identity is empty.");
 }
+process.env.MODRIK_RELEASE_SHA = release;
 process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = release;
 const appRoot = path.resolve(__dirname, ${WEB_APP_REL@Q});
 process.chdir(appRoot);
