@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             title={`MODRIK deployed release: ${release}`}
             aria-label={`MODRIK build ${shortRelease}`}
           >
-            Build {shortRelease}
+            {`Build ${shortRelease}`}
           </div>
         ) : null}
         {children}
