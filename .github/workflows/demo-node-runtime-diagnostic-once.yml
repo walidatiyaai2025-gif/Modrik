@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   diagnose:
@@ -31,6 +32,14 @@ jobs:
           set -euo pipefail
           test -n "$FTP_USER" || { echo 'Missing secret: CPANEL_FTP_USERNAME' >&2; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing secret: CPANEL_FTP_PASSWORD' >&2; exit 1; }
+
+      - name: Record diagnostic run in Issue 260
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO NODE RUNTIME DIAGNOSTIC STARTED\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\nRead-only diagnostic only; no deployment or Node selector mutation is authorized by this run."
 
       - name: Install FTPS client
         run: |
@@ -256,6 +265,29 @@ jobs:
             "https://$DEMO_HOST/?modrik_runtime_diag=${GITHUB_SHA::12}" > "$public_body"
           observed_sha="$(grep -oE 'MODRIK deployed release: [0-9a-f]{40}' "$public_body" | head -n1 | awk '{print $4}' || true)"
           echo "MODRIK_DEMO_OBSERVED_RENDERED_RELEASE=${observed_sha:-unknown}"
+          printf '%s\n' "${observed_sha:-unknown}" > "$RUNNER_TEMP/modrik-observed-rendered-release.txt"
+
+      - name: Publish sanitized diagnostic evidence to Issue 260
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$RUNNER_TEMP/modrik-node-runtime-diagnostic.json"
+          observed_file="$RUNNER_TEMP/modrik-observed-rendered-release.txt"
+          observed_sha='unknown'
+          [[ -f "$observed_file" ]] && observed_sha="$(cat "$observed_file")"
+
+          if [[ -f "$body" ]] && jq -e '.ok == true' "$body" >/dev/null 2>&1; then
+            safe_json="$(jq -c '{user,web_root,web_root_realpath,startup_exists,release_file_sha,restart_marker_mtime,passenger_directives,selector,node_processes}' "$body")"
+            status='COMPLETED'
+          else
+            safe_json='{"diagnostic_result":"unavailable"}'
+            status='FAILED_OR_INCOMPLETE'
+          fi
+
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO NODE RUNTIME DIAGNOSTIC $status\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- rendered public release: \`$observed_sha\`\n- run URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\nSanitized server evidence (no environment variables, credentials, request bodies or arbitrary process arguments):\n\n\`\`\`json\n$safe_json\n\`\`\`"
 
       - name: Remove one-shot diagnostic files
         if: always()
