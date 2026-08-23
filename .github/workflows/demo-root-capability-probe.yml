@@ -1,0 +1,63 @@
+name: Demo root remediation capability probe
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-root-capability-probe.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+    steps:
+      - name: Record run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "ROOT REMEDIATION CAPABILITY CHECK STARTED — run \`$GITHUB_RUN_ID\`"
+      - name: Install FTPS client
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends lftp >/dev/null
+      - name: Probe noninteractive privilege only
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"; nonce="$(openssl rand -hex 12)"
+          bridge="modrik-root-cap-$nonce.php"; token_file=".modrik-root-cap-token-$nonce"
+          echo "::add-mask::$token"; printf '%s' "$token" >/tmp/token
+          cat >/tmp/probe.php <<'PHP'
+          <?php
+          declare(strict_types=1); header('Content-Type: application/json');
+          $e=trim((string)@file_get_contents(__DIR__.'/__TOKEN_FILE__')); if($e===''||!hash_equals($e,(string)($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN']??''))){http_response_code(404);exit;}
+          $run=static function(array $c):int{$d=[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']];$p=@proc_open($c,$d,$pipes,'/home/solscool',null,['bypass_shell'=>true]);if(!is_resource($p))return -1;fclose($pipes[0]);stream_get_contents($pipes[1]);stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);return proc_close($p);};
+          $sudo=is_executable('/usr/bin/sudo')?'/usr/bin/sudo':(is_executable('/bin/sudo')?'/bin/sudo':null);
+          $sudoNoninteractive=$sudo!==null && $run([$sudo,'-n','true'])===0;
+          $lsup='/usr/local/lsws/admin/misc/lsup.sh';
+          echo json_encode(['ok'=>true,'sudo_available'=>$sudo!==null,'sudo_noninteractive'=>$sudoNoninteractive,'lsup_exists'=>is_file($lsup),'lsup_executable'=>is_executable($lsup),'lsws_root_writable'=>is_writable('/usr/local/lsws')]);
+          PHP
+          sed -i "s|__TOKEN_FILE__|$token_file|g" /tmp/probe.php
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set cmd:fail-exit yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; put /tmp/token -o $token_file; put /tmp/probe.php -o $bridge; bye;"
+          curl --fail --silent --show-error --max-time 30 --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" -H "X-MODRIK-Diag-Token: $token" "https://$BRIDGE_HOST/$bridge" > "$RUNNER_TEMP/cap.json"
+          jq . "$RUNNER_TEMP/cap.json"
+          echo "REMOTE_BRIDGE=$bridge" >> "$GITHUB_ENV"; echo "REMOTE_TOKEN_FILE=$token_file" >> "$GITHUB_ENV"
+      - name: Publish capability result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          compact="$(jq -c . "$RUNNER_TEMP/cap.json")"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "ROOT REMEDIATION CAPABILITY CHECK COMPLETED\n\n- run: \`$GITHUB_RUN_ID\`\n\n\`\`\`json\n$compact\n\`\`\`"
+      - name: Cleanup
+        if: always()
+        run: |
+          set +e
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; rm -f ${REMOTE_TOKEN_FILE:-.missing}; rm -f ${REMOTE_BRIDGE:-.missing}; bye;" || true
