@@ -1,7 +1,7 @@
 # CURRENT STATE
 
-Updated: 2026-08-22
-Last reconciled baseline: `814018c14f20976a6819a55e607ca908b320da5d`
+Updated: 2026-08-23
+Last reconciled baseline: `42c280f9a29245d439a92445033650be511655f9`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
 
@@ -19,25 +19,37 @@ The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
 - Student Notification Center via PR #236 / Issue #235 across Backend, Web and Mobile.
 - Landing `/` and Student Portal `/student` runtime/release acceptance via PR #248 / Issue #244.
 - Remote cPanel pre-success Landing/Student route and release verification via PR #252 / Issue #250.
+- Mobile/Admin simulated runtime fallbacks removed via PR #270 / Issue #262.
+- cPanel restart convergence implementation integrated through PR #268 and PR #273 / Issue #260; #260 remains open for successful governed redeploy acceptance only.
+- Transport-truthful integration availability via PR #275 / Issue #274, preserving fail-closed external channels and safe secret-state reporting.
+- Notification Center operational status reconciled via PR #279 / Issue #277 so the first-party inbox reports `present` independently of auxiliary FCM readiness.
 
 The capability matrix has no remaining `audit_required` row. Remaining unsupported capabilities are explicitly represented by truthful `backend_contract_missing`, deferred or activation-gated states rather than fake operator authority.
 
 ## Repository-verifiable work queue at this checkpoint
 
-Issue #250 is completed through merged PR #252. The remote cPanel post-copy runner now validates exact Web release identity plus meaningful Landing/Student markers before `current-release.txt` and successful-deploy evidence can be written.
+Issue #264 is control-state reconciliation only. The former PR #267 is closed zero-diff and is not a merge candidate; a fresh control-only branch/PR must carry current GitHub truth.
 
-Issue #251 / PR #253 is control-state reconciliation only. Its live merge/CI state must be fetched from GitHub; it does not own domain or deployment implementation.
+Issue #266 remains CHANGELOG-only reconciliation. It must append current merged history without misreporting open Auth/runtime work or deployment success.
 
-No additional repository-verifiable P0 product or release implementation packet is identified at this checkpoint. New implementation must come from live GitHub and current authoritative product/governance evidence rather than inferred from stale status prose.
+Runtime mock/fixture hardening remains active under #259:
+- #271 / PR #272 — canonical Backend runtime fixture-auth/default/demo-seeding hardening. Its last exact-head Bootstrap #1101 remains red because the Pilot still executes the old fixture-auth flow. This is a real acceptance dependency and must not be waived.
+- #261 / PR #265 — Web BFF auth boundary + focused real-session smoke only. The branch remains stale and contains historical Backend overlap that must be dropped after the canonical Backend candidate is reconciled.
+- #263 / PR #278 — terminal real-session Pilot/browser acceptance + global runtime-mock guard. It still targets a stale dependency branch and needs fresh governed CI only after #271 plus cleaned #261 are composed.
+- #262 / PR #270 — integrated completed.
+- #274 / PR #275 — integrated completed.
+- #277 / PR #279 — integrated completed.
+
+Issue #260 is no longer an implementation blocker. It remains open only until a newer owner-authorized canonical-main Demo deployment completes the governed success path and external smoke.
 
 Real-content evaluation remains gated by owner-approved academic scope and evidence-backed content rights. Production activation remains gated by external owner/security/legal inputs.
 
 ## CI / integration evidence
 
 Recent exact-head evidence includes:
-- PR #236 exact head `12adaca2e2eed2cee09d4e3d286e01db668f3dbc`: Bootstrap #1038, Notification Center Browser #9, Boot Security #78, Runtime #94, Learning Responsive #40, Mobile Native Compile #90, Content Operations Browser #90 and Demo Package #233 green.
-- PR #248 exact head `99f2f2306fcb961b645df9048350fa9e77b2fced`: Bootstrap #1055, Web Portals Runtime Acceptance #9, Web Runtime #108, Boot Security #92, Learning Responsive #54, Notification Center #23, CSP Hydration #34 and Demo Package #247 green before merge.
-- PR #252 exact head `b765c4fa1004f038359c283d3d462eaff12f79ed`: Bootstrap #1057 including normal/strict Pilot and governed finalizer, Web Portals Runtime Acceptance #10 and Demo cPanel Package #248 green before merge at `814018c14f20976a6819a55e607ca908b320da5d`.
+- PR #275 exact head `7676e3b5937f67b6e3ffb7cd354b8399b78ae5d9`: Bootstrap #1114, Admin UX Browser Acceptance #168 and Demo cPanel Package #287 green before merge at `65aaa52e1c2c1c4757f96ca32d5ee9b1c503d236`.
+- PR #279 exact head `1407a160f6fca750fc22ab2387655580e110a931`: Bootstrap #1118, Admin UX Browser Acceptance #169 and Demo cPanel Package #288 green before merge at `42c280f9a29245d439a92445033650be511655f9`.
+- PR #279 tested-head tree and merged-main tree are both `4d602d8e53fad49466db6b091a4a956315d4b97e`, so no merge-only code difference was introduced.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 
@@ -53,9 +65,9 @@ The authorized evaluation target remains `demo.modrik.org`.
 
 Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-GitHub Actions run `32563427725`, attempt 2, successfully deployed that immutable source checkpoint. Repository source is now ahead through PR #252; source integration alone does not update deployed state.
+GitHub Actions run `32563427725`, attempt 2, successfully deployed that immutable source checkpoint. Repository source is now ahead; source integration, package success and prior manual cPanel restart evidence do not update deployed state.
 
-The next authorized deployment must check out canonical main, resolve its immutable SHA and prove API health, exact Web/Admin release identity, Landing `/` identity and Student `/student` identity. PR #252 closes the prior remote-runner success-recording gap by requiring meaningful route/release validation before success markers are written.
+The next authorized deployment must check out canonical main, resolve its immutable SHA and prove API health, exact Web/Admin release identity, Landing `/` identity and Student `/student` identity before protected deployment-success markers are recorded.
 
 The Demo remains separate from production `modrik.org` cutover and is not a Production Ready claim.
 
