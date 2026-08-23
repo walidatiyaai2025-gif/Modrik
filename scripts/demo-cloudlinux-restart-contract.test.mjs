@@ -34,6 +34,71 @@ test("remote deploy follows CloudLinux end-user CageFS selector semantics before
   assert.ok(directCall > cagefsCall);
 });
 
+test("remote deploy resolves the exact cPanel Node runtime from Passenger configuration", () => {
+  const runner = readFileSync(runnerPath, "utf8");
+
+  assert.match(runner, /resolve_node_runtime_bin\(\)/);
+  assert.match(runner, /PassengerNodejs/);
+  assert.match(runner, /MODRIK_NODE_RUNTIME_BIN/);
+  assert.match(runner, /nodevenv\/public_html\/demo\.modrik\.org\/22\/bin\/node/);
+
+  const resolveFn = runner.indexOf("resolve_node_runtime_bin() {");
+  const preflightFn = runner.indexOf("run_exact_node_startup_preflight() {");
+  const resolution = runner.indexOf('node_bin="$(resolve_node_runtime_bin)"', preflightFn);
+
+  assert.ok(resolveFn >= 0);
+  assert.ok(preflightFn > resolveFn);
+  assert.ok(resolution > preflightFn);
+});
+
+test("live payload must pass an exact-Node loopback startup preflight before Passenger activation", () => {
+  const runner = readFileSync(runnerPath, "utf8");
+
+  assert.match(runner, /run_exact_node_startup_preflight\(\)/);
+  assert.match(runner, /WEB_APPLICATION_ROOT\.txt/);
+  assert.match(runner, /server\.js/);
+  assert.match(runner, /HOSTNAME=127\.0\.0\.1/);
+  assert.match(runner, /NODE_ENV=production/);
+  assert.match(runner, /MODRIK_API_BASE_URL=https:\/\/api\.demo\.modrik\.org/);
+  assert.match(runner, /MODRIK_ADMIN_PORTAL_URL=https:\/\/api\.demo\.modrik\.org\/admin\/login/);
+  assert.match(runner, /MODRIK deployed release: \$RELEASE_SHA/);
+  assert.match(runner, /data-testid=\"modrik-web-release-badge\"/);
+  assert.match(runner, /stop_node_preflight_process "\$pid"/);
+
+  const webCopy = runner.indexOf('cp -a "$SOURCE_ROOT/web/." "$WEB_ROOT/"');
+  const laravelCaches = runner.indexOf('"$PHP_BIN" artisan view:cache', webCopy);
+  const preflight = runner.indexOf("\nrun_exact_node_startup_preflight\n", laravelCaches);
+  const passengerConfig = runner.indexOf('log "Configuring private Passenger diagnostics before Student Web restart"', preflight);
+  const canonicalRestart = runner.indexOf('log "Requesting canonical cPanel Node.js application restart"', passengerConfig);
+
+  assert.ok(webCopy >= 0);
+  assert.ok(laravelCaches > webCopy);
+  assert.ok(preflight > laravelCaches);
+  assert.ok(passengerConfig > preflight);
+  assert.ok(canonicalRestart > passengerConfig);
+});
+
+test("failed exact-Node startup emits only bounded redacted private diagnostics and then fails closed", () => {
+  const runner = readFileSync(runnerPath, "utf8");
+
+  assert.match(runner, /student-web-node-preflight\.log/);
+  assert.match(runner, /chmod 600 "\$log_file"/);
+  assert.match(runner, /emit_node_startup_preflight_diagnostics\(\)/);
+  assert.match(runner, /MODRIK_NODE_PREFLIGHT_DIAG_BEGIN/);
+  assert.match(runner, /\[REDACTED\]/);
+  assert.match(runner, /tail -n 120 "\$log_file"/);
+  assert.match(runner, /tail -c 16000/);
+
+  const preflightFn = runner.indexOf("run_exact_node_startup_preflight() {");
+  const cleanup = runner.indexOf('stop_node_preflight_process "$pid"', preflightFn);
+  const diagnostics = runner.indexOf('emit_node_startup_preflight_diagnostics "$log_file"', cleanup);
+  const failure = runner.indexOf("failed the exact cPanel Node startup preflight before Passenger activation", diagnostics);
+
+  assert.ok(cleanup > preflightFn);
+  assert.ok(diagnostics > cleanup);
+  assert.ok(failure > diagnostics);
+});
+
 test("remote deploy configures a private Passenger log before canonical restart", () => {
   const runner = readFileSync(runnerPath, "utf8");
 
