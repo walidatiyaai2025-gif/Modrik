@@ -13,13 +13,32 @@ test("remote deploy script remains valid bash", () => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
-test("remote deploy uses the cPanel CloudLinux Node.js restart path before release convergence", () => {
+test("remote deploy follows CloudLinux end-user CageFS selector semantics before direct compatibility fallback", () => {
+  const runner = readFileSync(runnerPath, "utf8");
+
+  assert.match(runner, /CAGEFS_ENTER_BIN="\$\{MODRIK_CAGEFS_ENTER_BIN:-\/bin\/cagefs_enter\.proxied\}"/);
+  assert.match(runner, /\/usr\/sbin\/cloudlinux-selector/);
+  assert.match(runner, /cloudlinux_node_action\(\)/);
+  assert.match(
+    runner,
+    /"\$CAGEFS_ENTER_BIN" "\$selector_bin" "\$action" --json --interpreter nodejs --app-root "\$app_root_rel"/,
+  );
+  assert.match(
+    runner,
+    /"\$selector_bin" "\$action" --json --interpreter nodejs --user "\$node_user" --app-root "\$app_root_rel"/,
+  );
+
+  const cagefsCall = runner.indexOf('"$CAGEFS_ENTER_BIN" "$selector_bin" "$action"');
+  const directCall = runner.indexOf('"$selector_bin" "$action" --json --interpreter nodejs --user', cagefsCall);
+  assert.ok(cagefsCall >= 0);
+  assert.ok(directCall > cagefsCall);
+});
+
+test("remote deploy uses the canonical restart path before release convergence", () => {
   const runner = readFileSync(runnerPath, "utf8");
 
   assert.match(runner, /restart_cloudlinux_node_app\(\)/);
-  assert.match(runner, /cloudlinux-selector/);
-  assert.match(runner, /restart --json --interpreter nodejs --user "\$node_user" --app-root "\$app_root_rel"/);
-  assert.match(runner, /CloudLinux Node\.js Selector restart did not report success/);
+  assert.match(runner, /cloudlinux_node_action restart/);
   assert.match(runner, /touch "\$WEB_ROOT\/tmp\/restart\.txt"/);
 
   const restartSection = runner.indexOf('log "Requesting canonical cPanel Node.js application restart"');
@@ -33,21 +52,29 @@ test("remote deploy uses the cPanel CloudLinux Node.js restart path before relea
   assert.ok(deploymentSuccess > convergence);
 });
 
-test("remote deploy performs exactly one bounded restart retry before failing closed", () => {
+test("remote deploy escalates one failed restart window to stop-start recycle before failing closed", () => {
   const runner = readFileSync(runnerPath, "utf8");
-  const firstWait = runner.indexOf("wait-for-demo-web-release.sh", runner.indexOf('log "Waiting for bounded Student Web restart convergence"'));
-  const retryMarker = runner.indexOf("Initial Student Web convergence window expired", firstWait);
-  const retryRestart = runner.indexOf("restart_cloudlinux_node_app", retryMarker);
-  const retryAttempts = runner.indexOf("MODRIK_WEB_RESTART_RETRY_ATTEMPTS", retryRestart);
-  const retryWait = runner.indexOf("wait-for-demo-web-release.sh", retryAttempts);
-  const terminalFailure = runner.indexOf("did not reach the requested release after the bounded restart retry", retryWait);
+  const firstWait = runner.indexOf(
+    "wait-for-demo-web-release.sh",
+    runner.indexOf('log "Waiting for bounded Student Web restart convergence"'),
+  );
+  const recycleMarker = runner.indexOf("escalating to one bounded stop/start recycle", firstWait);
+  const recycleCall = runner.indexOf("recycle_cloudlinux_node_app", recycleMarker);
+  const recycleFn = runner.indexOf("recycle_cloudlinux_node_app() {");
+  const stopCall = runner.indexOf("cloudlinux_node_action stop", recycleFn);
+  const startCall = runner.indexOf("cloudlinux_node_action start", stopCall);
+  const recycleAttempts = runner.indexOf("MODRIK_WEB_RECYCLE_ATTEMPTS", recycleCall);
+  const recycleWait = runner.indexOf("wait-for-demo-web-release.sh", recycleAttempts);
+  const terminalFailure = runner.indexOf("did not reach the requested release after the bounded stop/start recycle", recycleWait);
 
   assert.ok(firstWait >= 0);
-  assert.ok(retryMarker > firstWait);
-  assert.ok(retryRestart > retryMarker);
-  assert.ok(retryAttempts > retryRestart);
-  assert.ok(retryWait > retryAttempts);
-  assert.ok(terminalFailure > retryWait);
+  assert.ok(recycleMarker > firstWait);
+  assert.ok(recycleCall > recycleMarker);
+  assert.ok(stopCall > recycleFn);
+  assert.ok(startCall > stopCall);
+  assert.ok(recycleAttempts > recycleCall);
+  assert.ok(recycleWait > recycleAttempts);
+  assert.ok(terminalFailure > recycleWait);
 });
 
 test("failed live Web mutation restores the pre-deploy payload without recording deployment success", () => {
