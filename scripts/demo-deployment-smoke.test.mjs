@@ -34,7 +34,8 @@ function runSmoke({
 
   writeFileSync(curl, `#!/usr/bin/env bash
 set -euo pipefail
-url="\${!#}"
+raw_url="\${!#}"
+url="\${raw_url%%\\?*}"
 case "$url" in
   "https://demo.test/up")
     exit "\${FAKE_API_EXIT:-0}"
@@ -83,7 +84,7 @@ esac
   }
 }
 
-function runRestartWait({ staleLandingAttempts = 0, maxAttempts = 3 } = {}) {
+function runRestartWait({ staleLandingAttempts = 0, maxAttempts = 3, originIp = "" } = {}) {
   const directory = mkdtempSync(path.join(tmpdir(), "modrik-demo-restart-"));
   const curl = path.join(directory, "curl");
   const counter = path.join(directory, "landing-count");
@@ -93,7 +94,8 @@ function runRestartWait({ staleLandingAttempts = 0, maxAttempts = 3 } = {}) {
 
   writeFileSync(curl, `#!/usr/bin/env bash
 set -euo pipefail
-url="\${!#}"
+raw_url="\${!#}"
+url="\${raw_url%%\\?*}"
 case "$url" in
   "https://demo.test/")
     count=0
@@ -125,6 +127,7 @@ esac
         PATH: `${directory}:${process.env.PATH ?? ""}`,
         MODRIK_DEMO_WEB_URL: "https://demo.test/",
         MODRIK_DEMO_STUDENT_URL: "https://demo.test/student",
+        MODRIK_DEMO_ORIGIN_IP: originIp,
         MODRIK_WEB_RESTART_ATTEMPTS: String(maxAttempts),
         MODRIK_WEB_RESTART_DELAY_SECONDS: "0",
         FAKE_COUNTER_FILE: counter,
@@ -211,11 +214,30 @@ test("bounded Web restart wait accepts stale then fresh Passenger content", () =
   assert.doesNotMatch(`${result.stdout}${result.stderr}`, /data-testid|<div|<main|<section/);
 });
 
+test("bounded Web restart wait can verify the exact cPanel origin independently of public DNS", () => {
+  const result = runRestartWait({ originIp: "65.21.208.232" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, new RegExp(`MODRIK_DEMO_WEB_ORIGIN_RELEASE_READY release=${shortRelease} attempt=1`));
+});
+
 test("bounded Web restart wait fails closed when Passenger remains permanently stale", () => {
   const result = runRestartWait({ staleLandingAttempts: 99, maxAttempts: 2 });
   assert.equal(result.status, 1);
   assert.match(result.stderr, new RegExp(`MODRIK_DEPLOY_WEB_RESTART_TIMEOUT release=${shortRelease} attempts=2`));
   assert.doesNotMatch(`${result.stdout}${result.stderr}`, /data-testid|<div|<main|<section/);
+});
+
+test("release probes bypass intermediary caches and the deploy bridge passes the cPanel origin", () => {
+  const smoke = readFileSync(smokeScript, "utf8");
+  const wait = readFileSync(restartWaitPath, "utf8");
+  const workflow = readFileSync(workflowPath, "utf8");
+
+  assert.match(smoke, /Cache-Control: no-cache, no-store, max-age=0/);
+  assert.match(smoke, /modrik_release_probe=/);
+  assert.match(wait, /Cache-Control: no-cache, no-store, max-age=0/);
+  assert.match(wait, /--resolve "demo\.modrik\.org:443:\$ORIGIN_IP"/);
+  assert.match(workflow, /putenv\('MODRIK_DEMO_ORIGIN_IP=' \. \$originIp\)/);
+  assert.match(workflow, /MODRIK_DEMO_PUBLIC_IPV4=/);
 });
 
 test("cPanel deployment workflow keeps the exact release smoke mandatory", () => {

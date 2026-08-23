@@ -27,6 +27,7 @@ jobs:
       BRIDGE_URL: https://50sols.com
       BRIDGE_HOST: 50sols.com
       BRIDGE_ORIGIN_IP: 65.21.208.232
+      DEMO_HOST: demo.modrik.org
       API_URL: https://api.demo.modrik.org
 
     steps:
@@ -100,6 +101,19 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends lftp >/dev/null
 
+      - name: Diagnose public Demo routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          public_ips="$(getent ahostsv4 "$DEMO_HOST" 2>/dev/null | awk '{print $1}' | sort -u | paste -sd, - || true)"
+          echo "MODRIK_DEMO_PUBLIC_IPV4=${public_ips:-unresolved}"
+          echo "MODRIK_DEMO_CPANEL_ORIGIN_IPV4=$BRIDGE_ORIGIN_IP"
+          if [[ -n "$public_ips" ]] && printf '%s\n' "$public_ips" | tr ',' '\n' | grep -Fxq "$BRIDGE_ORIGIN_IP"; then
+            echo 'MODRIK_DEMO_PUBLIC_DNS_INCLUDES_CPANEL_ORIGIN=true'
+          else
+            echo 'MODRIK_DEMO_PUBLIC_DNS_INCLUDES_CPANEL_ORIGIN=false'
+          fi
+
       - name: Prepare protected one-shot deployment bridge
         shell: bash
         env:
@@ -139,6 +153,7 @@ jobs:
           $releaseSha = '__RELEASE_SHA__';
           $expectedPackageSha = '__PACKAGE_SHA__';
           $expectedRunnerSha = '__RUNNER_SHA__';
+          $originIp = '__BRIDGE_ORIGIN_IP__';
           $home = '/home/solscool';
           $publicHtml = $home . '/public_html';
           $backendRoot = $publicHtml . '/api.demo.modrik.org';
@@ -166,6 +181,7 @@ jobs:
 
               putenv('HOME=' . $home);
               putenv('PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin');
+              putenv('MODRIK_DEMO_ORIGIN_IP=' . $originIp);
 
               $descriptors = [
                   0 => ['pipe', 'r'],
@@ -231,6 +247,7 @@ jobs:
             -e "s|__RELEASE_SHA__|$RELEASE_SHA|g" \
             -e "s|__PACKAGE_SHA__|$package_sha|g" \
             -e "s|__RUNNER_SHA__|$runner_sha|g" \
+            -e "s|__BRIDGE_ORIGIN_IP__|$BRIDGE_ORIGIN_IP|g" \
             -e "s|__REMOTE_PACKAGE__|$remote_package|g" \
             -e "s|__REMOTE_RUNNER__|$remote_runner|g" \
             /tmp/modrik-deploy.php
