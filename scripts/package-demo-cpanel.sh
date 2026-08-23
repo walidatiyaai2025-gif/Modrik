@@ -78,7 +78,7 @@ if [[ -d "$ROOT/apps/web/public" ]]; then
   cp -a "$ROOT/apps/web/public" "$WEB_APP/public"
 fi
 cp "$WEB_ENV_TEMPLATE" "$OUT_ROOT/web/.env.demo.example"
-printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/WEB_APPLICATION_ROOT.txt"
+printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt"
 
 # cPanel Passenger can always use the Web payload root as Application Root.
 # This wrapper changes cwd to the actual Next standalone app before loading it,
@@ -112,6 +112,7 @@ if find "$OUT_ROOT" -type f -name '.env' -print -quit | grep -q .; then
 fi
 
 [[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web startup wrapper is missing."
+[[ -f "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt" ]] || fail "cPanel Web application-root metadata is missing from the deployable Web payload."
 [[ -f "$WEB_APP/server.js" ]] || fail "Packaged Web startup server.js is missing."
 [[ -d "$WEB_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
 [[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
