@@ -53,6 +53,21 @@ resolve_cloudlinux_selector_bin() {
   printf '%s\n' "$selector_bin"
 }
 
+resolve_node_runtime_bin() {
+  local node_bin
+
+  node_bin="${MODRIK_NODE_RUNTIME_BIN:-}"
+  if [[ -z "$node_bin" && -f "$WEB_ROOT/.htaccess" ]]; then
+    node_bin="$(awk '$1 == "PassengerNodejs" { gsub(/\"/, "", $2); print $2; exit }' "$WEB_ROOT/.htaccess" 2>/dev/null || true)"
+  fi
+  if [[ -z "$node_bin" ]]; then
+    node_bin="$HOME/nodevenv/public_html/demo.modrik.org/22/bin/node"
+  fi
+
+  [[ -x "$node_bin" ]] || return 1
+  printf '%s\n' "$node_bin"
+}
+
 cloudlinux_node_action() {
   local action="${1:?cloudlinux_node_action requires an action}"
   local selector_bin node_user app_root_rel selector_output
@@ -150,10 +165,125 @@ emit_passenger_startup_diagnostics() {
   printf '[MODRIK_PASSENGER_DIAG_BEGIN]\n%s\n[MODRIK_PASSENGER_DIAG_END]\n' "$diagnostic" >&2
 }
 
+emit_node_startup_preflight_diagnostics() {
+  local log_file="${1:?emit_node_startup_preflight_diagnostics requires a log file}"
+  local diagnostic
+
+  if [[ ! -f "$log_file" ]]; then
+    printf '[MODRIK_NODE_PREFLIGHT_DIAG] private Node startup log is unavailable.\n' >&2
+    return 0
+  fi
+
+  diagnostic="$(tail -n 120 "$log_file" 2>/dev/null \
+    | sed -E \
+        -e 's/([Aa]uthorization|[Cc]ookie|[Pp]assword|[Pp]asswd|[Ss]ecret|[Tt]oken|[Aa][Pp][Ii][_-]?[Kk]ey)([[:space:]]*[:=][[:space:]]*)[^[:space:],;]+/\1\2[REDACTED]/g' \
+        -e 's/[Bb]earer[[:space:]]+[A-Za-z0-9._~+\/=:-]+/Bearer [REDACTED]/g' \
+    | tail -c 16000 || true)"
+
+  if [[ -z "$diagnostic" ]]; then
+    printf '[MODRIK_NODE_PREFLIGHT_DIAG] exact-Node startup log exists but contains no output.\n' >&2
+    return 0
+  fi
+
+  printf '[MODRIK_NODE_PREFLIGHT_DIAG_BEGIN]\n%s\n[MODRIK_NODE_PREFLIGHT_DIAG_END]\n' "$diagnostic" >&2
+}
+
+stop_node_preflight_process() {
+  local pid="${1:?stop_node_preflight_process requires a pid}"
+  local attempt
+
+  if kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    for attempt in $(seq 1 10); do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.2
+    done
+  fi
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -9 "$pid" 2>/dev/null || true
+  fi
+  wait "$pid" 2>/dev/null || true
+}
+
+run_exact_node_startup_preflight() {
+  local node_bin app_rel server_file log_file pid body short_sha
+  local attempt candidate offset port="" success=0
+  local port_start="${MODRIK_NODE_PREFLIGHT_PORT_START:-39731}"
+  local attempts="${MODRIK_NODE_PREFLIGHT_ATTEMPTS:-20}"
+
+  node_bin="$(resolve_node_runtime_bin)" \
+    || fail "Configured cPanel Node runtime is unavailable or not executable."
+
+  [[ -f "$WEB_ROOT/WEB_APPLICATION_ROOT.txt" ]] \
+    || fail "Live Student Web WEB_APPLICATION_ROOT.txt is missing before exact-Node preflight."
+  app_rel="$(tr -d '\r\n' < "$WEB_ROOT/WEB_APPLICATION_ROOT.txt")"
+  [[ -n "$app_rel" && "$app_rel" != /* && "$app_rel" != *'..'* ]] \
+    || fail "Live Student Web application root metadata is invalid."
+  server_file="$WEB_ROOT/$app_rel/server.js"
+
+  [[ -f "$WEB_ROOT/startup.cjs" ]] || fail "Live Student Web startup.cjs is missing before exact-Node preflight."
+  [[ -f "$server_file" ]] || fail "Live Student Web standalone server.js is missing before exact-Node preflight."
+  [[ "$port_start" =~ ^[0-9]+$ && "$attempts" =~ ^[0-9]+$ ]] \
+    || fail "Node startup preflight bounds must be positive integers."
+  (( port_start >= 1024 && port_start <= 65000 && attempts > 0 && attempts <= 60 )) \
+    || fail "Node startup preflight bounds are outside the allowed range."
+
+  for offset in $(seq 0 9); do
+    candidate=$((port_start + offset))
+    (( candidate <= 65535 )) || break
+    if ! curl --silent --show-error --max-time 1 "http://127.0.0.1:$candidate/" >/dev/null 2>&1; then
+      port="$candidate"
+      break
+    fi
+  done
+  [[ -n "$port" ]] || fail "No bounded loopback port is available for exact-Node startup preflight."
+
+  log_file="$WORK_DIR/student-web-node-preflight.log"
+  : > "$log_file"
+  chmod 600 "$log_file"
+  short_sha="${RELEASE_SHA:0:12}"
+
+  log "Preflighting live Student Web with exact cPanel Node runtime=$node_bin app_root=$app_rel loopback_port=$port"
+  (
+    cd "$WEB_ROOT"
+    PORT="$port" \
+    HOSTNAME=127.0.0.1 \
+    NODE_ENV=production \
+    MODRIK_API_BASE_URL=https://api.demo.modrik.org \
+    MODRIK_ADMIN_PORTAL_URL=https://api.demo.modrik.org/admin/login \
+    "$node_bin" "$WEB_ROOT/startup.cjs"
+  ) >"$log_file" 2>&1 &
+  pid=$!
+
+  for attempt in $(seq 1 "$attempts"); do
+    if body="$(curl --silent --show-error --max-time 3 "http://127.0.0.1:$port/" 2>/dev/null)"; then
+      if [[ "$body" == *'data-testid="modrik-web-release-badge"'* ]] \
+        && [[ "$body" == *"MODRIK deployed release: $RELEASE_SHA"* ]] \
+        && [[ "$body" == *"Build $short_sha"* ]] \
+        && [[ "$body" == *'data-testid="modrik-landing-page"'* ]]; then
+        success=1
+        break
+      fi
+    fi
+
+    if ! kill -0 "$pid" 2>/dev/null; then
+      break
+    fi
+    sleep 0.5
+  done
+
+  stop_node_preflight_process "$pid"
+
+  if (( success != 1 )); then
+    emit_node_startup_preflight_diagnostics "$log_file"
+    fail "Live Student Web failed the exact cPanel Node startup preflight before Passenger activation."
+  fi
+
+  rm -f "$log_file"
+  log "Exact cPanel Node startup preflight passed for release $RELEASE_SHA"
+}
+
 prepare_passenger_restart_marker() {
-  # cPanel documents <app-root>/tmp/restart.txt as Passenger's restart signal.
-  # This runner intentionally uses umask 077 for secrets and backups, so the
-  # restart boundary must be normalized explicitly after every Web replacement.
   mkdir -p "$WEB_ROOT/tmp"
   chmod 755 "$WEB_ROOT/tmp"
   touch "$WEB_ROOT/tmp/restart.txt"
@@ -281,6 +411,8 @@ cd "$BACKEND_ROOT"
 "$PHP_BIN" artisan config:cache
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
+
+run_exact_node_startup_preflight
 
 log "Configuring private Passenger diagnostics before Student Web restart"
 if ! configure_cloudlinux_passenger_log; then
