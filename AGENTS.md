@@ -46,6 +46,24 @@ Project-wide rule `GOV-SURFACE-001`:
 - Any capability/settings implementation must update the capability-to-surface matrix and add/adjust regression coverage so a required page/menu cannot silently disappear.
 - UI/settings surfaces must include RBAC, permission-safe visibility, confirmation for sensitive/destructive/production actions, audit/history where applicable, AR/EN/FR and RTL/LTR where applicable, and loading/empty/error/retry/degraded states.
 
+## Deployment constitution — `GOV-DEPLOY-001`
+
+Before changing packaging, release identity, cPanel/CloudLinux/LiteSpeed integration, runtime startup, restart behavior, rollback, deployment workflow or release smoke, read `docs/project/DEPLOYMENT_CONSTITUTION.md` and `deploy/demo/DEPLOY_CPANEL.md`.
+
+The deployment constitution is locked engineering governance:
+
+- Deployment success means the public runtime serves the exact authorized canonical-main SHA; build/upload/restart success alone is never sufficient.
+- The Demo Web canonical runtime is Next.js standalone on Node 22 through cPanel + CloudLinux Node Selector + LiteSpeed.
+- The canonical LiteSpeed startup is the generated standalone `server.js` recorded by `web/WEB_APPLICATION_ROOT.txt`; `startup.cjs` is compatibility/rollback only.
+- Release identity is artifact-owned; do not require a mutable per-release cPanel environment variable to identify the deployed build.
+- Reconcile actual hosting desired state before activation. Do not use blind unbounded restart loops or silently recreate/destroy the Node application.
+- Exact live-payload Node preflight, direct-origin exact-SHA convergence, external smoke and transactional rollback are mandatory and fail closed.
+- If deployment mutates runtime registration such as startup-file, rollback must restore both payload and registration.
+- Do not directly hand-edit Selector-managed `.htaccess` as the normal deployment path.
+- LiteSpeed uses Passenger-compatible directives but a different implementation; do not assume Apache Passenger processes/logs are authoritative. Use LiteSpeed/`lsnode`/`stderr.log` evidence where applicable.
+- Manual cPanel restart is emergency diagnostic/recovery only and must not be required for routine deployments.
+- Any change to these rules must update executable contract coverage in the same PR and may not weaken exact-SHA, route, rollback or public acceptance guarantees.
+
 ## Locked kickoff facts
 
 - Brand: MODRIK | مُدرك.
