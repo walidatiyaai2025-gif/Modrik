@@ -90,16 +90,22 @@ printf '%s\n' "$RELEASE_SHA" > "$WEB_APP/RELEASE_SHA.txt"
 # Next standalone server.js itself as the startup script. Make that generated
 # server artifact self-contained by injecting the immutable release identity
 # before Next loads, without depending on mutable cPanel environment state.
+# Keep the bootstrap inside an IIFE with MODRIK-specific identifiers so it can
+# never collide with top-level declarations emitted by a future Next version.
 SERVER_BOOTSTRAP="$WEB_APP/server.js.modrik-bootstrap"
 cat > "$SERVER_BOOTSTRAP" <<'EOF'
-const fs = require("node:fs");
-const path = require("node:path");
-const modrikRelease = fs.readFileSync(path.join(__dirname, "RELEASE_SHA.txt"), "utf8").trim();
-if (!/^[0-9a-f]{40}$/i.test(modrikRelease)) {
-  throw new Error("Packaged MODRIK release identity is invalid.");
-}
-process.env.MODRIK_RELEASE_SHA = modrikRelease;
-process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = modrikRelease;
+;(() => {
+  const modrikFs = require("node:fs");
+  const modrikPath = require("node:path");
+  const modrikRelease = modrikFs
+    .readFileSync(modrikPath.join(__dirname, "RELEASE_SHA.txt"), "utf8")
+    .trim();
+  if (!/^[0-9a-f]{40}$/i.test(modrikRelease)) {
+    throw new Error("Packaged MODRIK release identity is invalid.");
+  }
+  process.env.MODRIK_RELEASE_SHA = modrikRelease;
+  process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = modrikRelease;
+})();
 EOF
 cat "$WEB_APP/server.js" >> "$SERVER_BOOTSTRAP"
 mv "$SERVER_BOOTSTRAP" "$WEB_APP/server.js"
