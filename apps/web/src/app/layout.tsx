@@ -37,6 +37,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <div
             className="modrik-release-badge"
             data-testid="modrik-web-release-badge"
+            data-modrik-release-sha={release}
+            data-modrik-release-short={shortRelease}
             title={`MODRIK deployed release: ${release}`}
             aria-label={`MODRIK build ${shortRelease}`}
           >
