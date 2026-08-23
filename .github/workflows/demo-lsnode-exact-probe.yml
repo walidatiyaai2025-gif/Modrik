@@ -1,0 +1,195 @@
+name: Owner-authorized exact LiteSpeed lsnode probe
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-lsnode-exact-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_URL: https://50sols.com
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+
+    steps:
+      - name: Validate secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FTP_USER"
+          test -n "$FTP_PASSWORD"
+
+      - name: Install FTPS client
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Prepare protected read-only lsnode probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 12)"
+          bridge="modrik-lsnode-probe-$nonce.php"
+          token_file=".modrik-lsnode-probe-token-$nonce"
+          echo "::add-mask::$token"
+          printf '%s' "$token" > /tmp/modrik-lsnode-token
+
+          cat > /tmp/modrik-lsnode-probe.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          header('Content-Type: application/json; charset=utf-8');
+          header('Cache-Control: no-store');
+
+          $expected = trim((string) @file_get_contents(__DIR__ . '/__TOKEN_FILE__'));
+          $provided = (string) ($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN'] ?? '');
+          if ($expected === '' || !hash_equals($expected, $provided)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
+
+          $mode = static function (string $path): ?string {
+              $p = @fileperms($path);
+              return is_int($p) ? substr(sprintf('%o', $p), -4) : null;
+          };
+          $state = static function (string $path) use ($mode): array {
+              return [
+                  'exists' => file_exists($path),
+                  'is_file' => is_file($path),
+                  'is_dir' => is_dir($path),
+                  'readable' => is_readable($path),
+                  'executable' => is_executable($path),
+                  'mode' => file_exists($path) ? $mode($path) : null,
+                  'size' => is_file($path) ? @filesize($path) : null,
+                  'uid' => file_exists($path) ? @fileowner($path) : null,
+                  'gid' => file_exists($path) ? @filegroup($path) : null,
+              ];
+          };
+          $run = static function (array $cmd): array {
+              $d = [0 => ['pipe','r'], 1 => ['pipe','w'], 2 => ['pipe','w']];
+              $p = @proc_open($cmd, $d, $pipes, '/home/solscool', null, ['bypass_shell' => true]);
+              if (!is_resource($p)) {
+                  return ['exit' => -1, 'stdout' => '', 'stderr' => 'proc_open_failed'];
+              }
+              fclose($pipes[0]);
+              $out = (string) stream_get_contents($pipes[1]);
+              $err = (string) stream_get_contents($pipes[2]);
+              fclose($pipes[1]);
+              fclose($pipes[2]);
+              return ['exit' => proc_close($p), 'stdout' => trim($out), 'stderr' => trim($err)];
+          };
+
+          $paths = [
+              '/usr/local/lsws/fcgi-bin/lsnode.js',
+              '/usr/local/lsws/fcgi-bin/nvm_lsnode.bash',
+              '/usr/local/lsws/fcgi-bin/lsnode',
+              '/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh',
+              '/usr/local/lsws/bin/lshttpd',
+              '/bin/cagefs_enter.proxied',
+              '/usr/sbin/cloudlinux-selector',
+          ];
+          $states = [];
+          foreach ($paths as $path) {
+              $states[$path] = $state($path);
+          }
+
+          $fcgiMatches = [];
+          foreach (glob('/usr/local/lsws/fcgi-bin/*') ?: [] as $path) {
+              $name = basename($path);
+              if (preg_match('/(?:lsnode|node|ruby|python)/i', $name)) {
+                  $fcgiMatches[] = $name;
+              }
+          }
+          sort($fcgiMatches);
+
+          $script = '/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh';
+          $scriptMentions = null;
+          if (is_file($script) && is_readable($script)) {
+              $text = (string) @file_get_contents($script);
+              $scriptMentions = [
+                  'lsnode_js' => stripos($text, 'lsnode.js') !== false,
+                  'node' => stripos($text, 'node') !== false,
+                  'cagefs' => stripos($text, 'cagefs') !== false,
+              ];
+          }
+
+          $cagefs = null;
+          if (is_executable('/bin/cagefs_enter.proxied')) {
+              $probe = $run(['/bin/cagefs_enter.proxied','/bin/bash','-lc',
+                  'for p in /usr/local/lsws/fcgi-bin/lsnode.js /usr/local/lsws/fcgi-bin/nvm_lsnode.bash /usr/local/lsws/admin/misc/enable_ruby_python_selector.sh; do printf "%s=" "$p"; if test -e "$p"; then echo yes; else echo no; fi; done']);
+              $cagefs = ['exit' => $probe['exit'], 'stdout' => $probe['stdout']];
+          }
+
+          echo json_encode([
+              'ok' => true,
+              'paths' => $states,
+              'fcgi_matching_entries' => $fcgiMatches,
+              'enable_script_mentions' => $scriptMentions,
+              'cagefs_probe' => $cagefs,
+          ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+          PHP
+
+          sed -i -e "s|__TOKEN_FILE__|$token_file|g" /tmp/modrik-lsnode-probe.php
+          {
+            echo "REMOTE_BRIDGE=$bridge"
+            echo "REMOTE_TOKEN_FILE=$token_file"
+          } >> "$GITHUB_ENV"
+
+      - name: Upload probe over FTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set cmd:fail-exit yes;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            set ftp:passive-mode true;
+            put /tmp/modrik-lsnode-token -o $REMOTE_TOKEN_FILE;
+            put /tmp/modrik-lsnode-probe.php -o $REMOTE_BRIDGE;
+            bye;
+          "
+
+      - name: Execute exact lsnode probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(cat /tmp/modrik-lsnode-token)"
+          body="$RUNNER_TEMP/lsnode-probe.json"
+          status="$(curl --silent --show-error --output "$body" --write-out '%{http_code}' --max-time 30 \
+            --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
+            -H "X-MODRIK-Diag-Token: $token" \
+            "$BRIDGE_URL/$REMOTE_BRIDGE")"
+          echo "probe_http_status=$status"
+          jq . "$body"
+          jq -e '.ok == true' "$body" >/dev/null
+
+      - name: Remove one-shot probe files
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          timeout 30 lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ssl:verify-certificate yes;
+            set ssl:check-hostname no;
+            rm -f ${REMOTE_TOKEN_FILE:-.missing};
+            rm -f ${REMOTE_BRIDGE:-.missing};
+            bye;
+          "
+          exit 0
