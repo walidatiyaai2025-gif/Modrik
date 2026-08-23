@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 Updated: 2026-08-23
-Last reconciled baseline: `42c280f9a29245d439a92445033650be511655f9`
+Last reconciled baseline: `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
 
@@ -23,14 +23,16 @@ The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
 - cPanel restart convergence implementation integrated through PR #268 and PR #273 / Issue #260; #260 remains open for successful governed redeploy acceptance only.
 - Transport-truthful integration availability via PR #275 / Issue #274, preserving fail-closed external channels and safe secret-state reporting.
 - Notification Center operational status reconciled via PR #279 / Issue #277 so the first-party inbox reports `present` independently of auxiliary FCM readiness.
+- Post-#279 control-state reconciliation integrated via PR #280 / Issue #264 at `9261033fe79446bdaa6521cb6b1031955386b115`.
+- Post-runtime-integrity CHANGELOG reconciliation integrated via PR #282 / Issue #266 at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31` after exact-head Bootstrap #1126.
 
 The capability matrix has no remaining `audit_required` row. Remaining unsupported capabilities are explicitly represented by truthful `backend_contract_missing`, deferred or activation-gated states rather than fake operator authority.
 
 ## Repository-verifiable work queue at this checkpoint
 
-Issue #264 is control-state reconciliation only. The former PR #267 is closed zero-diff and is not a merge candidate; a fresh control-only branch/PR must carry current GitHub truth.
+Issue #264 is reopened only for a narrow post-merge self-staleness correction: the merged PR #280 control files retained the older baseline and pre-merge #264 wording. The follow-up is control-only and does not reopen product/runtime scope.
 
-Issue #266 remains CHANGELOG-only reconciliation. It must append current merged history without misreporting open Auth/runtime work or deployment success.
+Issue #266 / PR #282 is integrated and closed completed; it no longer belongs in the active work queue.
 
 Runtime mock/fixture hardening remains active under #259:
 - #271 / PR #272 — canonical Backend runtime fixture-auth/default/demo-seeding hardening. Its last exact-head Bootstrap #1101 remains red because the Pilot still executes the old fixture-auth flow. This is a real acceptance dependency and must not be waived.
@@ -50,6 +52,7 @@ Recent exact-head evidence includes:
 - PR #275 exact head `7676e3b5937f67b6e3ffb7cd354b8399b78ae5d9`: Bootstrap #1114, Admin UX Browser Acceptance #168 and Demo cPanel Package #287 green before merge at `65aaa52e1c2c1c4757f96ca32d5ee9b1c503d236`.
 - PR #279 exact head `1407a160f6fca750fc22ab2387655580e110a931`: Bootstrap #1118, Admin UX Browser Acceptance #169 and Demo cPanel Package #288 green before merge at `42c280f9a29245d439a92445033650be511655f9`.
 - PR #279 tested-head tree and merged-main tree are both `4d602d8e53fad49466db6b091a4a956315d4b97e`, so no merge-only code difference was introduced.
+- PR #282 exact head `c0dc5dcd8e8bf0c73a5350e8586ca2edfd761196`: Bootstrap #1126 green before merge at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 

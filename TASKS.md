@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-08-23
-Last reconciled baseline: `42c280f9a29245d439a92445033650be511655f9`
+Last reconciled baseline: `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -25,6 +25,8 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] #262 / PR #270 — Mobile/Admin simulated runtime fallbacks removed.
 - [x] #274 / PR #275 — integration transport availability and secret-state reporting made fail-closed/truthful.
 - [x] #277 / PR #279 — Notification Center operational status reconciled with the accepted first-party capability while FCM readiness remains separate.
+- [x] #264 / PR #280 — post-#279 control-state reconciliation integrated at `9261033fe79446bdaa6521cb6b1031955386b115`; #264 is temporarily reopened only for narrow post-merge self-staleness correction.
+- [x] #266 / PR #282 — post-runtime-integrity CHANGELOG reconciliation integrated at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31` after exact-head Bootstrap #1126.
 
 ## Current repository-verifiable P0 queue
 
@@ -43,8 +45,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] Remote post-copy route/release validation before success-recording integrated via PR #252.
 - [x] Restart-convergence implementation integrated via PR #268 and PR #273.
 - [ ] #260 — run a newer owner-authorized Demo deployment from canonical main; close only if API, Web, Admin, Landing, Student, protected success markers and external smoke all pass. Source merge/package success/manual restart evidence must not advance deployed state.
-- [ ] #264 — reconcile PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md from live GitHub after the former PR #267 closed zero-diff; fresh exact-head Bootstrap/control-state CI is required on the replacement control PR.
-- [ ] #266 — append the post-#257 through post-#279 factual history to CHANGELOG.md only, preserving failed-deploy evidence and distinguishing open work from integrated work.
+- [ ] #264 — post-PR #280 self-staleness correction only: advance the reconciled baseline to current canonical main, remove stale pre-merge #264 wording, preserve current ownership/deployment truth, and require fresh exact-head control-state CI on the follow-up three-file PR.
 - [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
 
 ## Real-content evaluation
