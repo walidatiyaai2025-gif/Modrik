@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
-Updated: 2026-08-22
-Last reconciled baseline: `814018c14f20976a6819a55e607ca908b320da5d`
+Updated: 2026-08-23
+Last reconciled baseline: `42c280f9a29245d439a92445033650be511655f9`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -19,6 +19,8 @@ Every capability remains exactly one of `admin_manageable`, `user_facing`, `read
 
 PR #234 / Issue #233 integrated an executable capability-surface validator into `contracts:check`. PR #239 records the locked Windows launch exclusion as `client.windows: deferred_disabled`. PR #236 / Issue #235 records `student.notifications.center` as `user_facing` / `present` after Backend/Web/Mobile implementation and exact-head acceptance.
 
+PR #279 / Issue #277 reconciled runtime operational status with that accepted Notification Center capability: the first-party Notification Center reports `present` independently of auxiliary Firebase/FCM transport readiness. FCM remains separately `disabled` or `enabled_pending_transport`; no external push success is fabricated.
+
 The current matrix has no remaining `audit_required` capability row. Unsupported mutation/activation gaps remain explicit as `backend_contract_missing`, `not_implemented_or_activated`, `p1_activation_gated`, `activation_gated` or another truthful deferred status; those labels do not grant implementation authority by themselves.
 
 ## Reconciled integration checkpoint
@@ -34,18 +36,31 @@ Recent integrated milestones include:
 - PR #239 — Windows client explicitly classified `deferred_disabled`.
 - PR #230 — successful Demo deployment checkpoint evidence.
 - PR #236 / Issue #235 — Backend-owned Student Notification Center across Backend, Student Web and Student Mobile.
-- PR #248 / Issue #244 — restored explicit public Landing `/` and Student Portal `/student` runtime/deployment gates, including exact-route markers, narrow/200% acceptance, keyboard/focus checks and Student-route release verification.
-- PR #252 / Issue #250 — hardened the remote cPanel post-copy boundary so exact Landing/Student release identity and route/runtime markers must pass before deployment-success markers are recorded.
+- PR #248 / Issue #244 — restored explicit public Landing `/` and Student Portal `/student` runtime/deployment gates.
+- PR #252 / Issue #250 — hardened remote cPanel post-copy release validation before deployment-success markers.
+- PR #257 / Issue #256 — Admin sidebar contrast integration.
+- PR #270 / Issue #262 — removed Mobile/Admin simulated runtime fallbacks.
+- PR #268 and PR #273 / Issue #260 — bounded restart convergence plus CloudLinux Node Selector restart invocation; implementation is integrated, while #260 remains open for a successful governed redeploy.
+- PR #275 / Issue #274 — transport-truthful integration availability and safe secret-state reporting.
+- PR #279 / Issue #277 — truthful first-party Notification Center operational status independent of FCM transport readiness.
 
-PR #248 exact head `99f2f2306fcb961b645df9048350fa9e77b2fced` passed Bootstrap #1055, Web Portals Runtime Acceptance #9, Web Runtime #108, Boot Security #92, Learning Responsive #54, Notification Center #23, CSP Hydration #34 and Demo Package #247 before merge.
+PR #275 exact head `7676e3b5937f67b6e3ffb7cd354b8399b78ae5d9` passed Bootstrap #1114, Admin UX Browser Acceptance #168 and Demo cPanel Package #287 before merge at `65aaa52e1c2c1c4757f96ca32d5ee9b1c503d236`.
 
-PR #252 exact head `b765c4fa1004f038359c283d3d462eaff12f79ed` passed Bootstrap #1057 including normal/strict Pilot and the governed finalizer, Web Portals Runtime Acceptance #10 and Demo cPanel Package #248 before merge at `814018c14f20976a6819a55e607ca908b320da5d`.
+PR #279 exact head `1407a160f6fca750fc22ab2387655580e110a931` passed Bootstrap #1118, Admin UX Browser Acceptance #169 and Demo cPanel Package #288 before merge at `42c280f9a29245d439a92445033650be511655f9`; the merged tree exactly matches the tested-head tree `4d602d8e53fad49466db6b091a4a956315d4b97e`.
 
 ## Active repository-verifiable work at this checkpoint
 
-Issue #251 / PR #253 is control-state reconciliation only. It records the post-#248/#252 source and release-safety truth and must not invent additional product or deployment implementation scope.
+Issue #264 is control-state reconciliation only. The prior PR #267 became zero-diff and closed after its branch was reset while live `main` advanced. A fresh control-only reconciliation must use current live GitHub state and exactly the owned control files.
 
-No additional repository-verifiable P0 product or release implementation packet is identified at this checkpoint. Any next engineering packet must be selected from live GitHub plus authoritative product/governance evidence rather than inferred from this prose.
+Issue #266 remains CHANGELOG-only reconciliation and must distinguish merged history from still-open implementation work.
+
+Runtime-auth hardening remains sequenced and non-overlapping:
+- #271 / PR #272 owns canonical Backend runtime fixture-auth removal and default/demo seeding hardening. Its last exact-head Bootstrap #1101 is red on Pilot acceptance because the old Pilot flow still requires fixture auth; that failure must not be waived.
+- #261 / PR #265 owns Web BFF fixture-token removal plus focused real-session Web smoke only. It remains stale and must reconcile after the canonical Backend candidate while dropping historical Backend overlap.
+- #263 / PR #278 owns terminal real-session Pilot/browser acceptance plus the project-wide runtime-mock guard. Its current dependency branch is stale relative to canonical main and needs fresh governed CI after #271 + cleaned #261 composition.
+- #259 remains the umbrella until #271/#261/#263 are integrated and the project-wide runtime-mock guard is green on canonical main.
+
+Issue #260 remains open only for deployment acceptance: run a newer owner-authorized Demo deployment from canonical main and close the Issue only if the complete governed success path and external smoke pass.
 
 Real-content evaluation remains gated by owner-approved academic values, deterministic validation and content-rights review. Production activation remains separately gated by external owner/security/legal inputs.
 
@@ -65,7 +80,7 @@ Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2
 
 GitHub Actions run `32563427725`, attempt 2, successfully completed package assembly, audit retention, FTPS upload, protected one-shot bridge execution, cleanup and external Demo smoke. See `docs/project/DEMO_DEPLOYMENT_CHECKPOINT_2026-08-22.md`.
 
-Source-control integration has advanced through PR #252 and does not mean the Demo serves those commits. The next authorized deployment must resolve its own immutable canonical-main SHA and pass API health, exact Web/Admin build identity, public Landing `/` identity and Student Portal `/student` identity. The remote post-copy runner now fails closed on those Web route/release markers before it records deployment success, but no newer deployment is recorded by source integration alone.
+Source-control integration has advanced beyond that deployed SHA. Source integration, package success and manual restart evidence do not by themselves mean the Demo serves the newest commit. The next authorized deployment must resolve its own immutable canonical-main SHA and pass API health, exact Web/Admin build identity, public Landing `/` identity and Student Portal `/student` identity before deployment-success markers are recorded.
 
 Demo authorization does not imply production `modrik.org` cutover or Production Ready status.
 
