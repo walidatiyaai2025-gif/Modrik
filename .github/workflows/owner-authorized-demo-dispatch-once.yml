@@ -1,0 +1,30 @@
+name: Owner-authorized one-shot Demo dispatch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/owner-authorized-demo-dispatch-once.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    if: ${{ contains(github.event.head_commit.message, '[OWNER-DEMO-DEPLOY]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch current canonical Demo deployment workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-demo-cpanel.yml/dispatches" \
+            -f ref=main \
+            -f 'inputs[confirm]=DEPLOY'
+          echo 'MODRIK_OWNER_AUTHORIZED_DEMO_DISPATCH_SENT'
