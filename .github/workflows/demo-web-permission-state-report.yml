@@ -1,0 +1,78 @@
+name: Demo Web permission state report
+
+on:
+  push:
+    branches:
+      - issue-260-lsnode-exact-probe
+    paths:
+      - .github/workflows/demo-web-permission-state-report.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FTP_HOST: ftp.50sols.com
+      FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
+      BRIDGE_HOST: 50sols.com
+      BRIDGE_ORIGIN_IP: 65.21.208.232
+    steps:
+      - name: Record run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO WEB PERMISSION STATE CHECK STARTED — run \`$GITHUB_RUN_ID\`"
+
+      - name: Install FTPS client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp >/dev/null
+
+      - name: Prepare and run protected probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(openssl rand -hex 32)"
+          nonce="$(openssl rand -hex 12)"
+          bridge="modrik-perm-state-$nonce.php"
+          token_file=".modrik-perm-state-token-$nonce"
+          echo "::add-mask::$token"
+          printf '%s' "$token" >/tmp/modrik-perm-state-token
+          cat >/tmp/modrik-perm-state.php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          header('Content-Type: application/json');
+          $expected=trim((string)@file_get_contents(__DIR__.'/__TOKEN_FILE__'));
+          if($expected===''||!hash_equals($expected,(string)($_SERVER['HTTP_X_MODRIK_DIAG_TOKEN']??''))){http_response_code(404);exit;}
+          $root='/home/solscool/public_html/demo.modrik.org';
+          $mode=static function(string $p):?string{$m=@fileperms($p);return is_int($m)?substr(sprintf('%o',$m),-4):null;};
+          $ps=[];
+          $out=[];$rc=0;
+          @exec('/usr/bin/ps -u solscool -o comm= 2>/dev/null',$out,$rc);
+          foreach($out as $c){$c=trim($c);if($c==='node'||str_starts_with($c,'lsnode'))$ps[]=$c;}
+          echo json_encode(['ok'=>true,'root'=>$mode($root),'htaccess'=>$mode($root.'/.htaccess'),'startup_cjs'=>is_file($root.'/startup.cjs')?$mode($root.'/startup.cjs'):null,'server_js'=>is_file($root.'/server.js')?$mode($root.'/server.js'):null,'node_processes'=>$ps],JSON_UNESCAPED_SLASHES);
+          PHP
+          sed -i "s|__TOKEN_FILE__|$token_file|g" /tmp/modrik-perm-state.php
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set cmd:fail-exit yes; set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; put /tmp/modrik-perm-state-token -o $token_file; put /tmp/modrik-perm-state.php -o $bridge; bye;"
+          curl --fail --silent --show-error --max-time 30 --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" -H "X-MODRIK-Diag-Token: $token" "https://$BRIDGE_HOST/$bridge" > "$RUNNER_TEMP/state.json"
+          jq . "$RUNNER_TEMP/state.json"
+          echo "REMOTE_BRIDGE=$bridge" >> "$GITHUB_ENV"
+          echo "REMOTE_TOKEN_FILE=$token_file" >> "$GITHUB_ENV"
+
+      - name: Publish state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          compact="$(jq -c . "$RUNNER_TEMP/state.json")"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO WEB PERMISSION STATE CHECK COMPLETED\n\n- run: \`$GITHUB_RUN_ID\`\n\n\`\`\`json\n$compact\n\`\`\`"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          set +e
+          lftp -u "$FTP_USER","$FTP_PASSWORD" -p 21 "$FTP_HOST" -e "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate yes; set ssl:check-hostname no; rm -f ${REMOTE_TOKEN_FILE:-.missing}; rm -f ${REMOTE_BRIDGE:-.missing}; bye;" || true
