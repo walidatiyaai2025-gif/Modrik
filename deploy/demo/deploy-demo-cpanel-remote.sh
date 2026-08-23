@@ -11,6 +11,7 @@ BACKEND_ROOT="${MODRIK_BACKEND_ROOT:-$HOME/public_html/api.demo.modrik.org}"
 DEPLOY_ROOT="${MODRIK_DEPLOY_ROOT:-$HOME/deploy/modrik-demo}"
 KEEP_BACKUPS="${MODRIK_KEEP_BACKUPS:-5}"
 CAGEFS_ENTER_BIN="${MODRIK_CAGEFS_ENTER_BIN:-/bin/cagefs_enter.proxied}"
+PASSENGER_LOG_FILE="${MODRIK_PASSENGER_LOG_FILE:-$DEPLOY_ROOT/logs/student-web-passenger.log}"
 
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK_DIR="$DEPLOY_ROOT/work/$RELEASE_SHA"
@@ -37,8 +38,6 @@ resolve_cloudlinux_selector_bin() {
 
   selector_bin="${MODRIK_CLOUDLINUX_SELECTOR_BIN:-}"
   if [[ -z "$selector_bin" ]]; then
-    # CloudLinux documents /usr/sbin/cloudlinux-selector for CageFS-backed
-    # end-user operations. Prefer that canonical path when installed.
     for candidate in /usr/sbin/cloudlinux-selector /usr/bin/cloudlinux-selector; do
       if [[ -x "$candidate" ]]; then
         selector_bin="$candidate"
@@ -67,11 +66,6 @@ cloudlinux_node_action() {
     app_root_rel="${WEB_ROOT#"$HOME/"}"
   fi
 
-  # CloudLinux's end-user CLI contract requires selector actions to enter the
-  # user's CageFS. When this host exposes the documented proxy, execute there
-  # first and omit --user because the command already runs in the cPanel user's
-  # identity. Retain direct invocation only as a compatibility fallback for
-  # hosts without a usable CageFS proxy.
   if [[ -x "$CAGEFS_ENTER_BIN" ]]; then
     log "Requesting Student Web $action through CageFS-backed CloudLinux Node.js Selector app_root=$app_root_rel"
     if selector_output="$("$CAGEFS_ENTER_BIN" "$selector_bin" "$action" --json --interpreter nodejs --app-root "$app_root_rel" 2>&1)" \
@@ -93,6 +87,67 @@ cloudlinux_node_action() {
 
   CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
   return 1
+}
+
+configure_cloudlinux_passenger_log() {
+  local selector_bin node_user app_root_rel selector_output
+
+  selector_bin="$(resolve_cloudlinux_selector_bin)" \
+    || { CLOUDLINUX_SELECTOR_LAST_OUTPUT="CloudLinux Node.js Selector CLI is unavailable."; return 1; }
+
+  node_user="$(id -un)"
+  app_root_rel="$WEB_ROOT"
+  if [[ "$WEB_ROOT" == "$HOME/"* ]]; then
+    app_root_rel="${WEB_ROOT#"$HOME/"}"
+  fi
+
+  mkdir -p "$(dirname "$PASSENGER_LOG_FILE")"
+  chmod 700 "$(dirname "$PASSENGER_LOG_FILE")"
+  touch "$PASSENGER_LOG_FILE"
+  chmod 600 "$PASSENGER_LOG_FILE"
+
+  if [[ -x "$CAGEFS_ENTER_BIN" ]]; then
+    log "Configuring private Student Web Passenger log through CageFS app_root=$app_root_rel"
+    if selector_output="$("$CAGEFS_ENTER_BIN" "$selector_bin" set --json --interpreter nodejs --app-root "$app_root_rel" --passenger-log-file="$PASSENGER_LOG_FILE" 2>&1)" \
+      && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+      CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+      return 0
+    fi
+
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    log "CageFS-backed Passenger log configuration did not complete successfully; trying direct compatibility path"
+  fi
+
+  if selector_output="$("$selector_bin" set --json --interpreter nodejs --user "$node_user" --app-root "$app_root_rel" --passenger-log-file="$PASSENGER_LOG_FILE" 2>&1)" \
+    && printf '%s' "$selector_output" | grep -Eq '"result"[[:space:]]*:[[:space:]]*"success"'; then
+    CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+    return 0
+  fi
+
+  CLOUDLINUX_SELECTOR_LAST_OUTPUT="$selector_output"
+  return 1
+}
+
+emit_passenger_startup_diagnostics() {
+  local diagnostic
+
+  if [[ ! -f "$PASSENGER_LOG_FILE" ]]; then
+    printf '[MODRIK_PASSENGER_DIAG] private Passenger log is unavailable.\n' >&2
+    return 0
+  fi
+
+  diagnostic="$(tail -n 120 "$PASSENGER_LOG_FILE" 2>/dev/null \
+    | sed -E \
+        -e 's/([Aa]uthorization|[Cc]ookie|[Pp]assword|[Pp]asswd|[Ss]ecret|[Tt]oken|[Aa][Pp][Ii][_-]?[Kk]ey)([[:space:]]*[:=][[:space:]]*)[^[:space:],;]+/\1\2[REDACTED]/g' \
+        -e 's/[Bb]earer[[:space:]]+[A-Za-z0-9._~+\/=:-]+/Bearer [REDACTED]/g' \
+    | tail -c 16000 || true)"
+
+  if [[ -z "$diagnostic" ]]; then
+    printf '[MODRIK_PASSENGER_DIAG] Passenger log exists but contains no startup output.\n' >&2
+    return 0
+  fi
+
+  printf '[MODRIK_PASSENGER_DIAG_BEGIN]\n%s\n[MODRIK_PASSENGER_DIAG_END]\n' "$diagnostic" >&2
 }
 
 restart_cloudlinux_node_app() {
@@ -121,8 +176,6 @@ recover_previous_web_on_failure() {
     return
   fi
 
-  # Avoid recursive EXIT handling while recovery itself runs. Recovery is Web-only:
-  # database migrations are deliberately never rolled back automatically.
   trap - EXIT
   set +e
 
@@ -202,16 +255,10 @@ find "$BACKEND_ROOT" -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'storage' -e
 [[ -d "$BACKEND_ROOT/storage" ]] || fail "Backend storage was not preserved."
 [[ -d "$BACKEND_ROOT/public" ]] || fail "Backend public document root is missing."
 
-# Persist the immutable deployed commit so Admin can render a build badge without
-# reading Git metadata or exposing secrets. Storage survives code replacement.
 mkdir -p "$BACKEND_ROOT/storage/app"
 printf '%s\n' "$RELEASE_SHA" > "$BACKEND_ROOT/storage/app/modrik-release.txt"
 chmod 600 "$BACKEND_ROOT/storage/app/modrik-release.txt"
 
-# The deployment intentionally uses umask 077 for secrets, backups, and staging.
-# Normalize only the web-served Laravel boundary so the LiteSpeed worker can
-# traverse the project root and read public assets/front-controller files.
-# Keep .env private and leave non-public application code/storage untouched.
 log "Normalizing Laravel public permissions for LiteSpeed"
 chmod 711 "$BACKEND_ROOT"
 find "$BACKEND_ROOT/public" -type d -exec chmod 755 {} +
@@ -226,10 +273,12 @@ cd "$BACKEND_ROOT"
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 
+log "Configuring private Passenger diagnostics before Student Web restart"
+if ! configure_cloudlinux_passenger_log; then
+  fail "CloudLinux Node.js Selector could not configure private Passenger logging: ${CLOUDLINUX_SELECTOR_LAST_OUTPUT:0:2000}"
+fi
+
 log "Requesting canonical cPanel Node.js application restart"
-# The cPanel UI for demo.modrik.org is backed by CloudLinux Node.js Selector.
-# tmp/restart.txt is retained as a secondary Passenger signal, while the
-# selector operation follows the documented CageFS end-user control plane.
 touch "$WEB_ROOT/tmp/restart.txt"
 restart_cloudlinux_node_app
 
@@ -245,6 +294,7 @@ if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
     MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
     MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
     bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
+    emit_passenger_startup_diagnostics
     fail "Demo Web runtime did not reach the requested release after the bounded stop/start recycle."
   fi
 fi
