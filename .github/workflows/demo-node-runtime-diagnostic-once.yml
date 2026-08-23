@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO NODE RUNTIME DIAGNOSTIC STARTED\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\nRead-only diagnostic only; no deployment or Node selector mutation is authorized by this run."
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO LITESPEED HOST-RUNTIME DIAGNOSTIC STARTED\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\nRead-only server-runtime diagnostic. It inspects process/resource limits, LiteSpeed/lsnode availability, CageFS visibility and the existing CloudLinux Node application. No deployment, kill, restart, package install, selector mutation or hosting mutation is authorized by this run."
 
       - name: Install FTPS client
         run: |
@@ -62,7 +62,7 @@ jobs:
           <?php
           declare(strict_types=1);
 
-          set_time_limit(30);
+          set_time_limit(45);
           header('Content-Type: application/json; charset=utf-8');
           header('Cache-Control: no-store');
 
@@ -94,7 +94,11 @@ jobs:
               fclose($pipes[1]);
               fclose($pipes[2]);
               $exit = proc_close($process);
-              return ['exit' => $exit, 'stdout' => trim($stdout), 'stderr' => trim($stderr)];
+              return [
+                  'exit' => $exit,
+                  'stdout' => substr(trim($stdout), 0, 12000),
+                  'stderr' => substr(trim($stderr), 0, 4000),
+              ];
           };
 
           $extractApps = static function (mixed $value) use (&$extractApps, $safeAppKeys, $appRootRel): array {
@@ -122,9 +126,38 @@ jobs:
               return $matches;
           };
 
+          $mode = static function (string $path): ?string {
+              $perms = @fileperms($path);
+              return is_int($perms) ? substr(sprintf('%o', $perms), -4) : null;
+          };
+
+          $fileState = static function (string $path) use ($mode): array {
+              return [
+                  'exists' => file_exists($path),
+                  'is_file' => is_file($path),
+                  'is_dir' => is_dir($path),
+                  'readable' => is_readable($path),
+                  'executable' => is_executable($path),
+                  'mode' => file_exists($path) ? $mode($path) : null,
+                  'uid' => file_exists($path) ? @fileowner($path) : null,
+                  'gid' => file_exists($path) ? @filegroup($path) : null,
+              ];
+          };
+
+          $limitNames = [
+              'Max processes',
+              'Max open files',
+              'Max address space',
+              'Max resident set',
+              'Max data size',
+              'Max locked memory',
+          ];
+
           try {
               $identity = $run(['/usr/bin/id', '-un']);
               $user = $identity['exit'] === 0 && $identity['stdout'] !== '' ? $identity['stdout'] : 'unknown';
+              $uid = function_exists('posix_geteuid') ? posix_geteuid() : @fileowner(__FILE__);
+              $gid = function_exists('posix_getegid') ? posix_getegid() : @filegroup(__FILE__);
 
               $htaccess = [];
               $htaccessPath = $webRoot . '/.htaccess';
@@ -170,47 +203,178 @@ jobs:
                   }
               }
 
-              $processes = [];
-              if ($user !== 'unknown') {
-                  $ps = $run(['/usr/bin/ps', '-u', $user, '-o', 'pid=,ppid=,etime=,comm=']);
-                  if ($ps['exit'] === 0) {
-                      foreach (preg_split('/\R/', $ps['stdout']) ?: [] as $line) {
-                          if (!preg_match('/^\s*(\d+)\s+(\d+)\s+(\S+)\s+(\S+)/', $line, $m)) {
-                              continue;
-                          }
-                          $pid = (int) $m[1];
-                          $comm = $m[4];
-                          if (!preg_match('/node|passenger/i', $comm)) {
-                              continue;
-                          }
-                          $cwd = @readlink('/proc/' . $pid . '/cwd');
-                          $exe = @readlink('/proc/' . $pid . '/exe');
-                          $processes[] = [
-                              'pid' => $pid,
-                              'ppid' => (int) $m[2],
-                              'etime' => $m[3],
-                              'comm' => $comm,
-                              'cwd' => is_string($cwd) ? $cwd : null,
-                              'exe' => is_string($exe) ? $exe : null,
-                          ];
-                          if (count($processes) >= 20) {
-                              break;
-                          }
+              $limits = [];
+              $limitsText = (string) @file_get_contents('/proc/self/limits');
+              foreach (preg_split('/\R/', $limitsText) ?: [] as $line) {
+                  foreach ($limitNames as $limitName) {
+                      if (str_starts_with($line, $limitName)) {
+                          $limits[$limitName] = preg_replace('/\s+/', ' ', trim($line));
+                          break;
                       }
                   }
               }
 
+              $cgroup = [
+                  'self' => trim((string) @file_get_contents('/proc/self/cgroup')),
+                  'pids_current' => null,
+                  'pids_max' => null,
+              ];
+              if (preg_match('/^0::(.+)$/m', $cgroup['self'], $m)) {
+                  $cgRel = trim($m[1]);
+                  $cgBase = '/sys/fs/cgroup' . ($cgRel === '/' ? '' : $cgRel);
+                  foreach (['pids.current' => 'pids_current', 'pids.max' => 'pids_max'] as $file => $key) {
+                      $value = @file_get_contents($cgBase . '/' . $file);
+                      if (is_string($value)) {
+                          $cgroup[$key] = trim($value);
+                      }
+                  }
+              }
+
+              $counts = [
+                  'visible_total' => 0,
+                  'visible_node' => 0,
+                  'visible_lsnode' => 0,
+                  'visible_lshttpd' => 0,
+                  'user_total' => 0,
+                  'user_node' => 0,
+                  'user_lsnode' => 0,
+              ];
+              $userNodeProcesses = [];
+              foreach (glob('/proc/[0-9]*', GLOB_ONLYDIR) ?: [] as $procDir) {
+                  $pid = (int) basename($procDir);
+                  if ($pid <= 0) {
+                      continue;
+                  }
+                  $comm = trim((string) @file_get_contents($procDir . '/comm'));
+                  if ($comm === '') {
+                      continue;
+                  }
+                  $counts['visible_total']++;
+                  $commLower = strtolower($comm);
+                  if ($commLower === 'node') {
+                      $counts['visible_node']++;
+                  }
+                  if ($commLower === 'lsnode' || str_starts_with($commLower, 'lsnode')) {
+                      $counts['visible_lsnode']++;
+                  }
+                  if (str_contains($commLower, 'lshttpd')) {
+                      $counts['visible_lshttpd']++;
+                  }
+
+                  $statusText = (string) @file_get_contents($procDir . '/status');
+                  $procUid = null;
+                  if (preg_match('/^Uid:\s+(\d+)/m', $statusText, $uidMatch)) {
+                      $procUid = (int) $uidMatch[1];
+                  }
+                  if (!is_int($uid) || $procUid !== $uid) {
+                      continue;
+                  }
+                  $counts['user_total']++;
+                  $isNode = $commLower === 'node';
+                  $isLsnode = $commLower === 'lsnode' || str_starts_with($commLower, 'lsnode');
+                  if ($isNode) {
+                      $counts['user_node']++;
+                  }
+                  if ($isLsnode) {
+                      $counts['user_lsnode']++;
+                  }
+                  if (($isNode || $isLsnode) && count($userNodeProcesses) < 20) {
+                      $statusPpid = 0;
+                      if (preg_match('/^PPid:\s+(\d+)/m', $statusText, $ppidMatch)) {
+                          $statusPpid = (int) $ppidMatch[1];
+                      }
+                      $cwd = @readlink($procDir . '/cwd');
+                      $exe = @readlink($procDir . '/exe');
+                      $userNodeProcesses[] = [
+                          'pid' => $pid,
+                          'ppid' => $statusPpid,
+                          'comm' => $comm,
+                          'cwd' => is_string($cwd) ? $cwd : null,
+                          'exe' => is_string($exe) ? $exe : null,
+                      ];
+                  }
+              }
+
+              $lsnodeCandidates = [];
+              foreach ([
+                  '/usr/local/lsws/fcgi-bin/lsnode',
+                  '/usr/local/lsws/bin/lsnode',
+                  '/usr/local/lsws/lsnode',
+              ] as $candidate) {
+                  $lsnodeCandidates[$candidate] = $fileState($candidate);
+              }
+
+              $lshttpdPath = '/usr/local/lsws/bin/lshttpd';
+              $lshttpdVersion = null;
+              if (is_executable($lshttpdPath)) {
+                  $versionResult = $run([$lshttpdPath, '-v']);
+                  if ($versionResult['exit'] === 0 && $versionResult['stdout'] !== '') {
+                      $lshttpdVersion = substr(preg_replace('/\s+/', ' ', $versionResult['stdout']), 0, 500);
+                  }
+              }
+
+              $cagefsProbe = null;
+              if ($cagefsBin !== null) {
+                  $probe = $run([
+                      $cagefsBin,
+                      '/bin/bash',
+                      '-lc',
+                      'printf "lsws_dir="; if test -d /usr/local/lsws; then echo yes; else echo no; fi; printf "lshttpd_exec="; if test -x /usr/local/lsws/bin/lshttpd; then echo yes; else echo no; fi; printf "lsnode_fcgi_exec="; if test -x /usr/local/lsws/fcgi-bin/lsnode; then echo yes; else echo no; fi; printf "selector_exec="; if test -x /usr/sbin/cloudlinux-selector || test -x /usr/bin/cloudlinux-selector; then echo yes; else echo no; fi'
+                  ], $home);
+                  $cagefsProbe = [
+                      'exit' => $probe['exit'],
+                      'stdout' => $probe['stdout'],
+                  ];
+              }
+
+              $packages = null;
+              if (is_executable('/usr/bin/rpm')) {
+                  $rpm = $run(['/usr/bin/rpm', '-q', 'cagefs', 'lvemanager', 'lve-utils', 'lsws', 'alt-mod-passenger']);
+                  $packages = [
+                      'exit' => $rpm['exit'],
+                      'stdout' => $rpm['stdout'],
+                  ];
+              }
+
+              $toolAvailability = [];
+              foreach ([
+                  '/usr/bin/lveps', '/usr/sbin/lveps', '/usr/bin/lveinfo', '/usr/sbin/lveinfo',
+                  '/usr/sbin/lvectl', '/usr/sbin/cagefsctl', '/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh',
+              ] as $tool) {
+                  $toolAvailability[$tool] = $fileState($tool);
+              }
+
               echo json_encode([
                   'ok' => true,
-                  'user' => $user,
-                  'web_root' => $webRoot,
-                  'web_root_realpath' => realpath($webRoot) ?: null,
-                  'startup_exists' => is_file($webRoot . '/startup.cjs'),
-                  'release_file_sha' => $releaseSha,
-                  'restart_marker_mtime' => is_file($webRoot . '/tmp/restart.txt') ? @filemtime($webRoot . '/tmp/restart.txt') : null,
-                  'passenger_directives' => array_slice($htaccess, 0, 20),
+                  'identity' => ['user' => $user, 'uid' => $uid, 'gid' => $gid],
+                  'web' => [
+                      'root' => $webRoot,
+                      'root_realpath' => realpath($webRoot) ?: null,
+                      'release_file_sha' => $releaseSha,
+                      'root_state' => $fileState($webRoot),
+                      'tmp_state' => $fileState($webRoot . '/tmp'),
+                      'restart_marker_state' => $fileState($webRoot . '/tmp/restart.txt'),
+                      'server_js_state' => $fileState($webRoot . '/server.js'),
+                      'startup_cjs_state' => $fileState($webRoot . '/startup.cjs'),
+                      'htaccess_state' => $fileState($htaccessPath),
+                      'passenger_directives' => array_slice($htaccess, 0, 20),
+                  ],
                   'selector' => $selector,
-                  'node_processes' => $processes,
+                  'limits' => $limits,
+                  'cgroup' => $cgroup,
+                  'process_counts' => $counts,
+                  'user_node_processes' => $userNodeProcesses,
+                  'litespeed' => [
+                      'root_state' => $fileState('/usr/local/lsws'),
+                      'lshttpd_state' => $fileState($lshttpdPath),
+                      'lshttpd_version' => $lshttpdVersion,
+                      'lsnode_candidates' => $lsnodeCandidates,
+                      'selector_enable_script' => $fileState('/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh'),
+                  ],
+                  'cagefs_probe' => $cagefsProbe,
+                  'package_probe' => $packages,
+                  'tool_availability' => $toolAvailability,
+                  'proc_loadavg' => trim((string) @file_get_contents('/proc/loadavg')),
               ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
           } catch (Throwable $e) {
               http_response_code(500);
@@ -242,7 +406,7 @@ jobs:
             bye;
           "
 
-      - name: Execute read-only Node runtime diagnostic at cPanel origin
+      - name: Execute read-only LiteSpeed host-runtime diagnostic at cPanel origin
         shell: bash
         run: |
           set -euo pipefail
@@ -251,7 +415,7 @@ jobs:
           http_code="$(curl --silent --show-error \
             --output "$body" \
             --write-out '%{http_code}' \
-            --max-time 35 \
+            --max-time 50 \
             --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
             -H "X-MODRIK-Diag-Token: $token" \
             "$BRIDGE_URL/$REMOTE_DIAG_BRIDGE")"
@@ -280,14 +444,14 @@ jobs:
           [[ -f "$observed_file" ]] && observed_sha="$(cat "$observed_file")"
 
           if [[ -f "$body" ]] && jq -e '.ok == true' "$body" >/dev/null 2>&1; then
-            safe_json="$(jq -c '{user,web_root,web_root_realpath,startup_exists,release_file_sha,restart_marker_mtime,passenger_directives,selector,node_processes}' "$body")"
+            safe_json="$(jq -c '{identity,web,selector,limits,cgroup,process_counts,user_node_processes,litespeed,cagefs_probe,package_probe,tool_availability,proc_loadavg}' "$body")"
             status='COMPLETED'
           else
             safe_json='{"diagnostic_result":"unavailable"}'
             status='FAILED_OR_INCOMPLETE'
           fi
 
-          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO NODE RUNTIME DIAGNOSTIC $status\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- rendered public release: \`$observed_sha\`\n- run URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\nSanitized server evidence (no environment variables, credentials, request bodies or arbitrary process arguments):\n\n\`\`\`json\n$safe_json\n\`\`\`"
+          gh issue comment 260 --repo "$GITHUB_REPOSITORY" --body "DEMO LITESPEED HOST-RUNTIME DIAGNOSTIC $status\n\n- run: \`$GITHUB_RUN_ID\`\n- source main: \`$GITHUB_SHA\`\n- rendered public release: \`$observed_sha\`\n- run URL: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\n\nSanitized read-only server evidence (no environment variables, credentials, cookies, request bodies or arbitrary unrelated process arguments):\n\n\`\`\`json\n$safe_json\n\`\`\`"
 
       - name: Remove one-shot diagnostic files
         if: always()
