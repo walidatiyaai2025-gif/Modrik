@@ -39,7 +39,7 @@ test("release identity remains artifact-owned and exact-SHA gated", () => {
   assert.match(packager, /process\.env\.MODRIK_RELEASE_SHA = modrikRelease/);
   assert.match(remote, /MODRIK deployed release: \$RELEASE_SHA/);
   assert.match(remote, /wait-for-demo-web-release\.sh/);
-  assert.match(control, /public runtime serves the exact authorized canonical-main SHA/);
+  assert.match(control, /exact canonical `main` SHA is the immutable release identity/);
 });
 
 test("deployment rollback covers payload and runtime registration", () => {
