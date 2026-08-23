@@ -23,6 +23,28 @@ PR #279 / Issue #277 reconciled runtime operational status with that accepted No
 
 The current matrix has no remaining `audit_required` capability row. Unsupported mutation/activation gaps remain explicit as `backend_contract_missing`, `not_implemented_or_activated`, `p1_activation_gated`, `activation_gated` or another truthful deferred status; those labels do not grant implementation authority by themselves.
 
+## Deployment governance — `GOV-DEPLOY-001`
+
+`docs/project/DEPLOYMENT_CONSTITUTION.md` is locked engineering governance for Demo deployment and for any future cPanel/LiteSpeed/CloudLinux deployment path derived from it.
+
+The deployment control plane is desired-state based, not restart-command based:
+
+- exact canonical `main` SHA is the immutable release identity;
+- package/runtime identity is artifact-owned;
+- Demo Web desired state remains `demo.modrik.org` + `public_html/demo.modrik.org` + Node 22.23.2-compatible CloudLinux runtime + production mode;
+- canonical LiteSpeed Next startup is the packaged standalone `server.js` identified by `web/WEB_APPLICATION_ROOT.txt`; `startup.cjs` is compatibility/rollback only;
+- actual CloudLinux application root/domain/version/mode/startup/status must be read and reconciled/validated before activation;
+- root/domain/version drift is fail-closed unless the active Issue explicitly owns a hosting migration;
+- startup drift may be reconciled only to the artifact-derived standalone `server.js`, with read-back proof;
+- copied live payload must pass exact-Node loopback preflight before hosting activation;
+- origin exact-SHA convergence and public Landing/Student/Admin/API smoke remain mandatory;
+- rollback must restore both Web payload and any mutated runtime registration such as startup-file;
+- upload, package, Selector `success`, restart return code or manual cPanel restart never constitute deployment success by themselves;
+- routine deployment must not depend on manual cPanel intervention;
+- LiteSpeed runtime diagnostics use LiteSpeed evidence (`stderr.log`, `lsnode` where observable) and must not assume Apache Passenger process/log behavior.
+
+Any deployment PR must update executable contract coverage and preserve these invariants. CI must fail if the repository silently returns to wrapper-first startup or weakens exact-release acceptance.
+
 ## Reconciled integration checkpoint
 
 Recent integrated milestones include:
@@ -62,7 +84,7 @@ Runtime-auth hardening remains sequenced and non-overlapping:
 - #263 / PR #278 owns terminal real-session Pilot/browser acceptance plus the project-wide runtime-mock guard. Its current dependency branch is stale relative to canonical main and needs fresh governed CI after #271 + cleaned #261 composition.
 - #259 remains the umbrella until #271/#261/#263 are integrated and the project-wide runtime-mock guard is green on canonical main.
 
-Issue #260 remains open only for deployment acceptance: run a newer owner-authorized Demo deployment from canonical main and close the Issue only if the complete governed success path and external smoke pass.
+Issue #260 remains open for deployment acceptance and deployment-path convergence. The current remediation must make routine cPanel/LiteSpeed deployment deterministic under `GOV-DEPLOY-001`; #260 may close only after a newer canonical-main release completes the full governed path and external smoke.
 
 Real-content evaluation remains gated by owner-approved academic values, deterministic validation and content-rights review. Production activation remains separately gated by external owner/security/legal inputs.
 
@@ -72,7 +94,7 @@ All implementation enters `main` through focused PRs. Never merge red CI or weak
 
 The governed matrix includes control-state validation, capability-surface validation, repository contracts/REQ/AC/schemas, OpenAPI lint, design tokens, Composer validate/audit, Pint, Larastan, full SQLite PHPUnit, MariaDB 10.11 migration/full suite, Web audit/lint/typecheck/tests/build, Flutter analyze/tests/signing gate, Gitleaks, dependency review, Pilot normal/strict acceptance and relevant browser/runtime/demo acceptance.
 
-Release/deployment changes must preserve exact Web/Admin Build SHA verification from PR #232, Landing/Student route/runtime acceptance from PR #248, and the pre-success remote marker/release validation integrated by PR #252.
+Release/deployment changes must preserve exact Web/Admin Build SHA verification from PR #232, Landing/Student route/runtime acceptance from PR #248, the pre-success remote marker/release validation integrated by PR #252, and `GOV-DEPLOY-001` desired-state/runtime rollback guarantees.
 
 ## Demo deployment authorization and state
 
