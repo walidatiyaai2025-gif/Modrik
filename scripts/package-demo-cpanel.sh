@@ -57,6 +57,11 @@ grep -q 'resources/css/filament/admin/theme.css' "$BACKEND_SOURCE/public/build/m
 rm -rf "$OUT_ROOT"
 mkdir -p "$OUT_ROOT/web" "$OUT_ROOT/backend" "$OUT_ROOT/deploy"
 
+RELEASE_SHA="${GITHUB_SHA:-$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || printf 'unknown')}"
+[[ -n "$RELEASE_SHA" ]] || fail "Release SHA could not be resolved."
+printf '%s\n' "$RELEASE_SHA" > "$OUT_ROOT/RELEASE_SHA.txt"
+printf '%s\n' "$RELEASE_SHA" > "$OUT_ROOT/web/RELEASE_SHA.txt"
+
 cp -a "$WEB_STANDALONE/." "$OUT_ROOT/web/"
 
 if [[ -f "$OUT_ROOT/web/server.js" ]]; then
@@ -81,10 +86,16 @@ cp "$WEB_ENV_TEMPLATE" "$OUT_ROOT/web/.env.demo.example"
 printf '%s\n' "$WEB_APP_REL" > "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt"
 
 # cPanel Passenger can always use the Web payload root as Application Root.
-# This wrapper changes cwd to the actual Next standalone app before loading it,
-# while preserving monorepo-traced node_modules in ancestor directories.
+# The release identity is artifact-owned so Passenger and exact-Node preflight
+# render the same immutable SHA without relying on mutable cPanel env state.
 cat > "$OUT_ROOT/web/startup.cjs" <<EOF
+const fs = require("node:fs");
 const path = require("node:path");
+const release = fs.readFileSync(path.join(__dirname, "RELEASE_SHA.txt"), "utf8").trim();
+if (!release) {
+  throw new Error("Packaged MODRIK release identity is empty.");
+}
+process.env.NEXT_PUBLIC_MODRIK_RELEASE_SHA = release;
 const appRoot = path.resolve(__dirname, ${WEB_APP_REL@Q});
 process.chdir(appRoot);
 require(path.join(appRoot, "server.js"));
@@ -113,6 +124,8 @@ fi
 
 [[ -f "$OUT_ROOT/web/startup.cjs" ]] || fail "cPanel Web startup wrapper is missing."
 [[ -f "$OUT_ROOT/web/WEB_APPLICATION_ROOT.txt" ]] || fail "cPanel Web application-root metadata is missing from the deployable Web payload."
+[[ -s "$OUT_ROOT/web/RELEASE_SHA.txt" ]] || fail "cPanel Web immutable release identity is missing from the deployable Web payload."
+cmp -s "$OUT_ROOT/RELEASE_SHA.txt" "$OUT_ROOT/web/RELEASE_SHA.txt" || fail "Web release identity differs from the package release identity."
 [[ -f "$WEB_APP/server.js" ]] || fail "Packaged Web startup server.js is missing."
 [[ -d "$WEB_APP/.next/static" ]] || fail "Packaged Web .next/static is missing."
 [[ -f "$OUT_ROOT/backend/artisan" ]] || fail "Packaged Backend artisan is missing."
@@ -129,9 +142,6 @@ cp "$DEPLOY_DOC" "$OUT_ROOT/DEPLOY.md"
 cp "$PORTALS_DOC" "$OUT_ROOT/PORTALS.md"
 cp "$WEB_RELEASE_WAIT_SOURCE" "$OUT_ROOT/deploy/wait-for-demo-web-release.sh"
 [[ -f "$OUT_ROOT/deploy/wait-for-demo-web-release.sh" ]] || fail "Packaged Demo Web restart convergence helper is missing."
-
-RELEASE_SHA="${GITHUB_SHA:-$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || printf 'unknown')}"
-printf '%s\n' "$RELEASE_SHA" > "$OUT_ROOT/RELEASE_SHA.txt"
 
 ZIP_PARENT="$(dirname "$OUT_ROOT")"
 ZIP_NAME="modrik-demo-cpanel-${RELEASE_SHA:0:12}.zip"
