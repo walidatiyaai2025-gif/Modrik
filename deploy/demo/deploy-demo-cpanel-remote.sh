@@ -17,6 +17,10 @@ BACKUP_DIR="$DEPLOY_ROOT/backups/$TIMESTAMP-$RELEASE_SHA"
 EXTRACT_DIR="$WORK_DIR/extracted"
 SOURCE_ROOT="$EXTRACT_DIR/demo-cpanel"
 
+WEB_BACKUP_READY=0
+WEB_MUTATED=0
+DEPLOY_SUCCEEDED=0
+
 log() {
   printf '[MODRIK_DEPLOY] %s\n' "$*"
 }
@@ -61,6 +65,35 @@ restart_cloudlinux_node_app() {
   fi
 }
 
+recover_previous_web_on_failure() {
+  local exit_code=$?
+
+  if (( exit_code == 0 || DEPLOY_SUCCEEDED == 1 || WEB_MUTATED == 0 || WEB_BACKUP_READY == 0 )); then
+    return
+  fi
+
+  # Avoid recursive EXIT handling while recovery itself runs. Recovery is Web-only:
+  # database migrations are deliberately never rolled back automatically.
+  trap - EXIT
+  set +e
+
+  log "Deployment failed after Student Web mutation; restoring the pre-deploy Web payload"
+  find "$WEB_ROOT" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf -- {} +
+  tar -xzf "$BACKUP_DIR/web.tar.gz" -C "$WEB_ROOT"
+  mkdir -p "$WEB_ROOT/tmp"
+  touch "$WEB_ROOT/tmp/restart.txt"
+
+  if ( restart_cloudlinux_node_app ); then
+    log "Pre-deploy Student Web payload restored and canonical restart requested"
+  else
+    printf '[MODRIK_DEPLOY_ERROR] Web payload was restored but automatic recovery restart failed; use the cPanel RESTART action.\n' >&2
+  fi
+
+  exit "$exit_code"
+}
+
+trap recover_previous_web_on_failure EXIT
+
 command -v unzip >/dev/null 2>&1 || fail "unzip is required on the cPanel host."
 command -v tar >/dev/null 2>&1 || fail "tar is required on the cPanel host."
 command -v curl >/dev/null 2>&1 || fail "curl is required on the cPanel host."
@@ -97,8 +130,10 @@ tar --exclude='./storage' -czf "$BACKUP_DIR/backend-code.tar.gz" -C "$BACKEND_RO
 cp "$BACKEND_ROOT/.env" "$BACKUP_DIR/backend.env"
 chmod 600 "$BACKUP_DIR/backend.env"
 printf '%s\n' "$RELEASE_SHA" > "$BACKUP_DIR/target-release.txt"
+WEB_BACKUP_READY=1
 
 log "Updating Student Web payload"
+WEB_MUTATED=1
 find "$WEB_ROOT" -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf -- {} +
 cp -a "$SOURCE_ROOT/web/." "$WEB_ROOT/"
 mkdir -p "$WEB_ROOT/tmp"
@@ -154,7 +189,16 @@ log "Waiting for bounded Student Web restart convergence"
 if ! MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
   MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
   bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
-  fail "Demo Web runtime did not reach the requested release within the bounded restart window."
+  log "Initial Student Web convergence window expired; requesting one bounded canonical restart retry"
+  touch "$WEB_ROOT/tmp/restart.txt"
+  restart_cloudlinux_node_app
+
+  if ! MODRIK_WEB_RESTART_ATTEMPTS="${MODRIK_WEB_RESTART_RETRY_ATTEMPTS:-12}" \
+    MODRIK_DEMO_WEB_URL="https://demo.modrik.org/" \
+    MODRIK_DEMO_STUDENT_URL="https://demo.modrik.org/student" \
+    bash "$SOURCE_ROOT/deploy/wait-for-demo-web-release.sh" "$RELEASE_SHA"; then
+    fail "Demo Web runtime did not reach the requested release after the bounded restart retry."
+  fi
 fi
 
 log "Verifying public health and portal runtime markers"
@@ -189,6 +233,7 @@ SHORT_SHA="${RELEASE_SHA:0:12}"
 
 printf '%s\n' "$RELEASE_SHA" > "$DEPLOY_ROOT/current-release.txt"
 printf '%s\n' "$TIMESTAMP" > "$DEPLOY_ROOT/last-successful-deploy-utc.txt"
+DEPLOY_SUCCEEDED=1
 
 log "Pruning old deployment work directories"
 find "$DEPLOY_ROOT/work" -mindepth 1 -maxdepth 1 -type d ! -name "$RELEASE_SHA" -mtime +1 -exec rm -rf -- {} + || true
