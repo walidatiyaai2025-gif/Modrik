@@ -115,6 +115,29 @@ jobs:
           packaged_release="$(tr -d '\r\n' < .runtime/demo-cpanel/web/RELEASE_SHA.txt)"
           short_release="${packaged_release:0:12}"
           test -n "$packaged_release"
+
+          require_contains() {
+            local label="$1"
+            local body="$2"
+            local needle="$3"
+            if [[ "$body" != *"$needle"* ]]; then
+              echo "MODRIK_PACKAGE_ASSERT_FAIL $label" >&2
+              return 1
+            fi
+            echo "MODRIK_PACKAGE_ASSERT_OK $label"
+          }
+
+          require_absent() {
+            local label="$1"
+            local body="$2"
+            local needle="$3"
+            if [[ "$body" == *"$needle"* ]]; then
+              echo "MODRIK_PACKAGE_ASSERT_FAIL $label" >&2
+              return 1
+            fi
+            echo "MODRIK_PACKAGE_ASSERT_OK $label"
+          }
+
           PORT=3217 \
           HOSTNAME=127.0.0.1 \
           NODE_ENV=production \
@@ -143,23 +166,28 @@ jobs:
           fi
 
           landing="$(cat "$RUNNER_TEMP/modrik-packaged-landing.html")"
-          [[ "$landing" == *'data-testid="modrik-landing-page"'* ]]
-          [[ "$landing" == *'data-testid="modrik-student-portal-entry"'* ]]
-          [[ "$landing" == *'data-testid="modrik-web-release-badge"'* ]]
-          [[ "$landing" == *"MODRIK deployed release: $packaged_release"* ]]
-          [[ "$landing" == *"Build $short_release"* ]]
-          [[ "$landing" != *'This screen could not be completed.'* ]]
+          require_contains landing-page "$landing" 'data-testid="modrik-landing-page"'
+          require_contains landing-student-entry "$landing" 'data-testid="modrik-student-portal-entry"'
+          require_contains landing-release-badge "$landing" 'data-testid="modrik-web-release-badge"'
+          require_contains landing-exact-release "$landing" "MODRIK deployed release: $packaged_release"
+          require_contains landing-short-release "$landing" "Build $short_release"
+          require_absent landing-error-boundary "$landing" 'This screen could not be completed.'
 
           css_href="$(printf '%s' "$landing" | grep -oE 'href="/_next/static/[^"]+\.css"' | head -1 | cut -d'"' -f2)"
-          test -n "$css_href"
+          if [[ -z "$css_href" ]]; then
+            echo 'MODRIK_PACKAGE_ASSERT_FAIL landing-static-css-link' >&2
+            exit 1
+          fi
+          echo 'MODRIK_PACKAGE_ASSERT_OK landing-static-css-link'
           curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:3217$css_href" >/dev/null
+          echo 'MODRIK_PACKAGE_ASSERT_OK landing-static-css-fetch'
 
           student="$(curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3217/student)"
-          [[ "$student" == *'data-testid="modrik-student-portal"'* ]]
-          [[ "$student" == *'class="auth-shell"'* ]]
-          [[ "$student" == *'data-testid="modrik-web-release-badge"'* ]]
-          [[ "$student" == *"Build $short_release"* ]]
-          [[ "$student" != *'This screen could not be completed.'* ]]
+          require_contains student-portal "$student" 'data-testid="modrik-student-portal"'
+          require_contains student-auth-shell "$student" 'class="auth-shell"'
+          require_contains student-release-badge "$student" 'data-testid="modrik-web-release-badge"'
+          require_contains student-short-release "$student" "Build $short_release"
+          require_absent student-error-boundary "$student" 'This screen could not be completed.'
           echo "MODRIK_PACKAGED_WEB_RUNTIME_OK release=$short_release portals=landing,student static_css=ok"
 
       - name: Upload cPanel Demo ZIP
