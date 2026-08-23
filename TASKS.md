@@ -1,33 +1,34 @@
 # TASKS
 
-Updated: 2026-08-22
-Last reconciled baseline: `814018c14f20976a6819a55e607ca908b320da5d`
+Updated: 2026-08-23
+Last reconciled baseline: `42c280f9a29245d439a92445033650be511655f9`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
-## COMPLETE — capability / Admin / Student integration wave
+## COMPLETE — recent integrated runtime/release work
 
-- [x] #179 — capability/settings governance.
-- [x] #185 — shared professional Admin UX foundation.
-- [x] #180 — Academic Catalogue Management and supported `CONTENT_TARGET_TRACK_MISSING` remediation.
-- [x] #181 — typed/versioned System Settings plus Auth Provider, Notifications settings, Firebase Runtime and Advertising/Safety Admin controls.
-- [x] #182 — Content Operations lifecycle, ingestion/retry, exception triage, provenance/traceability and coverage visibility.
-- [x] #208 / PR #209 — discoverable Student academic-track change preserving Backend reset/archive authority.
-- [x] #183 — Assessment Admin surface through PR #207 Stage A and PR #229 / #217 Stage B; seed/order/resume/scoring authority remains Backend-owned.
-- [x] #216 / PR #218 — Accounts, Sessions, fixed-role RBAC visibility and Operations Control Center.
-- [x] #184 / #224 / PR #225 — Public/Legal/Help operational visibility and truthful deferred mutable-management boundary.
-- [x] #233 / PR #234 — executable capability-surface contract validation in CI.
-- [x] #231 / PR #232 — exact Demo Web/Admin Build SHA release smoke hardening.
-- [x] PR #239 — Windows client explicitly classified `deferred_disabled`.
+- [x] #262 / PR #270 — Mobile/Admin simulated runtime fallback removal.
+- [x] #260 implementation / PR #273 — bounded CloudLinux/cPanel restart propagation control integrated. Issue #260 remains open only for governed redeploy acceptance.
+- [x] #274 / PR #275 — truthful integration transport status with fail-closed external delivery readiness.
+- [x] #277 / PR #279 — Student Notification Center operational status reconciled with the governed `user_facing / present` capability while keeping Firebase/FCM transport state separate.
 - [x] #235 / PR #236 — Backend-owned Student Notification Center integrated on Web and Mobile.
-- [x] #244 / PR #248 — Landing `/` + Student Portal `/student` runtime/deployment acceptance restored with exact-head multilingual/RTL/narrow/200% and route/release guards.
-- [x] #250 / PR #252 — remote cPanel post-copy success recording now fails closed until exact Landing/Student release identity and meaningful runtime markers pass.
+- [x] #244 / PR #248 — Landing `/` + Student Portal `/student` runtime/deployment acceptance.
+- [x] #250 / PR #252 — remote cPanel post-copy route/release validation before success recording.
 
 ## Current repository-verifiable P0 queue
 
-Issue #251 / PR #253 is control-state reconciliation only. Its live merge/CI state must be fetched from GitHub; it does not create domain, release or deployment implementation authority.
+- [ ] #271 / PR #272 — Backend runtime fixture-auth/default synthetic-seeding hardening. Keep the runtime bypass removed; repair the Pilot acceptance dependency rather than restoring fixture authentication. Prior Bootstrap #1101 red remains blocking evidence.
+- [ ] #261 / PR #265 — Web BFF fixture identity removal + focused real-session smoke only. Reconcile after the canonical Backend Auth candidate and remove all historical Backend middleware/config/seeder overlap before readiness.
+- [ ] #263 / PR #278 — terminal real-session Pilot/browser acceptance + global runtime-mock/fixture guard. Recompose on canonical #271 plus cleaned #261 heads; then require fresh exact-head contracts, Backend SQLite/MariaDB, normal/strict Pilot, relevant browser acceptance and governed Bootstrap evidence.
+- [ ] #264 / PR #267 — control-state reconciliation only; exactly `PROJECT_CONTROL.md`, `CURRENT_STATE.md`, `TASKS.md`. Fresh CI required after this current-main reconciliation.
+- [ ] #266 — CHANGELOG-only factual reconciliation after implementation truth stabilizes; do not mix domain code into this packet.
 
-No additional P0 product or release implementation packet is identified at this checkpoint. Before creating or taking engineering scope, fetch live GitHub and use the Master Plan, current capability matrix and explicit owner authorization. Do not turn `backend_contract_missing`, deferred or activation-gated rows into invented product authority.
+## Dependency / ownership sequencing
+
+1. #271 owns Backend runtime Auth/config/default-seeding changes.
+2. #261 owns Web BFF auth boundary + focused real-session smoke only and must drop Backend overlap.
+3. #263 composes the canonical Backend + cleaned Web candidates and owns terminal Pilot/browser real-session acceptance and the global anti-runtime-mock guard.
+4. Do not open duplicate work over the same shared Auth/BFF files while these packets remain active.
 
 ## Control plane / release
 
@@ -37,7 +38,8 @@ No additional P0 product or release implementation packet is identified at this 
 - [x] Exact Web/Admin Build SHA release smoke integrated via PR #232.
 - [x] Landing/Student runtime and external deployment acceptance integrated via PR #248.
 - [x] Remote post-copy route/release validation before success-recording integrated via PR #252.
-- [ ] After an owner-authorized deployment of a newer canonical main, record the new immutable deployed SHA only if API, Web, Admin, Landing and Student external smoke all pass. Source-control merge alone must never advance deployment state.
+- [x] Restart propagation implementation integrated via PR #273.
+- [ ] #260 acceptance: run an owner-authorized deployment of newer canonical main and record a new immutable deployed SHA only if API, Web, Admin, Landing and Student external smoke all pass. Source-control merge or manual restart alone must never advance deployment state.
 - [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
 
 ## Real-content evaluation
