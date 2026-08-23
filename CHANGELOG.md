@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-08-23 — owner-directed year-scoped academic self-selection (#305)
+
+- Owner product authority supersedes the per-user academic-track eligibility model from Issue #21: students choose a school year and then any display-safe track configured for that year; Admin does not assign tracks to individual learners.
+- Backend catalogue/activation/reset authority moves to `academic_tracks` with fixture/display-safety gates, while `user_academic_contexts` remains the learner choice/history record and full reset continues to archive attempts/progress rather than delete or migrate them.
+- Student Web adds a first-class Year → Track selector and automatically rebuilds the visible track choices when the learner changes year.
+- Gap audit is recorded in `TASKS.md` / `CURRENT_STATE.md`: track publication/availability lifecycle, Mobile year-first parity, legacy authorization-table retirement, and canonical localized year/display-order metadata remain explicit follow-ups rather than hidden assumptions.
+
 ## 2026-08-22 — post-#257 deployment and runtime-integrity reconciliation
 
 - Integrated PR #257 / Issue #256 at `034a43eb527949cefb52ef25252834e606ca625d`, fixing Admin sidebar contrast after exact-head Admin Sidebar Contrast, Admin UX Browser, Demo Package and Bootstrap validation while preserving navigation/RBAC authority and deployment-state separation.

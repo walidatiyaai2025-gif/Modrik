@@ -35,6 +35,14 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [ ] #263 / PR #278 — after #271 + cleaned #261 composition, reconcile terminal real-session Pilot/browser acceptance and the project-wide runtime-mock guard; run fresh exact-head contracts, Backend SQLite/MariaDB, normal/strict Pilot/browser and Bootstrap governed aggregate.
 - [ ] #259 — close the runtime-mock umbrella only after #271/#261/#263 are integrated and the global runtime-mock guard is green on canonical main.
 
+## Academic year-scoped self-selection / Issue #305
+
+- [ ] #305 — replace per-user academic-track assignment with Backend-owned year-scoped learner self-selection; Student Web chooses **school year → track**, while reset/archive history authority remains unchanged.
+- [ ] Follow-up gap — add an explicit Backend-authoritative `academic_tracks` availability lifecycle (`draft/published/retired` or approved equivalent) plus discoverable audited Admin control. The current schema has no track publication/active field, so #305 can only filter fixture/display safety, not operator availability.
+- [ ] Follow-up gap — add Mobile Year → Track UX parity. The current Mobile parser remains wire-compatible because it ignores the new `year` field, but it does not yet expose the owner-approved year-first selection flow.
+- [ ] Follow-up gap — retire the legacy `academic_track_authorizations` table after repository-wide consumer/fixture verification; #305 removes it from runtime selection authority but deliberately avoids a destructive migration in the same product-contract change.
+- [ ] Follow-up gap — define canonical localized school-year metadata and operator-controlled track display order. #305 safely derives a readable year label and deterministic ordering from current track data, but full AR/EN/FR year naming and curated ordering are not represented in the existing schema.
+
 ## Control plane / release
 
 - [x] Non-self-staling control-state semantics and contradiction guard integrated.

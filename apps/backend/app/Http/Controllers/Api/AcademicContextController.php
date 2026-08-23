@@ -23,8 +23,10 @@ class AcademicContextController extends Controller
 
     public function catalogue(Request $request): JsonResponse
     {
+        $this->user($request);
+
         return ApiResponse::success($request, [
-            'tracks' => $this->catalogue->catalogue($this->user($request)),
+            'tracks' => $this->catalogue->catalogue(),
         ])->header('Cache-Control', 'no-store, private');
     }
 

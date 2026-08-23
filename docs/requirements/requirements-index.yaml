@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-updated: 2026-08-22
+updated: 2026-08-23
 completeness: kickoff_mirror_plus_owner_surface_governance
 sources:
   - AGENTS.md
@@ -17,12 +17,12 @@ requirements:
     acceptance_criteria: [AC-P0-013]
     status: indexed
   - id: REQ-P0-002
-    title: Locked active academic context
-    statement: Onboarding establishes an active academic track; a full reset archives historical mastery and attempts rather than deleting them.
+    title: Year-scoped learner-selected academic context
+    statement: Onboarding lets the learner choose a school year and then any display-safe academic track configured for that year without per-user Admin assignment; once active, a full reset archives historical mastery and attempts rather than deleting them.
     area: academics
     priority: P0
-    acceptance_criteria: [AC-P0-010]
-    status: indexed
+    acceptance_criteria: [AC-P0-010, AC-P0-022]
+    status: owner_authorized_2026_08_23
   - id: REQ-P0-003
     title: Official curriculum governance
     statement: Official curriculum content is managed by Admin or Content Team only and remains separate from student UGC.

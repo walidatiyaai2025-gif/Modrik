@@ -1,6 +1,6 @@
 # P0 data dictionary
 
-Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offline-answer synchronization, P0-ASSESS-001 authoritative assessment, P0-AUTH-001 production account lifecycle, P0-ADMIN-001 controlled content review/publication, and P0-ACADEMIC-CONTRACT-002 learner-authorized track catalogue are physically represented for the synthetic/test boundary; unknown production curriculum, rights, provider credentials, legal facts, catalogue eligibility, and retention values intentionally remain unset.
+Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offline-answer synchronization, P0-ASSESS-001 authoritative assessment, P0-AUTH-001 production account lifecycle, P0-ADMIN-001 controlled content review/publication, and P0-ACADEMIC-YEAR-SCOPE year-scoped learner self-selection are physically represented for the synthetic/test boundary; unknown production curriculum, rights, provider credentials, legal facts, catalogue eligibility, and retention values intentionally remain unset.
 
 | Entity | Purpose | Required invariants and indexes |
 | --- | --- | --- |
@@ -10,8 +10,8 @@ Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offli
 | `auth_provider_identities` | Google/Apple identity linked to one canonical user. | Unique `(provider, provider_subject)` is the binding key. Provider email/verified/Apple-relay flags are mutable metadata only. A subject cannot silently move between users; unlinking sets `revoked_at` and may not remove the last recovery identity. |
 | `auth_provider_intents` | One-time login/link handshake state for external identity providers. | Persists only SHA-256 `state_hash` and `nonce_hash`, provider, purpose, optional bound user, expiry/consumption. Link intents require an authenticated recent session; login intents are public but one-time/rate-limited. |
 | `auth_security_events` | Minimal Auth audit trail. | Opaque user/session IDs, stable `event_type`, optional HMAC `context_hash`, timestamp. No password, bearer, verification/reset token, provider assertion/subject, raw email, IP or user-agent. |
-| `academic_tracks` | Backend-owned curriculum/board/syllabus/year combination. | Unique stable internal `code`; board and syllabus may be null in fixtures only and cannot be guessed for real content. Catalogue responses expose only the stable opaque ULID plus validated AR/EN/FR display labels; internal code, board, syllabus, year and fixture metadata remain server-side. Issue #19 publication consumes an existing track and does not create or synthesize one. |
-| `academic_track_authorizations` | Backend-owned allowlist of track choices currently available to one learner. | Unique `(user_id, academic_track_id)`; `revoked_at IS NULL` is the active authorization state; `sort_order` plus track ULID defines deterministic catalogue ordering. Authorization is never client writable. Fixture authorizations may be seeded only while fixture mode is enabled, and fixture tracks are filtered from production-mode catalogue reads even if stale fixture rows exist. |
+| `academic_tracks` | Backend-owned curriculum/board/syllabus/year combination and source of learner-selectable tracks. | Unique stable internal `code`; board and syllabus may be null in fixtures only and cannot be guessed for real content. Catalogue responses expose the stable opaque ULID, an opaque `year.key`, a safe readable `year.label`, and validated AR/EN/FR track labels. Internal track code, board, syllabus and fixture metadata remain server-side. Issue #19 publication consumes an existing track and does not create or synthesize one. |
+| `academic_track_authorizations` | Legacy compatibility table from the superseded per-user assignment model. | Issue #305 removes this table from Student catalogue/activate/reset authority. Existing rows are retained temporarily for backward migration/history compatibility only; no learner requires an Admin-created row to see or choose a track. A follow-up migration may remove the table after all residual fixtures/tests/consumers are proven absent. |
 | `user_academic_contexts` | Current and archived user track selections. | At most one `active` row per user, enforced transactionally; resets archive old rows. |
 | `academic_context_transitions` | Immutable activation/reset audit linking prior and new contexts. | Records actor-owned transition IDs and archived row counts; no attempt, answer, or PII payloads. |
 | `curriculum_nodes` | Hierarchical subject/unit/topic structure. | Unique `(academic_track_id, parent_id, code)`; official publication is restricted to authorized Admin/Content Team workflow. |
@@ -39,15 +39,15 @@ Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offli
 | `outbox_events` | Transactional domain-event delivery. | Event ID is globally unique; unpublished rows indexed by `(published_at, occurred_at)`; payload excludes student PII, raw answers, seeds and grading contracts. Admin publication adds redacted review/import/publication/failure/supersession signals without changing delivery semantics. |
 | `outbox_delivery_attempts` | Observable retry/checkpoint history for bounded outbox dispatch. | Unique `(outbox_event_id, attempt_number)`; status, timings, next retry, stable error code, and SHA-256 fingerprint only; no raw exception text. Published state remains on the outbox event. |
 
-## Authorized academic-track catalogue contract
+## Year-scoped academic-track self-selection contract
 
-The catalogue is a Backend-owned read model over `academic_track_authorizations` joined to `academic_tracks`. An authenticated learner receives only rows authorized to that same user where `revoked_at` is null, ordered by Backend `sort_order` and then the stable track ULID. An empty authorization set is a successful empty catalogue, not a reason to fabricate defaults.
+The catalogue is a Backend-owned read model over `academic_tracks`, not a per-user assignment table. Any authenticated learner may see every display-safe non-fixture track that the Backend currently considers available. Each choice exposes an opaque track `id`, a Backend-derived `year.key`/readable `year.label`, and complete safe `labels.ar`, `labels.en`, and `labels.fr`. Student clients group by `year.key`: the learner chooses a school year first, then chooses any track in that year.
 
-Only `id` and complete display-safe `labels.ar`, `labels.en`, and `labels.fr` are public. Missing locales, markup, Unicode control/format characters, blank text, or labels longer than the contract limit fail closed and make that row unavailable. The response is `no-store, private` because authorization may change. Internal board, syllabus, year, track code, fixture markers and authorization metadata do not leave the Backend.
+Missing/unsafe year or track labels fail closed. Fixture rows remain unavailable when fixture mode is disabled. Internal board, syllabus, track code and fixture metadata do not leave the Backend. There is no Admin-to-student assignment step in the selection path.
 
-Activation and reset consume the same current authorization source. A nonexistent, revoked, unauthorized, fixture-hidden, or display-invalid target is deliberately indistinguishable as `RESOURCE_NOT_FOUND`; the client cannot probe eligibility by submitting guessed track IDs. Existing Issue #4 active-context, different-track, archival, history-preservation, idempotency and outbox semantics remain authoritative and unchanged after a target passes authorization.
+Activation and reset validate the target through the same available-track source. Existing active-context, different-track, archival, history-preservation, idempotency and outbox semantics remain authoritative. The selected track itself fixes the canonical `year_level`, so clients do not invent or type an academic identifier.
 
-Production track rows and learner authorization assignments are owner-managed input. The repository seeds only synthetic fixture rows behind the existing fixture-mode boundary and does not invent a real board, syllabus, version, year, or eligibility rule.
+Production track definitions remain owner/content-managed input. The repository does not invent real board, syllabus, version or year values. `academic_track_authorizations` is legacy compatibility state only and is no longer runtime selection authority.
 
 ## Production authentication lifecycle contract
 
@@ -76,7 +76,7 @@ No UGC identifier, real board, syllabus, syllabus version or rights claim is syn
 - Account: `active`, `deleted` for current Auth P0 lifecycle.
 - Auth provider intent purpose: `login`, `link`; intent lifecycle is open until consumed or expired.
 - Auth provider identity: active when `revoked_at` is null; stable subject uniqueness remains even when revoked until explicit lifecycle handling.
-- Academic-track authorization: active when `revoked_at` is null; revoked rows remain durable and unavailable to catalogue/activation/reset.
+- Academic-track authorization: legacy compatibility state only after Issue #305; it is not consulted by catalogue/activation/reset and should receive no new product dependency.
 - Academic context: `active`, `archived`.
 - Canonical content rows: `draft`, `published`, `superseded` where the entity supports publication versioning.
 - Attempt: `in_progress`, `submitted`, `graded`, `abandoned`.

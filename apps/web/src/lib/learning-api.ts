@@ -11,6 +11,7 @@ export type Session = {
 
 export type AcademicTrack = {
   id: string;
+  year: { key: string; label: string };
   labels: Record<Locale, string>;
 };
 

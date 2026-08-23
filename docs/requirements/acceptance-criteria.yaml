@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-updated: 2026-08-22
+updated: 2026-08-23
 completeness: kickoff_mirror_plus_owner_surface_governance
 acceptance_criteria:
   - id: AC-P0-001
@@ -42,6 +42,10 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-002]
     statement: Changing the active academic track requires the defined reset flow and archives, rather than deletes, historical attempts and mastery.
     verification: domain and persistence tests
+  - id: AC-P0-022
+    requirement_ids: [REQ-P0-002]
+    statement: An authenticated learner can choose a school year and then any display-safe academic track configured for that year without a per-user Admin grant; the student surface refreshes the track choices automatically when the chosen year changes, while fixture tracks remain hidden outside fixture mode.
+    verification: backend catalogue/domain tests plus Student Web year-to-track regression coverage
   - id: AC-P0-011
     requirement_ids: [REQ-P0-010]
     statement: Missing or stale age and advertising configuration resolves to ads off for under-13 and unknown users.

@@ -30,7 +30,7 @@ If a conflict is found, block only the affected work and record it. Never silent
 - Content Preparation Wizard generates versioned Prompt + Preparation Bundle from dashboard settings. Returned ZIP must bind to `preparation_request_id`, `settings_hash`, `schema_version`; stale/mismatch/corrupt packs are rejected before import.
 - Every new quiz/exam attempt gets a fresh server-side seed and different question order when >1 question. Rotate selected set when bank/blueprint permits. Resume of same attempt is immutable. Client cannot control seed/order.
 - Offline-first P0 for downloaded study/practice/mock content with idempotent sync and no lost answers/progress.
-- Active Academic Track is locked after onboarding; full reset archives history rather than deleting mastery/attempts.
+- Academic onboarding is learner-driven: the learner chooses a school year and then any display-safe track configured for that year, with no per-user Admin track assignment. Once a track is active, changing track or year uses the full reset flow and archives history rather than deleting mastery/attempts.
 - Ads are dashboard/backend controlled, default safe/off for under-13/unknown, with immutable no-ad zones and global kill switch.
 - Email/password + Google + Apple identity under one user profile with safe provider linking, verification/recovery, deletion and session revocation.
 - Public legal/trust pages + user/admin guides + professional landing are P0 release deliverables, but final legal wording requires owner/legal approval.
