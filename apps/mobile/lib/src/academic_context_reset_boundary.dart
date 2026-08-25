@@ -28,6 +28,7 @@ class _AcademicContextResetBoundaryState
     extends State<AcademicContextResetBoundary> {
   _CatalogueState _state = _CatalogueState.loading;
   List<AcademicTrack> _tracks = const [];
+  String? _selectedYearKey;
   String? _selectedTrackId;
   String? _operationKey;
   String? _transitionMessage;
@@ -65,6 +66,23 @@ class _AcademicContextResetBoundaryState
     if (mounted) setState(() {});
   }
 
+  List<AcademicYear> get _years {
+    final years = <AcademicYear>[];
+    final seen = <String>{};
+    for (final track in _tracks) {
+      final year = track.year;
+      if (year != null && seen.add(year.key)) years.add(year);
+    }
+    return years;
+  }
+
+  List<AcademicTrack> _tracksForYear(String? yearKey) {
+    if (yearKey == null) return _tracks;
+    return _tracks
+        .where((track) => track.year?.key == yearKey)
+        .toList(growable: false);
+  }
+
   Future<void> _loadCatalogue() async {
     if (!mounted) return;
     if (controller.isOffline) {
@@ -83,12 +101,23 @@ class _AcademicContextResetBoundaryState
       final tracks = await catalogueGateway.academicTracks();
       if (!mounted) return;
       final currentTrackId = controller.academicContext?.academicTrackId;
-      final selected = tracks.any((track) => track.id == currentTrackId)
+      final currentTrack = tracks
+          .where((track) => track.id == currentTrackId)
+          .firstOrNull;
+      final firstYear = tracks.map((track) => track.year).whereType<AcademicYear>().firstOrNull;
+      final selectedYearKey = currentTrack?.year?.key ?? firstYear?.key;
+      final tracksInYear = selectedYearKey == null
+          ? tracks
+          : tracks
+              .where((track) => track.year?.key == selectedYearKey)
+              .toList(growable: false);
+      final selectedTrackId = tracksInYear.any((track) => track.id == currentTrackId)
           ? currentTrackId
-          : tracks.firstOrNull?.id;
+          : tracksInYear.firstOrNull?.id;
       setState(() {
         _tracks = tracks;
-        _selectedTrackId = selected;
+        _selectedYearKey = selectedYearKey;
+        _selectedTrackId = selectedTrackId;
         _state = tracks.isEmpty ? _CatalogueState.empty : _CatalogueState.ready;
       });
     } on LearningFailure catch (failure) {
@@ -300,6 +329,39 @@ class _AcademicContextResetBoundaryState
     );
   }
 
+  Widget _yearSelector({required String keyPrefix}) {
+    final years = _years;
+    if (years.isEmpty) return const SizedBox.shrink();
+    final selectedYear = years.any((year) => year.key == _selectedYearKey)
+        ? _selectedYearKey
+        : years.first.key;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('$keyPrefix-${controller.locale.name}'),
+      initialValue: selectedYear,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: copy.yearLabel),
+      items: [
+        for (final year in years)
+          DropdownMenuItem<String>(
+            value: year.key,
+            child: Text(year.label, maxLines: 2),
+          ),
+      ],
+      onChanged: _transitionBusy
+          ? null
+          : (value) {
+              if (value == null) return;
+              final tracks = _tracksForYear(value);
+              setState(() {
+                _selectedYearKey = value;
+                _selectedTrackId = tracks.firstOrNull?.id;
+                _operationKey = null;
+                _transitionMessage = null;
+              });
+            },
+    );
+  }
+
   Widget _onboardingCatalogueBody(BuildContext context) {
     switch (_state) {
       case _CatalogueState.loading:
@@ -342,17 +404,23 @@ class _AcademicContextResetBoundaryState
           onAction: _loadCatalogue,
         );
       case _CatalogueState.ready:
-        final effectiveSelection = _selectedTrackId ?? _tracks.first.id;
+        final visibleTracks = _tracksForYear(_selectedYearKey);
+        final effectiveSelection = visibleTracks
+                .any((track) => track.id == _selectedTrackId)
+            ? _selectedTrackId
+            : visibleTracks.firstOrNull?.id;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _yearSelector(keyPrefix: 'academic-year-onboarding'),
+            if (_years.isNotEmpty) const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              key: ValueKey('academic-track-onboarding-${controller.locale.name}'),
+              key: ValueKey('academic-track-onboarding-${controller.locale.name}-${_selectedYearKey ?? 'legacy'}'),
               initialValue: effectiveSelection,
               isExpanded: true,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
-                for (final track in _tracks)
+                for (final track in visibleTracks)
                   DropdownMenuItem<String>(
                     value: track.id,
                     child: Text(track.label(controller.locale), maxLines: 2),
@@ -370,7 +438,7 @@ class _AcademicContextResetBoundaryState
             ),
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: _transitionBusy || controller.isBusy
+              onPressed: _transitionBusy || controller.isBusy || effectiveSelection == null
                   ? null
                   : _activateSelection,
               child: _transitionBusy
@@ -451,14 +519,33 @@ class _ResetDialog extends StatefulWidget {
 
 class _ResetDialogState extends State<_ResetDialog> {
   late String _selectedTrackId;
+  String? _selectedYearKey;
   String? _operationKey;
   bool _confirmed = false;
   bool _busy = false;
   String? _message;
 
+  List<AcademicYear> get _years {
+    final years = <AcademicYear>[];
+    final seen = <String>{};
+    for (final track in widget.tracks) {
+      final year = track.year;
+      if (year != null && seen.add(year.key)) years.add(year);
+    }
+    return years;
+  }
+
+  List<AcademicTrack> _tracksForYear(String? yearKey) {
+    if (yearKey == null) return widget.tracks;
+    return widget.tracks
+        .where((track) => track.year?.key == yearKey)
+        .toList(growable: false);
+  }
+
   @override
   void initState() {
     super.initState();
+    _selectedYearKey = widget.tracks.first.year?.key;
     _selectedTrackId = widget.tracks.first.id;
     widget.controller.addListener(_handleControllerChanged);
   }
@@ -477,6 +564,12 @@ class _ResetDialogState extends State<_ResetDialog> {
   Widget build(BuildContext context) {
     final copy = _CatalogueCopy(widget.controller.locale);
     final locale = widget.controller.locale;
+    final years = _years;
+    final visibleTracks = _tracksForYear(_selectedYearKey);
+    if (!visibleTracks.any((track) => track.id == _selectedTrackId) &&
+        visibleTracks.isNotEmpty) {
+      _selectedTrackId = visibleTracks.first.id;
+    }
     return Directionality(
       textDirection:
           locale == ModrikLocale.ar ? TextDirection.rtl : TextDirection.ltr,
@@ -487,13 +580,44 @@ class _ResetDialogState extends State<_ResetDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (years.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                key: ValueKey('academic-year-reset-${locale.name}'),
+                initialValue: _selectedYearKey,
+                isExpanded: true,
+                decoration: InputDecoration(labelText: copy.yearLabel),
+                items: [
+                  for (final year in years)
+                    DropdownMenuItem<String>(
+                      value: year.key,
+                      child: Text(year.label, maxLines: 2),
+                    ),
+                ],
+                onChanged: _busy
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        final tracks = _tracksForYear(value);
+                        setState(() {
+                          _selectedYearKey = value;
+                          if (tracks.isNotEmpty) {
+                            _selectedTrackId = tracks.first.id;
+                          }
+                          _operationKey = null;
+                          _confirmed = false;
+                          _message = null;
+                        });
+                      },
+              ),
+              const SizedBox(height: 16),
+            ],
             DropdownButtonFormField<String>(
-              key: ValueKey('academic-track-reset-${locale.name}'),
-              initialValue: _selectedTrackId,
+              key: ValueKey('academic-track-reset-${locale.name}-${_selectedYearKey ?? 'legacy'}'),
+              initialValue: visibleTracks.isEmpty ? null : _selectedTrackId,
               isExpanded: true,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
-                for (final track in widget.tracks)
+                for (final track in visibleTracks)
                   DropdownMenuItem<String>(
                     value: track.id,
                     child: Text(track.label(locale), maxLines: 2),
@@ -538,7 +662,9 @@ class _ResetDialogState extends State<_ResetDialog> {
             child: Text(copy.cancel),
           ),
           FilledButton(
-            onPressed: _busy || !_confirmed ? null : _applyReset,
+            onPressed: _busy || !_confirmed || visibleTracks.isEmpty
+                ? null
+                : _applyReset,
             child: _busy
                 ? const SizedBox.square(
                     dimension: 20,
@@ -616,16 +742,22 @@ class _CatalogueCopy {
   final ModrikLocale locale;
 
   String get onboardingTitle => switch (locale) {
-        ModrikLocale.ar => 'اختر مسارك الأكاديمي',
-        ModrikLocale.en => 'Choose your academic track',
-        ModrikLocale.fr => 'Choisissez votre parcours académique',
+        ModrikLocale.ar => 'اختر السنة الدراسية والمسار الأكاديمي',
+        ModrikLocale.en => 'Choose your school year and academic track',
+        ModrikLocale.fr => 'Choisissez votre année scolaire et votre parcours académique',
       };
   String get onboardingBody => switch (locale) {
-        ModrikLocale.ar => 'هذه هي المسارات الأكاديمية المتاحة لك حاليًا.',
+        ModrikLocale.ar =>
+          'اختر السنة الدراسية أولًا، ثم اختر أحد المسارات الأكاديمية المتاحة لها.',
         ModrikLocale.en =>
-          'These are the academic tracks currently available to you.',
+          'Choose your school year first, then choose one of its available academic tracks.',
         ModrikLocale.fr =>
-          'Voici les parcours académiques actuellement disponibles pour vous.',
+          'Choisissez d’abord votre année scolaire, puis l’un des parcours académiques disponibles.',
+      };
+  String get yearLabel => switch (locale) {
+        ModrikLocale.ar => 'السنة الدراسية',
+        ModrikLocale.en => 'School year',
+        ModrikLocale.fr => 'Année scolaire',
       };
   String get trackLabel => switch (locale) {
         ModrikLocale.ar => 'المسار الأكاديمي',
@@ -638,14 +770,14 @@ class _CatalogueCopy {
         ModrikLocale.fr => 'Commencer avec ce parcours',
       };
   String get change => switch (locale) {
-        ModrikLocale.ar => 'تغيير المسار الأكاديمي',
-        ModrikLocale.en => 'Change academic track',
-        ModrikLocale.fr => 'Changer de parcours académique',
+        ModrikLocale.ar => 'تغيير السنة أو المسار',
+        ModrikLocale.en => 'Change year or academic track',
+        ModrikLocale.fr => 'Changer d’année ou de parcours académique',
       };
   String get resetTitle => switch (locale) {
-        ModrikLocale.ar => 'قبل تغيير المسار الأكاديمي',
-        ModrikLocale.en => 'Before you change academic track',
-        ModrikLocale.fr => 'Avant de changer de parcours académique',
+        ModrikLocale.ar => 'قبل تغيير السنة أو المسار الأكاديمي',
+        ModrikLocale.en => 'Before you change year or academic track',
+        ModrikLocale.fr => 'Avant de changer d’année ou de parcours académique',
       };
   String get resetBody => switch (locale) {
         ModrikLocale.ar =>
@@ -664,53 +796,56 @@ class _CatalogueCopy {
           'Synchronisez toutes les réponses et modifications en attente avant de continuer.',
       };
   String get confirmConsequences => switch (locale) {
-        ModrikLocale.ar => 'أفهم ما سيحدث عند تغيير المسار.',
-        ModrikLocale.en => 'I understand what will happen when I change tracks.',
+        ModrikLocale.ar => 'أفهم ما سيحدث عند تغيير السنة أو المسار.',
+        ModrikLocale.en =>
+          'I understand what will happen when I change year or track.',
         ModrikLocale.fr =>
-          'Je comprends ce qui se passera quand je changerai de parcours.',
+          'Je comprends ce qui se passera quand je changerai d’année ou de parcours.',
       };
   String get loading => switch (locale) {
-        ModrikLocale.ar => 'جارٍ تحميل مساراتك الأكاديمية.',
-        ModrikLocale.en => 'Loading your academic tracks.',
-        ModrikLocale.fr => 'Chargement de vos parcours académiques.',
+        ModrikLocale.ar => 'جارٍ تحميل السنوات والمسارات الأكاديمية.',
+        ModrikLocale.en => 'Loading school years and academic tracks.',
+        ModrikLocale.fr =>
+          'Chargement des années scolaires et des parcours académiques.',
       };
   String get empty => switch (locale) {
-        ModrikLocale.ar => 'لا توجد مسارات أكاديمية متاحة لك حاليًا.',
-        ModrikLocale.en => 'No academic tracks are available to you right now.',
+        ModrikLocale.ar => 'لا توجد سنوات أو مسارات أكاديمية متاحة حاليًا.',
+        ModrikLocale.en =>
+          'No school years or academic tracks are available right now.',
         ModrikLocale.fr =>
-          'Aucun parcours académique n’est disponible pour vous pour le moment.',
+          'Aucune année scolaire ni aucun parcours académique n’est disponible pour le moment.',
       };
   String get offline => switch (locale) {
         ModrikLocale.ar =>
-          'اتصل بالإنترنت لتحميل مساراتك الأكاديمية أو تغيير مسارك.',
+          'اتصل بالإنترنت لتحميل السنوات والمسارات الأكاديمية أو تغيير اختيارك.',
         ModrikLocale.en =>
-          'Reconnect to load your academic tracks or change your track.',
+          'Reconnect to load school years and academic tracks or change your selection.',
         ModrikLocale.fr =>
-          'Reconnectez-vous pour charger vos parcours académiques ou changer de parcours.',
+          'Reconnectez-vous pour charger les années et parcours académiques ou modifier votre sélection.',
       };
   String get permission => switch (locale) {
         ModrikLocale.ar =>
-          'لا يمكن تحميل المسارات الأكاديمية بهذه الجلسة. سجّل الدخول من جديد ثم حاول مرة أخرى.',
+          'لا يمكن تحميل السنوات والمسارات بهذه الجلسة. سجّل الدخول من جديد ثم حاول مرة أخرى.',
         ModrikLocale.en =>
-          'We can’t load academic tracks with this session. Sign in again, then try again.',
+          'We can’t load school years and academic tracks with this session. Sign in again, then try again.',
         ModrikLocale.fr =>
-          'Cette session ne permet pas de charger vos parcours académiques. Reconnectez-vous à votre compte, puis réessayez.',
+          'Cette session ne permet pas de charger les années et parcours académiques. Reconnectez-vous, puis réessayez.',
       };
   String get error => switch (locale) {
         ModrikLocale.ar =>
-          'تعذر تحميل مساراتك الأكاديمية. لم يتغير شيء. حاول مرة أخرى.',
+          'تعذر تحميل السنوات والمسارات الأكاديمية. لم يتغير شيء. حاول مرة أخرى.',
         ModrikLocale.en =>
-          'We couldn’t load your academic tracks. Nothing has changed. Try again.',
+          'We couldn’t load school years and academic tracks. Nothing changed. Try again.',
         ModrikLocale.fr =>
-          'Nous n’avons pas pu charger vos parcours académiques. Rien n’a changé. Réessayez.',
+          'Nous n’avons pas pu charger les années et parcours académiques. Rien n’a changé. Réessayez.',
       };
   String get transitionFailed => switch (locale) {
         ModrikLocale.ar =>
-          'تعذر تحديث مسارك الأكاديمي. لم يتغير شيء. تحقق من اتصالك ومن أن المسار المختار ما زال متاحًا، ثم حاول مرة أخرى.',
+          'تعذر تحديث السنة أو المسار الأكاديمي. لم يتغير شيء. تحقق من اتصالك ومن أن المسار المختار ما زال متاحًا، ثم حاول مرة أخرى.',
         ModrikLocale.en =>
-          'We couldn’t update your academic track. Nothing changed. Check your connection and that the selected track is still available, then try again.',
+          'We couldn’t update your school year or academic track. Nothing changed. Check your connection and that the selected track is still available, then try again.',
         ModrikLocale.fr =>
-          'Nous n’avons pas pu mettre à jour votre parcours académique. Rien n’a changé. Vérifiez votre connexion et que le parcours choisi est toujours disponible, puis réessayez.',
+          'Nous n’avons pas pu mettre à jour votre année ou votre parcours académique. Rien n’a changé. Vérifiez votre connexion et que le parcours choisi est toujours disponible, puis réessayez.',
       };
   String get retry => switch (locale) {
         ModrikLocale.ar => 'حاول مرة أخرى',
@@ -723,12 +858,12 @@ class _CatalogueCopy {
         ModrikLocale.fr => 'Annuler',
       };
   String get confirm => switch (locale) {
-        ModrikLocale.ar => 'تغيير المسار الأكاديمي',
-        ModrikLocale.en => 'Change academic track',
-        ModrikLocale.fr => 'Changer de parcours académique',
+        ModrikLocale.ar => 'تغيير السنة أو المسار',
+        ModrikLocale.en => 'Change year or academic track',
+        ModrikLocale.fr => 'Changer d’année ou de parcours académique',
       };
 }
 
-extension _FirstOrNull<T> on List<T> {
+extension _FirstOrNull<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
