@@ -48,11 +48,15 @@ void main() {
       expect(find.text('Arts 6'), findsNothing);
       expect(find.text('Science 7'), findsNothing);
 
-      await tester.tap(
-        find.byKey(const ValueKey('academic-year-onboarding-en')),
-      );
+      final yearSelector =
+          find.byKey(const ValueKey('academic-year-onboarding-en'));
+      await tester.ensureVisible(yearSelector);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Year 7').last);
+      await tester.tap(yearSelector);
+      await tester.pumpAndSettle();
+      final year7 = find.text('Year 7').last;
+      await tester.ensureVisible(year7);
+      await tester.tap(year7);
       await tester.pumpAndSettle();
 
       expect(find.text('Science 7'), findsOneWidget);
