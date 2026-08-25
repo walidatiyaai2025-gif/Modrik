@@ -65,27 +65,25 @@ final class AcademicTrackAvailability extends Page
     /** @return list<array<string, mixed>> */
     public function rows(): array
     {
-        return DB::table('academic_tracks')
+        $rows = [];
+        $records = DB::table('academic_tracks')
             ->orderBy('created_at')
             ->limit(200)
-            ->get(['id', 'title', 'year_level', 'availability_state'])
-            ->map(function (object $row): array {
-                $data = (array) $row;
-                $title = json_decode((string) ($data['title'] ?? ''), true);
-                $title = is_array($title) ? $title : [];
-                $locale = App::getLocale();
-                $id = (string) ($data['id'] ?? '');
+            ->get(['id', 'title', 'year_level', 'availability_state']);
 
-                return [
-                    'id' => $id,
-                    'title' => (string) ($title[$locale] ?? $title['en'] ?? $this->translate('Academic track', 'مسار أكاديمي', 'Parcours académique')),
-                    'year' => $this->humanizeReference((string) ($data['year_level'] ?? '')),
-                    'state' => (string) ($data['availability_state'] ?? 'draft'),
-                    'has_history' => $this->hasHistoricalReferences($id),
-                ];
-            })
-            ->values()
-            ->all();
+        foreach ($records as $record) {
+            $id = $this->rowString($record, 'id');
+
+            $rows[] = [
+                'id' => $id,
+                'title' => $this->localizedTitle($this->rowString($record, 'title')),
+                'year' => $this->humanizeReference($this->rowString($record, 'year_level')),
+                'state' => $this->rowString($record, 'availability_state', 'draft'),
+                'has_history' => $this->hasHistoricalReferences($id),
+            ];
+        }
+
+        return $rows;
     }
 
     public function begin(string $id, string $targetState): void
@@ -99,8 +97,7 @@ final class AcademicTrackAvailability extends Page
             return;
         }
 
-        $data = (array) $row;
-        $current = (string) ($data['availability_state'] ?? '');
+        $current = $this->rowString($row, 'availability_state');
         $allowed = ($targetState === 'published' && $current === 'draft')
             || ($targetState === 'retired' && $current === 'published');
         if (! $allowed) {
@@ -145,8 +142,7 @@ final class AcademicTrackAvailability extends Page
                 throw ValidationException::withMessages(['reason' => $this->translate('Track no longer exists.', 'المسار لم يعد موجودًا.', 'Le parcours n’existe plus.')]);
             }
 
-            $beforeData = (array) $before;
-            $current = (string) ($beforeData['availability_state'] ?? '');
+            $current = $this->rowString($before, 'availability_state');
             $allowed = ($target === 'published' && $current === 'draft')
                 || ($target === 'retired' && $current === 'published');
             if (! $allowed) {
@@ -159,12 +155,14 @@ final class AcademicTrackAvailability extends Page
                 ]);
             }
 
+            $beforeData = (array) $before;
             $now = now();
             DB::table('academic_tracks')->where('id', $id)->update([
                 'availability_state' => $target,
                 'updated_at' => $now,
             ]);
             $after = DB::table('academic_tracks')->where('id', $id)->first();
+            $afterData = $after === null ? [] : (array) $after;
 
             DB::table('academic_track_audits')->insert([
                 'id' => (string) Str::ulid(),
@@ -172,7 +170,7 @@ final class AcademicTrackAvailability extends Page
                 'actor_id' => auth()->id(),
                 'action' => $target === 'published' ? 'published' : 'retired',
                 'before' => json_encode($beforeData, JSON_THROW_ON_ERROR),
-                'after' => json_encode((array) $after, JSON_THROW_ON_ERROR),
+                'after' => json_encode($afterData, JSON_THROW_ON_ERROR),
                 'reason' => $reason,
                 'occurred_at' => $now,
                 'created_at' => $now,
@@ -189,10 +187,38 @@ final class AcademicTrackAvailability extends Page
             || DB::table('curriculum_nodes')->where('academic_track_id', $id)->exists();
     }
 
+    private function rowString(object $row, string $key, string $default = ''): string
+    {
+        $data = (array) $row;
+        $value = $data[$key] ?? $default;
+
+        return is_string($value) || is_int($value) || is_float($value) ? (string) $value : $default;
+    }
+
+    private function localizedTitle(string $encoded): string
+    {
+        $decoded = json_decode($encoded, true);
+        if (! is_array($decoded)) {
+            return $this->translate('Academic track', 'مسار أكاديمي', 'Parcours académique');
+        }
+
+        $locale = App::getLocale();
+        $localized = $decoded[$locale] ?? null;
+        if (is_string($localized) && $localized !== '') {
+            return $localized;
+        }
+
+        $english = $decoded['en'] ?? null;
+
+        return is_string($english) && $english !== ''
+            ? $english
+            : $this->translate('Academic track', 'مسار أكاديمي', 'Parcours académique');
+    }
+
     private function humanizeReference(string $reference): string
     {
         $segments = preg_split('/[:\\/]+/', trim($reference)) ?: [$reference];
-        if (in_array(Str::upper((string) $segments[0]), ['YEAR'], true)) {
+        if (($segments[0] ?? null) !== null && Str::upper($segments[0]) === 'YEAR') {
             array_shift($segments);
         }
 
