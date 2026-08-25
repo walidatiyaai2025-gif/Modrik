@@ -154,6 +154,55 @@ class AcademicTrackCatalogueTest extends TestCase
         ]);
     }
 
+    public function test_draft_and_retired_tracks_are_hidden_and_rejected_by_selection_authority(): void
+    {
+        DB::table('academic_track_authorizations')->delete();
+        $draftId = '01J00000000000000000000059';
+        $retiredId = '01J00000000000000000000060';
+        $this->createTrack($draftId, 'FIXTURE:AVAILABILITY:DRAFT', 'YEAR:GRADE-8:DRAFT001', [
+            'ar' => 'مسار مسودة',
+            'en' => 'Draft track',
+            'fr' => 'Parcours brouillon',
+        ], true, 'draft');
+        $this->createTrack($retiredId, 'FIXTURE:AVAILABILITY:RETIRED', 'YEAR:GRADE-8:RETIRE01', [
+            'ar' => 'مسار متقاعد',
+            'en' => 'Retired track',
+            'fr' => 'Parcours retiré',
+        ], true, 'retired');
+
+        $tracks = $this->withToken(self::TOKEN)
+            ->getJson('/v1/academic-tracks')
+            ->assertOk()
+            ->json('data.tracks');
+        $this->assertIsArray($tracks);
+        $ids = array_column($tracks, 'id');
+        $this->assertNotContains($draftId, $ids);
+        $this->assertNotContains($retiredId, $ids);
+
+        foreach ([$draftId, $retiredId] as $index => $trackId) {
+            $idempotencyKey = sprintf('track-reset-rejection-%03d', $index);
+            $this->withToken(self::TOKEN)
+                ->withHeader('Idempotency-Key', $idempotencyKey)
+                ->postJson('/v1/academic-context/reset', ['academic_track_id' => $trackId])
+                ->assertNotFound()
+                ->assertJsonPath('code', 'RESOURCE_NOT_FOUND');
+        }
+
+        DB::table('user_academic_contexts')
+            ->where('user_id', LearningSliceSeeder::USER_ID)
+            ->where('status', 'active')
+            ->update(['status' => 'archived', 'archived_at' => now(), 'updated_at' => now()]);
+
+        foreach ([$draftId, $retiredId] as $index => $trackId) {
+            $idempotencyKey = sprintf('track-activate-rejection-%03d', $index);
+            $this->withToken(self::TOKEN)
+                ->withHeader('Idempotency-Key', $idempotencyKey)
+                ->postJson('/v1/academic-context/activate', ['academic_track_id' => $trackId])
+                ->assertNotFound()
+                ->assertJsonPath('code', 'RESOURCE_NOT_FOUND');
+        }
+    }
+
     public function test_fixture_tracks_remain_hidden_when_fixture_mode_is_disabled_without_assignment_logic(): void
     {
         config(['modrik.fixture.enabled' => false]);
@@ -185,8 +234,14 @@ class AcademicTrackCatalogueTest extends TestCase
     }
 
     /** @param array<string, string> $labels */
-    private function createTrack(string $id, string $code, string $yearLevel, array $labels, bool $fixture = true): void
-    {
+    private function createTrack(
+        string $id,
+        string $code,
+        string $yearLevel,
+        array $labels,
+        bool $fixture = true,
+        string $availabilityState = 'published',
+    ): void {
         $now = now();
         DB::table('academic_tracks')->insert([
             'id' => $id,
@@ -196,6 +251,7 @@ class AcademicTrackCatalogueTest extends TestCase
             'year_level' => $yearLevel,
             'title' => json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
             'is_fixture' => $fixture,
+            'availability_state' => $availabilityState,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
