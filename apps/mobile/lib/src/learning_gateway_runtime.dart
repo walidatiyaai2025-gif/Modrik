@@ -8,6 +8,10 @@ import 'models.dart';
 import 'runtime_diagnostic_transport.dart';
 import 'runtime_diagnostics.dart';
 
+/// Compatibility bootstrap surface for callers that import the runtime module
+/// directly. Production/Demo startup consumes only the API endpoint; static
+/// fixture credentials and deterministic lesson/context hints cannot activate
+/// runtime authentication.
 class MobileBootstrapConfig {
   const MobileBootstrapConfig({
     required this.apiBaseUrl,
@@ -20,44 +24,28 @@ class MobileBootstrapConfig {
 
   factory MobileBootstrapConfig.fromEnvironment() {
     const rawBase = String.fromEnvironment('MODRIK_API_BASE_URL');
-    const fixtureMode = bool.fromEnvironment('MODRIK_FIXTURE_MODE');
-    const fixtureToken = String.fromEnvironment('MODRIK_FIXTURE_BEARER_TOKEN');
-    const legacyFixtureToken = String.fromEnvironment('MODRIK_API_BEARER_TOKEN');
-    const lessonId = String.fromEnvironment('MODRIK_INITIAL_LESSON_ID');
-    const trackId = String.fromEnvironment('MODRIK_ACADEMIC_TRACK_ID');
-    final selectedFixtureToken = fixtureToken.isNotEmpty
-        ? fixtureToken
-        : legacyFixtureToken;
+
     return MobileBootstrapConfig(
       apiBaseUrl: rawBase.isEmpty
           ? null
           : Uri.parse(rawBase.endsWith('/') ? rawBase : '$rawBase/'),
-      bearerToken: fixtureMode && selectedFixtureToken.isNotEmpty
-          ? selectedFixtureToken
-          : null,
-      fixtureMode: fixtureMode,
-      initialLessonId: lessonId.isEmpty ? null : lessonId,
-      academicTrackId:
-          fixtureMode && trackId.isNotEmpty ? trackId : null,
     );
   }
 
   final Uri? apiBaseUrl;
 
-  /// Synthetic fixture credential only. Production startup never consumes a
-  /// compile-time bearer token; it is obtained from the backend Auth lifecycle
-  /// and stored through the platform secure-session boundary.
+  /// Test-harness compatibility only. Runtime startup never consumes it.
   final String? bearerToken;
+
+  /// Test-harness compatibility only. This cannot activate runtime auth.
   final bool fixtureMode;
   final String? initialLessonId;
-
-  /// Legacy fixture-only bootstrap hint. Production academic selection consumes
-  /// the Backend-owned `/v1/academic-tracks` catalogue instead of this value.
   final String? academicTrackId;
 
   bool get isConfigured => apiBaseUrl != null;
-  bool get hasFixtureCredential =>
-      fixtureMode && bearerToken != null && bearerToken!.isNotEmpty;
+
+  /// Synthetic credentials are never valid application bootstrap authority.
+  bool get hasFixtureCredential => false;
 }
 
 class LearningFailure implements Exception {

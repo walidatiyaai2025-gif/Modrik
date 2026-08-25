@@ -50,17 +50,6 @@ function problem(status: number, code: string, detail: string, correlationId: st
   );
 }
 
-function bearerToken(request: Request): string | null {
-  const productionSession = readWebSessionToken(request.headers.get("cookie"));
-  if (productionSession) return productionSession;
-
-  if (process.env.MODRIK_FIXTURE_MODE === "true") {
-    return process.env.MODRIK_FIXTURE_BEARER_TOKEN ?? null;
-  }
-
-  return null;
-}
-
 async function proxy(request: Request, context: RouteParameters) {
   const correlationId = correlationIdForRequest(request);
   const { path } = await context.params;
@@ -77,7 +66,7 @@ async function proxy(request: Request, context: RouteParameters) {
     );
   }
 
-  const token = bearerToken(request);
+  const token = readWebSessionToken(request.headers.get("cookie"));
   if (!token) {
     return problem(401, "AUTHENTICATION_REQUIRED", "Sign in with a valid account session to continue.", correlationId);
   }

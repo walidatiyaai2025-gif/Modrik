@@ -10,8 +10,8 @@ final class DemoAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = trim((string) config('modrik.fixture.admin.email', ''));
-        $password = (string) config('modrik.fixture.admin.password', '');
+        $email = trim((string) config('modrik.demo.admin.email', ''));
+        $password = (string) config('modrik.demo.admin.password', '');
 
         if ($email === '' && $password === '') {
             return;
@@ -21,8 +21,12 @@ final class DemoAdminSeeder extends Seeder
             throw new RuntimeException('Both MODRIK_DEMO_ADMIN_EMAIL and MODRIK_DEMO_ADMIN_PASSWORD are required together.');
         }
 
-        if (strlen($password) < 12) {
-            throw new RuntimeException('MODRIK_DEMO_ADMIN_PASSWORD must contain at least 12 characters.');
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            throw new RuntimeException('MODRIK_DEMO_ADMIN_EMAIL must be a valid email address.');
+        }
+
+        if (mb_strlen($password) < 12 || mb_strlen($password) > 128) {
+            throw new RuntimeException('MODRIK_DEMO_ADMIN_PASSWORD must contain between 12 and 128 characters.');
         }
 
         $normalized = mb_strtolower($email);

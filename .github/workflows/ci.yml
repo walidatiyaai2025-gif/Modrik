@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate control-state semantics
         run: bash scripts/validate-control-state.sh
+      - name: Reject runtime fixture authentication
+        run: bash scripts/verify-no-runtime-fixture-auth.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 22.23.2
@@ -70,8 +72,6 @@ jobs:
       DB_DATABASE: modrik_test
       DB_USERNAME: modrik_test
       DB_PASSWORD: modrik_test_only
-      MODRIK_FIXTURE_MODE: 'true'
-      MODRIK_FIXTURE_BEARER_TOKEN: modrik-ci-fixture-token
       MODRIK_IDEMPOTENCY_SECRET: modrik-ci-idempotency-secret
     services:
       mariadb:
