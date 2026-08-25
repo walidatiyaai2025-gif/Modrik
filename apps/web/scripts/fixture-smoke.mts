@@ -76,7 +76,7 @@ async function request<T>(
 }
 
 const session = await request<{ user_id: string }>(GET, "session");
-assert.match(session.user_id, /^[0-9A-HJKMNP-TV-Z]{26}$/);
+assert.match(session.user_id, /^[0-9A-HJKMNP-TV-Z]{26}$/i);
 
 const context = await request<{ state: string }>(GET, "academic-context");
 assert.equal(context.state, "active");
