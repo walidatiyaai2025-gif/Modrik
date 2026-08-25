@@ -67,7 +67,9 @@ final class AcademicTrackCatalogueService
                 'academic_tracks.year_level',
                 'academic_tracks.title',
                 'academic_tracks.is_fixture',
-            ]);
+                'academic_tracks.availability_state',
+            ])
+            ->where('academic_tracks.availability_state', 'published');
 
         if (! (bool) config('modrik.fixture.enabled')) {
             $query->where('academic_tracks.is_fixture', false);
@@ -88,7 +90,7 @@ final class AcademicTrackCatalogueService
             return null;
         }
 
-        $segments = preg_split('/[:\/]+/', $key) ?: [$key];
+        $segments = preg_split('/[:\\/]+/', $key) ?: [$key];
         if (Str::upper((string) $segments[0]) === 'YEAR') {
             array_shift($segments);
         }
