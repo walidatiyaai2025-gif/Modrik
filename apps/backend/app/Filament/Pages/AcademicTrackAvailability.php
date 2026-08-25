@@ -65,20 +65,24 @@ final class AcademicTrackAvailability extends Page
     /** @return list<array<string, mixed>> */
     public function rows(): array
     {
-        $rows = [];
+        /** @var list<array<string, mixed>> $records */
         $records = DB::table('academic_tracks')
             ->orderBy('created_at')
             ->limit(200)
-            ->get(['id', 'title', 'year_level', 'availability_state']);
+            ->get(['id', 'title', 'year_level', 'availability_state'])
+            ->map(static fn (object $record): array => (array) $record)
+            ->values()
+            ->all();
 
+        $rows = [];
         foreach ($records as $record) {
-            $id = $this->rowString($record, 'id');
+            $id = $this->arrayString($record, 'id');
 
             $rows[] = [
                 'id' => $id,
-                'title' => $this->localizedTitle($this->rowString($record, 'title')),
-                'year' => $this->humanizeReference($this->rowString($record, 'year_level')),
-                'state' => $this->rowString($record, 'availability_state', 'draft'),
+                'title' => $this->localizedTitle($this->arrayString($record, 'title')),
+                'year' => $this->humanizeReference($this->arrayString($record, 'year_level')),
+                'state' => $this->arrayString($record, 'availability_state', 'draft'),
                 'has_history' => $this->hasHistoricalReferences($id),
             ];
         }
@@ -97,7 +101,8 @@ final class AcademicTrackAvailability extends Page
             return;
         }
 
-        $current = $this->rowString($row, 'availability_state');
+        $data = (array) $row;
+        $current = $this->arrayString($data, 'availability_state');
         $allowed = ($targetState === 'published' && $current === 'draft')
             || ($targetState === 'retired' && $current === 'published');
         if (! $allowed) {
@@ -126,7 +131,7 @@ final class AcademicTrackAvailability extends Page
         $target = $this->targetState;
         $reason = trim($this->reason);
 
-        if ($id === null || ! in_array($target, ['published', 'retired'], true)) {
+        if ($id === null || $target === null || ! in_array($target, ['published', 'retired'], true)) {
             return;
         }
 
@@ -142,7 +147,8 @@ final class AcademicTrackAvailability extends Page
                 throw ValidationException::withMessages(['reason' => $this->translate('Track no longer exists.', 'المسار لم يعد موجودًا.', 'Le parcours n’existe plus.')]);
             }
 
-            $current = $this->rowString($before, 'availability_state');
+            $beforeData = (array) $before;
+            $current = $this->arrayString($beforeData, 'availability_state');
             $allowed = ($target === 'published' && $current === 'draft')
                 || ($target === 'retired' && $current === 'published');
             if (! $allowed) {
@@ -155,7 +161,6 @@ final class AcademicTrackAvailability extends Page
                 ]);
             }
 
-            $beforeData = (array) $before;
             $now = now();
             DB::table('academic_tracks')->where('id', $id)->update([
                 'availability_state' => $target,
@@ -187,10 +192,10 @@ final class AcademicTrackAvailability extends Page
             || DB::table('curriculum_nodes')->where('academic_track_id', $id)->exists();
     }
 
-    private function rowString(object $row, string $key, string $default = ''): string
+    /** @param array<string, mixed> $row */
+    private function arrayString(array $row, string $key, string $default = ''): string
     {
-        $data = (array) $row;
-        $value = $data[$key] ?? $default;
+        $value = $row[$key] ?? $default;
 
         return is_string($value) || is_int($value) || is_float($value) ? (string) $value : $default;
     }
@@ -218,7 +223,8 @@ final class AcademicTrackAvailability extends Page
     private function humanizeReference(string $reference): string
     {
         $segments = preg_split('/[:\\/]+/', trim($reference)) ?: [$reference];
-        if (($segments[0] ?? null) !== null && Str::upper($segments[0]) === 'YEAR') {
+        $firstSegment = $segments[0] ?? null;
+        if (is_string($firstSegment) && Str::upper($firstSegment) === 'YEAR') {
             array_shift($segments);
         }
 
