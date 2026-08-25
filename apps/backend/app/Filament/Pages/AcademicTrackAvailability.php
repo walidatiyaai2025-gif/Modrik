@@ -223,7 +223,7 @@ final class AcademicTrackAvailability extends Page
     private function humanizeReference(string $reference): string
     {
         $segments = preg_split('/[:\\/]+/', trim($reference)) ?: [$reference];
-        $firstSegment = $segments[0] ?? null;
+        $firstSegment = $segments[0];
         if (is_string($firstSegment) && Str::upper($firstSegment) === 'YEAR') {
             array_shift($segments);
         }
