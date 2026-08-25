@@ -6,7 +6,7 @@ import 'package:modrik_mobile/src/learning_gateway.dart';
 import 'package:modrik_mobile/src/models.dart';
 
 void main() {
-  test('catalogue forwards secure bearer and preserves backend order and labels', () async {
+  test('catalogue forwards secure bearer and preserves backend order, year metadata, and labels', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       expect(request.method, 'GET');
@@ -21,6 +21,7 @@ void main() {
           'tracks': [
             {
               'id': '01J000000000000000000000B2',
+              'year': {'key': 'YEAR:7', 'label': '7'},
               'labels': {
                 'ar': 'المسار الثاني',
                 'en': 'Second track',
@@ -29,6 +30,7 @@ void main() {
             },
             {
               'id': '01J000000000000000000000A1',
+              'year': {'key': 'YEAR:6', 'label': '6'},
               'labels': {
                 'ar': 'المسار الأول',
                 'en': 'First track',
@@ -55,6 +57,10 @@ void main() {
         tracks.map((track) => track.id),
         ['01J000000000000000000000B2', '01J000000000000000000000A1'],
       );
+      expect(tracks.first.year?.key, 'YEAR:7');
+      expect(tracks.first.year?.label, '7');
+      expect(tracks.last.year?.key, 'YEAR:6');
+      expect(tracks.last.year?.label, '6');
       expect(tracks.first.label(ModrikLocale.ar), 'المسار الثاني');
       expect(tracks.first.label(ModrikLocale.en), 'Second track');
       expect(tracks.first.label(ModrikLocale.fr), 'Deuxième parcours');
