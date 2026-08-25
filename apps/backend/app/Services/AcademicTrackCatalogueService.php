@@ -90,7 +90,7 @@ final class AcademicTrackCatalogueService
             return null;
         }
 
-        $segments = preg_split('/[:\\/]+/', $key) ?: [$key];
+        $segments = preg_split('/[:\/]+/', $key) ?: [$key];
         if (Str::upper((string) $segments[0]) === 'YEAR') {
             array_shift($segments);
         }
