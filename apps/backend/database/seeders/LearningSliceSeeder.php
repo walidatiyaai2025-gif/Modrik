@@ -90,6 +90,7 @@ class LearningSliceSeeder extends Seeder
                     'fr' => 'Parcours synthétique de test',
                 ]),
                 'is_fixture' => true,
+                'availability_state' => 'published',
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
