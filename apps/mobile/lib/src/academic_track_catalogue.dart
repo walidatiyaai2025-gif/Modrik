@@ -17,20 +17,23 @@ class AcademicYear {
 class AcademicTrack {
   AcademicTrack({
     required this.id,
-    required this.year,
+    this.year,
     required Map<ModrikLocale, String> labels,
   }) : labels = UnmodifiableMapView(Map<ModrikLocale, String>.from(labels));
 
-  factory AcademicTrack.fromJson(Map<String, dynamic> json) => AcademicTrack(
-        id: json['id'] as String,
-        year: AcademicYear.fromJson(
-          Map<String, dynamic>.from(json['year'] as Map),
-        ),
-        labels: localizedTextFromJson(json['labels']),
-      );
+  factory AcademicTrack.fromJson(Map<String, dynamic> json) {
+    final yearJson = json['year'];
+    return AcademicTrack(
+      id: json['id'] as String,
+      year: yearJson is Map
+          ? AcademicYear.fromJson(Map<String, dynamic>.from(yearJson))
+          : null,
+      labels: localizedTextFromJson(json['labels']),
+    );
+  }
 
   final String id;
-  final AcademicYear year;
+  final AcademicYear? year;
   final Map<ModrikLocale, String> labels;
 
   String label(ModrikLocale locale) => localize(labels, locale);
