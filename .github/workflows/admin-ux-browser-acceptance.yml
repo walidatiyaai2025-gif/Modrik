@@ -150,7 +150,7 @@ jobs:
             const surfaces = [
               { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
-              { name: 'academic-track-availability', url: '/admin/academic-track-availability', selector: '[data-testid="modrik-academic-track-availability"]' },
+              { name: 'academic-track-availability', url: '/admin/academic-catalogue/availability', selector: '[data-testid="modrik-academic-track-availability"]' },
               { name: 'assessment-operations', url: '/admin/assessment-operations', selector: '[data-testid="modrik-assessment-operations"]' },
               { name: 'assessment-question-bank', url: '/admin/assessment-question-bank', selector: '[data-testid="modrik-assessment-question-bank"]' },
               { name: 'assessment-quality-review', url: '/admin/assessment-quality-review', selector: '[data-testid="modrik-assessment-quality-review"]' },
@@ -203,7 +203,7 @@ jobs:
             }
 
             await page.setViewportSize({ width: 1440, height: 900 });
-            await page.goto('http://127.0.0.1:8000/admin/academic-track-availability?admin_locale=en', { waitUntil: 'networkidle' });
+            await page.goto('http://127.0.0.1:8000/admin/academic-catalogue/availability?admin_locale=en', { waitUntil: 'networkidle' });
             const lifecycleRoot = page.locator('[data-testid="modrik-academic-track-availability"]');
             record('academic track lifecycle: visible', await lifecycleRoot.isVisible(), 'availability surface missing');
             const retireButton = page.getByRole('button', { name: 'Retire' }).first();
