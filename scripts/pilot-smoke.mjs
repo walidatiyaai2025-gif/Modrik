@@ -18,9 +18,9 @@ const strict = args.has("--strict");
 const allowedArgs = new Set(["--plan", "--strict", "--help"]);
 const productSuiteTimeoutMs = 20 * 60_000;
 const browserSuiteTimeoutMs = 30 * 60_000;
-const fixtureStepTimeoutMs = 5 * 60_000;
-const fixtureShutdownGraceMs = 2_000;
-const fixtureShutdownForceMs = 1_000;
+const realSessionStepTimeoutMs = 5 * 60_000;
+const serverShutdownGraceMs = 2_000;
+const serverShutdownForceMs = 1_000;
 const gitCommandTimeoutMs = 5_000;
 
 for (const arg of args) {
@@ -82,10 +82,7 @@ const gates = {
   },
   correlationAcceptance: {
     label: "Issue #101 terminal composed correlation trace accepted",
-    check: () => evidenceLedgerContains(
-      correlationAcceptancePath,
-      "OBSERVABILITY CORRELATION ACCEPTANCE COMPLETE",
-    ),
+    check: () => evidenceLedgerContains(correlationAcceptancePath, "OBSERVABILITY CORRELATION ACCEPTANCE COMPLETE"),
     evidence: "docs/qa/p0-observability-correlation-acceptance.md with terminal same-support-reference Web/Mobile -> real Laravel Backend -> privileged diagnostics evidence",
   },
   browserRuntime: {
@@ -103,8 +100,8 @@ const acceptanceRows = [
   {
     id: "registration-login-session",
     label: "Registration / login / session",
-    suites: ["backend", "web", "mobile"],
-    evidence: "Backend Auth lifecycle plus Web/Mobile sign-in, session restoration and revocation coverage.",
+    suites: ["backend", "web", "mobile", "realSession"],
+    evidence: "Backend Auth lifecycle plus Web/Mobile sign-in, session restoration/revocation coverage and a real Laravel login-cookie acceptance path.",
   },
   {
     id: "verification-required",
@@ -122,26 +119,26 @@ const acceptanceRows = [
   {
     id: "dashboard-lesson-study",
     label: "Dashboard -> lesson / study",
-    suites: ["web", "mobile", "fixture"],
-    evidence: "Visible learning workspace coverage plus live Next Learning BFF -> Laravel fixture lesson read.",
+    suites: ["web", "mobile", "realSession"],
+    evidence: "Visible learning workspace coverage plus live Next Learning BFF -> Laravel lesson read through a real authenticated session.",
   },
   {
     id: "practice-attempt",
     label: "Practice / attempt",
-    suites: ["backend", "web", "mobile", "fixture"],
-    evidence: "Authoritative Assessment/client practice tests plus live attempt/answer/submit smoke.",
+    suites: ["backend", "web", "mobile", "realSession"],
+    evidence: "Authoritative Assessment/client practice tests plus real-session attempt/answer/submit smoke.",
   },
   {
     id: "authoritative-resume-order",
     label: "Backend-authoritative attempt resume / order",
-    suites: ["backend", "web", "mobile", "fixture"],
-    evidence: "Server-owned attempt snapshot/order tests, Web resume boundary, Mobile cached/online resume and live fixture attempt flow.",
+    suites: ["backend", "web", "mobile", "realSession"],
+    evidence: "Server-owned attempt snapshot/order tests, Web resume boundary, Mobile cached/online resume and real-session attempt flow.",
   },
   {
     id: "scoring-authority",
     label: "Scoring authority",
-    suites: ["backend", "web", "mobile", "fixture"],
-    evidence: "Backend immutable-snapshot scoring authority plus clients that never submit scoring/seed/order authority and live graded result.",
+    suites: ["backend", "web", "mobile", "realSession"],
+    evidence: "Backend immutable-snapshot scoring authority plus clients that never submit scoring/seed/order authority and a real-session graded result.",
   },
   {
     id: "offline-pending-answer",
@@ -224,8 +221,8 @@ for (const suiteId of [...new Set(acceptanceRows.flatMap((row) => row.suites))])
       command: "qa/web-e2e/run-browser-runtime.sh",
       detail: "Issue #108 browser runtime acceptance is not integrated on this Git tree.",
     });
-  } else if (suiteId === "fixture") {
-    suiteResults.set(suiteId, await runFixtureSmoke());
+  } else if (suiteId === "realSession") {
+    suiteResults.set(suiteId, await runRealSessionSmoke());
   } else {
     suiteResults.set(suiteId, runCommandSuite(suiteId));
   }
@@ -257,7 +254,7 @@ if (summary.fail > 0) process.exit(1);
 if (strict && summary.blocked > 0) process.exit(2);
 
 function validateManifest() {
-  const suiteIds = new Set([...Object.keys(commandSuites), "fixture"]);
+  const suiteIds = new Set([...Object.keys(commandSuites), "realSession"]);
   const gateIds = new Set(Object.keys(gates));
   const rowIds = new Set();
   for (const row of acceptanceRows) {
@@ -297,25 +294,27 @@ function runCommandSuite(id) {
   };
 }
 
-async function runFixtureSmoke() {
-  console.log("\n=== Live Student Web BFF -> Laravel fixture smoke ===");
+async function runRealSessionSmoke() {
+  console.log("\n=== Live Student Web BFF -> Laravel real-session smoke ===");
   const started = Date.now();
-  const tempRoot = join(runtimeRoot, `pilot-fixture-${process.pid}`);
+  const tempRoot = join(runtimeRoot, `pilot-real-session-${process.pid}`);
   const databasePath = join(tempRoot, "pilot.sqlite");
   mkdirSync(tempRoot, { recursive: true });
   writeFileSync(databasePath, "", "utf8");
 
   const port = Number(process.env.MODRIK_PILOT_SMOKE_PORT ?? 18127);
   const baseUrl = `http://127.0.0.1:${port}`;
-  const fixtureToken = "modrik-pilot-fixture-token";
+  const acceptanceEmail = `pilot.${process.pid}@modrik.test`;
+  const acceptancePassword = "ModrikPilotRealSession!2026";
+  const cleanEnv = withoutLegacyFixtureEnv(process.env);
   const backendEnv = {
-    ...process.env,
+    ...cleanEnv,
     APP_ENV: "testing",
     APP_KEY: "base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     DB_CONNECTION: "sqlite",
     DB_DATABASE: databasePath,
-    MODRIK_FIXTURE_MODE: "true",
-    MODRIK_FIXTURE_BEARER_TOKEN: fixtureToken,
+    MODRIK_DEMO_STUDENT_EMAIL: acceptanceEmail,
+    MODRIK_DEMO_STUDENT_PASSWORD: acceptancePassword,
     MODRIK_IDEMPOTENCY_SECRET: "modrik-pilot-idempotency-secret",
     CACHE_STORE: "array",
     QUEUE_CONNECTION: "sync",
@@ -328,11 +327,11 @@ async function runFixtureSmoke() {
       env: backendEnv,
       stdio: "inherit",
       shell: process.platform === "win32",
-      timeoutMs: fixtureStepTimeoutMs,
+      timeoutMs: realSessionStepTimeoutMs,
     });
-    const migrateFailure = boundedFailureDetail(migrate, "Laravel fixture migrate/seed");
+    const migrateFailure = boundedFailureDetail(migrate, "Laravel real-session migrate/seed");
     if (migrateFailure) {
-      return fixtureFailure(started, migrateFailure, migrate.timedOut ? 124 : (migrate.result.status ?? 1));
+      return realSessionFailure(started, migrateFailure, migrate.timedOut ? 124 : (migrate.result.status ?? 1));
     }
 
     server = spawn("php", ["artisan", "serve", "--host=127.0.0.1", `--port=${port}`], {
@@ -346,49 +345,57 @@ async function runFixtureSmoke() {
     const smoke = runBoundedSync("npm", ["run", "smoke:fixture"], {
       cwd: join(repoRoot, "apps/web"),
       env: {
-        ...process.env,
+        ...cleanEnv,
         MODRIK_API_BASE_URL: baseUrl,
-        MODRIK_FIXTURE_MODE: "true",
-        MODRIK_FIXTURE_BEARER_TOKEN: fixtureToken,
+        MODRIK_DEMO_STUDENT_EMAIL: acceptanceEmail,
+        MODRIK_DEMO_STUDENT_PASSWORD: acceptancePassword,
       },
       stdio: "inherit",
       shell: process.platform === "win32",
-      timeoutMs: fixtureStepTimeoutMs,
+      timeoutMs: realSessionStepTimeoutMs,
     });
-    const smokeFailure = boundedFailureDetail(smoke, "Web fixture smoke");
+    const smokeFailure = boundedFailureDetail(smoke, "Web real-session smoke");
     if (smokeFailure) {
-      return fixtureFailure(started, smokeFailure, smoke.timedOut ? 124 : (smoke.result.status ?? 1));
+      return realSessionFailure(started, smokeFailure, smoke.timedOut ? 124 : (smoke.result.status ?? 1));
     }
+
     return {
       status: "PASS",
       exit_code: 0,
       duration_ms: Date.now() - started,
-      command: "Laravel migrate:fresh --seed + server + npm run smoke:fixture",
-      step_timeout_ms: fixtureStepTimeoutMs,
+      command: "Laravel migrate:fresh --seed + server + Web real-session BFF smoke",
+      step_timeout_ms: realSessionStepTimeoutMs,
     };
   } catch (error) {
-    return fixtureFailure(started, error instanceof Error ? error.message : String(error), 1);
+    return realSessionFailure(started, error instanceof Error ? error.message : String(error), 1);
   } finally {
     await stopServer(server);
     rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
-function fixtureFailure(started, detail, exitCode) {
-  console.error(`Fixture smoke failure: ${detail}`);
+function withoutLegacyFixtureEnv(env) {
+  const clean = { ...env };
+  delete clean.MODRIK_FIXTURE_MODE;
+  delete clean.MODRIK_FIXTURE_BEARER_TOKEN;
+  return clean;
+}
+
+function realSessionFailure(started, detail, exitCode) {
+  console.error(`Real-session smoke failure: ${detail}`);
   return {
     status: "FAIL",
     exit_code: exitCode,
     duration_ms: Date.now() - started,
-    command: "Laravel migrate:fresh --seed + server + npm run smoke:fixture",
-    step_timeout_ms: fixtureStepTimeoutMs,
+    command: "Laravel migrate:fresh --seed + server + Web real-session BFF smoke",
+    step_timeout_ms: realSessionStepTimeoutMs,
     detail,
   };
 }
 
 async function waitForBackend(url, server) {
   for (let attempt = 0; attempt < 80; attempt += 1) {
-    if (server.exitCode !== null) throw new Error(`Laravel fixture server exited early with code ${server.exitCode}`);
+    if (server.exitCode !== null) throw new Error(`Laravel real-session server exited early with code ${server.exitCode}`);
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(500) });
       if (response.ok) return;
@@ -397,21 +404,21 @@ async function waitForBackend(url, server) {
     }
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 125));
   }
-  throw new Error(`Laravel fixture server did not become ready at ${url}`);
+  throw new Error(`Laravel real-session server did not become ready at ${url}`);
 }
 
 async function stopServer(server) {
   if (!server || server.exitCode !== null || server.signalCode !== null) return;
 
-  const gracefulExit = waitForChildExit(server, fixtureShutdownGraceMs);
+  const gracefulExit = waitForChildExit(server, serverShutdownGraceMs);
   server.kill("SIGTERM");
   if (await gracefulExit) return;
 
-  console.error("Fixture server did not exit after SIGTERM; escalating to SIGKILL.");
-  const forcedExit = waitForChildExit(server, fixtureShutdownForceMs);
+  console.error("Real-session server did not exit after SIGTERM; escalating to SIGKILL.");
+  const forcedExit = waitForChildExit(server, serverShutdownForceMs);
   server.kill("SIGKILL");
   if (!(await forcedExit)) {
-    console.error("Fixture server did not confirm exit after SIGKILL before the cleanup deadline.");
+    console.error("Real-session server did not confirm exit after SIGKILL before the cleanup deadline.");
   }
 }
 

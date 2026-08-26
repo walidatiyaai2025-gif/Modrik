@@ -28,6 +28,7 @@ class _AcademicContextResetBoundaryState
     extends State<AcademicContextResetBoundary> {
   _CatalogueState _state = _CatalogueState.loading;
   List<AcademicTrack> _tracks = const [];
+  String? _selectedYearKey;
   String? _selectedTrackId;
   String? _operationKey;
   String? _transitionMessage;
@@ -65,6 +66,23 @@ class _AcademicContextResetBoundaryState
     if (mounted) setState(() {});
   }
 
+  List<AcademicYear> get _years {
+    final years = <AcademicYear>[];
+    final seen = <String>{};
+    for (final track in _tracks) {
+      final year = track.year;
+      if (year != null && seen.add(year.key)) years.add(year);
+    }
+    return years;
+  }
+
+  List<AcademicTrack> _tracksForYear(String? yearKey) {
+    if (yearKey == null) return _tracks;
+    return _tracks
+        .where((track) => track.year?.key == yearKey)
+        .toList(growable: false);
+  }
+
   Future<void> _loadCatalogue() async {
     if (!mounted) return;
     if (controller.isOffline) {
@@ -83,13 +101,29 @@ class _AcademicContextResetBoundaryState
       final tracks = await catalogueGateway.academicTracks();
       if (!mounted) return;
       final currentTrackId = controller.academicContext?.academicTrackId;
-      final selected = tracks.any((track) => track.id == currentTrackId)
-          ? currentTrackId
-          : tracks.firstOrNull?.id;
+      final currentTrack = tracks
+          .where((track) => track.id == currentTrackId)
+          .firstOrNull;
+      final firstYear = tracks
+          .map((track) => track.year)
+          .whereType<AcademicYear>()
+          .firstOrNull;
+      final selectedYearKey = currentTrack?.year?.key ?? firstYear?.key;
+      final tracksInYear = selectedYearKey == null
+          ? tracks
+          : tracks
+              .where((track) => track.year?.key == selectedYearKey)
+              .toList(growable: false);
+      final selectedTrackId =
+          tracksInYear.any((track) => track.id == currentTrackId)
+              ? currentTrackId
+              : tracksInYear.firstOrNull?.id;
       setState(() {
         _tracks = tracks;
-        _selectedTrackId = selected;
-        _state = tracks.isEmpty ? _CatalogueState.empty : _CatalogueState.ready;
+        _selectedYearKey = selectedYearKey;
+        _selectedTrackId = selectedTrackId;
+        _state =
+            tracks.isEmpty ? _CatalogueState.empty : _CatalogueState.ready;
       });
     } on LearningFailure catch (failure) {
       if (!mounted) return;
@@ -300,6 +334,39 @@ class _AcademicContextResetBoundaryState
     );
   }
 
+  Widget _yearSelector({required String keyPrefix}) {
+    final years = _years;
+    if (years.isEmpty) return const SizedBox.shrink();
+    final selectedYear = years.any((year) => year.key == _selectedYearKey)
+        ? _selectedYearKey
+        : years.first.key;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('$keyPrefix-${controller.locale.name}'),
+      initialValue: selectedYear,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: copy.yearLabel),
+      items: [
+        for (final year in years)
+          DropdownMenuItem<String>(
+            value: year.key,
+            child: Text(year.label, maxLines: 2),
+          ),
+      ],
+      onChanged: _transitionBusy
+          ? null
+          : (value) {
+              if (value == null) return;
+              final tracks = _tracksForYear(value);
+              setState(() {
+                _selectedYearKey = value;
+                _selectedTrackId = tracks.firstOrNull?.id;
+                _operationKey = null;
+                _transitionMessage = null;
+              });
+            },
+    );
+  }
+
   Widget _onboardingCatalogueBody(BuildContext context) {
     switch (_state) {
       case _CatalogueState.loading:
@@ -342,17 +409,25 @@ class _AcademicContextResetBoundaryState
           onAction: _loadCatalogue,
         );
       case _CatalogueState.ready:
-        final effectiveSelection = _selectedTrackId ?? _tracks.first.id;
+        final visibleTracks = _tracksForYear(_selectedYearKey);
+        final effectiveSelection =
+            visibleTracks.any((track) => track.id == _selectedTrackId)
+                ? _selectedTrackId
+                : visibleTracks.firstOrNull?.id;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _yearSelector(keyPrefix: 'academic-year-onboarding'),
+            if (_years.isNotEmpty) const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              key: ValueKey('academic-track-onboarding-${controller.locale.name}'),
+              key: ValueKey(
+                'academic-track-onboarding-${controller.locale.name}-${_selectedYearKey ?? 'legacy'}',
+              ),
               initialValue: effectiveSelection,
               isExpanded: true,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
-                for (final track in _tracks)
+                for (final track in visibleTracks)
                   DropdownMenuItem<String>(
                     value: track.id,
                     child: Text(track.label(controller.locale), maxLines: 2),
@@ -370,9 +445,10 @@ class _AcademicContextResetBoundaryState
             ),
             const SizedBox(height: 20),
             FilledButton(
-              onPressed: _transitionBusy || controller.isBusy
-                  ? null
-                  : _activateSelection,
+              onPressed:
+                  _transitionBusy || controller.isBusy || effectiveSelection == null
+                      ? null
+                      : _activateSelection,
               child: _transitionBusy
                   ? const SizedBox.square(
                       dimension: 20,
@@ -451,14 +527,33 @@ class _ResetDialog extends StatefulWidget {
 
 class _ResetDialogState extends State<_ResetDialog> {
   late String _selectedTrackId;
+  String? _selectedYearKey;
   String? _operationKey;
   bool _confirmed = false;
   bool _busy = false;
   String? _message;
 
+  List<AcademicYear> get _years {
+    final years = <AcademicYear>[];
+    final seen = <String>{};
+    for (final track in widget.tracks) {
+      final year = track.year;
+      if (year != null && seen.add(year.key)) years.add(year);
+    }
+    return years;
+  }
+
+  List<AcademicTrack> _tracksForYear(String? yearKey) {
+    if (yearKey == null) return widget.tracks;
+    return widget.tracks
+        .where((track) => track.year?.key == yearKey)
+        .toList(growable: false);
+  }
+
   @override
   void initState() {
     super.initState();
+    _selectedYearKey = widget.tracks.first.year?.key;
     _selectedTrackId = widget.tracks.first.id;
     widget.controller.addListener(_handleControllerChanged);
   }
@@ -477,6 +572,12 @@ class _ResetDialogState extends State<_ResetDialog> {
   Widget build(BuildContext context) {
     final copy = _CatalogueCopy(widget.controller.locale);
     final locale = widget.controller.locale;
+    final years = _years;
+    final visibleTracks = _tracksForYear(_selectedYearKey);
+    if (!visibleTracks.any((track) => track.id == _selectedTrackId) &&
+        visibleTracks.isNotEmpty) {
+      _selectedTrackId = visibleTracks.first.id;
+    }
     return Directionality(
       textDirection:
           locale == ModrikLocale.ar ? TextDirection.rtl : TextDirection.ltr,
@@ -487,13 +588,46 @@ class _ResetDialogState extends State<_ResetDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (years.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                key: ValueKey('academic-year-reset-${locale.name}'),
+                initialValue: _selectedYearKey,
+                isExpanded: true,
+                decoration: InputDecoration(labelText: copy.yearLabel),
+                items: [
+                  for (final year in years)
+                    DropdownMenuItem<String>(
+                      value: year.key,
+                      child: Text(year.label, maxLines: 2),
+                    ),
+                ],
+                onChanged: _busy
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        final tracks = _tracksForYear(value);
+                        setState(() {
+                          _selectedYearKey = value;
+                          if (tracks.isNotEmpty) {
+                            _selectedTrackId = tracks.first.id;
+                          }
+                          _operationKey = null;
+                          _confirmed = false;
+                          _message = null;
+                        });
+                      },
+              ),
+              const SizedBox(height: 16),
+            ],
             DropdownButtonFormField<String>(
-              key: ValueKey('academic-track-reset-${locale.name}'),
-              initialValue: _selectedTrackId,
+              key: ValueKey(
+                'academic-track-reset-${locale.name}-${_selectedYearKey ?? 'legacy'}',
+              ),
+              initialValue: visibleTracks.isEmpty ? null : _selectedTrackId,
               isExpanded: true,
               decoration: InputDecoration(labelText: copy.trackLabel),
               items: [
-                for (final track in widget.tracks)
+                for (final track in visibleTracks)
                   DropdownMenuItem<String>(
                     value: track.id,
                     child: Text(track.label(locale), maxLines: 2),
@@ -538,7 +672,9 @@ class _ResetDialogState extends State<_ResetDialog> {
             child: Text(copy.cancel),
           ),
           FilledButton(
-            onPressed: _busy || !_confirmed ? null : _applyReset,
+            onPressed: _busy || !_confirmed || visibleTracks.isEmpty
+                ? null
+                : _applyReset,
             child: _busy
                 ? const SizedBox.square(
                     dimension: 20,
@@ -627,6 +763,11 @@ class _CatalogueCopy {
         ModrikLocale.fr =>
           'Voici les parcours académiques actuellement disponibles pour vous.',
       };
+  String get yearLabel => switch (locale) {
+        ModrikLocale.ar => 'السنة الدراسية',
+        ModrikLocale.en => 'School year',
+        ModrikLocale.fr => 'Année scolaire',
+      };
   String get trackLabel => switch (locale) {
         ModrikLocale.ar => 'المسار الأكاديمي',
         ModrikLocale.en => 'Academic track',
@@ -665,7 +806,8 @@ class _CatalogueCopy {
       };
   String get confirmConsequences => switch (locale) {
         ModrikLocale.ar => 'أفهم ما سيحدث عند تغيير المسار.',
-        ModrikLocale.en => 'I understand what will happen when I change tracks.',
+        ModrikLocale.en =>
+          'I understand what will happen when I change tracks.',
         ModrikLocale.fr =>
           'Je comprends ce qui se passera quand je changerai de parcours.',
       };
@@ -676,7 +818,8 @@ class _CatalogueCopy {
       };
   String get empty => switch (locale) {
         ModrikLocale.ar => 'لا توجد مسارات أكاديمية متاحة لك حاليًا.',
-        ModrikLocale.en => 'No academic tracks are available to you right now.',
+        ModrikLocale.en =>
+          'No academic tracks are available to you right now.',
         ModrikLocale.fr =>
           'Aucun parcours académique n’est disponible pour vous pour le moment.',
       };
@@ -729,6 +872,6 @@ class _CatalogueCopy {
       };
 }
 
-extension _FirstOrNull<T> on List<T> {
+extension _FirstOrNull<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }

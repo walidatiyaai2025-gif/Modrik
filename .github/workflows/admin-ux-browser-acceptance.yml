@@ -21,6 +21,7 @@ on:
       - "apps/backend/tests/Feature/AssessmentQualityReviewTest.php"
       - "apps/backend/tests/Feature/AdminAccountOperationsTest.php"
       - "apps/backend/tests/Feature/AdminOperationsControlCenterTest.php"
+      - "apps/backend/tests/Feature/AcademicTrackAvailabilityAdminTest.php"
       - "docs/brand/ADMIN_UX_SYSTEM.md"
       - ".github/workflows/admin-ux-browser-acceptance.yml"
 
@@ -44,8 +45,6 @@ jobs:
       CACHE_STORE: array
       SESSION_DRIVER: file
       QUEUE_CONNECTION: database
-      MODRIK_FIXTURE_MODE: 'true'
-      MODRIK_FIXTURE_BEARER_TOKEN: modrik-admin-evidence-fixture-token
       MODRIK_IDEMPOTENCY_SECRET: modrik-admin-evidence-idempotency-secret
       MODRIK_DEMO_ADMIN_EMAIL: admin.evidence@example.test
       MODRIK_DEMO_ADMIN_PASSWORD: ModrikEvidenceAdmin123!
@@ -72,11 +71,12 @@ jobs:
           npm run build
           grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
 
-      - name: Prepare deterministic Admin fixture
+      - name: Prepare deterministic Admin test dataset
         working-directory: apps/backend
         run: |
           touch database/admin-evidence.sqlite
           php artisan migrate:fresh --seed --force
+          php artisan db:seed --class=LearningSliceSeeder --force
 
       - name: Cache Chromium runtime
         uses: actions/cache@v4
@@ -150,6 +150,7 @@ jobs:
             const surfaces = [
               { name: 'dashboard', url: '/admin', selector: '[data-testid="modrik-admin-dashboard"]' },
               { name: 'academic-catalogue', url: '/admin/academic-catalogue', selector: '[data-testid="modrik-academic-catalogue"]' },
+              { name: 'academic-track-availability', url: '/admin/academic-catalogue/availability', selector: '[data-testid="modrik-academic-track-availability"]' },
               { name: 'assessment-operations', url: '/admin/assessment-operations', selector: '[data-testid="modrik-assessment-operations"]' },
               { name: 'assessment-question-bank', url: '/admin/assessment-question-bank', selector: '[data-testid="modrik-assessment-question-bank"]' },
               { name: 'assessment-quality-review', url: '/admin/assessment-quality-review', selector: '[data-testid="modrik-assessment-quality-review"]' },
@@ -201,10 +202,31 @@ jobs:
               }
             }
 
+            await page.setViewportSize({ width: 1440, height: 900 });
+            await page.goto('http://127.0.0.1:8000/admin/academic-catalogue/availability?admin_locale=en', { waitUntil: 'networkidle' });
+            const lifecycleRoot = page.locator('[data-testid="modrik-academic-track-availability"]');
+            record('academic track lifecycle: visible', await lifecycleRoot.isVisible(), 'availability surface missing');
+            const retireButton = page.getByRole('button', { name: 'Retire' }).first();
+            record('academic track lifecycle: retire action reachable', await retireButton.isVisible(), 'Retire action missing for published acceptance track');
+            await retireButton.click();
+            await page.getByLabel('Reason for change').fill('Browser acceptance retirement evidence');
+            const confirm = page.getByRole('checkbox');
+            if (await confirm.count()) {
+              await confirm.check();
+            }
+            await page.getByRole('button', { name: 'Apply change' }).click();
+            await page.waitForTimeout(750);
+            record(
+              'academic track lifecycle: persisted retired state visible',
+              await lifecycleRoot.getByText('Retired', { exact: true }).first().isVisible(),
+              'Retired state was not visible after applying the lifecycle mutation',
+            );
+            await page.screenshot({ path: path.join(out, 'academic-track-availability-lifecycle-retired.png'), fullPage: true });
+
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v6',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v7',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'PASS',
                 surfaces: surfaces.map(({ name, url }) => ({ name, url })),
@@ -217,7 +239,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v6',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v7',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'FAIL',
                 checks,

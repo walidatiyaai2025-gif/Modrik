@@ -177,6 +177,7 @@ class AcademicContextLifecycleTest extends TestCase
                 'fr' => 'Deuxième parcours synthétique',
             ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
             'is_fixture' => true,
+            'availability_state' => 'published',
             'created_at' => $now,
             'updated_at' => $now,
         ]);

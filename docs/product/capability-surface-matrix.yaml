@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-updated: 2026-08-23
+updated: 2026-08-26
 governance_id: GOV-SURFACE-001
 source:
   - MODRIK_Master_Product_Engineering_Plan_v1.5_CODEX_READY
@@ -88,6 +88,12 @@ capabilities:
     surface: AcademicCatalogue
     status: present
     notes: Admin-only create/list/search/filter/edit for unreferenced tracks, preparation-request scope prefill, immutable audit history, and conservative history locking for referenced tracks. Values must be owner-approved; no board/syllabus/version values are fabricated.
+  - id: admin.academic.track_availability
+    area: academic
+    classification: admin_manageable
+    surface: AcademicTrackAvailability
+    status: present
+    notes: Issue #307 adds a discoverable Admin-only draft -> published -> retired lifecycle. Publish/retire transitions require an operator reason, persist immutable academic_track_audits before/after evidence, and revalidate server-side. Retiring a track referenced by learner or curriculum history requires explicit confirmation and never deletes historical contexts. Learner catalogue, activate and reset authority remains Backend-owned and fail-closed to published tracks only. AR/EN/FR status and action labels are exposed without raw IDs as normal operator UX.
   - id: student.academic.track_change
     area: academic
     classification: user_facing
