@@ -15,7 +15,7 @@ export function resolveRuntimeInspectorConfig(
   env: Record<string, string | undefined> = process.env,
 ): RuntimeInspectorConfig {
   const environment = safeIdentity(env.MODRIK_RUNTIME_ENVIRONMENT, 48).toLowerCase();
-  const nonProductionEnvironments = new Set(["development", "dev", "test", "staging", "pilot"]);
+  const nonProductionEnvironments = new Set(["development", "dev", "test", "staging", "pilot", "demo"]);
   return {
     enabled: env.MODRIK_RUNTIME_INSPECTOR_ENABLED === "true" && nonProductionEnvironments.has(environment),
     environment,
