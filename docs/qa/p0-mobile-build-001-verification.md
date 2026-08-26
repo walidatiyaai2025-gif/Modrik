@@ -33,6 +33,8 @@ Production bundle IDs, store IDs and signing remain owner-blocked in `docs/relea
 
 The existing governed Bootstrap CI remains separate and must also be green on the exact PR head, including Flutter analyze/widget tests, contracts, Backend/SQLite, MariaDB 10.11 round-trip verification, Web checks, secret scan and dependency review.
 
+For terminal release-candidate closure, this verification document may be touched without changing native behavior to force a fresh exact-head Mobile Native Compile Proof when the candidate itself does not otherwise modify Mobile paths. The resulting run is still authoritative only if its checkout SHA matches the candidate SHA and both native compile jobs pass.
+
 ## Local-equivalent commands
 
 From repository root, on hosts with the corresponding supported native toolchain:
