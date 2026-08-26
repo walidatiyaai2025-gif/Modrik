@@ -203,7 +203,10 @@ function persist() {
   if (!enabled || typeof window === "undefined") return;
   try {
     events = boundEventsByBytes(events, (candidate) => JSON.stringify(candidate));
-    window.sessionStorage.setItem(storageKey, JSON.stringify(events));
+    // Persist only the sanitized, bounded metadata ring. No request bodies,
+    // credentials, learner content, exception messages or tokens enter it.
+    window.localStorage.setItem(storageKey, JSON.stringify(events));
+    window.sessionStorage.removeItem(storageKey);
   } catch {
     // Diagnostics storage is optional and must never block the experience.
   }
@@ -213,7 +216,9 @@ function hydrate() {
   if (hydrated || typeof window === "undefined") return;
   hydrated = true;
   try {
-    const raw = window.sessionStorage.getItem(storageKey);
+    const persistentRaw = window.localStorage.getItem(storageKey);
+    const legacySessionRaw = persistentRaw ? null : window.sessionStorage.getItem(storageKey);
+    const raw = persistentRaw ?? legacySessionRaw;
     if (!raw) return;
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return;
@@ -223,6 +228,7 @@ function hydrate() {
         .filter((item): item is RuntimeDiagnosticEvent => item !== null),
       (candidate) => JSON.stringify(candidate),
     );
+    if (legacySessionRaw) persist();
   } catch {
     events = [];
   }
@@ -244,6 +250,7 @@ export function configureRuntimeDiagnostics(
     hydrated = false;
     if (typeof window !== "undefined") {
       try {
+        window.localStorage.removeItem(storageKey);
         window.sessionStorage.removeItem(storageKey);
       } catch {
         // Best effort only.
