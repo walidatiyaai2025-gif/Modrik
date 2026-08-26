@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { resolveRuntimeInspectorConfig } from "../lib/runtime-inspector-config";
+import RuntimeDiagnosticsBootstrap from "./runtime-diagnostics-bootstrap";
 import RuntimeInspector from "./runtime-inspector";
 import "./globals.css";
 import "./learning-responsive-closeout.css";
@@ -48,20 +49,22 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en" dir="ltr" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
-        {release && shortRelease ? (
-          <div
-            className="modrik-release-badge"
-            data-testid="modrik-web-release-badge"
-            data-modrik-release-sha={release}
-            data-modrik-release-short={shortRelease}
-            title={`MODRIK deployed release: ${release}`}
-            aria-label={`MODRIK build ${shortRelease}`}
-          >
-            {`Build ${shortRelease}`}
-          </div>
-        ) : null}
-        {children}
-        <RuntimeInspector {...inspector} />
+        <RuntimeDiagnosticsBootstrap {...inspector}>
+          {release && shortRelease ? (
+            <div
+              className="modrik-release-badge"
+              data-testid="modrik-web-release-badge"
+              data-modrik-release-sha={release}
+              data-modrik-release-short={shortRelease}
+              title={`MODRIK deployed release: ${release}`}
+              aria-label={`MODRIK build ${shortRelease}`}
+            >
+              {`Build ${shortRelease}`}
+            </div>
+          ) : null}
+          {children}
+          <RuntimeInspector {...inspector} />
+        </RuntimeDiagnosticsBootstrap>
       </body>
     </html>
   );
