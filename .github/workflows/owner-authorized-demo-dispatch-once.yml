@@ -1,7 +1,7 @@
 name: Owner-authorized one-shot Demo dispatch
 
 # One-shot dispatch checkpoint for Issue #260 latest-main Demo verification.
-# Armed for governed verification of main after GOV-DEPLOY-001 merge 40abbdffd4c4.
+# Armed for governed verification after persistent Demo Runtime Inspector integration.
 on:
   push:
     branches:
