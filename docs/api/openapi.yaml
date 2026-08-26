@@ -322,10 +322,10 @@ paths:
       summary: List school-year-scoped academic tracks available for learner self-selection
       operationId: listAvailableAcademicTracks
       tags: [Academics]
-      description: Returns every display-safe academic track currently configured for learner self-selection, grouped by an opaque school-year key supplied by the Backend. No per-user Admin track assignment is required. Internal board, syllabus, track codes, fixture markers, and operator metadata are not exposed. Synthetic fixture tracks are never returned while fixture mode is disabled.
+      description: Returns only display-safe academic tracks whose Backend-authoritative availability_state is `published`, grouped by an opaque school-year key supplied by the Backend. Tracks in `draft` or `retired` state fail closed and are never learner-selectable or returned by this catalogue. No per-user Admin track assignment is required. Internal board, syllabus, track codes, fixture markers, and operator metadata are not exposed. Synthetic fixture tracks are never returned while fixture mode is disabled.
       responses:
         '200':
-          description: Display-safe year-scoped catalogue, which may be empty.
+          description: Display-safe year-scoped catalogue of published learner-selectable tracks, which may be empty.
           headers:
             Cache-Control:
               description: Academic catalogue responses must not be shared or reused after catalogue changes.
@@ -353,7 +353,7 @@ paths:
       summary: Activate the first academic context after onboarding
       operationId: activateAcademicContext
       tags: [Academics]
-      description: The academic_track_id must identify a currently available display-safe catalogue choice. The selected track carries its Backend-owned school-year scope; no per-user Admin assignment is required. The Backend remains authoritative for active-context transition rules.
+      description: The academic_track_id must identify a display-safe track whose Backend-authoritative availability_state is `published`. `draft` and `retired` tracks fail closed as unavailable and cannot be activated. The selected track carries its Backend-owned school-year scope; no per-user Admin assignment is required. The Backend remains authoritative for active-context transition rules.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -384,7 +384,7 @@ paths:
       summary: Archive the active academic context and activate a different track
       operationId: resetAcademicContext
       tags: [Academics]
-      description: The target academic_track_id must remain a currently available display-safe catalogue choice. The selected track carries its Backend-owned school-year scope; no per-user Admin assignment is required. Existing archival, history-preservation, and different-track rules remain Backend-owned.
+      description: The target academic_track_id must identify a display-safe track whose Backend-authoritative availability_state is `published`. `draft` and `retired` tracks fail closed as unavailable and cannot become the replacement context. The selected track carries its Backend-owned school-year scope; no per-user Admin assignment is required. Existing archival, history-preservation, and different-track rules remain Backend-owned.
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
