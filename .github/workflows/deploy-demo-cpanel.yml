@@ -137,8 +137,6 @@ jobs:
           <?php
           declare(strict_types=1);
 
-          set_time_limit(300);
-          ignore_user_abort(true);
           header('Content-Type: application/json; charset=utf-8');
           header('Cache-Control: no-store');
 
@@ -161,6 +159,13 @@ jobs:
           $runner = __DIR__ . '/__REMOTE_RUNNER__';
 
           try {
+              if (function_exists('set_time_limit')) {
+                  @set_time_limit(300);
+              }
+              if (function_exists('ignore_user_abort')) {
+                  @ignore_user_abort(true);
+              }
+
               $bridgeRoot = realpath(__DIR__);
               $expectedBridgeRoot = realpath($publicHtml);
               if ($bridgeRoot === false || $expectedBridgeRoot === false || $bridgeRoot !== $expectedBridgeRoot) {
@@ -251,6 +256,9 @@ jobs:
             -e "s|__REMOTE_PACKAGE__|$remote_package|g" \
             -e "s|__REMOTE_RUNNER__|$remote_runner|g" \
             /tmp/modrik-deploy.php
+
+          php -l /tmp/modrik-deploy.php >/dev/null
+          echo 'MODRIK_DEPLOY_BRIDGE_PHP_LINT_OK'
 
           {
             echo "REMOTE_BRIDGE=$bridge"
