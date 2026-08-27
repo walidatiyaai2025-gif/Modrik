@@ -5,8 +5,8 @@
             <dl class="mt-3 grid gap-3 md:grid-cols-2"><div><dt class="text-sm text-gray-500">Version</dt><dd class="font-mono">{{ $currentVersion }}</dd></div><div><dt class="text-sm text-gray-500">Release SHA</dt><dd class="break-all font-mono">{{ $releaseSha }}</dd></div></dl>
         </section>
         <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 class="text-lg font-semibold text-gray-950">Validate an update package</h2>
-            <p class="mt-1 text-sm text-gray-600">The package remains temporary and outside public storage. Validation completes before any staging or mutation.</p>
+            <h2 class="text-lg font-semibold text-gray-950">Validate and install an update package</h2>
+            <p class="mt-1 text-sm text-gray-600">The package stays in private storage. Validation completes before any staging or release mutation.</p>
             <form wire:submit="validatePackage" class="mt-4 space-y-3">
                 <input type="file" wire:model="package" accept=".zip,application/zip" required class="block w-full rounded-lg border border-gray-300 p-2" />
                 @error('package') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror
@@ -15,7 +15,17 @@
             @if($validationResult)
                 <div class="mt-4 rounded-xl p-4 {{ $validationResult['valid'] ? 'bg-success-50' : 'bg-danger-50' }}">
                     <strong>{{ $validationResult['valid'] ? 'Package is valid' : 'Package rejected' }}</strong>
+                    @if($validationResult['valid'])
+                        <p class="mt-1 text-sm">Target: {{ $validationResult['manifest']['version'] }} · Compatible with this installation</p>
+                        <x-filament::button class="mt-3" color="danger" wire:click="installUpdate" wire:confirm="Install this validated update now? Maintenance mode and rollback safeguards will be used." wire:loading.attr="disabled">Install Update</x-filament::button>
+                    @endif
                     @foreach($validationResult['errors'] as $error)<p class="mt-1 text-sm">{{ $error['code'] }} — {{ $error['message'] }}</p>@endforeach
+                </div>
+            @endif
+            @if($installationResult)
+                <div class="mt-4 rounded-xl border border-gray-200 p-4" data-testid="update-installation-result">
+                    <strong>Final state: {{ $installationResult['status'] }}</strong>
+                    @if(($installationResult['status'] ?? '') === 'REQUIRES_HOST_ACTION')<p class="mt-1 text-sm">The candidate was not declared successful. An authorized host operator must complete and verify the runtime restart.</p>@endif
                 </div>
             @endif
         </section>

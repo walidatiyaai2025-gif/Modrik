@@ -18,4 +18,19 @@ final class InstallationLockTest extends TestCase
         $this->get('/_test-installer')->assertNotFound();
         @unlink($state->lockPath());
     }
+
+    public function test_finish_screen_requires_completed_lock_and_one_time_session_handoff(): void
+    {
+        $path = sys_get_temp_dir().'/modrik-install-lock-'.bin2hex(random_bytes(8));
+        config(['installer.lock_path' => $path]);
+        $state = app(InstallationStateService::class);
+        $state->lock(str_repeat('c', 40));
+
+        $this->withSession(['installation_completed' => true])
+            ->get('/install/finish')
+            ->assertOk()
+            ->assertSee('Finish · Step 8 of 8');
+        $this->get('/install/finish')->assertRedirect('/admin/login');
+        @unlink($path);
+    }
 }

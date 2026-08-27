@@ -9,7 +9,7 @@ final class InstallationStateService
 {
     public function lockPath(): string
     {
-        return storage_path('app/private/installation.lock');
+        return (string) config('installer.lock_path', storage_path('app/private/installation.lock'));
     }
 
     public function installed(): bool

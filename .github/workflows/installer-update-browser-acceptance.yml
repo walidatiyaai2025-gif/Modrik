@@ -1,0 +1,172 @@
+name: Installer and Update Browser Acceptance
+
+on:
+  pull_request:
+    paths:
+      - "apps/backend/app/Filament/Pages/SystemUpdates.php"
+      - "apps/backend/app/Http/Controllers/InstallerController.php"
+      - "apps/backend/app/Services/InstallationStateService.php"
+      - "apps/backend/app/Services/Installer**"
+      - "apps/backend/app/Services/Updates/**"
+      - "apps/backend/resources/views/installer/**"
+      - "apps/backend/resources/views/filament/pages/system-updates.blade.php"
+      - "apps/backend/tests/**Installer*"
+      - "apps/backend/tests/**Update*"
+      - "scripts/create-update-acceptance-fixtures.php"
+      - ".github/workflows/installer-update-browser-acceptance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-update-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: modrik_installer
+          MARIADB_USER: modrik
+          MARIADB_PASSWORD: ModrikDatabase123!
+          MARIADB_ROOT_PASSWORD: ModrikRoot123!
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      APP_DEBUG: "false"
+      APP_URL: http://127.0.0.1:8000
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: modrik_installer
+      DB_USERNAME: modrik
+      DB_PASSWORD: ModrikDatabase123!
+      CACHE_STORE: array
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_mysql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Prepare Backend and acceptance artifacts
+        run: |
+          composer install --working-dir=apps/backend --no-interaction --prefer-dist --no-progress
+          npm install --prefix apps/backend --no-audit --no-fund
+          npm run --prefix apps/backend build
+          rm -f apps/backend/.env apps/backend/storage/app/private/installation.lock
+          php scripts/create-update-acceptance-fixtures.php "$RUNNER_TEMP/update-fixtures"
+
+      - name: Install pinned Chromium runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/playwright" --ignore-scripts --no-save playwright@1.62.1
+          PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/ms-playwright" node "$RUNNER_TEMP/playwright/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Start uninstalled Backend runtime
+        working-directory: apps/backend
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 > "$RUNNER_TEMP/installer-laravel.log" 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8000/install >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/installer-laravel.log"
+          exit 1
+
+      - name: Execute clean-install and update validation browser acceptance
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          FIXTURE_ROOT: ${{ runner.temp }}/update-fixtures
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const path = require('path');
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          const base = 'http://127.0.0.1:8000';
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage();
+            const advance = async () => page.getByRole('button', { name: 'Continue' }).click();
+            const fillInstall = async password => {
+              await advance();
+              await advance();
+              await page.locator('[name="db_host"]').fill('127.0.0.1');
+              await page.locator('[name="db_port"]').fill('3306');
+              await page.locator('[name="db_database"]').fill('modrik_installer');
+              await page.locator('[name="db_username"]').fill('modrik');
+              await page.locator('[name="db_password"]').fill(password);
+              await advance();
+              await page.locator('[name="app_url"]').fill(base);
+              await page.locator('[name="web_url"]').fill('http://127.0.0.1:3000');
+              await page.locator('[name="release_sha"]').fill('b'.repeat(40));
+              await advance();
+              await page.locator('[name="admin_email"]').fill('installer.admin@example.test');
+              await page.locator('[name="admin_password"]').fill('ModrikInstallerAdmin123!');
+              await advance();
+              await advance();
+              await page.locator('[data-testid="installer-submit"]').click();
+            };
+
+            await page.goto(`${base}/install`);
+            assert(await page.locator('[data-testid="modrik-installer-wizard"]').isVisible(), 'installer wizard missing');
+            await fillInstall('WrongDatabasePassword!');
+            await page.waitForLoadState('networkidle');
+            assert((await page.textContent('body')).includes('Installation failed safely'), 'safe DB failure missing');
+            assert(!(await page.textContent('body')).includes('WrongDatabasePassword!'), 'DB secret leaked');
+
+            await fillInstall('ModrikDatabase123!');
+            await page.waitForURL(/\/install\/finish/);
+            assert(await page.locator('[data-testid="modrik-installer-finish"]').isVisible(), 'installer finish state missing');
+            const locked = await page.request.get(`${base}/install`);
+            assert(locked.status() === 404, `installer re-entry status ${locked.status()}`);
+
+            await page.getByRole('link', { name: 'Open Admin sign in' }).click();
+            await page.locator('input[type="email"]').fill('installer.admin@example.test');
+            await page.locator('input[type="password"]').fill('ModrikInstallerAdmin123!');
+            await Promise.all([page.waitForURL(/\/admin(?:\?|$)/), page.locator('button[type="submit"]').click()]);
+            await page.goto(`${base}/admin/system-updates`, { waitUntil: 'networkidle' });
+            assert(await page.locator('[data-testid="modrik-system-updates"]').isVisible(), 'Admin Update Center missing');
+
+            await page.locator('input[type="file"]').setInputFiles(path.join(process.env.FIXTURE_ROOT, 'valid-update.zip'));
+            await page.getByRole('button', { name: 'Validate package' }).click();
+            await page.getByText('Package is valid').waitFor();
+            assert(await page.getByRole('button', { name: 'Install Update' }).isVisible(), 'install action missing');
+
+            await page.locator('input[type="file"]').setInputFiles(path.join(process.env.FIXTURE_ROOT, 'corrupt-update.zip'));
+            await page.getByRole('button', { name: 'Validate package' }).click();
+            await page.getByText('Package rejected').waitFor();
+            await browser.close();
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+
+      - name: Upload runtime log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-update-browser-log-${{ github.event.pull_request.number }}
+          path: ${{ runner.temp }}/installer-laravel.log
+          if-no-files-found: warn
+          retention-days: 14
