@@ -221,7 +221,7 @@ final class GovernedDemoRestartAdapter implements WebRestartAdapter
     }
 
     /**
-     * @param array{web_root:string,node_app_root:string,domain:string,node_major:int,origin_ip:string,selector_bin:string,cagefs_bin:string,timeout:int} $configuration
+     * @param  array{web_root:string,node_app_root:string,domain:string,node_major:int,origin_ip:string,selector_bin:string,cagefs_bin:string,timeout:int}  $configuration
      * @return array{kind:string,reason:string}
      */
     private function selectorState(string $selector, array $configuration, bool $requireStarted): array
@@ -314,7 +314,7 @@ final class GovernedDemoRestartAdapter implements WebRestartAdapter
     }
 
     /**
-     * @param array{web_root:string,node_app_root:string,domain:string,node_major:int,origin_ip:string,selector_bin:string,cagefs_bin:string,timeout:int} $configuration
+     * @param  array{web_root:string,node_app_root:string,domain:string,node_major:int,origin_ip:string,selector_bin:string,cagefs_bin:string,timeout:int}  $configuration
      * @return array{kind:string,stdout:string}
      */
     private function selectorCommand(string $selector, string $action, array $configuration): array

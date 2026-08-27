@@ -200,7 +200,7 @@ final class DemoActivationHealthVerifier
     }
 
     /**
-     * @param array<string,bool> $checks
+     * @param  array<string,bool>  $checks
      * @return array{ok:bool,checks:array<string,bool>,reason:string}
      */
     private function failure(array $checks, string $reason): array
