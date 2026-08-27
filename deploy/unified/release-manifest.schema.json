@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modrik.org/schemas/unified-release-manifest-v1.json",
+  "title": "MODRIK Unified Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "package_format_version",
+    "product",
+    "version",
+    "release_sha",
+    "minimum_compatible_version",
+    "runtime",
+    "payloads",
+    "checksums_file",
+    "rollback_policy"
+  ],
+  "properties": {
+    "package_format_version": { "const": 1 },
+    "product": { "const": "MODRIK" },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "release_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{40}$"
+    },
+    "minimum_compatible_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["php", "node", "database"],
+      "properties": {
+        "php": { "type": "string", "pattern": "^8\\.4(?:\\.|$)" },
+        "node": { "type": "string", "pattern": "^22(?:\\.|$)" },
+        "database": { "type": "string", "enum": ["mariadb-10.11+"] }
+      }
+    },
+    "payloads": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["web", "backend"],
+      "properties": {
+        "web": { "const": "payload/web" },
+        "backend": { "const": "payload/backend" }
+      }
+    },
+    "checksums_file": { "const": "checksums.json" },
+    "database_migrations": { "type": "boolean", "default": true },
+    "installer_lock_required": { "type": "boolean", "const": true },
+    "rollback_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code_switch", "automatic_database_down", "database_failure_state"],
+      "properties": {
+        "code_switch": { "type": "boolean", "const": true },
+        "automatic_database_down": { "type": "boolean", "const": false },
+        "database_failure_state": { "const": "requires_operator" }
+      }
+    }
+  }
+}

@@ -1,0 +1,88 @@
+name: Unified Release Package
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'apps/backend/**'
+      - 'deploy/unified/**'
+      - 'scripts/package-demo-cpanel.sh'
+      - 'scripts/package-unified-release.sh'
+      - '.github/workflows/unified-release-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4.24
+          extensions: curl, fileinfo, intl, mbstring, openssl, pdo_mysql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Build Web standalone runtime
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Backend production runtime
+        working-directory: apps/backend
+        run: |
+          composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Assemble unified release
+        env:
+          MODRIK_RELEASE_VERSION: 0.1.0-dev
+        run: bash scripts/package-unified-release.sh
+
+      - name: Verify unified contract tests
+        run: npm run unified:contract:test
+
+      - name: Validate unified release contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=.runtime/unified-release
+          test -f "$root/manifest.json"
+          test -f "$root/checksums.json"
+          test -f "$root/payload/web/server.js"
+          test -f "$root/payload/backend/artisan"
+          test -f "$root/payload/backend/vendor/autoload.php"
+          test -f deploy/unified/release-manifest.schema.json
+          php -r '$m=json_decode(file_get_contents(".runtime/unified-release/manifest.json"), true, 512, JSON_THROW_ON_ERROR); if (($m["package_format_version"] ?? null)!==1 || ($m["product"] ?? null)!=="MODRIK" || !preg_match("/^[0-9a-f]{40}$/i", $m["release_sha"] ?? "")) exit(1);'
+          php -r '$r=".runtime/unified-release"; foreach(json_decode(file_get_contents($r."/checksums.json"),true,512,JSON_THROW_ON_ERROR) as $p=>$h) if(!hash_equals($h,hash_file("sha256",$r."/".$p))) exit(1);'
+          if find "$root" -type f -name '.env' -print -quit | grep -q .; then
+            echo 'Live .env leaked into unified release' >&2
+            exit 1
+          fi
+          zip_file="$(find .runtime -maxdepth 1 -type f -name 'modrik-release-*.zip' -print -quit)"
+          test -n "$zip_file"
+          unzip -Z1 "$zip_file" | grep -q '^manifest.json$'
+          unzip -Z1 "$zip_file" | grep -q '^checksums.json$'
+          unzip -Z1 "$zip_file" | grep -q '^payload/web/server.js$'
+          unzip -Z1 "$zip_file" | grep -q '^payload/backend/artisan$'
+
+      - name: Upload unified MODRIK release
+        uses: actions/upload-artifact@v4
+        with:
+          name: modrik-unified-${{ github.sha }}
+          path: .runtime/modrik-release-*.zip
+          if-no-files-found: error
+          retention-days: 14
