@@ -30,6 +30,12 @@ mkdir -p "$OUT_ROOT/payload"
 cp -a "$SOURCE_PACKAGE_ROOT/web" "$OUT_ROOT/payload/web"
 cp -a "$SOURCE_PACKAGE_ROOT/backend" "$OUT_ROOT/payload/backend"
 
+# Deployment templates are useful in the standalone cPanel package, but the
+# governed Update Center intentionally rejects every .env* file as an embedded
+# environment/secret artifact. Strip all such templates from the unified payload
+# before checksums are generated so the release and validator enforce one rule.
+find "$OUT_ROOT/payload" -type f -name '.env*' -delete
+
 cat > "$OUT_ROOT/manifest.json" <<JSON
 {
   "package_format_version": 1,
@@ -67,12 +73,12 @@ foreach ($paths as $path) $checksums[$path]=hash_file("sha256", $root."/".$path)
 file_put_contents($root."/checksums.json", json_encode($checksums, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)."\n");
 ' "$OUT_ROOT"
 
-# Reject traversal-like names and secret files before creating the outer ZIP.
+# Reject traversal-like names and any environment/secret files before creating the ZIP.
 if find "$OUT_ROOT" -type f -path '*/../*' -print -quit | grep -q .; then
   fail "unsafe traversal-like path detected"
 fi
-if find "$OUT_ROOT" -type f -name '.env' -print -quit | grep -q .; then
-  fail "live .env detected in unified release"
+if find "$OUT_ROOT" -type f -name '.env*' -print -quit | grep -q .; then
+  fail "environment file detected in unified release"
 fi
 
 ZIP="$RUNTIME_ROOT/modrik-release-${VERSION}.zip"
