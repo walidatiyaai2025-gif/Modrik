@@ -231,6 +231,12 @@ capabilities:
     classification: read_only_operational
     surface: SystemCapabilities
     status: present
+  - id: admin.system.updates
+    area: operations
+    classification: admin_manageable
+    surface: SystemUpdates
+    status: foundation_present
+    notes: Issue #318 provides Admin-only private ZIP upload, Backend-authoritative validation, safe audit/history and version identity. Activation remains fail-closed as requires_host_action until a governed hosting restart adapter and exact health acceptance are available.
   - id: admin.runtime.inspector
     area: operations
     classification: read_only_operational

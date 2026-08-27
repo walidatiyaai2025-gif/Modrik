@@ -20,7 +20,8 @@
     "pilot:smoke:clean": "bash scripts/pilot-smoke-clean.sh",
     "web:build": "npm --prefix apps/web run build",
     "web:lint": "npm --prefix apps/web run lint",
-    "web:test": "npm --prefix apps/web run test"
+    "web:test": "npm --prefix apps/web run test",
+    "unified:contract:test": "node --test scripts/unified-release-contract.test.mjs"
   },
   "devDependencies": {
     "@resvg/resvg-js": "2.6.2",

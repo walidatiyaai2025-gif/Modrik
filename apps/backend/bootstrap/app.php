@@ -6,6 +6,7 @@ use App\Http\Middleware\AuthenticateProductionSession;
 use App\Http\Middleware\CorrelateRequest;
 use App\Http\Middleware\RequireContentRole;
 use App\Http\Middleware\RequireRecentAuthentication;
+use App\Http\Middleware\RequireUninstalled;
 use App\Http\Middleware\RequireVerifiedEmailForPasswordAccount;
 use App\Support\ApiResponse;
 use App\Support\CorrelationId;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.recent' => RequireRecentAuthentication::class,
             'auth.verified-password' => RequireVerifiedEmailForPasswordAccount::class,
             'auth.content' => RequireContentRole::class,
+            'install.uninstalled' => RequireUninstalled::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
