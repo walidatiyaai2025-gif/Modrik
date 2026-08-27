@@ -5,11 +5,13 @@ on:
     paths:
       - "apps/backend/app/Filament/Pages/SystemUpdates.php"
       - "apps/backend/app/Http/Controllers/InstallerController.php"
+      - "apps/backend/app/Http/Controllers/SystemUpdateUploadController.php"
       - "apps/backend/app/Services/InstallationStateService.php"
       - "apps/backend/app/Services/Installer**"
       - "apps/backend/app/Services/Updates/**"
       - "apps/backend/resources/views/installer/**"
       - "apps/backend/resources/views/filament/pages/system-updates.blade.php"
+      - "apps/backend/routes/web.php"
       - "apps/backend/tests/**Installer*"
       - "apps/backend/tests/**Update*"
       - "scripts/create-update-acceptance-fixtures.php"
@@ -110,27 +112,13 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             const page = await browser.newPage();
             const advance = async () => page.getByRole('button', { name: 'Continue' }).click();
-            const uploadPackage = async file => {
-              const input = page.locator('input[type="file"]');
-              const responsePending = page.waitForResponse(response =>
-                response.request().method() === 'POST' && response.url().includes('/upload-file'),
-              );
-              const completed = input.evaluate(element => new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Livewire upload did not finish')), 15000);
-                element.addEventListener('livewire-upload-finish', () => { clearTimeout(timeout); resolve(true); }, { once: true });
-                element.addEventListener('livewire-upload-error', event => {
-                  clearTimeout(timeout);
-                  reject(new Error(`Livewire upload failed (${JSON.stringify(event.detail ?? {})})`));
-                }, { once: true });
-              }));
+            const uploadAndValidatePackage = async file => {
+              const input = page.locator('[data-testid="system-update-package-input"]');
               await input.setInputFiles(file);
-              const response = await responsePending;
-              try {
-                await completed;
-              } catch (error) {
-                const body = (await response.text()).replace(/\s+/g, ' ').slice(0, 500);
-                throw new Error(`${error.message}; HTTP ${response.status()}: ${body}`);
-              }
+              await Promise.all([
+                page.waitForNavigation({ waitUntil: 'networkidle' }),
+                page.getByRole('button', { name: 'Validate package' }).click(),
+              ]);
             };
             const fillInstall = async password => {
               await advance();
@@ -159,6 +147,7 @@ jobs:
             assert((await page.textContent('body')).includes('Installation failed safely'), 'safe DB failure missing');
             assert(!(await page.textContent('body')).includes('WrongDatabasePassword!'), 'DB secret leaked');
 
+            await page.goto(`${base}/install`, { waitUntil: 'networkidle' });
             await fillInstall('ModrikDatabase123!');
             await page.waitForURL(/\/install\/finish/);
             assert(await page.locator('[data-testid="modrik-installer-finish"]').isVisible(), 'installer finish state missing');
@@ -171,14 +160,13 @@ jobs:
             await Promise.all([page.waitForURL(/\/admin(?:\?|$)/), page.locator('button[type="submit"]').click()]);
             await page.goto(`${base}/admin/system-updates`, { waitUntil: 'networkidle' });
             assert(await page.locator('[data-testid="modrik-system-updates"]').isVisible(), 'Admin Update Center missing');
+            assert(await page.locator('form[enctype="multipart/form-data"]').isVisible(), 'direct multipart update upload form missing');
 
-            await uploadPackage(path.join(process.env.FIXTURE_ROOT, 'valid-update.zip'));
-            await page.getByRole('button', { name: 'Validate package' }).click();
+            await uploadAndValidatePackage(path.join(process.env.FIXTURE_ROOT, 'valid-update.zip'));
             await page.getByText('Package is valid').waitFor();
             assert(await page.getByRole('button', { name: 'Install Update' }).isVisible(), 'install action missing');
 
-            await uploadPackage(path.join(process.env.FIXTURE_ROOT, 'corrupt-update.zip'));
-            await page.getByRole('button', { name: 'Validate package' }).click();
+            await uploadAndValidatePackage(path.join(process.env.FIXTURE_ROOT, 'corrupt-update.zip'));
             await page.getByText('Package rejected').waitFor();
             await browser.close();
           })().catch(error => { console.error(error); process.exit(1); });
