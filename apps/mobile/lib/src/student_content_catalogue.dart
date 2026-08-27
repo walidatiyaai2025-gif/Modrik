@@ -5,7 +5,6 @@ import 'dart:io';
 import 'learning_gateway.dart';
 import 'models.dart';
 import 'runtime_diagnostic_transport.dart';
-import 'runtime_diagnostics.dart';
 
 class CatalogueAssessment {
   const CatalogueAssessment({
