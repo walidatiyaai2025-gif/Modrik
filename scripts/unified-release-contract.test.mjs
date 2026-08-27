@@ -21,3 +21,10 @@ test("package is root-shaped deterministic and uploaded under the canonical name
   assert.match(workflow, /\.runtime\/modrik-release-\*\.zip/);
   assert.doesNotMatch(workflow, /modrik-unified-\*\.zip/);
 });
+
+test("unified Update Center payload excludes every environment file", () => {
+  assert.match(packager, /find "\$OUT_ROOT\/payload" -type f -name '\.env\*' -delete/);
+  assert.match(packager, /find "\$OUT_ROOT" -type f -name '\.env\*'/);
+  assert.match(workflow, /find "\$root" -type f -name '\.env\*'/);
+  assert.match(workflow, /unzip -Z1 "\$zip_file" \| grep -E '\(\^\|\/\)\\\.env/);
+});
