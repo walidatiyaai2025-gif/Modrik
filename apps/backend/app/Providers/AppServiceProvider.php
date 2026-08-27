@@ -4,10 +4,10 @@ namespace App\Providers;
 
 use App\Auth\PendingProviderIdentityVerifier;
 use App\Auth\ProviderIdentityVerifier;
-use App\Support\Observability\DatabaseDiagnosticSink;
-use App\Support\Observability\DiagnosticSink;
 use App\Services\Updates\HostActionRequiredRestartAdapter;
 use App\Services\Updates\WebRestartAdapter;
+use App\Support\Observability\DatabaseDiagnosticSink;
+use App\Support\Observability\DiagnosticSink;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider

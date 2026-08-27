@@ -8,7 +8,9 @@ use ZipArchive;
 final class UnifiedPackageValidator
 {
     private const ALLOWED_ROOTS = ['manifest.json', 'checksums.json', 'payload/', 'installer/', 'metadata/'];
+
     private const MAX_ENTRIES = 50000;
+
     private const MAX_UNCOMPRESSED_BYTES = 1073741824;
 
     public function validate(string $archive, ?string $currentVersion = null): PackageValidationResult
@@ -30,6 +32,7 @@ final class UnifiedPackageValidator
                 $stat = $zip->statIndex($index);
                 if (! is_array($stat) || ! isset($stat['name'])) {
                     $errors[] = ['code' => 'invalid_entry', 'message' => 'The archive contains an unreadable entry.'];
+
                     continue;
                 }
                 $name = str_replace('\\', '/', (string) $stat['name']);
@@ -67,24 +70,33 @@ final class UnifiedPackageValidator
         }
     }
 
-    /** @param list<array{code:string,message:string,path?:string}> $errors */
+    /**
+     * @param  list<array{code:string,message:string,path?:string}>  $errors
+     * @return array<string, mixed>|null
+     */
     private function jsonEntry(ZipArchive $zip, string $name, array &$errors, string $missingCode): ?array
     {
         $raw = $zip->getFromName($name);
         if (! is_string($raw)) {
             $errors[] = ['code' => $missingCode, 'message' => "$name is required."];
+
             return null;
         }
         try {
             $decoded = json_decode($raw, true, 64, JSON_THROW_ON_ERROR);
+
             return is_array($decoded) ? $decoded : throw new RuntimeException;
         } catch (\Throwable) {
             $errors[] = ['code' => 'invalid_json', 'message' => "$name is not valid JSON."];
+
             return null;
         }
     }
 
-    /** @param list<array{code:string,message:string,path?:string}> $errors */
+    /**
+     * @param  array<string, mixed>  $manifest
+     * @param  list<array{code:string,message:string,path?:string}>  $errors
+     */
     private function validateManifest(array $manifest, ?string $currentVersion, array &$errors): void
     {
         if (($manifest['package_format_version'] ?? null) !== 1 || ($manifest['product'] ?? null) !== 'MODRIK') {
@@ -107,12 +119,22 @@ final class UnifiedPackageValidator
         }
     }
 
-    /** @param list<array{code:string,message:string,path?:string}> $errors */
+    /**
+     * @param  array<array-key, mixed>  $checksums
+     * @param  array<string, bool>  $names
+     * @param  list<array{code:string,message:string,path?:string}>  $errors
+     */
     private function validateChecksums(ZipArchive $zip, array $checksums, array $names, array &$errors): void
     {
         foreach ($checksums as $path => $expected) {
-            if (! is_string($path) || $this->unsafePath($path) || ! isset($names[$path]) || ! is_string($expected) || preg_match('/^[0-9a-f]{64}$/i', $expected) !== 1) {
-                $errors[] = ['code' => 'invalid_checksum_entry', 'message' => 'A checksum declaration is invalid.', 'path' => (string) $path];
+            if (! is_string($path)) {
+                $errors[] = ['code' => 'invalid_checksum_entry', 'message' => 'A checksum declaration has a non-string path.'];
+
+                continue;
+            }
+            if ($this->unsafePath($path) || ! isset($names[$path]) || ! is_string($expected) || preg_match('/^[0-9a-f]{64}$/i', $expected) !== 1) {
+                $errors[] = ['code' => 'invalid_checksum_entry', 'message' => 'A checksum declaration is invalid.', 'path' => $path];
+
                 continue;
             }
             $contents = $zip->getFromName($path);
@@ -135,17 +157,22 @@ final class UnifiedPackageValidator
     private function allowedRoot(string $path): bool
     {
         foreach (self::ALLOWED_ROOTS as $root) {
-            if ($path === $root || (str_ends_with($root, '/') && str_starts_with($path, $root))) return true;
+            if ($path === $root || (str_ends_with($root, '/') && str_starts_with($path, $root))) {
+                return true;
+            }
         }
+
         return false;
     }
 
     private function isSecretPath(string $path): bool
     {
         $base = strtolower(basename(rtrim($path, '/')));
+
         return $base === '.env' || str_starts_with($base, '.env.') || in_array($base, ['id_rsa', 'id_ed25519', 'credentials.json', 'service-account.json'], true);
     }
 
+    /** @param array<string, mixed> $stat */
     private function isSymlink(array $stat): bool
     {
         return (((int) ($stat['external_attributes'] ?? 0) >> 16) & 0170000) === 0120000;

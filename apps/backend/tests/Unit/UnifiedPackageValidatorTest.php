@@ -11,7 +11,8 @@ final class UnifiedPackageValidatorTest extends TestCase
     public function test_valid_package_is_accepted(): void
     {
         $result = app(UnifiedPackageValidator::class)->validate($this->package());
-        $this->assertTrue($result->valid, json_encode($result->errors));
+        $message = json_encode($result->errors);
+        $this->assertTrue($result->valid, $message === false ? 'Validation errors could not be encoded.' : $message);
     }
 
     public function test_corrupt_checksum_is_rejected(): void
@@ -35,7 +36,11 @@ final class UnifiedPackageValidatorTest extends TestCase
         $this->assertContains('incompatible_upgrade', array_column($result->errors, 'code'));
     }
 
-    /** @param array<string,string> $extra @param array<string,string> $checksumOverrides @param array<string,mixed> $manifestOverrides */
+    /**
+     * @param  array<string, string>  $extra
+     * @param  array<string, string>  $checksumOverrides
+     * @param  array<string, mixed>  $manifestOverrides
+     */
     private function package(array $extra = [], array $checksumOverrides = [], array $manifestOverrides = []): string
     {
         $path = tempnam(sys_get_temp_dir(), 'modrik-package-').'.zip';
@@ -47,13 +52,20 @@ final class UnifiedPackageValidatorTest extends TestCase
         ], $manifestOverrides);
         $entries = array_merge($payload, ['manifest.json' => json_encode($manifest, JSON_THROW_ON_ERROR)], $extra);
         $checksums = [];
-        foreach ($entries as $name => $contents) if ($name === 'manifest.json' || str_starts_with($name, 'payload/')) $checksums[$name] = hash('sha256', $contents);
+        foreach ($entries as $name => $contents) {
+            if ($name === 'manifest.json' || str_starts_with($name, 'payload/')) {
+                $checksums[$name] = hash('sha256', $contents);
+            }
+        }
         $entries['checksums.json'] = json_encode(array_merge($checksums, $checksumOverrides), JSON_THROW_ON_ERROR);
         $zip = new ZipArchive;
         $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        foreach ($entries as $name => $contents) $zip->addFromString($name, $contents);
+        foreach ($entries as $name => $contents) {
+            $zip->addFromString($name, $contents);
+        }
         $zip->close();
         $this->beforeApplicationDestroyed(fn () => @unlink($path));
+
         return $path;
     }
 }

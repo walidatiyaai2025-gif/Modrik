@@ -12,6 +12,7 @@ final class RequireUninstalled
     public function handle(Request $request, Closure $next): Response
     {
         abort_if(app(InstallationStateService::class)->installed(), 404);
+
         return $next($request);
     }
 }
