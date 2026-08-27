@@ -6,3 +6,33 @@
   overflow-wrap: anywhere;
   white-space: normal;
 }
+
+/* Issue #322 catalogue parity changed the Progress header to section-heading-row.
+   Preserve the same large-text containment for the real published-content path. */
+.progress-workspace,
+.progress-workspace > .context-panel,
+.progress-workspace .section-heading-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.progress-workspace .section-heading-row {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.progress-workspace .section-heading-row > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.progress-workspace .section-heading-row h2 {
+  flex: 1 1 12rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+
+.progress-workspace .mastery-summary {
+  flex: 0 1 auto;
+}
