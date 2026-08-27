@@ -55,13 +55,21 @@ run_runtime_manifest() {
   node "$SCRIPT_DIR/browser-runtime-manifest.cjs"
 }
 
-run_core_profile() {
-  local profile="$1"
-  local candidate="$2"
+run_catalogue_core() {
   NODE_OPTIONS="--require=$STUDENT_ENTRY_ADAPTER ${NODE_OPTIONS:-}" \
   MODRIK_E2E_TARGET_DIR="$TARGET_DIR" \
-  MODRIK_E2E_PROFILE="$profile" \
-  MODRIK_E2E_CANDIDATE="$candidate" \
+  MODRIK_E2E_CANDIDATE="current-tree-catalogue-core" \
+  MODRIK_E2E_EXPECTED_SHA="$OBSERVED_SHA" \
+  MODRIK_E2E_OBSERVED_SHA="$OBSERVED_SHA" \
+  MODRIK_E2E_EVIDENCE_DIR="$EVIDENCE_DIR" \
+  node "$SCRIPT_DIR/catalogue-browser-runtime-acceptance.cjs"
+}
+
+run_session_security() {
+  NODE_OPTIONS="--require=$STUDENT_ENTRY_ADAPTER ${NODE_OPTIONS:-}" \
+  MODRIK_E2E_TARGET_DIR="$TARGET_DIR" \
+  MODRIK_E2E_PROFILE="session-security" \
+  MODRIK_E2E_CANDIDATE="current-tree-session-security" \
   MODRIK_E2E_EXPECTED_SHA="$OBSERVED_SHA" \
   MODRIK_E2E_OBSERVED_SHA="$OBSERVED_SHA" \
   MODRIK_E2E_EVIDENCE_DIR="$EVIDENCE_DIR" \
@@ -71,10 +79,10 @@ run_core_profile() {
 run_learning_offline() {
   NODE_OPTIONS="--require=$STUDENT_ENTRY_ADAPTER ${NODE_OPTIONS:-}" \
   MODRIK_E2E_TARGET_DIR="$TARGET_DIR" \
-  MODRIK_E2E_CANDIDATE="current-tree-learning-offline-en-390" \
+  MODRIK_E2E_CANDIDATE="current-tree-catalogue-learning-offline-en-390" \
   MODRIK_E2E_OBSERVED_SHA="$OBSERVED_SHA" \
   MODRIK_E2E_EVIDENCE_DIR="$EVIDENCE_DIR" \
-  node "$SCRIPT_DIR/learning-offline-acceptance.cjs"
+  node "$SCRIPT_DIR/catalogue-learning-offline-acceptance.cjs"
 }
 
 run_inspector_profile() {
@@ -109,14 +117,14 @@ build_web() {
 
 record_evidence "exact Chromium/Playwright runtime manifest" run_runtime_manifest
 
-# Pilot build: collect every browser slice even when one responsive case fails.
-# The command still exits non-zero at the end if any slice failed; evidence is
-# not waived or hidden by an earlier failure. Student runtime slices are routed
-# to `/student`; the strict CSP/landing regression still exercises `/` directly.
+# Pilot build: the learning evidence follows the current published-content
+# authority. Auth, responsive layout, AR/EN/FR direction, catalogue hierarchy,
+# lesson reads, assessments, account/error states and offline recovery all run
+# against the same Content Catalogue contract used by Student Web production.
 if build_web pilot; then
-  record_evidence "core responsive/auth/learning matrix" run_core_profile core "current-tree-core"
-  record_evidence "learning offline/recovery EN 390x844 control" run_learning_offline
-  record_evidence "stale-session security" run_core_profile session-security "current-tree-session-security"
+  record_evidence "published catalogue responsive/auth/learning matrix" run_catalogue_core
+  record_evidence "published catalogue offline/recovery EN 390x844 control" run_learning_offline
+  record_evidence "stale-session security" run_session_security
   record_evidence "Runtime Inspector Pilot" run_inspector_profile pilot "current-tree-runtime-inspector-pilot"
 else
   echo "Browser evidence slice FAIL: pilot production build" >&2
@@ -130,7 +138,7 @@ if build_web production; then
   record_evidence "Runtime Inspector production default-off" run_inspector_profile production "current-tree-runtime-inspector-production"
   record_evidence "strict nonce CSP hydration" run_csp_hydration
 else
-  echo "Browser evidence slice FAIL: production build" >&2
+  echo "Browser evidence slice FAIL: production production build" >&2
   OVERALL_STATUS=1
 fi
 
