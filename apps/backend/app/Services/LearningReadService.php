@@ -62,6 +62,7 @@ final class LearningReadService
             })
             ->where('lessons.id', $lessonId)
             ->where('lessons.status', 'published')
+            ->where('curriculum_nodes.status', 'published')
             ->select(['lessons.id', 'lessons.curriculum_node_id', 'lessons.content_version', 'lessons.title'])
             ->first();
 
@@ -76,10 +77,6 @@ final class LearningReadService
             ->where('kind', 'practice')
             ->where('status', 'published')
             ->value('id');
-
-        if (! is_string($quizId)) {
-            throw new ApiProblemException(404, 'RESOURCE_NOT_FOUND', 'Resource not found', 'No published practice is available for this lesson.');
-        }
 
         $blocks = DB::table('lesson_blocks')
             ->where('lesson_id', $lessonId)
@@ -104,14 +101,12 @@ final class LearningReadService
             'curriculum_node_id' => $lessonRow['curriculum_node_id'],
             'content_version' => (int) $lessonRow['content_version'],
             'title' => $this->decode($lessonRow['title']),
-            'practice_quiz_id' => $quizId,
+            'practice_quiz_id' => is_string($quizId) ? $quizId : null,
             'blocks' => $blocks,
         ];
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     public function progress(User $user): array
     {
         return array_values(DB::table('progress_snapshots as progress')

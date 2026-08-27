@@ -25,12 +25,56 @@ export type AcademicContext =
       activated_at: string;
     };
 
+export type CatalogueAssessment = {
+  id: string;
+  kind: "practice" | "quiz" | "mock_exam";
+  blueprint_version: number;
+  title: LocalizedText;
+};
+
+export type CatalogueLesson = {
+  id: string;
+  slug: string;
+  content_version: number;
+  title: LocalizedText;
+  published_at: string | null;
+};
+
+export type CatalogueNode = {
+  id: string;
+  reference: string;
+  type: "subject" | "unit" | "topic" | string;
+  title: LocalizedText;
+  lessons: CatalogueLesson[];
+  assessments: CatalogueAssessment[];
+  children: CatalogueNode[];
+};
+
+export type ContentCatalogue =
+  | {
+      state: "onboarding_required";
+      subjects: [];
+      counts: { subjects: 0; lessons: 0; assessments: 0 };
+    }
+  | {
+      state: "active";
+      context: {
+        context_id: string;
+        academic_track_id: string;
+        track_reference: string;
+        year_level: string;
+        track_title: LocalizedText;
+      };
+      subjects: CatalogueNode[];
+      counts: { subjects: number; lessons: number; assessments: number };
+    };
+
 export type Lesson = {
   id: string;
   curriculum_node_id: string;
   content_version: number;
   title: LocalizedText;
-  practice_quiz_id: string;
+  practice_quiz_id: string | null;
   blocks: Array<{
     id: string;
     position: number;
@@ -105,6 +149,7 @@ type LearningDiagnosticOperation =
   | "learning:academic-context"
   | "learning:academic-context-activate"
   | "learning:academic-context-reset"
+  | "learning:content-catalogue"
   | "learning:lesson"
   | "learning:progress"
   | "learning:notifications"
@@ -176,6 +221,10 @@ export const learningApi = {
       "academic-context/reset",
       command("POST", { academic_track_id: academicTrackId }, idempotencyKey),
     ),
+  contentCatalogue: (subjectReference?: string) => {
+    const query = subjectReference ? `?subject_reference=${encodeURIComponent(subjectReference)}` : "";
+    return requestData<ContentCatalogue>("learning:content-catalogue", `content-catalogue${query}`);
+  },
   lesson: (lessonId: string) => requestData<Lesson>("learning:lesson", `lessons/${lessonId}`),
   progress: () => requestData<Progress[]>("learning:progress", "progress"),
   notifications: () => requestData<StudentNotificationInbox>("learning:notifications", "notifications"),

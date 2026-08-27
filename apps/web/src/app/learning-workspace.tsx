@@ -7,6 +7,10 @@ import {
   type AcademicContext,
   type Attempt,
   type AttemptResult,
+  type CatalogueAssessment,
+  type CatalogueLesson,
+  type CatalogueNode,
+  type ContentCatalogue,
   type Lesson,
   type Locale,
   type Progress,
@@ -15,14 +19,64 @@ import {
 import AcademicTrackSelector from "./academic-track-selector";
 import { directionForLocale, localize, studentCopy } from "./student-copy";
 
-const fixtureLessonId = "01J00000000000000000000003";
 const activeAttemptStorageKey = "modrik.student.active-attempt";
 
 type ViewState = "loading" | "ready" | "offline" | "error" | "permission";
-type WorkspaceView = "home" | "study" | "practice" | "progress" | "academic";
+type WorkspaceView = "catalogue" | "study" | "practice" | "progress" | "academic";
 
-function commandKey(scope: string) {
-  const storageKey = `modrik.fixture.command.${scope}`;
+const catalogueCopy = {
+  en: {
+    catalogue: "Published content",
+    chooseSubject: "Choose subject",
+    chooseLesson: "Choose a lesson",
+    noContent: "No published content is available for this academic context yet.",
+    lessons: "Lessons",
+    assessments: "Practice & exams",
+    openLesson: "Open lesson",
+    openAssessment: "Open assessment",
+    practice: "Practice",
+    quiz: "Quiz",
+    mock_exam: "Mock exam",
+    backCatalogue: "Back to content",
+    trackContent: "Published curriculum for your active track",
+    publishedOnly: "Only published lessons and assessments are shown.",
+  },
+  ar: {
+    catalogue: "المحتوى المنشور",
+    chooseSubject: "اختر المادة",
+    chooseLesson: "اختر درسًا",
+    noContent: "لا يوجد محتوى منشور لهذا المسار الأكاديمي حتى الآن.",
+    lessons: "الدروس",
+    assessments: "التدريبات والاختبارات",
+    openLesson: "فتح الدرس",
+    openAssessment: "فتح الاختبار",
+    practice: "تدريب",
+    quiz: "اختبار",
+    mock_exam: "اختبار تجريبي",
+    backCatalogue: "العودة للمحتوى",
+    trackContent: "المنهج المنشور لمسارك الأكاديمي الحالي",
+    publishedOnly: "تظهر هنا الدروس والتدريبات والاختبارات المنشورة فقط.",
+  },
+  fr: {
+    catalogue: "Contenu publié",
+    chooseSubject: "Choisir la matière",
+    chooseLesson: "Choisir une leçon",
+    noContent: "Aucun contenu publié n’est disponible pour ce parcours pour le moment.",
+    lessons: "Leçons",
+    assessments: "Exercices et examens",
+    openLesson: "Ouvrir la leçon",
+    openAssessment: "Ouvrir l’évaluation",
+    practice: "Exercice",
+    quiz: "Quiz",
+    mock_exam: "Examen blanc",
+    backCatalogue: "Retour au contenu",
+    trackContent: "Programme publié pour votre parcours actif",
+    publishedOnly: "Seules les leçons et évaluations publiées sont affichées.",
+  },
+} as const;
+
+function operationKey(scope: string) {
+  const storageKey = `modrik.student.command.${scope}`;
   const existing = window.localStorage.getItem(storageKey);
   if (existing) return existing;
   const value = `modrik-${scope}-${crypto.randomUUID()}`;
@@ -31,38 +85,56 @@ function commandKey(scope: string) {
 }
 
 function acknowledge(scope: string) {
-  window.localStorage.removeItem(`modrik.fixture.command.${scope}`);
+  window.localStorage.removeItem(`modrik.student.command.${scope}`);
 }
 
-function attemptStatusLabel(status: Attempt["status"], locale: Locale) {
-  const labels = studentCopy[locale];
-  return {
-    in_progress: labels.statusInProgress,
-    submitted: labels.statusSubmitted,
-    graded: labels.statusGraded,
-    abandoned: labels.statusAbandoned,
-  }[status];
+function flattenLessons(node: CatalogueNode): CatalogueLesson[] {
+  return [node.lessons, ...node.children.map(flattenLessons)].flat();
+}
+
+function flattenAssessments(node: CatalogueNode): CatalogueAssessment[] {
+  return [node.assessments, ...node.children.map(flattenAssessments)].flat();
 }
 
 export default function LearningWorkspace() {
   const [locale, setLocale] = useState<Locale>("en");
   const [state, setState] = useState<ViewState>("loading");
-  const [view, setView] = useState<WorkspaceView>("home");
+  const [view, setView] = useState<WorkspaceView>("catalogue");
   const [session, setSession] = useState<Session | null>(null);
   const [context, setContext] = useState<AcademicContext | null>(null);
+  const [catalogue, setCatalogue] = useState<ContentCatalogue | null>(null);
+  const [selectedSubjectReference, setSelectedSubjectReference] = useState("");
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] = useState<Progress[]>([]);
+  const [selectedAssessment, setSelectedAssessment] = useState<CatalogueAssessment | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [savedAnswers, setSavedAnswers] = useState<Record<string, string>>({});
   const [revisions, setRevisions] = useState<Record<string, number>>({});
-  const [busy, setBusy] = useState<"start" | "submit" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const mounted = useRef(true);
 
   const labels = studentCopy[locale];
+  const copy = catalogueCopy[locale];
   const direction = directionForLocale(locale);
+
+  const selectedSubject = useMemo(() => {
+    if (!catalogue || catalogue.state !== "active") return null;
+    return catalogue.subjects.find((subject) => subject.reference === selectedSubjectReference)
+      ?? catalogue.subjects[0]
+      ?? null;
+  }, [catalogue, selectedSubjectReference]);
+
+  const allLessons = useMemo(
+    () => selectedSubject ? flattenLessons(selectedSubject) : [],
+    [selectedSubject],
+  );
+  const allAssessments = useMemo(
+    () => selectedSubject ? flattenAssessments(selectedSubject) : [],
+    [selectedSubject],
+  );
 
   const applyAttempt = useCallback((nextAttempt: Attempt | null) => {
     setAttempt(nextAttempt);
@@ -72,23 +144,16 @@ export default function LearningWorkspace() {
       setRevisions({});
       return;
     }
-
-    const currentAnswers = Object.fromEntries(
-      nextAttempt.questions.map((question) => [
-        question.attempt_question_id,
-        question.current_answer?.value ?? "",
-      ]),
-    );
-    setAnswers(currentAnswers);
-    setSavedAnswers(currentAnswers);
-    setRevisions(
-      Object.fromEntries(
-        nextAttempt.questions.map((question) => [
-          question.attempt_question_id,
-          question.current_answer?.revision ?? 0,
-        ]),
-      ),
-    );
+    const nextAnswers = Object.fromEntries(nextAttempt.questions.map((question) => [
+      question.attempt_question_id,
+      question.current_answer?.value ?? "",
+    ]));
+    setAnswers(nextAnswers);
+    setSavedAnswers(nextAnswers);
+    setRevisions(Object.fromEntries(nextAttempt.questions.map((question) => [
+      question.attempt_question_id,
+      question.current_answer?.revision ?? 0,
+    ])));
   }, []);
 
   const handleError = useCallback((error: unknown) => {
@@ -108,7 +173,6 @@ export default function LearningWorkspace() {
       setState("offline");
       return;
     }
-
     setState("loading");
     setMessage("");
     try {
@@ -116,45 +180,43 @@ export default function LearningWorkspace() {
         learningApi.session(),
         learningApi.academicContext(),
       ]);
-
-      let nextLesson: Lesson | null = null;
+      let nextCatalogue: ContentCatalogue | null = null;
       let nextProgress: Progress[] = [];
       let restoredAttempt: Attempt | null = null;
-
       if (nextContext.state === "active") {
-        try {
-          nextLesson = await learningApi.lesson(fixtureLessonId);
-        } catch (error) {
-          if (!(error instanceof LearningApiError) || error.status !== 404) throw error;
-        }
-        nextProgress = await learningApi.progress();
-
+        [nextCatalogue, nextProgress] = await Promise.all([
+          learningApi.contentCatalogue(),
+          learningApi.progress(),
+        ]);
         const storedAttemptId = window.localStorage.getItem(activeAttemptStorageKey);
         if (storedAttemptId) {
           try {
             const candidate = await learningApi.attempt(storedAttemptId);
-            if (candidate.status === "in_progress") {
-              restoredAttempt = candidate;
-            } else {
-              window.localStorage.removeItem(activeAttemptStorageKey);
-            }
+            if (candidate.status === "in_progress") restoredAttempt = candidate;
+            else window.localStorage.removeItem(activeAttemptStorageKey);
           } catch (error) {
             if (error instanceof LearningApiError && error.status === 404) {
               window.localStorage.removeItem(activeAttemptStorageKey);
-            } else {
-              throw error;
-            }
+            } else throw error;
           }
         }
       } else {
         window.localStorage.removeItem(activeAttemptStorageKey);
       }
-
       if (!mounted.current) return;
       setSession(nextSession);
       setLocale(nextSession.locale);
       setContext(nextContext);
-      setLesson(nextLesson);
+      setCatalogue(nextCatalogue);
+      if (nextCatalogue?.state === "active") {
+        setSelectedSubjectReference((current) =>
+          nextCatalogue.subjects.some((subject) => subject.reference === current)
+            ? current
+            : nextCatalogue.subjects[0]?.reference ?? "",
+        );
+      } else {
+        setSelectedSubjectReference("");
+      }
       setProgress(nextProgress);
       applyAttempt(restoredAttempt);
       setResult(null);
@@ -178,31 +240,34 @@ export default function LearningWorkspace() {
     };
   }, [load]);
 
-  async function handleAcademicTransition() {
-    window.localStorage.removeItem(activeAttemptStorageKey);
-    applyAttempt(null);
-    setResult(null);
-    setLesson(null);
-    setProgress([]);
-    setView("academic");
-    await load();
+  async function openLesson(lessonId: string) {
+    setBusy(true);
+    setMessage("");
+    try {
+      const nextLesson = await learningApi.lesson(lessonId);
+      setLesson(nextLesson);
+      setView("study");
+      setState("ready");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusy(false);
+    }
   }
 
-  async function startPractice() {
-    if (!lesson || !navigator.onLine) {
-      setState("offline");
-      return;
-    }
-
-    setBusy("start");
-    setMessage("");
+  function openAssessment(assessment: CatalogueAssessment) {
+    setSelectedAssessment(assessment);
+    setResult(null);
     setView("practice");
-    const scope = `start.${lesson.practice_quiz_id}`;
+  }
+
+  async function startAssessment() {
+    if (!selectedAssessment || !navigator.onLine) return;
+    setBusy(true);
+    setMessage("");
+    const scope = `start.${selectedAssessment.id}`;
     try {
-      const nextAttempt = await learningApi.startAttempt(
-        lesson.practice_quiz_id,
-        commandKey(scope),
-      );
+      const nextAttempt = await learningApi.startAttempt(selectedAssessment.id, operationKey(scope));
       acknowledge(scope);
       window.localStorage.setItem(activeAttemptStorageKey, nextAttempt.id);
       applyAttempt(nextAttempt);
@@ -211,40 +276,17 @@ export default function LearningWorkspace() {
     } catch (error) {
       handleError(error);
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   }
 
-  async function reconcileConflict() {
-    if (!attempt) return false;
-    try {
-      const authoritativeAttempt = await learningApi.attempt(attempt.id);
-      if (authoritativeAttempt.status === "in_progress") {
-        window.localStorage.setItem(activeAttemptStorageKey, authoritativeAttempt.id);
-      } else {
-        window.localStorage.removeItem(activeAttemptStorageKey);
-      }
-      applyAttempt(authoritativeAttempt);
-      setMessage(studentCopy[locale].conflict);
-      setState("ready");
-      return true;
-    } catch (error) {
-      handleError(error);
-      return false;
-    }
-  }
-
-  async function submitPractice() {
-    if (!attempt || !navigator.onLine) {
-      setState("offline");
-      return;
-    }
+  async function submitAssessment() {
+    if (!attempt || !navigator.onLine) return;
     if (attempt.questions.some((question) => !answers[question.attempt_question_id]?.trim())) {
       setMessage(labels.answerRequired);
       return;
     }
-
-    setBusy("submit");
+    setBusy(true);
     setMessage("");
     try {
       const nextRevisions = { ...revisions };
@@ -259,497 +301,254 @@ export default function LearningWorkspace() {
           questionId,
           expectedRevision,
           answers[questionId],
-          commandKey(scope),
+          operationKey(scope),
         );
         acknowledge(scope);
         nextRevisions[questionId] = saved.revision;
         nextSavedAnswers[questionId] = saved.value;
-        setRevisions({ ...nextRevisions });
-        setSavedAnswers({ ...nextSavedAnswers });
       }
-
+      setRevisions(nextRevisions);
+      setSavedAnswers(nextSavedAnswers);
       const submitScope = `submit.${attempt.id}`;
-      const submitted = await learningApi.submit(attempt.id, commandKey(submitScope));
+      const submitted = await learningApi.submit(attempt.id, operationKey(submitScope));
       acknowledge(submitScope);
       window.localStorage.removeItem(activeAttemptStorageKey);
       setResult(submitted);
       applyAttempt(submitted.attempt);
       setProgress(await learningApi.progress());
-      setState("ready");
     } catch (error) {
       if (error instanceof LearningApiError && error.status === 409) {
-        await reconcileConflict();
+        try {
+          const latest = await learningApi.attempt(attempt.id);
+          applyAttempt(latest);
+          setMessage(labels.conflict);
+        } catch (reloadError) {
+          handleError(reloadError);
+        }
       } else {
         handleError(error);
       }
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
+  }
+
+  async function handleAcademicTransition() {
+    window.localStorage.removeItem(activeAttemptStorageKey);
+    applyAttempt(null);
+    setResult(null);
+    setLesson(null);
+    setSelectedAssessment(null);
+    setView("catalogue");
+    await load();
   }
 
   const progressAverage = useMemo(() => {
     if (progress.length === 0) return null;
-    return Math.round(
-      (progress.reduce((sum, snapshot) => sum + snapshot.mastery, 0) / progress.length) * 100,
-    );
+    return Math.round((progress.reduce((sum, item) => sum + item.mastery, 0) / progress.length) * 100);
   }, [progress]);
 
-  const answeredCount = attempt
-    ? attempt.questions.filter((question) => answers[question.attempt_question_id]?.trim()).length
-    : 0;
-  const showWorkspace = state === "ready" || (state === "offline" && (session !== null || lesson !== null));
-  const pageTitle = {
-    home: labels.homeTitle,
-    study: labels.studyTitle,
-    practice: labels.practiceTitle,
-    progress: labels.progressTitle,
-    academic: labels.academicTrackTitle,
-  }[view];
+  function renderNode(node: CatalogueNode, depth = 0) {
+    return (
+      <section className="context-panel" key={node.id} data-node-type={node.type}>
+        <div className="section-heading-row">
+          <div>
+            <p className="eyebrow">{node.type}</p>
+            <h3 dir="auto">{localize(node.title, locale)}</h3>
+          </div>
+          <small>{node.reference}</small>
+        </div>
 
-  const navItems: Array<{ id: WorkspaceView; label: string; marker: string }> = [
-    { id: "home", label: labels.home, marker: "01" },
-    { id: "study", label: labels.study, marker: "02" },
-    { id: "practice", label: labels.practice, marker: "03" },
-    { id: "progress", label: labels.progress, marker: "04" },
-    { id: "academic", label: labels.academicTrack, marker: "05" },
-  ];
+        {node.lessons.length > 0 && (
+          <div className="next-actions" aria-label={copy.lessons}>
+            {node.lessons.map((item) => (
+              <button type="button" className="secondary-button" key={item.id} disabled={busy} onClick={() => void openLesson(item.id)}>
+                <strong dir="auto">{localize(item.title, locale)}</strong>
+                <span>{copy.openLesson}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {node.assessments.length > 0 && (
+          <div className="next-actions" aria-label={copy.assessments}>
+            {node.assessments.map((assessment) => (
+              <button type="button" className="secondary-button" key={assessment.id} onClick={() => openAssessment(assessment)}>
+                <strong dir="auto">{localize(assessment.title, locale)}</strong>
+                <span>{copy[assessment.kind]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {node.children.length > 0 && (
+          <div className={depth === 0 ? "dashboard-stack" : "catalogue-children"}>
+            {node.children.map((child) => renderNode(child, depth + 1))}
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  const showWorkspace = state === "ready" || (state === "offline" && session !== null);
 
   return (
     <section lang={locale} dir={direction} className="student-shell">
       <a className="skip-link" href="#student-main">{labels.skip}</a>
       <div className="student-frame">
         <aside className="student-sidebar" aria-label={labels.navigation}>
-          <div className="brand-lockup" aria-label="MODRIK مُدرك">
-            <span>
-              <strong>MODRIK</strong>
-              <small lang="ar" dir="rtl">مُدرك</small>
-            </span>
-          </div>
-
+          <div className="brand-lockup"><span><strong>MODRIK</strong><small lang="ar" dir="rtl">مُدرك</small></span></div>
           <nav className="student-nav" aria-label={labels.navigation}>
-            {navItems.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className="nav-item"
-                aria-current={view === item.id ? "page" : undefined}
-                onClick={() => setView(item.id)}
-              >
-                <span className="nav-marker" aria-hidden="true">{item.marker}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
+            <button type="button" className="nav-item" aria-current={view === "catalogue" ? "page" : undefined} onClick={() => setView("catalogue")}><span className="nav-marker">01</span><span>{copy.catalogue}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "study" ? "page" : undefined} onClick={() => setView("study")}><span className="nav-marker">02</span><span>{labels.study}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "practice" ? "page" : undefined} onClick={() => setView("practice")}><span className="nav-marker">03</span><span>{labels.practice}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "progress" ? "page" : undefined} onClick={() => setView("progress")}><span className="nav-marker">04</span><span>{labels.progress}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "academic" ? "page" : undefined} onClick={() => setView("academic")}><span className="nav-marker">05</span><span>{labels.academicTrack}</span></button>
           </nav>
-
-          <div className="sidebar-status" aria-label={labels.serviceStatus}>
-            <span className={`status-dot status-${state}`} aria-hidden="true" />
-            <span>{state === "offline" ? labels.offlineStatus : labels.serviceStatus}</span>
-          </div>
         </aside>
 
         <div className="student-stage">
           <header className="student-topbar">
             <div>
               <p className="eyebrow">{labels.appName}</p>
-              <h1 id="workspace-title">{pageTitle}</h1>
-              <p className="fixture-note">{labels.synthetic}</p>
+              <h1>{view === "catalogue" ? copy.catalogue : view === "study" ? labels.studyTitle : view === "practice" ? labels.practiceTitle : view === "progress" ? labels.progressTitle : labels.academicTrackTitle}</h1>
+              <p>{copy.publishedOnly}</p>
             </div>
             <fieldset className="locale-switcher">
               <legend className="sr-only">{labels.languageSelector}</legend>
               {(["ar", "en", "fr"] as const).map((language) => (
-                <button
-                  type="button"
-                  key={language}
-                  lang={language}
-                  aria-pressed={locale === language}
-                  onClick={() => setLocale(language)}
-                >
-                  {language.toUpperCase()}
-                </button>
+                <button type="button" key={language} lang={language} aria-pressed={locale === language} onClick={() => setLocale(language)}>{language.toUpperCase()}</button>
               ))}
             </fieldset>
           </header>
 
-          {state === "offline" && showWorkspace && (
-            <div className="offline-banner" role="status" aria-live="polite">
-              <div>
-                <strong>{labels.offline}</strong>
-                <span>{labels.stale}</span>
-              </div>
-              <button type="button" onClick={() => void load()}>{labels.retry}</button>
-            </div>
-          )}
-
-          <main id="student-main" className="student-main" aria-labelledby="workspace-title">
+          <main id="student-main" className="student-main">
             {!showWorkspace ? (
-              <div className="state-panel" role={state === "loading" ? "status" : "alert"} aria-live="polite">
-                <div className="state-wordmark" aria-hidden="true">MODRIK</div>
-                <p>
-                  {state === "loading" && labels.loading}
-                  {state === "offline" && labels.offline}
-                  {state === "permission" && labels.permission}
-                  {state === "error" && labels.unavailable}
-                </p>
-                {state !== "loading" && (
-                  <button type="button" className="primary-button" onClick={() => void load()}>
-                    {labels.retry}
-                  </button>
+              <div className="state-panel" role={state === "loading" ? "status" : "alert"}>
+                <p>{state === "loading" ? labels.loading : state === "permission" ? labels.permission : state === "offline" ? labels.offline : labels.unavailable}</p>
+                {state !== "loading" && <button type="button" className="primary-button" onClick={() => void load()}>{labels.retry}</button>}
+              </div>
+            ) : context?.state !== "active" ? (
+              <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} />
+            ) : view === "academic" ? (
+              <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} />
+            ) : view === "catalogue" ? (
+              <div className="dashboard-stack">
+                <section className="dashboard-hero">
+                  <div>
+                    <p className="eyebrow">{copy.trackContent}</p>
+                    <h2 dir="auto">{catalogue?.state === "active" ? localize(catalogue.context.track_title, locale) : context.year_level}</h2>
+                    <p>{catalogue?.state === "active" ? `${catalogue.counts.lessons} ${copy.lessons} · ${catalogue.counts.assessments} ${copy.assessments}` : copy.noContent}</p>
+                  </div>
+                </section>
+
+                {catalogue?.state === "active" && catalogue.subjects.length > 0 ? (
+                  <>
+                    <section className="context-panel">
+                      <div className="section-heading-row"><h2>{copy.chooseSubject}</h2></div>
+                      <div className="next-actions">
+                        {catalogue.subjects.map((subject) => (
+                          <button
+                            type="button"
+                            key={subject.id}
+                            className={selectedSubject?.id === subject.id ? "primary-button" : "secondary-button"}
+                            onClick={() => setSelectedSubjectReference(subject.reference)}
+                          >
+                            {localize(subject.title, locale)}
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                    {selectedSubject ? renderNode(selectedSubject) : null}
+                  </>
+                ) : (
+                  <div className="empty-panel"><p>{copy.noContent}</p></div>
                 )}
+              </div>
+            ) : view === "study" ? (
+              <div className="study-layout">
+                <section className="context-panel">
+                  <div className="section-heading-row">
+                    <div><p className="eyebrow">{labels.study}</p><h2 dir="auto">{lesson ? localize(lesson.title, locale) : labels.lessonEmpty}</h2></div>
+                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.backCatalogue}</button>
+                  </div>
+                  {lesson ? lesson.blocks.map((block) => (
+                    <article key={block.id} className="lesson-block" data-block-type={block.type}>
+                      {block.type === "heading" ? <h3 dir="auto">{localize(block.content, locale)}</h3> : <p dir="auto">{localize(block.content, locale)}</p>}
+                    </article>
+                  )) : <p>{copy.chooseLesson}</p>}
+                </section>
+              </div>
+            ) : view === "practice" ? (
+              <div className="practice-layout">
+                <section className="practice-workbench">
+                  <div className="section-heading-row">
+                    <div><p className="eyebrow">{labels.practice}</p><h2 dir="auto">{selectedAssessment ? localize(selectedAssessment.title, locale) : labels.noAttempt}</h2></div>
+                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.backCatalogue}</button>
+                  </div>
+
+                  {!attempt && selectedAssessment && !result ? (
+                    <button type="button" className="primary-button" disabled={busy || state === "offline"} onClick={() => void startAssessment()}>
+                      {busy ? labels.starting : labels.start}
+                    </button>
+                  ) : null}
+
+                  {attempt?.status === "in_progress" ? (
+                    <form onSubmit={(event) => { event.preventDefault(); void submitAssessment(); }}>
+                      <div className="question-list">
+                        {attempt.questions.map((question) => (
+                          <fieldset className="question-card" key={question.attempt_question_id}>
+                            <legend><span>{labels.question} {question.position}</span><strong dir="auto">{localize(question.prompt, locale)}</strong></legend>
+                            {question.response_contract.kind === "single_choice" ? question.response_contract.options.map((option) => (
+                              <label className="answer-option" key={option.id}>
+                                <input
+                                  type="radio"
+                                  name={question.attempt_question_id}
+                                  value={option.id}
+                                  checked={answers[question.attempt_question_id] === option.id}
+                                  onChange={(event) => setAnswers((current) => ({ ...current, [question.attempt_question_id]: event.target.value }))}
+                                />
+                                <span dir="auto">{localize(option.label, locale)}</span>
+                              </label>
+                            )) : (
+                              <label className="text-answer-label">
+                                <span>{labels.textAnswer}</span>
+                                <input
+                                  className="text-answer"
+                                  value={answers[question.attempt_question_id] ?? ""}
+                                  maxLength={question.response_contract.max_length}
+                                  onChange={(event) => setAnswers((current) => ({ ...current, [question.attempt_question_id]: event.target.value }))}
+                                />
+                              </label>
+                            )}
+                          </fieldset>
+                        ))}
+                      </div>
+                      {message ? <p role="alert">{message}</p> : null}
+                      <div className="practice-submit-row"><button type="submit" className="primary-button" disabled={busy}>{busy ? labels.submitting : labels.submit}</button></div>
+                    </form>
+                  ) : null}
+
+                  {result ? (
+                    <div className="metric-card"><span>{labels.result}</span><strong>{result.score} / {result.max_score}</strong></div>
+                  ) : null}
+
+                  {!selectedAssessment && !attempt ? (
+                    <div className="empty-panel"><p>{allAssessments.length > 0 ? copy.openAssessment : labels.noAttempt}</p></div>
+                  ) : null}
+                </section>
               </div>
             ) : (
-              <>
-                {view === "home" && (
-                  <div className="dashboard-stack">
-                    <section className="dashboard-hero" aria-labelledby="dashboard-lesson-title">
-                      <div>
-                        <p className="eyebrow">{labels.currentLesson}</p>
-                        <h2 id="dashboard-lesson-title" dir="auto">
-                          {lesson ? localize(lesson.title, locale) : labels.lessonEmpty}
-                        </h2>
-                        <p>{labels.homeSubtitle}</p>
-                      </div>
-                      <button
-                        type="button"
-                        className="primary-button"
-                        disabled={!lesson}
-                        onClick={() => setView("study")}
-                      >
-                        {labels.continueStudy}
-                      </button>
-                    </section>
-
-                    <section className="metric-grid" aria-label={labels.homeTitle}>
-                      <article className="metric-card">
-                        <span>{labels.academicContext}</span>
-                        <strong>{context?.state === "active" ? labels.active : labels.onboarding}</strong>
-                        <small>{context?.state === "active" ? context.year_level : "—"}</small>
-                      </article>
-                      <article className="metric-card">
-                        <span>{labels.contentVersion}</span>
-                        <strong>{lesson ? `v${lesson.content_version}` : "—"}</strong>
-                        <small>{lesson ? labels.lessonStatus : labels.lessonEmpty}</small>
-                      </article>
-                      <article className="metric-card">
-                        <span>{labels.mastery}</span>
-                        <strong>{progressAverage === null ? "—" : `${progressAverage}%`}</strong>
-                        <small>{labels.snapshots}: {progress.length}</small>
-                      </article>
-                      <article className="metric-card">
-                        <span>{labels.attemptStatus}</span>
-                        <strong>{attempt ? attemptStatusLabel(attempt.status, locale) : "—"}</strong>
-                        <small>{attempt ? labels.attemptReady : labels.noAttempt}</small>
-                      </article>
-                    </section>
-
-                    <div className="dashboard-columns">
-                      <section className="context-panel" aria-labelledby="academic-context-heading">
-                        <div className="section-heading-row">
-                          <div>
-                            <p className="eyebrow">{labels.academicContext}</p>
-                            <h2 id="academic-context-heading">
-                              {context?.state === "active" ? labels.active : labels.onboarding}
-                            </h2>
-                          </div>
-                          <span className="status-pill">{context?.state === "active" ? labels.active : labels.onboarding}</span>
-                        </div>
-                        {context?.state === "active" ? (
-                          <dl className="context-definition">
-                            <div>
-                              <dt>{labels.yearLevel}</dt>
-                              <dd>{context.year_level}</dd>
-                            </div>
-                          </dl>
-                        ) : (
-                          <p>{labels.onboarding}</p>
-                        )}
-                        <p className="muted-copy">{labels.manageAcademicTrackHelp}</p>
-                        <button type="button" className="secondary-button" onClick={() => setView("academic")}>
-                          {labels.manageAcademicTrack}
-                        </button>
-                      </section>
-
-                      <section className="next-actions" aria-label={labels.navigation}>
-                        <button type="button" onClick={() => setView("study")} disabled={!lesson}>
-                          <span className="action-index" aria-hidden="true">02</span>
-                          <strong>{labels.study}</strong>
-                          <small>{labels.openStudy}</small>
-                        </button>
-                        <button type="button" onClick={() => setView("practice")} disabled={!lesson}>
-                          <span className="action-index" aria-hidden="true">03</span>
-                          <strong>{attempt ? labels.resume : labels.practice}</strong>
-                          <small>{labels.openPractice}</small>
-                        </button>
-                        <button type="button" onClick={() => setView("progress")}>
-                          <span className="action-index" aria-hidden="true">04</span>
-                          <strong>{labels.progress}</strong>
-                          <small>{labels.openProgress}</small>
-                        </button>
-                        <button type="button" onClick={() => setView("academic")}>
-                          <span className="action-index" aria-hidden="true">05</span>
-                          <strong>{labels.academicTrack}</strong>
-                          <small>{labels.openAcademicTrack}</small>
-                        </button>
-                      </section>
-                    </div>
-                  </div>
-                )}
-
-                {view === "study" && (
-                  <div className="study-layout">
-                    <aside className="workspace-rail" aria-label={labels.currentLesson}>
-                      <p className="eyebrow">{labels.currentLesson}</p>
-                      <h2 dir="auto">{lesson ? localize(lesson.title, locale) : labels.lessonEmpty}</h2>
-                      <dl>
-                        <div>
-                          <dt>{labels.contentVersion}</dt>
-                          <dd>{lesson ? `v${lesson.content_version}` : "—"}</dd>
-                        </div>
-                        <div>
-                          <dt>{labels.yearLevel}</dt>
-                          <dd>{context?.state === "active" ? context.year_level : "—"}</dd>
-                        </div>
-                      </dl>
-                      <button type="button" className="secondary-button" disabled={!lesson} onClick={() => setView("practice")}>
-                        {labels.openPractice}
-                      </button>
-                    </aside>
-                    <article className="lesson-reader" aria-labelledby="lesson-reader-heading">
-                      <header>
-                        <p className="eyebrow">{labels.studyTitle}</p>
-                        <h2 id="lesson-reader-heading" dir="auto">
-                          {lesson ? localize(lesson.title, locale) : labels.lessonEmpty}
-                        </h2>
-                        <p>{labels.studySubtitle}</p>
-                      </header>
-                      {lesson ? (
-                        <div className="lesson-content">
-                          {lesson.blocks.map((block) => (
-                            <section key={block.id} className="lesson-block" dir="auto">
-                              {block.type === "heading" ? (
-                                <h3>{localize(block.content, locale)}</h3>
-                              ) : (
-                                <p>{localize(block.content, locale)}</p>
-                              )}
-                            </section>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="empty-panel" role="status"><p>{labels.lessonEmpty}</p></div>
-                      )}
+              <div className="progress-workspace">
+                <section className="context-panel">
+                  <div className="section-heading-row"><h2>{labels.progressTitle}</h2><strong className="mastery-summary">{progressAverage === null ? "—" : `${progressAverage}%`}</strong></div>
+                  {progress.length === 0 ? <p>{labels.emptyProgress}</p> : progress.map((item) => (
+                    <article className="progress-card" key={`${item.academic_context_id}-${item.curriculum_node_id}-${item.source_version}`}>
+                      <div><strong>{Math.round(item.mastery * 100)}%</strong><span>{item.curriculum_node_id}</span></div>
                     </article>
-                  </div>
-                )}
-
-                {view === "practice" && (
-                  <div className="practice-layout">
-                    <aside className="workspace-rail practice-rail" aria-label={labels.authoritative}>
-                      <span className="status-pill">{labels.authoritative}</span>
-                      <p>{labels.authoritativeNote}</p>
-                      {attempt && (
-                        <dl>
-                          <div>
-                            <dt>{labels.attemptStatus}</dt>
-                            <dd>{attemptStatusLabel(attempt.status, locale)}</dd>
-                          </div>
-                          <div>
-                            <dt>{labels.question}</dt>
-                            <dd>{answeredCount}/{attempt.questions.length}</dd>
-                          </div>
-                        </dl>
-                      )}
-                    </aside>
-
-                    <section className="practice-workbench" aria-labelledby="practice-workbench-heading">
-                      <header>
-                        <p className="eyebrow">{labels.practice}</p>
-                        <h2 id="practice-workbench-heading">{labels.practiceTitle}</h2>
-                        <p>{labels.practiceSubtitle}</p>
-                      </header>
-
-                      {!attempt ? (
-                        <div className="empty-panel practice-empty">
-                          <p>{labels.noAttempt}</p>
-                          <button
-                            type="button"
-                            className="primary-button"
-                            disabled={busy !== null || state === "offline" || !lesson}
-                            onClick={() => void startPractice()}
-                          >
-                            {busy === "start" ? labels.starting : labels.start}
-                          </button>
-                        </div>
-                      ) : (
-                        <form onSubmit={(event) => { event.preventDefault(); void submitPractice(); }}>
-                          <div className="question-list">
-                            {attempt.questions.map((question) => (
-                              <fieldset
-                                className="question-card"
-                                key={question.attempt_question_id}
-                                disabled={attempt.status !== "in_progress" || state === "offline"}
-                              >
-                                <legend>
-                                  <span className="question-number">{labels.question} {question.position}</span>
-                                  <span dir="auto">{localize(question.prompt, locale)}</span>
-                                </legend>
-                                {question.response_contract.kind === "single_choice" ? (
-                                  <div className="answer-list">
-                                    {question.response_contract.options.map((option) => (
-                                      <label key={option.id} className="answer-option">
-                                        <input
-                                          type="radio"
-                                          name={question.attempt_question_id}
-                                          value={option.id}
-                                          checked={answers[question.attempt_question_id] === option.id}
-                                          onChange={(event) => setAnswers((current) => ({
-                                            ...current,
-                                            [question.attempt_question_id]: event.target.value,
-                                          }))}
-                                        />
-                                        <span dir="auto">{localize(option.label, locale)}</span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <label className="text-answer-label">
-                                    <span>{labels.textAnswer}</span>
-                                    <input
-                                      className="text-answer"
-                                      dir="auto"
-                                      maxLength={question.response_contract.max_length}
-                                      value={answers[question.attempt_question_id] ?? ""}
-                                      onChange={(event) => setAnswers((current) => ({
-                                        ...current,
-                                        [question.attempt_question_id]: event.target.value,
-                                      }))}
-                                    />
-                                  </label>
-                                )}
-                              </fieldset>
-                            ))}
-                          </div>
-
-                          {attempt.status === "in_progress" && (
-                            <div className="practice-submit-row">
-                              <span aria-live="polite">{answeredCount}/{attempt.questions.length} {labels.answered}</span>
-                              <button type="submit" className="primary-button" disabled={busy !== null || state === "offline"}>
-                                {busy === "submit" ? labels.submitting : labels.submit}
-                              </button>
-                            </div>
-                          )}
-                        </form>
-                      )}
-
-                      {message && <p className="inline-error" role="alert">{message}</p>}
-                      {result && (
-                        <div className="result-panel" role="status" aria-live="polite">
-                          <span>{labels.result}</span>
-                          <strong>{result.score}/{result.max_score}</strong>
-                          <button
-                            type="button"
-                            className="secondary-button"
-                            disabled={busy !== null || state === "offline" || !lesson}
-                            onClick={() => void startPractice()}
-                          >
-                            {busy === "start" ? labels.starting : labels.start}
-                          </button>
-                        </div>
-                      )}
-                    </section>
-                  </div>
-                )}
-
-                {view === "progress" && (
-                  <section className="progress-workspace" aria-labelledby="progress-workspace-heading">
-                    <header className="workspace-section-header">
-                      <div>
-                        <p className="eyebrow">{labels.progress}</p>
-                        <h2 id="progress-workspace-heading">{labels.progressTitle}</h2>
-                        <p>{labels.progressSubtitle}</p>
-                      </div>
-                      <div className="mastery-summary" aria-label={labels.mastery}>
-                        <span>{labels.mastery}</span>
-                        <strong>{progressAverage === null ? "—" : `${progressAverage}%`}</strong>
-                      </div>
-                    </header>
-
-                    {progress.length === 0 ? (
-                      <div className="empty-panel" role="status">
-                        <p>{labels.emptyProgress}</p>
-                        <button type="button" className="secondary-button" disabled={!lesson} onClick={() => setView("practice")}>
-                          {labels.openPractice}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="progress-grid">
-                        {progress.map((snapshot) => {
-                          const percent = Math.round(snapshot.mastery * 100);
-                          return (
-                            <article className="progress-card" key={`${snapshot.curriculum_node_id}-${snapshot.source_version}`}>
-                              <div>
-                                <span>{labels.mastery}</span>
-                                <strong>{percent}%</strong>
-                              </div>
-                              <progress max="1" value={snapshot.mastery} aria-label={`${labels.mastery}: ${percent}%`} />
-                              <small>{labels.contentVersion} {snapshot.source_version}</small>
-                            </article>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                )}
-
-                {view === "academic" && (
-                  <section className="progress-workspace academic-track-workspace" aria-labelledby="academic-track-workspace-heading">
-                    <header className="workspace-section-header">
-                      <div>
-                        <p className="eyebrow">{labels.academicTrack}</p>
-                        <h2 id="academic-track-workspace-heading">{labels.academicTrackTitle}</h2>
-                        <p>{labels.academicTrackSubtitle}</p>
-                      </div>
-                      <span className="status-pill">{context?.state === "active" ? labels.active : labels.onboarding}</span>
-                    </header>
-
-                    <div className="dashboard-columns">
-                      <section className="context-panel" aria-labelledby="current-academic-context-heading">
-                        <div className="section-heading-row">
-                          <div>
-                            <p className="eyebrow">{labels.currentAcademicTrack}</p>
-                            <h3 id="current-academic-context-heading">
-                              {context?.state === "active" ? labels.active : labels.onboarding}
-                            </h3>
-                          </div>
-                          <span className="status-pill">{context?.state === "active" ? labels.active : labels.onboarding}</span>
-                        </div>
-                        {context?.state === "active" ? (
-                          <dl className="context-definition">
-                            <div>
-                              <dt>{labels.yearLevel}</dt>
-                              <dd>{context.year_level}</dd>
-                            </div>
-                          </dl>
-                        ) : (
-                          <p>{labels.onboarding}</p>
-                        )}
-                        <div className="reset-consequence">
-                          <h3>{labels.trackChangeSafetyTitle}</h3>
-                          <p>{labels.trackChangeSafetyBody}</p>
-                          <p>{labels.contextLocked}</p>
-                        </div>
-                      </section>
-
-                      <section className="context-panel" aria-label={labels.manageAcademicTrack}>
-                        <AcademicTrackSelector
-                          context={context}
-                          locale={locale}
-                          offline={state === "offline"}
-                          onTransitioned={handleAcademicTransition}
-                        />
-                      </section>
-                    </div>
-                  </section>
-                )}
-              </>
+                  ))}
+                </section>
+              </div>
             )}
           </main>
         </div>

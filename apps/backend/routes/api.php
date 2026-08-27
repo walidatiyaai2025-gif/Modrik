@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ContentPreparationController;
 use App\Http\Controllers\Api\LearningController;
 use App\Http\Controllers\Api\OfflineAnswerSyncController;
 use App\Http\Controllers\Api\ProviderAuthController;
+use App\Http\Controllers\Api\StudentContentCatalogueController;
 use App\Http\Controllers\Api\StudentNotificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,6 +49,7 @@ Route::prefix('/v1')->middleware('auth.modrik')->group(function (): void {
         ->middleware('auth.verified-password')->name('academic-context.activate');
     Route::post('/academic-context/reset', [AcademicContextController::class, 'reset'])
         ->middleware('auth.verified-password')->name('academic-context.reset');
+    Route::get('/content-catalogue', [StudentContentCatalogueController::class, 'index'])->name('content-catalogue.index');
     Route::get('/lessons/{lessonId}', [LearningController::class, 'lesson'])->name('lessons.show');
     Route::get('/progress', [LearningController::class, 'progress'])->name('progress.index');
     Route::get('/notifications', [StudentNotificationController::class, 'index'])->name('notifications.index');

@@ -70,66 +70,19 @@ final class SystemCapabilities extends Page
         $studentUrl = $this->studentWorkspaceUrl();
 
         return [
-            [
-                'module' => 'content_preparation',
-                'mode' => 'interactive',
-                'url' => ContentPreparationWizard::getUrl(),
-            ],
-            [
-                'module' => 'preparation_history',
-                'mode' => 'interactive',
-                'url' => ContentPreparationRequests::getUrl(),
-            ],
-            [
-                'module' => 'content_rights',
-                'mode' => 'interactive',
-                'url' => ContentRightsReview::getUrl(),
-            ],
-            [
-                'module' => 'content_review_publish',
-                'mode' => 'interactive',
-                'url' => ContentReviewQueue::getUrl(),
-            ],
-            [
-                'module' => 'student_auth_account',
-                'mode' => 'student_surface',
-                'url' => $studentUrl,
-            ],
-            [
-                'module' => 'academic_context',
-                'mode' => 'student_surface',
-                'url' => $studentUrl,
-            ],
-            [
-                'module' => 'study_lessons',
-                'mode' => 'student_surface',
-                'url' => $studentUrl,
-            ],
-            [
-                'module' => 'assessment_practice',
-                'mode' => 'student_surface',
-                'url' => $studentUrl,
-            ],
-            [
-                'module' => 'progress',
-                'mode' => 'student_surface',
-                'url' => $studentUrl,
-            ],
-            [
-                'module' => 'offline_sync',
-                'mode' => 'background',
-                'url' => null,
-            ],
-            [
-                'module' => 'advertising_policy',
-                'mode' => 'policy',
-                'url' => null,
-            ],
-            [
-                'module' => 'outbox_idempotency',
-                'mode' => 'internal',
-                'url' => null,
-            ],
+            ['module' => 'content_preparation', 'mode' => 'interactive', 'url' => ContentPreparationWizard::getUrl()],
+            ['module' => 'preparation_history', 'mode' => 'interactive', 'url' => ContentPreparationRequests::getUrl()],
+            ['module' => 'content_rights', 'mode' => 'interactive', 'url' => ContentRightsReview::getUrl()],
+            ['module' => 'content_review_publish', 'mode' => 'interactive', 'url' => ContentReviewQueue::getUrl()],
+            ['module' => 'student_auth_account', 'mode' => 'student_surface', 'url' => $studentUrl],
+            ['module' => 'academic_context', 'mode' => 'student_surface', 'url' => $studentUrl],
+            ['module' => 'student_content_catalogue', 'mode' => 'student_surface', 'url' => $studentUrl],
+            ['module' => 'study_lessons', 'mode' => 'student_surface', 'url' => $studentUrl],
+            ['module' => 'assessment_practice', 'mode' => 'student_surface', 'url' => $studentUrl],
+            ['module' => 'progress', 'mode' => 'student_surface', 'url' => $studentUrl],
+            ['module' => 'offline_sync', 'mode' => 'background', 'url' => null],
+            ['module' => 'advertising_policy', 'mode' => 'policy', 'url' => null],
+            ['module' => 'outbox_idempotency', 'mode' => 'internal', 'url' => null],
             [
                 'module' => 'runtime_inspector',
                 'mode' => $inspectorEnabled ? 'interactive' : 'gated',

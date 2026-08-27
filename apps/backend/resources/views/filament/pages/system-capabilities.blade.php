@@ -12,6 +12,7 @@
                 'content_review_publish' => $label('Dry-run والمراجعة والاستيراد والنشر وإعادة المحاولة', 'Dry-run, review, canonical import, publication and retry', 'Dry-run, revue, import canonique, publication et nouvelle tentative'),
                 'student_auth_account' => $label('التسجيل والدخول والتحقق والاسترداد والجلسات والحساب', 'Registration, login, verification, recovery, sessions and account', 'Inscription, connexion, vérification, récupération, sessions et compte'),
                 'academic_context' => $label('المسار الأكاديمي والتفعيل والتغيير/إعادة الضبط', 'Academic catalogue, activation and reset/change', 'Catalogue académique, activation et changement/réinitialisation'),
+                'student_content_catalogue' => $label('كتالوج المحتوى المنشور حسب المسار والمادة والوحدات والدروس', 'Published student content catalogue by track, subject, unit, topic and lesson', 'Catalogue étudiant publié par parcours, matière, unité, thème et leçon'),
                 'study_lessons' => $label('الدراسة وقراءة الدروس', 'Study and lesson reading', 'Étude et lecture des leçons'),
                 'assessment_practice' => $label('التدريب والاختبارات والترتيب والتقييم المعتمد من الخادم', 'Practice/assessment with server-authoritative order and scoring', 'Exercices/évaluations avec ordre et notation autoritaires côté serveur'),
                 'progress' => $label('التقدم ومستوى الإتقان', 'Progress and mastery', 'Progression et maîtrise'),
