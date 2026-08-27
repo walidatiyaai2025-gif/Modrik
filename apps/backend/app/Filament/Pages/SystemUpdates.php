@@ -64,7 +64,8 @@ final class SystemUpdates extends Page
 
     public function validatePackage(UnifiedPackageValidator $validator): void
     {
-        $this->validate(['package' => ['required', 'file', 'max:524288']]);
+        $maxPackageKb = (int) config('updates.max_package_kb', 131072);
+        $this->validate(['package' => ['required', 'file', 'max:'.$maxPackageKb]]);
         $package = $this->package;
         if (! $package instanceof TemporaryUploadedFile) {
             $this->addError('package', 'The temporary upload is no longer available. Please choose the package again.');
@@ -154,7 +155,12 @@ final class SystemUpdates extends Page
     /** @return array<string,mixed> */
     protected function getViewData(): array
     {
-        return ['currentVersion' => $this->currentVersion(), 'releaseSha' => $this->releaseSha(), 'history' => SystemUpdateHistory::query()->latest()->limit(20)->get()];
+        return [
+            'currentVersion' => $this->currentVersion(),
+            'releaseSha' => $this->releaseSha(),
+            'maxPackageMb' => round(((int) config('updates.max_package_kb', 131072)) / 1024),
+            'history' => SystemUpdateHistory::query()->latest()->limit(20)->get(),
+        ];
     }
 
     private function currentVersion(): string
