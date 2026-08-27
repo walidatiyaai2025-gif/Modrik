@@ -7,4 +7,5 @@ return [
     'shared_uploads_path' => env('MODRIK_UPDATE_SHARED_UPLOADS', storage_path('app/public')),
     'upload_disk' => 'local',
     'upload_directory' => 'system-updates/uploads',
+    'max_package_kb' => min(524288, max(12288, (int) env('MODRIK_UPDATE_MAX_PACKAGE_KB', 131072))),
 ];
