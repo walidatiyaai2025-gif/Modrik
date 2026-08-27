@@ -74,9 +74,14 @@ final class SystemUpdatesAcceptanceTest extends TestCase
         $this->app->instance(TransactionalReleaseManager::class, $manager);
         $archive = $this->unifiedUpdatePackage();
 
+        $upload = $this->actingAs($admin)->post(route('system-updates.upload-package'), [
+            'package' => UploadedFile::fake()->createWithContent('release.zip', (string) file_get_contents($archive)),
+        ]);
+        $upload->assertRedirect(SystemUpdates::getUrl());
+        $upload->assertSessionHas('modrik.update.validation_result', fn (array $result): bool => ($result['valid'] ?? false) === true);
+        $upload->assertSessionHas('modrik.update.validated_update_id');
+
         Livewire::actingAs($admin)->test(app(SystemUpdates::class))
-            ->set('package', UploadedFile::fake()->createWithContent('release.zip', (string) file_get_contents($archive)))
-            ->call('validatePackage')
             ->assertSet('validationResult.valid', true)
             ->call('installUpdate')
             ->assertSet('installationResult.status', 'SUCCESS');
@@ -100,9 +105,14 @@ final class SystemUpdatesAcceptanceTest extends TestCase
         $zip->addFromString('payload/backend/artisan', 'tampered');
         $zip->close();
 
+        $upload = $this->actingAs($admin)->post(route('system-updates.upload-package'), [
+            'package' => UploadedFile::fake()->createWithContent('corrupt.zip', (string) file_get_contents($archive)),
+        ]);
+        $upload->assertRedirect(SystemUpdates::getUrl());
+        $upload->assertSessionHas('modrik.update.validation_result', fn (array $result): bool => ($result['valid'] ?? true) === false);
+        $upload->assertSessionMissing('modrik.update.validated_update_id');
+
         Livewire::actingAs($admin)->test(app(SystemUpdates::class))
-            ->set('package', UploadedFile::fake()->createWithContent('corrupt.zip', (string) file_get_contents($archive)))
-            ->call('validatePackage')
             ->assertSet('validationResult.valid', false)
             ->assertSet('validatedUpdateId', null);
 
