@@ -38,13 +38,13 @@ final class DemoActivationHealthVerifier
         }
 
         $api = $this->request($apiUrl, $shortSha.'-api');
-        if (! $this->successfulHttp($api)) {
+        if ($api === null || ! $this->successfulHttp($api)) {
             return $this->failure($checks, 'api_unreachable');
         }
         $checks['api'] = true;
 
         $web = $this->request($webUrl, $shortSha.'-web');
-        if (! $this->successfulHttp($web) || ! $this->hasReleaseIdentity($web['body'], $releaseSha, $shortSha)) {
+        if ($web === null || ! $this->successfulHttp($web) || ! $this->hasReleaseIdentity($web['body'], $releaseSha, $shortSha)) {
             return $this->failure($checks, 'web_release_mismatch');
         }
         if (! str_contains($web['body'], 'data-testid="modrik-landing-page"')
@@ -55,7 +55,7 @@ final class DemoActivationHealthVerifier
         $checks['web'] = true;
 
         $student = $this->request($studentUrl, $shortSha.'-student');
-        if (! $this->successfulHttp($student) || ! $this->hasReleaseIdentity($student['body'], $releaseSha, $shortSha)) {
+        if ($student === null || ! $this->successfulHttp($student) || ! $this->hasReleaseIdentity($student['body'], $releaseSha, $shortSha)) {
             return $this->failure($checks, 'student_release_mismatch');
         }
         if (! str_contains($student['body'], 'data-testid="modrik-student-portal"')
@@ -67,7 +67,7 @@ final class DemoActivationHealthVerifier
         $checks['student'] = true;
 
         $admin = $this->request($adminUrl, $shortSha.'-admin');
-        if (! $this->successfulHttp($admin)
+        if ($admin === null || ! $this->successfulHttp($admin)
             || ! str_contains($admin['body'], 'data-testid="modrik-release-badge"')
             || ! str_contains($admin['body'], "MODRIK deployed release: {$releaseSha}")
             || ! str_contains($admin['body'], "Build {$shortSha}")) {
@@ -80,13 +80,13 @@ final class DemoActivationHealthVerifier
             return $this->failure($checks, 'css_reference_missing');
         }
         $css = $this->request($cssUrl, $shortSha.'-css');
-        if (! $this->successfulHttp($css) || ! str_contains(strtolower($css['content_type']), 'text/css')) {
+        if ($css === null || ! $this->successfulHttp($css) || ! str_contains(strtolower($css['content_type']), 'text/css')) {
             return $this->failure($checks, 'css_unreachable');
         }
         $checks['css'] = true;
 
         $origin = $this->request($webUrl, $shortSha.'-origin', $originIp);
-        if (! $this->successfulHttp($origin) || ! $this->hasReleaseIdentity($origin['body'], $releaseSha, $shortSha)) {
+        if ($origin === null || ! $this->successfulHttp($origin) || ! $this->hasReleaseIdentity($origin['body'], $releaseSha, $shortSha)) {
             return $this->failure($checks, 'origin_release_mismatch');
         }
         if (! str_contains($origin['body'], 'data-testid="modrik-landing-page"')
