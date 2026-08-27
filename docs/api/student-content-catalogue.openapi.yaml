@@ -1,0 +1,95 @@
+# Issue #322 OpenAPI contract supplement.
+# This file is intentionally small and reviewable; merge/integration must fold the path/schema into docs/api/openapi.yaml.
+paths:
+  /v1/content-catalogue:
+    get:
+      operationId: getStudentContentCatalogue
+      tags: [Academics, Lessons, Attempts]
+      summary: List published learning content for the active academic context
+      description: >-
+        The Backend derives track and school year from the authenticated learner's active academic context.
+        Only published curriculum nodes, lessons, and assessments are returned. Draft, staged,
+        rights-pending, and unpublished content fail closed. An optional subject_reference filters the
+        published subject roots inside that active track.
+      parameters:
+        - in: query
+          name: subject_reference
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Z0-9][A-Z0-9._:-]{2,99}$'
+      responses:
+        '200':
+          description: Published catalogue or an explicit onboarding/empty state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentContentCatalogueResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+components:
+  schemas:
+    StudentCatalogueAssessment:
+      type: object
+      additionalProperties: false
+      required: [id, kind, blueprint_version, title]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        kind: {type: string, enum: [practice, quiz, mock_exam]}
+        blueprint_version: {type: integer, minimum: 1}
+        title: {type: object}
+    StudentCatalogueLesson:
+      type: object
+      additionalProperties: false
+      required: [id, slug, content_version, title, published_at]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        slug: {type: string}
+        content_version: {type: integer, minimum: 1}
+        title: {type: object}
+        published_at: {type: [string, 'null'], format: date-time}
+    StudentCatalogueNode:
+      type: object
+      additionalProperties: false
+      required: [id, reference, type, title, lessons, assessments, children]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        reference: {type: string}
+        type: {type: string, enum: [subject, unit, topic]}
+        title: {type: object}
+        lessons:
+          type: array
+          items: {$ref: '#/components/schemas/StudentCatalogueLesson'}
+        assessments:
+          type: array
+          items: {$ref: '#/components/schemas/StudentCatalogueAssessment'}
+        children:
+          type: array
+          items: {$ref: '#/components/schemas/StudentCatalogueNode'}
+    StudentContentCatalogueResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [state, subjects, counts]
+              properties:
+                state: {type: string, const: onboarding_required}
+                subjects: {type: array, maxItems: 0}
+                counts: {type: object}
+            - type: object
+              additionalProperties: false
+              required: [state, context, subjects, counts]
+              properties:
+                state: {type: string, const: active}
+                context:
+                  type: object
+                  required: [context_id, academic_track_id, track_reference, year_level, track_title]
+                subjects:
+                  type: array
+                  items: {$ref: '#/components/schemas/StudentCatalogueNode'}
+                counts: {type: object}
+        meta: {type: object}

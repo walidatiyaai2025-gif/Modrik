@@ -9,10 +9,12 @@ const selector = readFileSync(new URL("./academic-track-selector.tsx", import.me
 
 test("academic track is a first-class student navigation destination", () => {
   assert.match(workspace, /type WorkspaceView = [^;]*"academic"/);
-  assert.match(workspace, /id: "academic", label: labels\.academicTrack, marker: "05"/);
+  assert.match(
+    workspace,
+    /aria-current=\{view === "academic" \? "page" : undefined\}[\s\S]*?onClick=\{\(\) => setView\("academic"\)\}[\s\S]*?labels\.academicTrack/,
+  );
   assert.match(workspace, /view === "academic"/);
   assert.match(workspace, /labels\.academicTrackTitle/);
-  assert.match(workspace, /labels\.manageAcademicTrack/);
   assert.match(workspace, /<AcademicTrackSelector/);
 
   assert.equal(studentCopy.en.academicTrack, "Academic track");
@@ -20,15 +22,20 @@ test("academic track is a first-class student navigation destination", () => {
   assert.equal(studentCopy.fr.academicTrack, "Parcours académique");
 });
 
-test("home links to track settings instead of embedding the destructive reset selector", () => {
-  const homeStart = workspace.indexOf('{view === "home"');
-  const studyStart = workspace.indexOf('{view === "study"');
-  assert.ok(homeStart >= 0 && studyStart > homeStart);
-  const home = workspace.slice(homeStart, studyStart);
+test("published catalogue stays primary while destructive track reset remains isolated to academic settings", () => {
+  assert.match(workspace, /view === "catalogue"/);
+  assert.match(workspace, /setView\("catalogue"\)/);
+  assert.match(
+    workspace,
+    /context\?\.state !== "active" \? \([\s\S]*?<AcademicTrackSelector[\s\S]*?\) : view === "academic" \? \([\s\S]*?<AcademicTrackSelector/,
+  );
 
-  assert.match(home, /setView\("academic"\)/);
-  assert.match(home, /labels\.manageAcademicTrackHelp/);
-  assert.doesNotMatch(home, /<AcademicTrackSelector/);
+  const catalogueStart = workspace.indexOf(') : view === "catalogue" ? (');
+  const studyStart = workspace.indexOf(') : view === "study" ? (', catalogueStart);
+  assert.ok(catalogueStart >= 0 && studyStart > catalogueStart);
+  const catalogueView = workspace.slice(catalogueStart, studyStart);
+  assert.match(catalogueView, /catalogue\.subjects\.map/);
+  assert.doesNotMatch(catalogueView, /<AcademicTrackSelector/);
 });
 
 test("student track change reuses the existing catalogue and reset authority", () => {

@@ -44,7 +44,7 @@ jobs:
           node-version: 22.23.2
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4.24
+          php-version: 8.4.25
           extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
           coverage: none
           tools: composer:v2
@@ -98,7 +98,7 @@ jobs:
           node-version: 22.23.2
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4.24
+          php-version: 8.4.25
           extensions: curl, fileinfo, intl, mbstring, openssl, pdo_mysql, zip
           coverage: none
           tools: composer:v2
@@ -163,7 +163,7 @@ jobs:
           cache: npm
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4.24
+          php-version: 8.4.25
           extensions: curl, fileinfo, intl, mbstring, openssl, pdo_sqlite, sqlite3, zip
           coverage: none
           tools: composer:v2

@@ -15,6 +15,7 @@ const allowedPaths = [
   /^academic-tracks$/,
   /^academic-context$/,
   /^academic-context\/(activate|reset)$/,
+  /^content-catalogue$/,
   new RegExp(`^lessons/${ulid}$`),
   /^progress$/,
   /^notifications$/,
@@ -72,6 +73,12 @@ async function proxy(request: Request, context: RouteParameters) {
   }
 
   const baseUrl = (process.env.MODRIK_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
+  const incomingUrl = new URL(request.url);
+  const upstreamUrl = new URL(`${baseUrl}/v1/${relativePath}`);
+  for (const [key, value] of incomingUrl.searchParams.entries()) {
+    upstreamUrl.searchParams.append(key, value);
+  }
+
   const headers = new Headers({
     Accept: "application/json, application/problem+json",
     Authorization: `Bearer ${token}`,
@@ -83,7 +90,7 @@ async function proxy(request: Request, context: RouteParameters) {
   if (idempotencyKey) headers.set("Idempotency-Key", idempotencyKey);
 
   try {
-    const upstream = await fetch(`${baseUrl}/v1/${relativePath}`, {
+    const upstream = await fetch(upstreamUrl, {
       method: request.method,
       headers,
       body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.text(),
