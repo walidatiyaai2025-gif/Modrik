@@ -1,7 +1,7 @@
 name: Owner-authorized one-shot Demo dispatch
 
 # One-shot dispatch checkpoint for Issue #260 latest-main Demo verification.
-# Armed for governed redeploy after deployment bridge PHP 500 hardening.
+# Re-armed after PR #323 Student Content Catalogue integration for Demo-only acceptance.
 on:
   push:
     branches:
