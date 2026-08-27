@@ -81,7 +81,7 @@ final class SystemUpdatesAcceptanceTest extends TestCase
         $upload->assertSessionHas('modrik.update.validation_result', fn (array $result): bool => ($result['valid'] ?? false) === true);
         $upload->assertSessionHas('modrik.update.validated_update_id');
 
-        Livewire::actingAs($admin)->test(SystemUpdates::class)
+        Livewire::actingAs($admin)->test(app(SystemUpdates::class))
             ->assertSet('validationResult.valid', true)
             ->call('installUpdate')
             ->assertSet('installationResult.status', 'SUCCESS');
@@ -112,7 +112,7 @@ final class SystemUpdatesAcceptanceTest extends TestCase
         $upload->assertSessionHas('modrik.update.validation_result', fn (array $result): bool => ($result['valid'] ?? true) === false);
         $upload->assertSessionMissing('modrik.update.validated_update_id');
 
-        Livewire::actingAs($admin)->test(SystemUpdates::class)
+        Livewire::actingAs($admin)->test(app(SystemUpdates::class))
             ->assertSet('validationResult.valid', false)
             ->assertSet('validatedUpdateId', null);
 
