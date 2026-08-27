@@ -9,7 +9,7 @@ final class InstallationStateService
 {
     public function lockPath(): string
     {
-        return storage_path('app/private/installation.lock');
+        return (string) config('installer.lock_path', storage_path('app/private/installation.lock'));
     }
 
     public function installed(): bool
@@ -35,5 +35,36 @@ final class InstallationStateService
             @unlink($temporary);
             throw new RuntimeException('Unable to create installation lock.');
         }
+    }
+
+    public function issueCompletionToken(): string
+    {
+        if (! $this->installed()) {
+            throw new RuntimeException('Installation must be complete before issuing a finish token.');
+        }
+        $token = bin2hex(random_bytes(32));
+        $path = $this->lockPath().'.finish';
+        $temporary = $path.'.'.bin2hex(random_bytes(8));
+        File::put($temporary, hash('sha256', $token), true);
+        if (! @rename($temporary, $path)) {
+            @unlink($temporary);
+            throw new RuntimeException('Unable to create installation finish handoff.');
+        }
+
+        return $token;
+    }
+
+    public function consumeCompletionToken(?string $token): bool
+    {
+        $path = $this->lockPath().'.finish';
+        if (preg_match('/^[0-9a-f]{64}$/', (string) $token) !== 1 || ! is_readable($path)) {
+            return false;
+        }
+        $expected = trim((string) file_get_contents($path));
+        if (preg_match('/^[0-9a-f]{64}$/', $expected) !== 1 || ! hash_equals($expected, hash('sha256', (string) $token))) {
+            return false;
+        }
+
+        return @unlink($path);
     }
 }
