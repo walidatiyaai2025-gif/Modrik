@@ -334,7 +334,10 @@ final class GovernedDemoRestartAdapter implements WebRestartAdapter
         return $this->run($arguments, $configuration['timeout']);
     }
 
-    /** @return array{kind:string,stdout:string} */
+    /**
+     * @param  list<string>  $command
+     * @return array{kind:string,stdout:string}
+     */
     private function run(array $command, int $timeout): array
     {
         $descriptors = [
@@ -352,14 +355,14 @@ final class GovernedDemoRestartAdapter implements WebRestartAdapter
         stream_set_blocking($pipes[2], false);
         $stdout = '';
         $started = microtime(true);
-        $status = ['running' => true, 'exitcode' => -1];
+        $status = proc_get_status($process);
         $timedOut = false;
 
         while (true) {
             $stdout .= (string) stream_get_contents($pipes[1]);
             stream_get_contents($pipes[2]);
             $status = proc_get_status($process);
-            if (! ($status['running'] ?? false)) {
+            if (! $status['running']) {
                 break;
             }
             if ((microtime(true) - $started) >= $timeout) {
@@ -377,7 +380,7 @@ final class GovernedDemoRestartAdapter implements WebRestartAdapter
         fclose($pipes[2]);
         $exit = proc_close($process);
         if ($exit === -1) {
-            $exit = (int) ($status['exitcode'] ?? -1);
+            $exit = $status['exitcode'];
         }
         if ($timedOut) {
             return ['kind' => 'unknown', 'stdout' => ''];
