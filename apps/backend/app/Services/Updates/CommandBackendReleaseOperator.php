@@ -8,6 +8,8 @@ use Symfony\Component\Process\Process;
 
 final class CommandBackendReleaseOperator implements BackendReleaseOperator
 {
+    public function __construct(private UpdatePhpBinaryResolver $phpBinary) {}
+
     public function prepareSharedState(string $releasePath, string $sharedPath): void
     {
         $backend = $releasePath.DIRECTORY_SEPARATOR.'payload'.DIRECTORY_SEPARATOR.'backend';
@@ -53,7 +55,7 @@ final class CommandBackendReleaseOperator implements BackendReleaseOperator
     private function artisan(string $releasePath, array $arguments): bool
     {
         $backend = $releasePath.DIRECTORY_SEPARATOR.'payload'.DIRECTORY_SEPARATOR.'backend';
-        $process = new Process([PHP_BINARY, 'artisan', ...$arguments], $backend, timeout: 300);
+        $process = new Process([$this->phpBinary->resolve(), 'artisan', ...$arguments], $backend, timeout: 300);
         $process->run();
 
         return $process->isSuccessful();
