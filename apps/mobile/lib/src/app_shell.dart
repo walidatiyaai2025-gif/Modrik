@@ -4,6 +4,7 @@ import 'package:modrik_design_tokens/modrik_design_tokens.dart';
 import 'copy.dart';
 import 'mobile_learning_controller.dart';
 import 'models.dart';
+import 'student_catalogue_study_view.dart';
 
 class MobileStudentShell extends StatelessWidget {
   const MobileStudentShell({super.key, required this.controller});
@@ -91,7 +92,7 @@ class MobileStudentShell extends StatelessWidget {
     }
     return switch (controller.section) {
       StudentSection.dashboard => _DashboardView(controller: controller, copy: copy),
-      StudentSection.study => _StudyView(controller: controller, copy: copy),
+      StudentSection.study => StudentCatalogueStudyView(controller: controller, copy: copy),
       StudentSection.practice => _PracticeView(controller: controller, copy: copy),
       StudentSection.progress => _ProgressView(controller: controller, copy: copy),
     };
@@ -389,45 +390,6 @@ class _DashboardView extends StatelessWidget {
   }
 }
 
-class _StudyView extends StatelessWidget {
-  const _StudyView({required this.controller, required this.copy});
-
-  final MobileLearningController controller;
-  final MobileCopy copy;
-
-  @override
-  Widget build(BuildContext context) {
-    final lesson = controller.lesson;
-    if (lesson == null) {
-      return _StateView(
-        icon: Icons.menu_book_outlined,
-        title: copy.t('study'),
-        body: copy.t('lesson_empty'),
-        actionLabel: copy.t('retry'),
-        onAction: controller.refresh,
-      );
-    }
-    return _ScrollablePage(
-      title: localize(lesson.title, controller.locale),
-      subtitle: copy.t('fixture_note'),
-      children: [
-        for (final block in lesson.blocks)
-          _SurfaceCard(
-            child: Text(
-              localize(block.content, controller.locale),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.65),
-            ),
-          ),
-        FilledButton.icon(
-          onPressed: controller.isOffline || controller.isBusy ? null : controller.startPractice,
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: Text(copy.t('start_practice')),
-        ),
-      ],
-    );
-  }
-}
-
 class _PracticeView extends StatelessWidget {
   const _PracticeView({required this.controller, required this.copy});
 
@@ -437,13 +399,15 @@ class _PracticeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final attempt = controller.attempt;
+    final canStartPractice = !controller.isOffline &&
+        (controller.lesson?.practiceQuizId.isNotEmpty ?? false);
     if (attempt == null) {
       return _StateView(
         icon: Icons.quiz_outlined,
         title: copy.t('practice'),
         body: copy.t('attempt_empty'),
-        actionLabel: controller.isOffline ? null : copy.t('start_practice'),
-        onAction: controller.isOffline ? null : controller.startPractice,
+        actionLabel: canStartPractice ? copy.t('start_practice') : null,
+        onAction: canStartPractice ? controller.startPractice : null,
       );
     }
 
