@@ -6,12 +6,12 @@
         </section>
         <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 class="text-lg font-semibold text-gray-950">Validate and install an update package</h2>
-            <p class="mt-1 text-sm text-gray-600">The package stays in private storage. Validation completes before any staging or release mutation. Update packages may be up to {{ $maxPackageMb }} MB.</p>
-            <form wire:submit="validatePackage" class="mt-4 space-y-3" x-data="{ uploadError: '' }" x-on:livewire-upload-start="uploadError = ''" x-on:livewire-upload-error="uploadError = 'The package upload was rejected before validation. Check the server PHP upload/post limits and choose the package again.'">
-                <input type="file" wire:model="package" accept=".zip,application/zip" required class="block w-full rounded-lg border border-gray-300 p-2" />
-                <p x-cloak x-show="uploadError" x-text="uploadError" class="text-sm text-danger-600" data-testid="update-upload-transport-error"></p>
-                @error('package') <p class="text-sm text-danger-600">{{ $message }}</p> @enderror
-                <x-filament::button type="submit" wire:loading.attr="disabled">Validate package</x-filament::button>
+            <p class="mt-1 text-sm text-gray-600">The package is uploaded directly to Laravel private storage, then validated before any staging or release mutation. Update packages may be up to {{ $maxPackageMb }} MB.</p>
+            <form method="POST" action="{{ route('system-updates.upload-package') }}" enctype="multipart/form-data" class="mt-4 space-y-3" data-testid="system-update-upload-form">
+                @csrf
+                <input type="file" name="package" accept=".zip,application/zip" required class="block w-full rounded-lg border border-gray-300 p-2" data-testid="system-update-package-input" />
+                @error('package') <p class="text-sm text-danger-600" data-testid="update-upload-error">{{ $message }}</p> @enderror
+                <x-filament::button type="submit">Validate package</x-filament::button>
             </form>
             @if($validationResult)
                 <div class="mt-4 rounded-xl p-4 {{ $validationResult['valid'] ? 'bg-success-50' : 'bg-danger-50' }}">
