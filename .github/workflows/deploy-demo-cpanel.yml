@@ -24,8 +24,8 @@ jobs:
       FTP_HOST: ftp.50sols.com
       FTP_USER: ${{ secrets.CPANEL_FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.CPANEL_FTP_PASSWORD }}
-      BRIDGE_URL: https://50sols.com
-      BRIDGE_HOST: 50sols.com
+      BRIDGE_URL: https://api.demo.modrik.org
+      BRIDGE_HOST: api.demo.modrik.org
       BRIDGE_ORIGIN_IP: 65.21.208.232
       DEMO_HOST: demo.modrik.org
       API_URL: https://api.demo.modrik.org
@@ -57,7 +57,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4.24
+          php-version: 8.4.25
           extensions: curl, fileinfo, intl, mbstring, openssl, pdo_mysql, zip
           coverage: none
           tools: composer:v2
@@ -101,18 +101,29 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends lftp >/dev/null
 
-      - name: Diagnose public Demo routing
+      - name: Diagnose Demo routing and verify API PHP origin
         shell: bash
         run: |
           set -euo pipefail
           public_ips="$(getent ahostsv4 "$DEMO_HOST" 2>/dev/null | awk '{print $1}' | sort -u | paste -sd, - || true)"
+          api_ips="$(getent ahostsv4 "$BRIDGE_HOST" 2>/dev/null | awk '{print $1}' | sort -u | paste -sd, - || true)"
           echo "MODRIK_DEMO_PUBLIC_IPV4=${public_ips:-unresolved}"
+          echo "MODRIK_DEMO_API_IPV4=${api_ips:-unresolved}"
           echo "MODRIK_DEMO_CPANEL_ORIGIN_IPV4=$BRIDGE_ORIGIN_IP"
           if [[ -n "$public_ips" ]] && printf '%s\n' "$public_ips" | tr ',' '\n' | grep -Fxq "$BRIDGE_ORIGIN_IP"; then
             echo 'MODRIK_DEMO_PUBLIC_DNS_INCLUDES_CPANEL_ORIGIN=true'
           else
             echo 'MODRIK_DEMO_PUBLIC_DNS_INCLUDES_CPANEL_ORIGIN=false'
           fi
+          if [[ -z "$api_ips" ]] || ! printf '%s\n' "$api_ips" | tr ',' '\n' | grep -Fxq "$BRIDGE_ORIGIN_IP"; then
+            echo 'MODRIK_DEMO_API_DNS_INCLUDES_CPANEL_ORIGIN=false' >&2
+            exit 1
+          fi
+          echo 'MODRIK_DEMO_API_DNS_INCLUDES_CPANEL_ORIGIN=true'
+          curl --fail --silent --show-error --max-time 20 \
+            --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
+            "$API_URL/up" >/dev/null
+          echo 'MODRIK_DEMO_API_ORIGIN_PHP_OK'
 
       - name: Prepare protected one-shot deployment bridge
         shell: bash
@@ -122,10 +133,14 @@ jobs:
           set -euo pipefail
           token="$(openssl rand -hex 32)"
           nonce="$(openssl rand -hex 12)"
-          bridge="modrik-deploy-$nonce.php"
-          token_file=".modrik-deploy-token-$nonce"
-          remote_package=".modrik-deploy-package-$nonce.zip"
-          remote_runner=".modrik-deploy-runner-$nonce.sh"
+          bridge_name="modrik-deploy-$nonce.php"
+          token_name=".modrik-deploy-token-$nonce"
+          package_name=".modrik-deploy-package-$nonce.zip"
+          runner_name=".modrik-deploy-runner-$nonce.sh"
+          remote_bridge="api.demo.modrik.org/public/$bridge_name"
+          remote_token_file="api.demo.modrik.org/$token_name"
+          remote_package="api.demo.modrik.org/$package_name"
+          remote_runner="api.demo.modrik.org/$runner_name"
           package_sha="$(sha256sum "$PACKAGE_ZIP" | awk '{print $1}')"
           runner_sha="$(sha256sum deploy/demo/deploy-demo-cpanel-remote.sh | awk '{print $1}')"
 
@@ -140,14 +155,6 @@ jobs:
           header('Content-Type: application/json; charset=utf-8');
           header('Cache-Control: no-store');
 
-          $expectedToken = trim((string) @file_get_contents(__DIR__ . '/__TOKEN_FILE__'));
-          $providedToken = (string) ($_SERVER['HTTP_X_MODRIK_DEPLOY_TOKEN'] ?? '');
-          if ($expectedToken === '' || !hash_equals($expectedToken, $providedToken)) {
-              http_response_code(404);
-              echo json_encode(['ok' => false]);
-              exit;
-          }
-
           $releaseSha = '__RELEASE_SHA__';
           $expectedPackageSha = '__PACKAGE_SHA__';
           $expectedRunnerSha = '__RUNNER_SHA__';
@@ -155,8 +162,16 @@ jobs:
           $home = '/home/solscool';
           $publicHtml = $home . '/public_html';
           $backendRoot = $publicHtml . '/api.demo.modrik.org';
-          $package = __DIR__ . '/__REMOTE_PACKAGE__';
-          $runner = __DIR__ . '/__REMOTE_RUNNER__';
+          $backendPublic = $backendRoot . '/public';
+          $package = $backendRoot . '/__PACKAGE_NAME__';
+          $runner = $backendRoot . '/__RUNNER_NAME__';
+          $expectedToken = trim((string) @file_get_contents($backendRoot . '/__TOKEN_NAME__'));
+          $providedToken = (string) ($_SERVER['HTTP_X_MODRIK_DEPLOY_TOKEN'] ?? '');
+          if ($expectedToken === '' || !hash_equals($expectedToken, $providedToken)) {
+              http_response_code(404);
+              echo json_encode(['ok' => false]);
+              exit;
+          }
 
           try {
               if (function_exists('set_time_limit')) {
@@ -167,9 +182,9 @@ jobs:
               }
 
               $bridgeRoot = realpath(__DIR__);
-              $expectedBridgeRoot = realpath($publicHtml);
+              $expectedBridgeRoot = realpath($backendPublic);
               if ($bridgeRoot === false || $expectedBridgeRoot === false || $bridgeRoot !== $expectedBridgeRoot) {
-                  throw new RuntimeException('Deployment bridge is not running from the expected cPanel public_html root.');
+                  throw new RuntimeException('Deployment bridge is not running from the expected MODRIK Backend public root.');
               }
               if (!is_dir($backendRoot) || !is_file($backendRoot . '/artisan')) {
                   throw new RuntimeException('MODRIK Backend root is unavailable.');
@@ -248,21 +263,22 @@ jobs:
           PHP
 
           sed -i \
-            -e "s|__TOKEN_FILE__|$token_file|g" \
+            -e "s|__TOKEN_NAME__|$token_name|g" \
             -e "s|__RELEASE_SHA__|$RELEASE_SHA|g" \
             -e "s|__PACKAGE_SHA__|$package_sha|g" \
             -e "s|__RUNNER_SHA__|$runner_sha|g" \
             -e "s|__BRIDGE_ORIGIN_IP__|$BRIDGE_ORIGIN_IP|g" \
-            -e "s|__REMOTE_PACKAGE__|$remote_package|g" \
-            -e "s|__REMOTE_RUNNER__|$remote_runner|g" \
+            -e "s|__PACKAGE_NAME__|$package_name|g" \
+            -e "s|__RUNNER_NAME__|$runner_name|g" \
             /tmp/modrik-deploy.php
 
           php -l /tmp/modrik-deploy.php >/dev/null
           echo 'MODRIK_DEPLOY_BRIDGE_PHP_LINT_OK'
 
           {
-            echo "REMOTE_BRIDGE=$bridge"
-            echo "REMOTE_TOKEN_FILE=$token_file"
+            echo "BRIDGE_REQUEST_PATH=$bridge_name"
+            echo "REMOTE_BRIDGE=$remote_bridge"
+            echo "REMOTE_TOKEN_FILE=$remote_token_file"
             echo "REMOTE_PACKAGE=$remote_package"
             echo "REMOTE_RUNNER=$remote_runner"
           } >> "$GITHUB_ENV"
@@ -288,7 +304,7 @@ jobs:
           "
           echo 'MODRIK_FTPS_UPLOAD_OK'
 
-      - name: Execute protected deployment bridge through web origin
+      - name: Execute protected deployment bridge through API PHP origin
         shell: bash
         env:
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
@@ -303,7 +319,7 @@ jobs:
             --max-time 290 \
             --resolve "$BRIDGE_HOST:443:$BRIDGE_ORIGIN_IP" \
             -H "X-MODRIK-Deploy-Token: $token" \
-            "$BRIDGE_URL/$REMOTE_BRIDGE")"
+            "$BRIDGE_URL/$BRIDGE_REQUEST_PATH")"
           curl_exit=$?
           set -e
           echo "bridge_curl_exit=$curl_exit"

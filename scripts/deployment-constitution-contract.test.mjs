@@ -13,6 +13,7 @@ const control = read("PROJECT_CONTROL.md");
 const runbook = read("deploy/demo/DEPLOY_CPANEL.md");
 const packager = read("scripts/package-demo-cpanel.sh");
 const remote = read("deploy/demo/deploy-demo-cpanel-remote.sh");
+const deployWorkflow = read(".github/workflows/deploy-demo-cpanel.yml");
 
 test("deployment constitution is referenced by agent and project governance", () => {
   assert.match(constitution, /GOV-DEPLOY-001/);
@@ -61,4 +62,21 @@ test("manual restart and blind restart-only success are constitutionally forbidd
   assert.match(constitution, /blind repeated restart\/stop\/start loops/);
   assert.match(agents, /Manual cPanel restart is emergency diagnostic\/recovery only/);
   assert.match(runbook, /Manual cPanel \*\*RESTART\*\* is emergency diagnostic\/recovery only/);
+});
+
+test("Demo deployment bridge uses the locked API PHP origin and keeps control payloads outside the public document root", () => {
+  assert.match(deployWorkflow, /BRIDGE_URL: https:\/\/api\.demo\.modrik\.org/);
+  assert.match(deployWorkflow, /BRIDGE_HOST: api\.demo\.modrik\.org/);
+  assert.doesNotMatch(deployWorkflow, /BRIDGE_URL: https:\/\/50sols\.com/);
+  assert.match(deployWorkflow, /curl --fail --silent --show-error --max-time 20[\s\S]*"\$API_URL\/up"/);
+  assert.match(deployWorkflow, /remote_bridge="api\.demo\.modrik\.org\/public\/\$bridge_name"/);
+  assert.match(deployWorkflow, /remote_token_file="api\.demo\.modrik\.org\/\$token_name"/);
+  assert.match(deployWorkflow, /remote_package="api\.demo\.modrik\.org\/\$package_name"/);
+  assert.match(deployWorkflow, /remote_runner="api\.demo\.modrik\.org\/\$runner_name"/);
+  assert.match(deployWorkflow, /\$backendPublic = \$backendRoot \. '\/public';/);
+  assert.match(deployWorkflow, /\$expectedToken = trim\(\(string\) @file_get_contents\(\$backendRoot \. '\/__TOKEN_NAME__'\)\);/);
+  assert.match(deployWorkflow, /\$package = \$backendRoot \. '\/__PACKAGE_NAME__';/);
+  assert.match(deployWorkflow, /\$runner = \$backendRoot \. '\/__RUNNER_NAME__';/);
+  assert.match(deployWorkflow, /Deployment bridge is not running from the expected MODRIK Backend public root/);
+  assert.match(deployWorkflow, /"\$BRIDGE_URL\/\$BRIDGE_REQUEST_PATH"/);
 });
