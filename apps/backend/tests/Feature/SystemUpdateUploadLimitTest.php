@@ -70,7 +70,7 @@ class SystemUpdateUploadLimitTest extends TestCase
             });
             $response->assertSessionHas('modrik.update.validated_update_id');
 
-            $this->assertDatabaseHas('system_update_histories', [
+            $this->assertDatabaseHas('system_update_history', [
                 'initiated_by' => $admin->id,
                 'to_version' => '0.1.1',
                 'release_sha' => str_repeat('a', 40),
