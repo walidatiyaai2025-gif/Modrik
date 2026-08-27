@@ -11,4 +11,6 @@ return [
     'upload_disk' => 'local',
     'upload_directory' => 'system-updates/uploads',
     'max_package_kb' => $maxPackageKb,
+    'php_binary' => env('MODRIK_UPDATE_PHP_BINARY'),
+    'minimum_php_version' => '8.4.1',
 ];
