@@ -6,29 +6,21 @@ use App\Filament\Support\AdminNavigationGroup;
 use App\Models\SystemUpdateHistory;
 use App\Models\User;
 use App\Services\Updates\TransactionalReleaseManager;
-use App\Services\Updates\UnifiedPackageValidator;
 use App\Services\Updates\UpdateExecutionResult;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Livewire\WithFileUploads;
 use RuntimeException;
 use Throwable;
 use UnitEnum;
 
 final class SystemUpdates extends Page
 {
-    use WithFileUploads;
-
     protected string $view = 'filament.pages.system-updates';
 
     protected static ?string $slug = 'system-updates';
 
     protected static string|UnitEnum|null $navigationGroup = AdminNavigationGroup::Operations;
-
-    public ?TemporaryUploadedFile $package = null;
 
     /** @var array<string,mixed>|null */
     public ?array $validationResult = null;
@@ -37,6 +29,15 @@ final class SystemUpdates extends Page
 
     /** @var array<string,mixed>|null */
     public ?array $installationResult = null;
+
+    public function mount(): void
+    {
+        $validationResult = session()->pull('modrik.update.validation_result');
+        $validatedUpdateId = session()->pull('modrik.update.validated_update_id');
+
+        $this->validationResult = is_array($validationResult) ? $validationResult : null;
+        $this->validatedUpdateId = is_string($validatedUpdateId) ? $validatedUpdateId : null;
+    }
 
     public static function canAccess(): bool
     {
@@ -60,47 +61,6 @@ final class SystemUpdates extends Page
     public function getTitle(): string
     {
         return self::getNavigationLabel();
-    }
-
-    public function validatePackage(UnifiedPackageValidator $validator): void
-    {
-        $maxPackageKb = (int) config('updates.max_package_kb', 131072);
-        $this->validate(['package' => ['required', 'file', 'max:'.$maxPackageKb]]);
-        $package = $this->package;
-        if (! $package instanceof TemporaryUploadedFile) {
-            $this->addError('package', 'The temporary upload is no longer available. Please choose the package again.');
-
-            return;
-        }
-        $key = Str::random(48).'.zip';
-        $directory = (string) config('updates.upload_directory', 'system-updates/uploads');
-        $disk = (string) config('updates.upload_disk', 'local');
-        $stored = $package->storeAs($directory, $key, $disk);
-        $package->delete();
-        $this->package = null;
-        if (! is_string($stored)) {
-            $this->addError('package', 'The package could not be placed in private update storage.');
-
-            return;
-        }
-
-        $archive = Storage::disk($disk)->path($stored);
-        $result = $validator->validate($archive, $this->currentVersion());
-        $this->validationResult = $result->toArray();
-        $history = SystemUpdateHistory::query()->create([
-            'initiated_by' => auth()->id(), 'from_version' => $this->currentVersion(),
-            'to_version' => $result->manifest['version'] ?? null, 'release_sha' => $result->manifest['release_sha'] ?? null,
-            'status' => $result->valid ? 'validated' : 'validation_failed',
-            'package_storage_key' => $result->valid ? $key : null,
-            'safe_details' => ['errors' => array_map(fn (array $e) => ['code' => $e['code'], 'path' => $e['path'] ?? null], $result->errors)],
-            'completed_at' => $result->valid ? null : now(),
-        ]);
-        if ($result->valid) {
-            $this->validatedUpdateId = (string) $history->getKey();
-        } else {
-            Storage::disk($disk)->delete($stored);
-            $this->validatedUpdateId = null;
-        }
     }
 
     public function installUpdate(TransactionalReleaseManager $manager): void
