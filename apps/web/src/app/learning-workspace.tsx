@@ -8,7 +8,6 @@ import {
   type Attempt,
   type AttemptResult,
   type CatalogueAssessment,
-  type CatalogueLesson,
   type CatalogueNode,
   type ContentCatalogue,
   type Lesson,
@@ -88,10 +87,6 @@ function acknowledge(scope: string) {
   window.localStorage.removeItem(`modrik.student.command.${scope}`);
 }
 
-function flattenLessons(node: CatalogueNode): CatalogueLesson[] {
-  return [node.lessons, ...node.children.map(flattenLessons)].flat();
-}
-
 function flattenAssessments(node: CatalogueNode): CatalogueAssessment[] {
   return [node.assessments, ...node.children.map(flattenAssessments)].flat();
 }
@@ -127,10 +122,6 @@ export default function LearningWorkspace() {
       ?? null;
   }, [catalogue, selectedSubjectReference]);
 
-  const allLessons = useMemo(
-    () => selectedSubject ? flattenLessons(selectedSubject) : [],
-    [selectedSubject],
-  );
   const allAssessments = useMemo(
     () => selectedSubject ? flattenAssessments(selectedSubject) : [],
     [selectedSubject],
