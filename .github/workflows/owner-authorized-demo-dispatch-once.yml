@@ -1,7 +1,7 @@
 name: Owner-authorized one-shot Demo dispatch
 
 # One-shot dispatch checkpoint for Issue #260 latest-main Demo verification.
-# Re-armed after PR #323 Student Content Catalogue integration for Demo-only acceptance.
+# Re-armed after API-origin deployment bridge repair for Demo-only acceptance.
 on:
   push:
     branches:
