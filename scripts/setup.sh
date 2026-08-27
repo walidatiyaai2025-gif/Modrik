@@ -12,7 +12,7 @@ assert_version() {
   fi
 }
 
-assert_version PHP "$(php -r 'echo PHP_VERSION;')" 8.4.24
+assert_version PHP "$(php -r 'echo PHP_VERSION;')" 8.4.25
 assert_version Node.js "$(node -p 'process.versions.node')" 22.23.2
 assert_version npm "$(npm --version)" 10.9.8
 
