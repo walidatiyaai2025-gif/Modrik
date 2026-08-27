@@ -68,8 +68,8 @@ jobs:
           test -f deploy/unified/release-manifest.schema.json
           php -r '$m=json_decode(file_get_contents(".runtime/unified-release/manifest.json"), true, 512, JSON_THROW_ON_ERROR); if (($m["package_format_version"] ?? null)!==1 || ($m["product"] ?? null)!=="MODRIK" || !preg_match("/^[0-9a-f]{40}$/i", $m["release_sha"] ?? "")) exit(1);'
           php -r '$r=".runtime/unified-release"; foreach(json_decode(file_get_contents($r."/checksums.json"),true,512,JSON_THROW_ON_ERROR) as $p=>$h) if(!hash_equals($h,hash_file("sha256",$r."/".$p))) exit(1);'
-          if find "$root" -type f -name '.env' -print -quit | grep -q .; then
-            echo 'Live .env leaked into unified release' >&2
+          if find "$root" -type f -name '.env*' -print -quit | grep -q .; then
+            echo 'Environment/secret file leaked into unified release' >&2
             exit 1
           fi
           zip_file="$(find .runtime -maxdepth 1 -type f -name 'modrik-release-*.zip' -print -quit)"
@@ -78,6 +78,10 @@ jobs:
           unzip -Z1 "$zip_file" | grep -q '^checksums.json$'
           unzip -Z1 "$zip_file" | grep -q '^payload/web/server.js$'
           unzip -Z1 "$zip_file" | grep -q '^payload/backend/artisan$'
+          if unzip -Z1 "$zip_file" | grep -E '(^|/)\.env([^/]*$)' -q; then
+            echo 'Environment/secret file leaked into unified release ZIP' >&2
+            exit 1
+          fi
 
       - name: Upload unified MODRIK release
         uses: actions/upload-artifact@v4
