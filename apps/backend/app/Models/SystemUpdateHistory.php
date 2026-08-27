@@ -13,8 +13,10 @@ final class SystemUpdateHistory extends Model
 
     protected $guarded = [];
 
+    protected $hidden = ['package_storage_key'];
+
     protected function casts(): array
     {
-        return ['safe_details' => 'array'];
+        return ['safe_details' => 'array', 'started_at' => 'datetime', 'completed_at' => 'datetime'];
     }
 }

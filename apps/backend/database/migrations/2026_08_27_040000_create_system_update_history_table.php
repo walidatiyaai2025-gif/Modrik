@@ -15,7 +15,10 @@ return new class extends Migration
             $table->string('to_version', 64)->nullable();
             $table->char('release_sha', 40)->nullable();
             $table->string('status', 48);
+            $table->string('package_storage_key', 96)->nullable();
             $table->json('safe_details')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('completed_at')->nullable();
             $table->timestamps();
             $table->index(['status', 'created_at']);
         });

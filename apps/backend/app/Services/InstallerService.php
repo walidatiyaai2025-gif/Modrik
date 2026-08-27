@@ -2,19 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 
 final class InstallerService
 {
+    public function __construct(private InstallerRuntime $runtime, private InstallationStateService $state) {}
+
     /** @param array{db_host:string,db_port:int,db_database:string,db_username:string,db_password:string,app_url:string,web_url:string,admin_email:string,admin_password:string,release_sha:string} $input */
     public function install(array $input): void
     {
-        $envPath = base_path('.env');
+        $envPath = (string) config('installer.env_path', base_path('.env'));
         if (is_file($envPath)) {
             throw new RuntimeException('Existing Backend .env requires explicit operator recovery; installer will not overwrite it.');
         }
@@ -26,20 +24,9 @@ final class InstallerService
             throw new RuntimeException('Unable to persist Backend configuration.');
         }
         try {
-            $this->applyDatabaseConfig($input);
-            DB::connection()->getPdo();
-            if (Artisan::call('migrate', ['--force' => true]) !== 0) {
-                throw new RuntimeException('Database migration failed.');
-            }
-            DB::transaction(function () use ($input): void {
-                if (User::query()->where('role', 'admin')->exists()) {
-                    throw new RuntimeException('An Admin account already exists.');
-                }
-                User::query()->create(['name' => 'MODRIK Admin', 'email' => $input['admin_email'], 'email_normalized' => mb_strtolower($input['admin_email']), 'email_verified_at' => now(), 'locale' => 'en', 'role' => 'admin', 'account_status' => 'active', 'password' => Hash::make($input['admin_password']), 'password_enabled' => true]);
-            });
+            $this->runtime->migrateAndCreateAdmin($input);
             File::ensureDirectoryExists(storage_path('app/private'), 0700);
-            Artisan::call('config:clear');
-            app(InstallationStateService::class)->lock($input['release_sha']);
+            $this->state->lock($input['release_sha']);
         } catch (\Throwable $exception) {
             @unlink($envPath);
             throw $exception;
@@ -49,16 +36,7 @@ final class InstallerService
     /** @param array<string,mixed> $input */
     public function testDatabase(array $input): void
     {
-        $this->applyDatabaseConfig($input);
-        DB::purge();
-        DB::connection()->getPdo();
-    }
-
-    /** @param array<string,mixed> $input */
-    private function applyDatabaseConfig(array $input): void
-    {
-        config(['database.default' => 'mysql', 'database.connections.mysql.host' => $input['db_host'], 'database.connections.mysql.port' => $input['db_port'], 'database.connections.mysql.database' => $input['db_database'], 'database.connections.mysql.username' => $input['db_username'], 'database.connections.mysql.password' => $input['db_password']]);
-        DB::purge('mysql');
+        $this->runtime->testDatabase($input);
     }
 
     /** @param array<string,mixed> $input */
