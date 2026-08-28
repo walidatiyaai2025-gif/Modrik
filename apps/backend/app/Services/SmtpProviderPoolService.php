@@ -50,7 +50,7 @@ final class SmtpProviderPoolService
     }
 
     /**
-     * @param array{name: string, host: string, port: int, scheme: ?string, username: ?string, password: ?string, from_address: string, from_name: string, is_enabled: bool, reason: string} $input
+     * @param  array{name: string, host: string, port: int, scheme: ?string, username: ?string, password: ?string, from_address: string, from_name: string, is_enabled: bool, reason: string}  $input
      */
     public function save(User $actor, array $input, ?string $providerId = null): string
     {
@@ -283,8 +283,8 @@ final class SmtpProviderPoolService
     }
 
     /**
-     * @param null|array<string, mixed> $before
-     * @param null|array<string, mixed> $after
+     * @param  null|array<string, mixed>  $before
+     * @param  null|array<string, mixed>  $after
      */
     private function audit(User $actor, string $providerId, string $action, ?array $before, ?array $after, string $reason): void
     {
