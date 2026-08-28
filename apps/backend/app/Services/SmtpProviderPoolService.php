@@ -13,7 +13,7 @@ use Throwable;
 
 final class SmtpProviderPoolService
 {
-    /** @return list<array<string, mixed>> */
+    /** @return array<int, array<string, mixed>> */
     public function providers(): array
     {
         return DB::table('smtp_providers')
@@ -25,7 +25,7 @@ final class SmtpProviderPoolService
             ->all();
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return array<int, array<string, mixed>> */
     public function audits(): array
     {
         return DB::table('smtp_provider_audits')
@@ -46,6 +46,7 @@ final class SmtpProviderPoolService
                 'occurred_at' => (string) $row->occurred_at,
                 'actor' => is_string($row->actor_email) ? $row->actor_email : null,
             ])
+            ->values()
             ->all();
     }
 
@@ -163,7 +164,7 @@ final class SmtpProviderPoolService
         return DB::table('smtp_providers')->where('is_enabled', true)->count();
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return array<int, array<string, mixed>> */
     public function deliveryCandidates(): array
     {
         $providers = DB::table('smtp_providers')
@@ -182,7 +183,7 @@ final class SmtpProviderPoolService
         return (new Randomizer)->shuffleArray($providers);
     }
 
-    /** @param array<string, mixed> $provider */
+    /** @param  array<string, mixed>  $provider */
     public function configureMailer(array $provider): string
     {
         $name = $this->mailerName((string) $provider['id']);
@@ -202,7 +203,7 @@ final class SmtpProviderPoolService
         return $name;
     }
 
-    /** @return null|array<string, mixed> */
+    /** @return array<string, mixed>|null */
     public function safeProviderById(string $providerId): ?array
     {
         $row = DB::table('smtp_providers')->where('id', $providerId)->first();
@@ -210,6 +211,7 @@ final class SmtpProviderPoolService
         return $row === null ? null : $this->safeProvider((array) $row);
     }
 
+    /** @return array<string, mixed>|null */
     private function providerForDelivery(string $providerId): ?array
     {
         $row = DB::table('smtp_providers')->where('id', $providerId)->first();
@@ -217,7 +219,10 @@ final class SmtpProviderPoolService
         return $row === null ? null : $this->internalProvider((array) $row);
     }
 
-    /** @param array<string, mixed> $row */
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>|null
+     */
     private function internalProvider(array $row): ?array
     {
         try {
@@ -239,7 +244,10 @@ final class SmtpProviderPoolService
         ];
     }
 
-    /** @param array<string, mixed> $row */
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
     private function safeProvider(array $row): array
     {
         return [
@@ -283,8 +291,8 @@ final class SmtpProviderPoolService
     }
 
     /**
-     * @param  null|array<string, mixed>  $before
-     * @param  null|array<string, mixed>  $after
+     * @param  array<string, mixed>|null  $before
+     * @param  array<string, mixed>|null  $after
      */
     private function audit(User $actor, string $providerId, string $action, ?array $before, ?array $after, string $reason): void
     {
@@ -302,7 +310,7 @@ final class SmtpProviderPoolService
         ]);
     }
 
-    /** @param null|array<string, mixed> $value */
+    /** @param  array<string, mixed>|null  $value */
     private function encodeNullable(?array $value): ?string
     {
         if ($value === null) {
