@@ -13,7 +13,7 @@ final class TransactionalReleaseManager
         private WebRestartAdapter $restart,
         private BackendReleaseOperator $backend,
         private ActivationHealthChecker $health,
-        private CpanelLivePayloadActivator $live,
+        private LivePayloadActivator $live,
     ) {}
 
     public function install(string $archive, string $root, ?string $currentVersion = null): UpdateExecutionResult
