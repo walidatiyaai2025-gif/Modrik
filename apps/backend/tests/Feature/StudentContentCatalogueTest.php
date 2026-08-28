@@ -72,6 +72,34 @@ class StudentContentCatalogueTest extends TestCase
         $this->assertStringNotContainsString($draftQuizId, $content);
     }
 
+    public function test_catalogue_hides_published_quiz_until_it_has_an_eligible_published_question(): void
+    {
+        $emptyQuizId = (string) Str::ulid();
+        DB::table('quizzes')->insert([
+            'id' => $emptyQuizId,
+            'curriculum_node_id' => LearningSliceSeeder::TOPIC_NODE_ID,
+            'kind' => 'quiz',
+            'blueprint_version' => 1,
+            'title' => json_encode([
+                'en' => 'Published but empty quiz',
+                'ar' => 'اختبار منشور بلا أسئلة',
+                'fr' => 'Quiz publié sans questions',
+            ], JSON_THROW_ON_ERROR),
+            'status' => 'published',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->withToken(self::TOKEN)->getJson('/v1/content-catalogue')
+            ->assertOk()
+            ->assertJsonPath('data.subjects.0.children.0.assessments.0.id', LearningSliceSeeder::QUIZ_ID)
+            ->assertJsonPath('data.counts.assessments', 1);
+
+        $content = $response->getContent();
+        $this->assertIsString($content);
+        $this->assertStringNotContainsString($emptyQuizId, $content);
+    }
+
     public function test_catalogue_supports_subject_filter_and_rejects_invalid_reference(): void
     {
         $this->withToken(self::TOKEN)
