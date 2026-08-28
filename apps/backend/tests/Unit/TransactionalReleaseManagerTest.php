@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\Updates\ActivationHealthChecker;
+use App\Services\Updates\LivePayloadActivator;
 use App\Services\Updates\RestartResult;
 use App\Services\Updates\TransactionalReleaseManager;
 use App\Services\Updates\UnifiedPackageValidator;
@@ -27,6 +28,7 @@ final class TransactionalReleaseManagerTest extends TestCase
         $this->assertSame('shared-data', file_get_contents($root.'/shared/uploads/user.txt'));
         $this->assertFileExists($root.'/current/payload/web/server.js');
         $this->assertFileDoesNotExist($root.'/shared/maintenance.json');
+        $this->assertFileDoesNotExist($root.'/shared/pending-activation.json');
         $this->assertStringContainsString(str_repeat('a', 40), (string) file_get_contents($root.'/release.json'));
     }
 
@@ -40,14 +42,18 @@ final class TransactionalReleaseManagerTest extends TestCase
         $this->assertFalse($result->details['database_rollback_attempted']);
     }
 
-    public function test_unconfirmed_restart_restores_previous_code_and_requires_host_action(): void
+    public function test_unconfirmed_restart_retains_candidate_for_explicit_host_confirmation(): void
     {
         [$root, $manager] = $this->harness(restart: 'requires_host_action');
         $result = $manager->install($this->unifiedUpdatePackage(), $root, '1.0.0');
 
         $this->assertSame(UpdateExecutionResult::REQUIRES_HOST_ACTION, $result->status);
-        $this->assertTrue($result->details['code_rolled_back']);
-        $this->assertSame('old', file_get_contents($root.'/current/marker.txt'));
+        $this->assertTrue($result->details['live_activated']);
+        $this->assertTrue($result->details['pending_confirmation']);
+        $this->assertFileExists($root.'/current/payload/web/server.js');
+        $this->assertFileDoesNotExist($root.'/current/marker.txt');
+        $this->assertFileExists($root.'/shared/pending-activation.json');
+        $this->assertSame(str_repeat('a', 40), $manager->pendingActivation($root)['release_sha'] ?? null);
     }
 
     public function test_failed_health_check_rolls_code_back(): void
@@ -57,6 +63,7 @@ final class TransactionalReleaseManagerTest extends TestCase
 
         $this->assertSame(UpdateExecutionResult::ROLLED_BACK, $result->status);
         $this->assertSame('old', file_get_contents($root.'/current/marker.txt'));
+        $this->assertFileDoesNotExist($root.'/shared/pending-activation.json');
     }
 
     public function test_concurrent_update_is_rejected_before_validation_or_mutation(): void
@@ -105,8 +112,30 @@ final class TransactionalReleaseManagerTest extends TestCase
                 return $this->result;
             }
         };
+        $live = new class implements LivePayloadActivator
+        {
+            public function activate(string $releasePath, string $runtimeRoot, string $releaseId, string $releaseSha): array
+            {
+                return ['backup_path' => $runtimeRoot.'/live-backup', 'previous_release_sha' => null];
+            }
 
-        return [$root, new TransactionalReleaseManager(app(UnifiedPackageValidator::class), $restartAdapter, $backend, $health), $backend];
+            public function liveContains(string $releaseSha): bool
+            {
+                return true;
+            }
+
+            public function runtimeHealthy(string $releaseSha): bool
+            {
+                return true;
+            }
+
+            public function rollback(string $backupPath, ?string $previousReleaseSha): bool
+            {
+                return true;
+            }
+        };
+
+        return [$root, new TransactionalReleaseManager(app(UnifiedPackageValidator::class), $restartAdapter, $backend, $health, $live), $backend];
     }
 
     private function deleteDirectory(string $directory): void
