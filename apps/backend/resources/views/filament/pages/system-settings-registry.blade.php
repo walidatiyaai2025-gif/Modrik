@@ -3,7 +3,6 @@
     @php($rtl = $locale === 'ar')
     @php($groups = $this->groupedDefinitions())
     @php($history = $this->selectedHistory())
-    @php($confirmSave = $locale === 'ar' ? 'تأكيد حفظ إصدار إعداد جديد؟ سيُسجل المنفذ والسبب والتوقيت في سجل التدقيق.' : ($locale === 'fr' ? 'Confirmer l’enregistrement d’une nouvelle version ? L’acteur, le motif et l’horodatage seront audités.' : 'Confirm saving a new setting version? Actor, reason and timestamp will be audit recorded.'))
     @php($confirmRestore = $locale === 'ar' ? 'تأكيد الاستعادة؟ لن يُمسح التاريخ؛ سيتم إنشاء إصدار جديد من القيمة السابقة.' : ($locale === 'fr' ? 'Confirmer la restauration ? L’historique ne sera pas réécrit ; une nouvelle version sera créée.' : 'Confirm restore? History will not be rewritten; a new version will be created from the prior value.'))
 
     <div class="space-y-6" dir="{{ $rtl ? 'rtl' : 'ltr' }}" data-testid="modrik-system-settings">
@@ -57,13 +56,33 @@
                                     <span class="text-xs font-medium text-gray-700">{{ $locale === 'ar' ? 'سبب التغيير' : ($locale === 'fr' ? 'Motif du changement' : 'Change reason') }}</span>
                                     <input wire:model="reasons.{{ $stateKey }}" type="text" class="mt-1 block w-full rounded-lg border-gray-300 text-sm" placeholder="{{ $locale === 'ar' ? 'سبب واضح للتدقيق...' : ($locale === 'fr' ? 'Motif clair pour l’audit...' : 'Clear audit reason...' ) }}" />
                                 </label>
+                                @error('reasons.'.$stateKey)<span class="block text-xs text-danger-600" role="alert">{{ $message }}</span>@enderror
                                 @error('values.'.$stateKey)<span class="block text-xs text-danger-600" role="alert">{{ $message }}</span>@enderror
 
-                                <div class="flex flex-wrap justify-end gap-2">
-                                    <x-filament::button type="button" wire:click="saveSetting('{{ $key }}')" wire:confirm="{{ $confirmSave }}">
-                                        {{ $locale === 'ar' ? 'حفظ إصدار جديد' : ($locale === 'fr' ? 'Enregistrer une nouvelle version' : 'Save new version') }}
-                                    </x-filament::button>
-                                </div>
+                                @if ($pendingSaveKey === $key)
+                                    <div class="rounded-xl border border-warning-200 bg-warning-50 p-3" data-testid="system-setting-save-confirmation">
+                                        <p class="text-sm font-semibold text-gray-950">
+                                            {{ $locale === 'ar' ? 'تأكيد حفظ هذا التغيير؟' : ($locale === 'fr' ? 'Confirmer l’enregistrement de cette modification ?' : 'Confirm saving this change?') }}
+                                        </p>
+                                        <p class="mt-1 text-xs leading-5 text-gray-600">
+                                            {{ $locale === 'ar' ? 'سيتم إنشاء إصدار جديد وتسجيل المنفذ والسبب والتوقيت في سجل التدقيق.' : ($locale === 'fr' ? 'Une nouvelle version sera créée et l’acteur, le motif et l’horodatage seront consignés.' : 'A new version will be created and the actor, reason and timestamp will be audit recorded.') }}
+                                        </p>
+                                        <div class="mt-3 flex flex-wrap justify-end gap-2">
+                                            <x-filament::button type="button" size="sm" color="gray" wire:click="cancelSave">
+                                                {{ $locale === 'ar' ? 'إلغاء' : ($locale === 'fr' ? 'Annuler' : 'Cancel') }}
+                                            </x-filament::button>
+                                            <x-filament::button type="button" size="sm" wire:click="confirmSave" wire:loading.attr="disabled">
+                                                {{ $locale === 'ar' ? 'تأكيد الحفظ' : ($locale === 'fr' ? 'Confirmer' : 'Confirm save') }}
+                                            </x-filament::button>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="flex flex-wrap justify-end gap-2">
+                                        <x-filament::button type="button" wire:click="requestSave('{{ $key }}')" wire:loading.attr="disabled">
+                                            {{ $locale === 'ar' ? 'حفظ إصدار جديد' : ($locale === 'fr' ? 'Enregistrer une nouvelle version' : 'Save new version') }}
+                                        </x-filament::button>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach
