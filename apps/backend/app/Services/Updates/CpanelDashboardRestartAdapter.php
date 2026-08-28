@@ -31,7 +31,9 @@ final class CpanelDashboardRestartAdapter implements WebRestartAdapter
         $restartDirectory = $webRoot.DIRECTORY_SEPARATOR.'tmp';
         try {
             File::ensureDirectoryExists($restartDirectory);
-            File::touch($restartDirectory.DIRECTORY_SEPARATOR.'restart.txt');
+            if (! @touch($restartDirectory.DIRECTORY_SEPARATOR.'restart.txt')) {
+                throw new RuntimeException('restart_marker_unavailable');
+            }
         } catch (Throwable) {
             return RestartResult::requiresHostAction(
                 'The live release is active, but the application could not place the cPanel restart marker.',
