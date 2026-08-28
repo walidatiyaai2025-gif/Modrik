@@ -7,6 +7,7 @@ use App\Services\Updates\LivePayloadActivator;
 use App\Services\Updates\RestartResult;
 use App\Services\Updates\WebRestartAdapter;
 use Illuminate\Support\Facades\File;
+use RuntimeException;
 use Tests\TestCase;
 
 final class GovernedDemoRestartAdapterTest extends TestCase
@@ -22,7 +23,7 @@ final class GovernedDemoRestartAdapterTest extends TestCase
         $release = $this->candidateRelease($releaseSha);
         $webRoot = $this->webRoot();
         config(['updates.live_web_root' => $webRoot]);
-        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(false, false));
+        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(false));
 
         $result = $adapter->restart($release);
 
@@ -31,26 +32,28 @@ final class GovernedDemoRestartAdapterTest extends TestCase
         $this->assertFileDoesNotExist($webRoot.'/tmp/restart.txt');
     }
 
-    public function test_verified_live_payload_uses_standard_cpanel_restart_marker(): void
+    public function test_verified_live_payload_writes_marker_and_requires_explicit_cpanel_confirmation(): void
     {
         $releaseSha = str_repeat('b', 40);
         $release = $this->candidateRelease($releaseSha);
         $webRoot = $this->webRoot();
         config(['updates.live_web_root' => $webRoot]);
-        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(true, true));
+        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(true));
 
         $result = $adapter->restart($release);
 
-        $this->assertSame(RestartResult::STATUS_SUCCEEDED, $result->status);
+        $this->assertSame(RestartResult::STATUS_REQUIRES_HOST_ACTION, $result->status);
+        $this->assertSame('cpanel_restart_confirmation_required', $result->details['reason'] ?? null);
         $this->assertSame($releaseSha, $result->details['release_sha'] ?? null);
+        $this->assertTrue($result->details['restart_marker_written'] ?? false);
         $this->assertFileExists($webRoot.'/tmp/restart.txt');
     }
 
-    private function liveActivator(bool $contains, bool $healthy): LivePayloadActivator
+    private function liveActivator(bool $contains): LivePayloadActivator
     {
-        return new class($contains, $healthy) implements LivePayloadActivator
+        return new class($contains) implements LivePayloadActivator
         {
-            public function __construct(private bool $contains, private bool $healthy) {}
+            public function __construct(private bool $contains) {}
 
             public function activate(string $releasePath, string $runtimeRoot, string $releaseId, string $releaseSha): array
             {
@@ -64,7 +67,7 @@ final class GovernedDemoRestartAdapterTest extends TestCase
 
             public function runtimeHealthy(string $releaseSha): bool
             {
-                return $this->healthy;
+                throw new RuntimeException('cPanel restart adapter must not self-poll runtime health');
             }
 
             public function rollback(string $backupPath, ?string $previousReleaseSha): bool

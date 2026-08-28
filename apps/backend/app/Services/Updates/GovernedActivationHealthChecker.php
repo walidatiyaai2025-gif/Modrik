@@ -3,13 +3,10 @@
 namespace App\Services\Updates;
 
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\Process\Process;
 use Throwable;
 
 final class GovernedActivationHealthChecker implements ActivationHealthChecker
 {
-    public function __construct(private UpdatePhpBinaryResolver $phpBinary) {}
-
     public function healthy(string $releasePath, string $expectedReleaseSha): bool
     {
         $backend = $releasePath.DIRECTORY_SEPARATOR.'payload'.DIRECTORY_SEPARATOR.'backend';
@@ -30,10 +27,18 @@ final class GovernedActivationHealthChecker implements ActivationHealthChecker
 
         try {
             DB::connection()->getPdo();
-            $migrationState = new Process([$this->phpBinary->resolve(), 'artisan', 'migrate:status', '--no-ansi'], $backend, timeout: 120);
-            $migrationState->run();
 
-            return $migrationState->isSuccessful();
+            $migrationFiles = glob($backend.DIRECTORY_SEPARATOR.'database'.DIRECTORY_SEPARATOR.'migrations'.DIRECTORY_SEPARATOR.'*.php') ?: [];
+            $expectedMigrations = array_map(
+                static fn (string $path): string => pathinfo($path, PATHINFO_FILENAME),
+                $migrationFiles,
+            );
+            $appliedMigrations = array_values(array_filter(
+                DB::table('migrations')->pluck('migration')->all(),
+                static fn (mixed $migration): bool => is_string($migration) && $migration !== '',
+            ));
+
+            return array_diff($expectedMigrations, $appliedMigrations) === [];
         } catch (Throwable) {
             return false;
         }

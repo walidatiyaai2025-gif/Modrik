@@ -10,7 +10,7 @@ use App\Services\Updates\ActivationHealthChecker;
 use App\Services\Updates\BackendReleaseOperator;
 use App\Services\Updates\CommandBackendReleaseOperator;
 use App\Services\Updates\CpanelDashboardRestartAdapter;
-use App\Services\Updates\CpanelLivePayloadActivator;
+use App\Services\Updates\CpanelSafeLivePayloadActivator;
 use App\Services\Updates\GovernedActivationHealthChecker;
 use App\Services\Updates\LivePayloadActivator;
 use App\Services\Updates\WebRestartAdapter;
@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(ProviderIdentityVerifier::class, PendingProviderIdentityVerifier::class);
         $this->app->bind(DiagnosticSink::class, DatabaseDiagnosticSink::class);
-        $this->app->bind(LivePayloadActivator::class, CpanelLivePayloadActivator::class);
+        $this->app->bind(LivePayloadActivator::class, CpanelSafeLivePayloadActivator::class);
         $this->app->bind(WebRestartAdapter::class, CpanelDashboardRestartAdapter::class);
         $this->app->bind(BackendReleaseOperator::class, CommandBackendReleaseOperator::class);
         $this->app->bind(ActivationHealthChecker::class, GovernedActivationHealthChecker::class);
