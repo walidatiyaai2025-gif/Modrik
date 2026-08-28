@@ -45,7 +45,7 @@ final class RuntimeInspectorServiceTest extends TestCase
     public function test_runtime_summary_exposes_safe_smtp_state_without_credentials(): void
     {
         DB::table('smtp_providers')->insert([
-            'id' => '01JSMTPINSPECTOR00000000001',
+            'id' => '01J00000000000000000000000',
             'name' => 'Primary SMTP',
             'host' => 'mail.modrik.org',
             'port' => 587,
