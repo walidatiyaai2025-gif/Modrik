@@ -5,7 +5,7 @@ namespace App\Services\Updates;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
 
-final class CpanelLivePayloadActivator
+final class CpanelLivePayloadActivator implements LivePayloadActivator
 {
     /**
      * @return array{backup_path:string,previous_release_sha:?string}
