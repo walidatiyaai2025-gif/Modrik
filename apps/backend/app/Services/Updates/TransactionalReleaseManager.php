@@ -47,7 +47,7 @@ final class TransactionalReleaseManager
             $zip->close();
             $candidate = $root.DIRECTORY_SEPARATOR.'releases'.DIRECTORY_SEPARATOR.$releaseId.'-'.bin2hex(random_bytes(4));
             File::ensureDirectoryExists(dirname($candidate), 0700);
-            if (!@rename($staging, $candidate)) {
+            if (! @rename($staging, $candidate)) {
                 throw new RuntimeException('candidate_move_failed');
             }
 
@@ -67,10 +67,10 @@ final class TransactionalReleaseManager
             }
 
             $previous = is_dir($current) ? $root.DIRECTORY_SEPARATOR.'releases'.DIRECTORY_SEPARATOR.'.previous-'.bin2hex(random_bytes(6)) : null;
-            if ($previous !== null && !@rename($current, $previous)) {
+            if ($previous !== null && ! @rename($current, $previous)) {
                 throw new RuntimeException('current_backup_failed');
             }
-            if (!@rename($candidate, $current)) {
+            if (! @rename($candidate, $current)) {
                 if ($previous !== null) {
                     @rename($previous, $current);
                 }
@@ -209,7 +209,7 @@ final class TransactionalReleaseManager
     private function rollbackCode(string $root, string $current, ?string $previous, string $releaseId): bool
     {
         $failed = $root.DIRECTORY_SEPARATOR.'releases'.DIRECTORY_SEPARATOR.$releaseId.'-failed-'.bin2hex(random_bytes(4));
-        if (is_dir($current) && !@rename($current, $failed)) {
+        if (is_dir($current) && ! @rename($current, $failed)) {
             return false;
         }
 
@@ -231,7 +231,7 @@ final class TransactionalReleaseManager
     }
 
     /**
-     * @param array{release_id:string,version:string,release_sha:string,current:string,previous:?string,backup_path:string,previous_release_sha:?string,activated_at:string} $pending
+     * @param  array{release_id:string,version:string,release_sha:string,current:string,previous:?string,backup_path:string,previous_release_sha:?string,activated_at:string}  $pending
      */
     private function writePendingActivation(string $root, array $pending): void
     {
