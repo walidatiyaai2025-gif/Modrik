@@ -123,9 +123,12 @@ final class AcademicTrackCatalogueService
             return null;
         }
 
-        $labels = [];
+        $validated = [];
         foreach (self::LOCALES as $locale) {
             $candidate = $decoded[$locale] ?? null;
+            if ($candidate === null || $candidate === '') {
+                continue;
+            }
             if (! is_string($candidate)) {
                 return null;
             }
@@ -135,10 +138,23 @@ final class AcademicTrackCatalogueService
                 return null;
             }
 
-            $labels[$locale] = $label;
+            $validated[$locale] = $label;
         }
 
-        return $labels;
+        if ($validated === []) {
+            return null;
+        }
+
+        $fallback = $validated['en'] ?? $validated['ar'] ?? $validated['fr'] ?? null;
+        if (! is_string($fallback) || $fallback === '') {
+            return null;
+        }
+
+        return [
+            'ar' => $validated['ar'] ?? $fallback,
+            'en' => $validated['en'] ?? $fallback,
+            'fr' => $validated['fr'] ?? $fallback,
+        ];
     }
 
     private function containsUnsafeMarkupOrControls(string $label): bool
