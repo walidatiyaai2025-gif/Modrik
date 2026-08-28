@@ -9,8 +9,8 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 use UnitEnum;
 
 final class SmtpProviderPool extends Page
@@ -26,6 +26,9 @@ final class SmtpProviderPool extends Page
     public string $testRecipient = '';
 
     public string $actionReason = '';
+
+    /** @var array<string, mixed> */
+    public array $lastTestResult = [];
 
     /** @var array<string, mixed> */
     public array $form = [
@@ -70,9 +73,9 @@ final class SmtpProviderPool extends Page
     public function getSubheading(): string
     {
         return match (App::getLocale()) {
-            'ar' => 'أضف عدة مزودين للبريد الصادر. يختار MODRIK مزودًا عشوائيًا لكل رسالة وينتقل تلقائيًا إلى مزود آخر عند فشل الإرسال.',
-            'fr' => 'Ajoutez plusieurs fournisseurs sortants. MODRIK randomise leur ordre par message et bascule automatiquement en cas d’échec.',
-            default => 'Manage multiple outbound providers. MODRIK randomizes provider order per message and automatically fails over when delivery fails.',
+            'ar' => 'أضف عدة مزودين للبريد الصادر، اختبر الإعدادات قبل الحفظ، وشاهد سبب الفشل الآمن مباشرة.',
+            'fr' => 'Ajoutez plusieurs fournisseurs sortants, testez la configuration avant enregistrement et obtenez un diagnostic sûr en cas d’échec.',
+            default => 'Manage outbound providers, test the current settings before saving, and get a safe diagnostic reason when delivery fails.',
         };
     }
 
@@ -96,6 +99,8 @@ final class SmtpProviderPool extends Page
             return;
         }
 
+        $this->resetValidation();
+        $this->lastTestResult = [];
         $this->editingId = $providerId;
         $this->form = [
             'name' => $provider['name'],
@@ -114,28 +119,58 @@ final class SmtpProviderPool extends Page
     public function cancelEdit(): void
     {
         $this->editingId = null;
+        $this->resetValidation();
         $this->resetForm();
     }
 
     public function save(): void
     {
-        $rules = [
-            'name' => ['required', 'string', 'min:2', 'max:80'],
-            'host' => ['required', 'string', 'min:1', 'max:255'],
-            'port' => ['required', 'integer', 'min:1', 'max:65535'],
-            'security' => ['required', 'in:starttls,smtps'],
-            'username' => ['nullable', 'string', 'max:255'],
-            'password' => [$this->editingId === null ? 'required' : 'nullable', 'string', 'max:512'],
-            'from_address' => ['required', 'email:rfc', 'max:255'],
-            'from_name' => ['required', 'string', 'min:1', 'max:100'],
-            'is_enabled' => ['boolean'],
-            'reason' => ['required', 'string', 'min:8', 'max:500'],
-        ];
-        $data = Validator::make($this->form, $rules)->validate();
-        $actor = $this->actor();
+        /** @var array{form: array<string, mixed>} $validated */
+        $validated = $this->validate($this->saveRules(), $this->validationMessages());
+        $data = $validated['form'];
 
-        app(SmtpProviderPoolService::class)->save($actor, [
-            'name' => (string) $data['name'],
+        try {
+            app(SmtpProviderPoolService::class)->save($this->actor(), [
+                'name' => (string) $data['name'],
+                'host' => (string) $data['host'],
+                'port' => (int) $data['port'],
+                'scheme' => $data['security'] === 'smtps' ? 'smtps' : null,
+                'username' => isset($data['username']) ? (string) $data['username'] : null,
+                'password' => isset($data['password']) && $data['password'] !== '' ? (string) $data['password'] : null,
+                'from_address' => (string) $data['from_address'],
+                'from_name' => (string) $data['from_name'],
+                'is_enabled' => (bool) $data['is_enabled'],
+                'reason' => (string) $data['reason'],
+            ], $this->editingId);
+        } catch (Throwable $exception) {
+            report($exception);
+            Notification::make()
+                ->danger()
+                ->title($this->translate('SMTP settings were not saved', 'لم يتم حفظ إعدادات البريد', 'Les paramètres SMTP n’ont pas été enregistrés'))
+                ->body($this->translate('The server rejected the save. Check the highlighted fields and Runtime Inspector, then try again.', 'رفض الخادم عملية الحفظ. راجع الحقول المعلّمة وRuntime Inspector ثم أعد المحاولة.', 'Le serveur a refusé l’enregistrement. Vérifiez les champs signalés et Runtime Inspector.'))
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->success()
+            ->title($this->editingId === null ? $this->translate('SMTP provider added', 'تمت إضافة مزود SMTP', 'Fournisseur SMTP ajouté') : $this->translate('SMTP provider updated', 'تم تحديث مزود SMTP', 'Fournisseur SMTP mis à jour'))
+            ->body($this->translate('The configuration was saved successfully.', 'تم حفظ الإعدادات بنجاح.', 'La configuration a été enregistrée.'))
+            ->send();
+
+        $this->editingId = null;
+        $this->resetValidation();
+        $this->resetForm();
+    }
+
+    public function testCurrent(): void
+    {
+        /** @var array{form: array<string, mixed>, testRecipient: string} $validated */
+        $validated = $this->validate($this->testCurrentRules(), $this->validationMessages());
+        $data = $validated['form'];
+
+        $result = app(SmtpProviderPoolService::class)->testConfiguration([
             'host' => (string) $data['host'],
             'port' => (int) $data['port'],
             'scheme' => $data['security'] === 'smtps' ? 'smtps' : null,
@@ -143,17 +178,9 @@ final class SmtpProviderPool extends Page
             'password' => isset($data['password']) && $data['password'] !== '' ? (string) $data['password'] : null,
             'from_address' => (string) $data['from_address'],
             'from_name' => (string) $data['from_name'],
-            'is_enabled' => (bool) $data['is_enabled'],
-            'reason' => (string) $data['reason'],
-        ], $this->editingId);
+        ], (string) $validated['testRecipient'], $this->editingId);
 
-        Notification::make()
-            ->success()
-            ->title($this->editingId === null ? $this->translate('SMTP provider added', 'تمت إضافة مزود SMTP', 'Fournisseur SMTP ajouté') : $this->translate('SMTP provider updated', 'تم تحديث مزود SMTP', 'Fournisseur SMTP mis à jour'))
-            ->send();
-
-        $this->editingId = null;
-        $this->resetForm();
+        $this->showTestResult($result);
     }
 
     public function toggle(string $providerId): void
@@ -182,24 +209,19 @@ final class SmtpProviderPool extends Page
 
     public function test(string $providerId): void
     {
-        $data = Validator::make([
-            'recipient' => $this->testRecipient,
-        ], [
-            'recipient' => ['required', 'email:rfc', 'max:255'],
-        ])->validate();
+        /** @var array{testRecipient: string} $data */
+        $data = $this->validate([
+            'testRecipient' => ['required', 'email:rfc', 'max:255'],
+        ], $this->validationMessages());
 
         $result = app(SmtpProviderPoolService::class)->testProvider(
             $this->actor(),
             $providerId,
-            (string) $data['recipient'],
+            (string) $data['testRecipient'],
             'Operator requested an SMTP delivery test from the Admin provider pool.',
         );
 
-        Notification::make()
-            ->title($result['ok'] ? $this->translate('Test email sent', 'تم إرسال رسالة الاختبار', 'E-mail de test envoyé') : $this->translate('SMTP test failed', 'فشل اختبار SMTP', 'Échec du test SMTP'))
-            ->body($result['ok'] ? null : $this->translate('Safe error code: ', 'رمز الخطأ الآمن: ', 'Code d’erreur sûr : ').$result['code'])
-            ->color($result['ok'] ? 'success' : 'danger')
-            ->send();
+        $this->showTestResult($result);
     }
 
     /** @return array<string, mixed> */
@@ -211,6 +233,68 @@ final class SmtpProviderPool extends Page
             'providers' => $service->providers(),
             'audits' => $service->audits(),
         ];
+    }
+
+    /** @return array<string, array<int, string>> */
+    private function saveRules(): array
+    {
+        return [
+            'form.name' => ['required', 'string', 'min:2', 'max:80'],
+            'form.host' => ['required', 'string', 'min:1', 'max:255'],
+            'form.port' => ['required', 'integer', 'min:1', 'max:65535'],
+            'form.security' => ['required', 'in:starttls,smtps'],
+            'form.username' => ['nullable', 'string', 'max:255'],
+            'form.password' => [$this->editingId === null ? 'required' : 'nullable', 'string', 'max:512'],
+            'form.from_address' => ['required', 'email:rfc', 'max:255'],
+            'form.from_name' => ['required', 'string', 'min:1', 'max:100'],
+            'form.is_enabled' => ['boolean'],
+            'form.reason' => ['required', 'string', 'min:8', 'max:500'],
+        ];
+    }
+
+    /** @return array<string, array<int, string>> */
+    private function testCurrentRules(): array
+    {
+        return [
+            'form.host' => ['required', 'string', 'min:1', 'max:255'],
+            'form.port' => ['required', 'integer', 'min:1', 'max:65535'],
+            'form.security' => ['required', 'in:starttls,smtps'],
+            'form.username' => ['nullable', 'string', 'max:255'],
+            'form.password' => [$this->editingId === null ? 'required' : 'nullable', 'string', 'max:512'],
+            'form.from_address' => ['required', 'email:rfc', 'max:255'],
+            'form.from_name' => ['required', 'string', 'min:1', 'max:100'],
+            'testRecipient' => ['required', 'email:rfc', 'max:255'],
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function validationMessages(): array
+    {
+        return [
+            'form.reason.required' => $this->translate('A change reason is required.', 'سبب التغيير مطلوب.', 'Le motif de modification est obligatoire.'),
+            'form.reason.min' => $this->translate('The change reason must be at least 8 characters.', 'سبب التغيير يجب أن يكون 8 أحرف على الأقل.', 'Le motif doit contenir au moins 8 caractères.'),
+            'form.password.required' => $this->translate('A password is required for a new SMTP provider.', 'كلمة المرور مطلوبة عند إضافة مزود جديد.', 'Un mot de passe est requis pour un nouveau fournisseur.'),
+            'form.host.required' => $this->translate('SMTP host is required.', 'خادم SMTP مطلوب.', 'L’hôte SMTP est obligatoire.'),
+            'form.from_address.email' => $this->translate('Enter a valid sender email address.', 'أدخل بريد مرسل صحيحًا.', 'Saisissez une adresse expéditeur valide.'),
+            'testRecipient.required' => $this->translate('A test recipient is required.', 'بريد الاختبار مطلوب.', 'Un destinataire de test est requis.'),
+            'testRecipient.email' => $this->translate('Enter a valid test recipient.', 'أدخل بريد اختبار صحيحًا.', 'Saisissez un destinataire de test valide.'),
+        ];
+    }
+
+    /** @param array{ok: bool, code: string, message?: string, detail?: ?string} $result */
+    private function showTestResult(array $result): void
+    {
+        $this->lastTestResult = $result;
+        $body = (string) ($result['message'] ?? $result['code']);
+        if (is_string($result['detail'] ?? null) && $result['detail'] !== '') {
+            $body .= ' — '.$result['detail'];
+        }
+
+        Notification::make()
+            ->title($result['ok'] ? $this->translate('Test email sent', 'تم إرسال رسالة الاختبار', 'E-mail de test envoyé') : $this->translate('SMTP test failed', 'فشل اختبار SMTP', 'Échec du test SMTP'))
+            ->body($body)
+            ->color($result['ok'] ? 'success' : 'danger')
+            ->send();
     }
 
     private function actor(): User
@@ -225,6 +309,7 @@ final class SmtpProviderPool extends Page
 
     private function resetForm(): void
     {
+        $this->lastTestResult = [];
         $this->form = [
             'name' => '',
             'host' => '',

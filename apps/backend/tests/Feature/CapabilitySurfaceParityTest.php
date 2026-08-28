@@ -70,7 +70,7 @@ class CapabilitySurfaceParityTest extends TestCase
         $this->assertSame('Demandes de préparation', ContentPreparationRequests::getNavigationLabel());
     }
 
-    public function test_admin_capability_registry_lists_interactive_student_background_policy_internal_and_gated_surfaces(): void
+    public function test_admin_capability_registry_lists_interactive_student_background_policy_internal_and_runtime_inspector_surfaces(): void
     {
         $admin = User::factory()->create([
             'role' => 'admin',
@@ -92,10 +92,10 @@ class CapabilitySurfaceParityTest extends TestCase
             ->assertSee('Advertising eligibility and no-ad policy')
             ->assertSee('Outbox, idempotency and publication transaction controls')
             ->assertSee('Runtime Inspector, diagnostics and correlation')
+            ->assertSee('Admin UI')
             ->assertSee('Background')
             ->assertSee('Policy')
             ->assertSee('Internal')
-            ->assertSee('Gated')
             ->call('setLocale', 'ar')
             ->assertSee('وظائف النظام')
             ->assertSeeHtml('dir="rtl"')

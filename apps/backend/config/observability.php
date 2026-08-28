@@ -2,7 +2,7 @@
 
 return [
     'enabled' => env('MODRIK_OBSERVABILITY_ENABLED', true),
-    'inspector_enabled' => env('MODRIK_RUNTIME_INSPECTOR_ENABLED', false),
+    'inspector_enabled' => env('MODRIK_RUNTIME_INSPECTOR_ENABLED', true),
     'max_events' => (int) env('MODRIK_OBSERVABILITY_MAX_EVENTS', 5000),
     'query_limit' => (int) env('MODRIK_OBSERVABILITY_QUERY_LIMIT', 100),
     'export_max_events' => (int) env('MODRIK_OBSERVABILITY_EXPORT_MAX_EVENTS', 100),

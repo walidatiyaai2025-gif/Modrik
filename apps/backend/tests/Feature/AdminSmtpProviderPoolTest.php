@@ -9,6 +9,7 @@ use App\Notifications\EmailVerificationTokenNotification;
 use App\Notifications\PasswordRecoveryTokenNotification;
 use App\Services\SmtpProviderPoolService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -74,6 +75,73 @@ class AdminSmtpProviderPoolTest extends TestCase
         Livewire::test(SmtpProviderPool::class)
             ->assertDontSee('secret-a')
             ->assertDontSee('secret-b');
+    }
+
+    public function test_smtp_save_surfaces_change_reason_validation_and_does_not_mutate_database(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'email' => 'admin@example.test']);
+        $this->actingAs($admin);
+
+        Livewire::test(SmtpProviderPool::class)
+            ->set('form.name', 'Primary SMTP')
+            ->set('form.host', 'mail.example.test')
+            ->set('form.port', 587)
+            ->set('form.security', 'starttls')
+            ->set('form.username', 'smtp@example.test')
+            ->set('form.password', 'secret-password')
+            ->set('form.from_address', 'smtp@example.test')
+            ->set('form.from_name', 'MODRIK')
+            ->set('form.is_enabled', true)
+            ->set('form.reason', 'short')
+            ->call('save')
+            ->assertHasErrors(['form.reason' => 'min']);
+
+        $this->assertDatabaseCount('smtp_providers', 0);
+    }
+
+    public function test_smtp_page_exposes_pre_save_test_and_test_validation_does_not_require_audit_reason(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'email' => 'admin@example.test']);
+        $this->actingAs($admin);
+        App::setLocale('ar');
+
+        Livewire::test(SmtpProviderPool::class)
+            ->assertSee('اختبار الإعدادات الحالية')
+            ->set('form.host', '')
+            ->set('form.port', 587)
+            ->set('form.security', 'starttls')
+            ->set('form.username', 'smtp@example.test')
+            ->set('form.password', 'secret-password')
+            ->set('form.from_address', 'smtp@example.test')
+            ->set('form.from_name', 'MODRIK')
+            ->set('form.reason', '')
+            ->set('testRecipient', 'admin@example.test')
+            ->call('testCurrent')
+            ->assertHasErrors(['form.host' => 'required'])
+            ->assertHasNoErrors(['form.reason']);
+
+        $this->assertDatabaseCount('smtp_providers', 0);
+    }
+
+    public function test_smtp_failure_diagnostics_are_stable_and_redact_credentials(): void
+    {
+        $service = app(SmtpProviderPoolService::class);
+        $secret = 'super-secret-password';
+        $username = 'study@modrik.org';
+
+        $result = $service->diagnoseFailure(
+            new \RuntimeException("Connection refused password={$secret} smtp://{$username}:{$secret}@mail.modrik.org"),
+            [$secret, $username],
+        );
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('CONNECTION_REFUSED', $result['code']);
+        $encoded = json_encode($result, JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString($secret, $encoded);
+        $this->assertStringNotContainsString($username, $encoded);
+
+        $auth = $service->diagnoseFailure(new \RuntimeException('535 Authentication credentials invalid'));
+        $this->assertSame('AUTH_REJECTED', $auth['code']);
     }
 
     public function test_delivery_pool_excludes_disabled_providers_and_configures_starttls_and_smtps(): void

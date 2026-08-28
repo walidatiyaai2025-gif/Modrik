@@ -88,18 +88,110 @@ final class RuntimeInspectorService
         ];
     }
 
-    /**
-     * @return array<string, bool|int|string|null>
-     */
+    /** @return array<string, mixed> */
     public function runtimeSummary(): array
     {
+        $viewPaths = array_values(array_filter(
+            (array) config('view.paths', []),
+            static fn (mixed $path): bool => is_string($path) && $path !== '',
+        ));
+        $staleViewPath = false;
+        foreach ($viewPaths as $path) {
+            if (str_contains(str_replace('\\', '/', $path), '.modrik-updates/releases/')) {
+                $staleViewPath = true;
+                break;
+            }
+        }
+
+        $backendRelease = $this->safeReleaseSha(base_path('RELEASE_SHA.txt'));
+        $storageRelease = $this->safeReleaseSha(storage_path('app/modrik-release.txt'));
+        $webRoot = rtrim((string) config('updates.live_web_root', dirname(base_path()).DIRECTORY_SEPARATOR.'demo.modrik.org'), DIRECTORY_SEPARATOR);
+        $webRelease = $this->safeReleaseSha($webRoot.DIRECTORY_SEPARATOR.'RELEASE_SHA.txt');
+        $restartMarker = $webRoot.DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.'restart.txt';
+
+        $dbOk = false;
+        $dbLatencyMs = null;
+        $dbError = null;
+        $started = microtime(true);
+        try {
+            DB::select('select 1 as modrik_runtime_probe');
+            $dbOk = true;
+            $dbLatencyMs = (int) round((microtime(true) - $started) * 1000);
+        } catch (Throwable $exception) {
+            $dbError = $this->sanitizer->safeCode(class_basename($exception), 64);
+        }
+
+        $mail = $this->mailRuntime();
+        $storageWritable = is_dir(storage_path()) && is_writable(storage_path());
+        $bootstrapCachePath = base_path('bootstrap/cache');
+        $bootstrapCacheWritable = is_dir($bootstrapCachePath) && is_writable($bootstrapCachePath);
+
+        $reasons = [];
+        $status = 'ok';
+        if ($staleViewPath) {
+            $status = 'fail';
+            $reasons[] = 'Laravel view.paths still references a staged .modrik-updates release.';
+        }
+        if (! $dbOk) {
+            $status = 'fail';
+            $reasons[] = 'Database read probe failed.';
+        }
+        if (! $storageWritable) {
+            $status = 'fail';
+            $reasons[] = 'Laravel storage path is not writable.';
+        }
+        if (! $bootstrapCacheWritable) {
+            $status = 'fail';
+            $reasons[] = 'bootstrap/cache is not writable.';
+        }
+        if ($backendRelease !== null && $storageRelease !== null && ! hash_equals($backendRelease, $storageRelease)) {
+            if ($status === 'ok') {
+                $status = 'warn';
+            }
+            $reasons[] = 'Backend RELEASE_SHA and durable release identity do not match.';
+        }
+        if ($backendRelease !== null && $webRelease !== null && ! hash_equals($backendRelease, $webRelease)) {
+            if ($status === 'ok') {
+                $status = 'warn';
+            }
+            $reasons[] = 'Backend and Web release identities do not match.';
+        }
+
         return [
+            'runtime_status' => $status,
+            'runtime_reasons' => $reasons,
             'environment' => (string) app()->environment(),
+            'debug' => (bool) config('app.debug', false),
             'framework' => app()->version(),
             'php' => PHP_VERSION,
+            'php_sapi' => PHP_SAPI,
             'build_identity' => is_string(config('observability.build_identity'))
                 ? $this->sanitizer->safeCode((string) config('observability.build_identity'), 96)
                 : null,
+            'backend_release_sha' => $backendRelease,
+            'durable_release_sha' => $storageRelease,
+            'web_release_sha' => $webRelease,
+            'web_restart_marker_at' => $this->safeFileTimestamp($restartMarker),
+            'base_path' => base_path(),
+            'resource_views_path' => resource_path('views'),
+            'view_paths' => $viewPaths,
+            'view_path_status' => $staleViewPath ? 'fail' : 'ok',
+            'stale_view_path' => $staleViewPath,
+            'config_cached' => app()->configurationIsCached(),
+            'route_cached' => app()->routesAreCached(),
+            'config_cache_path' => base_path('bootstrap/cache/config.php'),
+            'storage_writable' => $storageWritable,
+            'bootstrap_cache_writable' => $bootstrapCacheWritable,
+            'db_driver' => (string) config('database.default', ''),
+            'db_ok' => $dbOk,
+            'db_latency_ms' => $dbLatencyMs,
+            'db_error_code' => $dbError,
+            'cache_store' => (string) config('cache.default', ''),
+            'session_driver' => (string) config('session.driver', ''),
+            'queue_connection' => (string) config('queue.default', ''),
+            'mail_source' => $mail['source'],
+            'enabled_smtp_providers' => $mail['enabled_count'],
+            'active_smtp_provider' => $mail['provider'],
             'diagnostics_enabled' => (bool) config('observability.enabled', true),
             'inspector_enabled' => (bool) config('observability.inspector_enabled', false),
             'diagnostic_events' => $this->safeCount('runtime_diagnostic_events'),
@@ -147,9 +239,7 @@ final class RuntimeInspectorService
         return $query;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     private function serializeRow(object $row): array
     {
         /** @var array<string, mixed> $values */
@@ -199,6 +289,61 @@ final class RuntimeInspectorService
         }
 
         return $safe;
+    }
+
+    /** @return array{source: string, enabled_count: int, provider: ?array<string, mixed>} */
+    private function mailRuntime(): array
+    {
+        try {
+            if (! Schema::hasTable('smtp_providers')) {
+                return ['source' => 'environment_fallback', 'enabled_count' => 0, 'provider' => null];
+            }
+
+            $enabledCount = DB::table('smtp_providers')->where('is_enabled', true)->count();
+            $row = DB::table('smtp_providers')
+                ->where('is_enabled', true)
+                ->orderBy('name')
+                ->first(['id', 'name', 'host', 'port', 'scheme', 'from_address', 'last_test_status', 'last_error_code']);
+
+            if ($row === null) {
+                return ['source' => 'environment_fallback', 'enabled_count' => 0, 'provider' => null];
+            }
+
+            return [
+                'source' => 'managed_smtp_provider_pool',
+                'enabled_count' => $enabledCount,
+                'provider' => [
+                    'id' => (string) $row->id,
+                    'name' => (string) $row->name,
+                    'host' => (string) $row->host,
+                    'port' => (int) $row->port,
+                    'security' => ((string) ($row->scheme ?? '')) === 'smtps' ? 'SMTPS' : 'STARTTLS / auto TLS',
+                    'from_address' => (string) $row->from_address,
+                    'last_test_status' => is_string($row->last_test_status ?? null) ? $row->last_test_status : null,
+                    'last_error_code' => is_string($row->last_error_code ?? null) ? $row->last_error_code : null,
+                ],
+            ];
+        } catch (Throwable) {
+            return ['source' => 'unknown', 'enabled_count' => 0, 'provider' => null];
+        }
+    }
+
+    private function safeReleaseSha(string $path): ?string
+    {
+        if (! is_readable($path)) {
+            return null;
+        }
+
+        $value = strtolower(trim((string) @file_get_contents($path)));
+
+        return preg_match('/^[0-9a-f]{40}$/', $value) === 1 ? $value : null;
+    }
+
+    private function safeFileTimestamp(string $path): ?string
+    {
+        $timestamp = @filemtime($path);
+
+        return is_int($timestamp) ? gmdate('c', $timestamp) : null;
     }
 
     private function safeCount(string $table): int
