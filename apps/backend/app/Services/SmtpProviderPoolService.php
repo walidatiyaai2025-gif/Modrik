@@ -130,7 +130,7 @@ final class SmtpProviderPoolService
         });
     }
 
-    /** @return array{ok: bool, code: string} */
+    /** @return array{ok: bool, code: string, message: string, detail: ?string} */
     public function testProvider(User $actor, string $providerId, string $recipient, string $reason): array
     {
         $provider = $this->providerForDelivery($providerId);
@@ -138,25 +138,113 @@ final class SmtpProviderPoolService
             abort(404);
         }
 
-        try {
-            $mailer = $this->configureMailer($provider);
-            $this->mailManager()->mailer($mailer)->raw(
-                'MODRIK SMTP provider test. If you received this message, outbound email transport is working.',
-                function ($message) use ($provider, $recipient): void {
-                    $message->to($recipient)
-                        ->from($provider['from_address'], $provider['from_name'])
-                        ->subject('MODRIK SMTP test');
-                },
-            );
-            $this->recordTest($actor, $providerId, 'success', null, $reason);
+        $result = $this->sendTest($provider, $recipient);
+        $this->recordTest(
+            $actor,
+            $providerId,
+            $result['ok'] ? 'success' : 'failed',
+            $result['ok'] ? null : $result['code'],
+            $reason,
+        );
 
-            return ['ok' => true, 'code' => 'SMTP_TEST_SENT'];
-        } catch (Throwable $exception) {
-            $code = $this->safeExceptionCode($exception);
-            $this->recordTest($actor, $providerId, 'failed', $code, $reason);
+        return $result;
+    }
 
-            return ['ok' => false, 'code' => $code];
+    /**
+     * Test unsaved form values without mutating the provider tables.
+     *
+     * @param  array{host: string, port: int, scheme: ?string, username: ?string, password: ?string, from_address: string, from_name: string}  $input
+     * @return array{ok: bool, code: string, message: string, detail: ?string}
+     */
+    public function testConfiguration(array $input, string $recipient, ?string $providerId = null): array
+    {
+        $password = $input['password'];
+        if ((! is_string($password) || $password === '') && $providerId !== null) {
+            $saved = $this->providerForDelivery($providerId);
+            if ($saved === null) {
+                return [
+                    'ok' => false,
+                    'code' => 'SAVED_PASSWORD_UNAVAILABLE',
+                    'message' => 'The saved SMTP credential could not be read. Enter the password again and retry.',
+                    'detail' => null,
+                ];
+            }
+            $password = (string) $saved['password'];
         }
+
+        if (! is_string($password) || $password === '') {
+            return [
+                'ok' => false,
+                'code' => 'SMTP_PASSWORD_REQUIRED',
+                'message' => 'An SMTP password is required before this configuration can be tested.',
+                'detail' => null,
+            ];
+        }
+
+        return $this->sendTest([
+            'id' => 'preview-current-settings',
+            'name' => 'Current SMTP settings',
+            'host' => trim($input['host']),
+            'port' => (int) $input['port'],
+            'scheme' => $this->normalizeScheme($input['scheme']),
+            'username' => $this->nullable((string) ($input['username'] ?? '')),
+            'password' => $password,
+            'from_address' => trim($input['from_address']),
+            'from_name' => trim($input['from_name']),
+        ], $recipient);
+    }
+
+    /**
+     * Convert transport exceptions into stable, operator-safe diagnostics.
+     *
+     * @param  list<string>  $sensitiveValues
+     * @return array{ok: false, code: string, message: string, detail: ?string}
+     */
+    public function diagnoseFailure(Throwable $exception, array $sensitiveValues = []): array
+    {
+        $raw = trim($exception->getMessage());
+        $haystack = Str::lower(class_basename($exception).' '.$raw);
+
+        [$code, $message] = match (true) {
+            str_contains($haystack, 'getaddrinfo'),
+            str_contains($haystack, 'php_network_getaddresses'),
+            str_contains($haystack, 'name or service not known'),
+            str_contains($haystack, 'nodename nor servname') => ['DNS_LOOKUP_FAILED', 'DNS lookup failed for the SMTP host. Check the host name and DNS.'],
+
+            str_contains($haystack, 'timed out'),
+            str_contains($haystack, 'timeout') => ['CONNECTION_TIMEOUT', 'The SMTP connection timed out. Check the host, port, firewall, and provider availability.'],
+
+            str_contains($haystack, 'connection refused'),
+            str_contains($haystack, 'actively refused') => ['CONNECTION_REFUSED', 'The SMTP server refused the connection. Check the host, port, and whether SMTP is enabled.'],
+
+            str_contains($haystack, 'certificate'),
+            str_contains($haystack, 'starttls'),
+            str_contains($haystack, 'tls'),
+            str_contains($haystack, 'ssl'),
+            str_contains($haystack, 'crypto') => ['TLS_FAILURE', 'TLS negotiation failed. Check STARTTLS/SMTPS selection, port, and the server certificate.'],
+
+            str_contains($haystack, 'authentication'),
+            str_contains($haystack, 'authenticator'),
+            str_contains($haystack, '535 '),
+            str_contains($haystack, '530 ') => ['AUTH_REJECTED', 'SMTP authentication was rejected. Check the username, password, and account permissions.'],
+
+            str_contains($haystack, 'recipient'),
+            str_contains($haystack, 'rcpt to'),
+            str_contains($haystack, '5.1.1') => ['RECIPIENT_REJECTED', 'The SMTP server rejected the test recipient address.'],
+
+            str_contains($haystack, 'sender'),
+            str_contains($haystack, 'mail from'),
+            str_contains($haystack, 'from address') => ['SENDER_REJECTED', 'The SMTP server rejected the sender address. Check From address and sender authorization.'],
+
+            default => ['TRANSPORT_EXCEPTION', 'The SMTP transport failed. Review the safe technical detail and Runtime Inspector.'],
+        };
+
+        return [
+            'ok' => false,
+            'code' => $code,
+            'message' => $message,
+            'detail' => $this->safeTechnicalDetail($raw, $sensitiveValues),
+        ];
     }
 
     public function enabledProviderCount(): int
@@ -209,6 +297,39 @@ final class SmtpProviderPoolService
         $row = DB::table('smtp_providers')->where('id', $providerId)->first();
 
         return $row === null ? null : $this->safeProvider((array) $row);
+    }
+
+    /**
+     * @param  array<string, mixed>  $provider
+     * @return array{ok: bool, code: string, message: string, detail: ?string}
+     */
+    private function sendTest(array $provider, string $recipient): array
+    {
+        try {
+            $mailer = $this->configureMailer($provider);
+            $this->mailManager()->mailer($mailer)->raw(
+                'MODRIK SMTP provider test. If you received this message, outbound email transport is working.',
+                function ($message) use ($provider, $recipient): void {
+                    $message->to($recipient)
+                        ->from((string) $provider['from_address'], (string) $provider['from_name'])
+                        ->subject('MODRIK SMTP test');
+                },
+            );
+
+            return [
+                'ok' => true,
+                'code' => 'SMTP_TEST_SENT',
+                'message' => 'The SMTP server accepted the test message.',
+                'detail' => null,
+            ];
+        } catch (Throwable $exception) {
+            return $this->diagnoseFailure($exception, [
+                (string) ($provider['password'] ?? ''),
+                (string) ($provider['username'] ?? ''),
+            ]);
+        } finally {
+            $this->purgeMailer((string) $provider['id']);
+        }
     }
 
     /** @return array<string, mixed>|null */
@@ -324,9 +445,23 @@ final class SmtpProviderPoolService
         }
     }
 
-    private function safeExceptionCode(Throwable $exception): string
+    /** @param list<string> $sensitiveValues */
+    private function safeTechnicalDetail(string $message, array $sensitiveValues): ?string
     {
-        return Str::upper(Str::snake(class_basename($exception)));
+        $message = trim((string) preg_replace('/[\r\n\t]+/', ' ', $message));
+        $message = (string) preg_replace('/\s{2,}/', ' ', $message);
+        $message = (string) preg_replace('/\b(password|passwd|secret|token)\s*[=:]\s*\S+/i', '$1=[redacted]', $message);
+        $message = (string) preg_replace('#(smtps?://)[^@\s]+@#i', '$1[redacted]@', $message);
+
+        foreach ($sensitiveValues as $sensitive) {
+            if ($sensitive !== '' && mb_strlen($sensitive) >= 3) {
+                $message = str_ireplace($sensitive, '[redacted]', $message);
+            }
+        }
+
+        $message = mb_substr($message, 0, 320);
+
+        return $message === '' ? null : $message;
     }
 
     private function normalizeScheme(mixed $scheme): ?string
