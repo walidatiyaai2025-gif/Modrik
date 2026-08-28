@@ -8,6 +8,8 @@ use Throwable;
 
 final class GovernedActivationHealthChecker implements ActivationHealthChecker
 {
+    public function __construct(private UpdatePhpBinaryResolver $phpBinary) {}
+
     public function healthy(string $releasePath, string $expectedReleaseSha): bool
     {
         $backend = $releasePath.DIRECTORY_SEPARATOR.'payload'.DIRECTORY_SEPARATOR.'backend';
@@ -28,7 +30,7 @@ final class GovernedActivationHealthChecker implements ActivationHealthChecker
 
         try {
             DB::connection()->getPdo();
-            $migrationState = new Process([PHP_BINARY, 'artisan', 'migrate:status', '--no-ansi'], $backend, timeout: 120);
+            $migrationState = new Process([$this->phpBinary->resolve(), 'artisan', 'migrate:status', '--no-ansi'], $backend, timeout: 120);
             $migrationState->run();
 
             return $migrationState->isSuccessful();

@@ -1,12 +1,17 @@
 <?php
 
+$defaultWebRoot = dirname(base_path()).DIRECTORY_SEPARATOR.'demo.modrik.org';
+$publicHtmlRoot = dirname(base_path());
+$defaultHome = dirname($publicHtmlRoot);
+$defaultNodeAppRoot = ltrim(str_replace($defaultHome, '', $defaultWebRoot), DIRECTORY_SEPARATOR);
+
 return [
     'demo' => [
-        // Fail closed by default. Demo hosting mutation must be explicitly enabled
-        // in the deployed Backend after the locked cPanel topology is confirmed.
+        // Selector mutation remains opt-in. The Update Center may always place
+        // the standard Passenger restart marker after a verified live copy.
         'hosting_bridge_enabled' => (bool) env('MODRIK_DEMO_HOSTING_BRIDGE_ENABLED', false),
-        'web_root' => (string) env('MODRIK_DEMO_WEB_ROOT', '/home/solscool/public_html/demo.modrik.org'),
-        'node_app_root' => (string) env('MODRIK_DEMO_NODE_APP_ROOT', 'public_html/demo.modrik.org'),
+        'web_root' => (string) env('MODRIK_DEMO_WEB_ROOT', $defaultWebRoot),
+        'node_app_root' => (string) env('MODRIK_DEMO_NODE_APP_ROOT', $defaultNodeAppRoot),
         'domain' => (string) env('MODRIK_DEMO_DOMAIN', 'demo.modrik.org'),
         'node_major' => (int) env('MODRIK_DEMO_NODE_MAJOR', 22),
         'origin_ip' => (string) env('MODRIK_DEMO_ORIGIN_IP', ''),

@@ -96,13 +96,15 @@ final class SystemUpdates extends Page
             $history->update([
                 'status' => $result->status,
                 'safe_details' => $result->details,
-                'completed_at' => now(),
+                'completed_at' => $result->status === UpdateExecutionResult::REQUIRES_HOST_ACTION ? null : now(),
                 'package_storage_key' => null,
             ]);
         } catch (Throwable $exception) {
             $code = $exception instanceof RuntimeException ? $exception->getMessage() : 'unexpected_update_failure';
-            $safeCode = in_array($code, ['concurrent_update', 'package_validation_failed', 'stage_failed', 'candidate_move_failed', 'current_backup_failed', 'activation_failed'], true)
-                ? $code : 'unexpected_update_failure';
+            $safeCode = in_array($code, [
+                'concurrent_update', 'pending_activation_exists', 'package_validation_failed', 'stage_failed', 'candidate_move_failed',
+                'current_backup_failed', 'activation_failed', 'live_backend_root_invalid', 'live_web_root_invalid',
+            ], true) ? $code : 'unexpected_update_failure';
             $this->installationResult = ['status' => UpdateExecutionResult::FAILED, 'details' => ['code' => $safeCode]];
             $history->update(['status' => UpdateExecutionResult::FAILED, 'safe_details' => ['code' => $safeCode], 'completed_at' => now(), 'package_storage_key' => null]);
         } finally {
@@ -112,14 +114,44 @@ final class SystemUpdates extends Page
         }
     }
 
+    public function verifyPendingUpdate(TransactionalReleaseManager $manager): void
+    {
+        if (! self::canAccess()) {
+            abort(403);
+        }
+
+        $root = (string) config('updates.runtime_root');
+        $pending = $manager->pendingActivation($root);
+        $result = $manager->verifyPending($root);
+        $this->installationResult = $result->toArray();
+
+        if ($pending !== null) {
+            $history = SystemUpdateHistory::query()
+                ->where('release_sha', $pending['release_sha'])
+                ->where('status', UpdateExecutionResult::REQUIRES_HOST_ACTION)
+                ->latest()
+                ->first();
+            if ($history !== null) {
+                $history->update([
+                    'status' => $result->status,
+                    'safe_details' => $result->details,
+                    'completed_at' => $result->status === UpdateExecutionResult::SUCCESS ? now() : null,
+                ]);
+            }
+        }
+    }
+
     /** @return array<string,mixed> */
     protected function getViewData(): array
     {
+        $manager = app(TransactionalReleaseManager::class);
+
         return [
             'currentVersion' => $this->currentVersion(),
             'releaseSha' => $this->releaseSha(),
             'maxPackageMb' => round(((int) config('updates.max_package_kb', 131072)) / 1024),
             'history' => SystemUpdateHistory::query()->latest()->limit(20)->get(),
+            'pendingActivation' => $manager->pendingActivation((string) config('updates.runtime_root')),
         ];
     }
 

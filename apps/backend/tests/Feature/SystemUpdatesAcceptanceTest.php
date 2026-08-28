@@ -6,6 +6,7 @@ use App\Filament\Pages\SystemUpdates;
 use App\Models\User;
 use App\Services\Updates\ActivationHealthChecker;
 use App\Services\Updates\BackendReleaseOperator;
+use App\Services\Updates\LivePayloadActivator;
 use App\Services\Updates\RestartResult;
 use App\Services\Updates\TransactionalReleaseManager;
 use App\Services\Updates\UnifiedPackageValidator;
@@ -68,6 +69,28 @@ final class SystemUpdatesAcceptanceTest extends TestCase
                 public function healthy(string $releasePath, string $expectedReleaseSha): bool
                 {
                     return is_file($releasePath.'/payload/web/server.js');
+                }
+            },
+            new class implements LivePayloadActivator
+            {
+                public function activate(string $releasePath, string $runtimeRoot, string $releaseId, string $releaseSha): array
+                {
+                    return ['backup_path' => $runtimeRoot.'/live-backup', 'previous_release_sha' => null];
+                }
+
+                public function liveContains(string $releaseSha): bool
+                {
+                    return true;
+                }
+
+                public function runtimeHealthy(string $releaseSha): bool
+                {
+                    return true;
+                }
+
+                public function rollback(string $backupPath, ?string $previousReleaseSha): bool
+                {
+                    return true;
                 }
             },
         );

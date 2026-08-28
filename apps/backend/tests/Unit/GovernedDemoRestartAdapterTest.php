@@ -2,7 +2,8 @@
 
 namespace Tests\Unit;
 
-use App\Services\Updates\GovernedDemoRestartAdapter;
+use App\Services\Updates\CpanelDashboardRestartAdapter;
+use App\Services\Updates\LivePayloadActivator;
 use App\Services\Updates\RestartResult;
 use App\Services\Updates\WebRestartAdapter;
 use Illuminate\Support\Facades\File;
@@ -10,58 +11,86 @@ use Tests\TestCase;
 
 final class GovernedDemoRestartAdapterTest extends TestCase
 {
-    public function test_container_binds_governed_restart_adapter(): void
+    public function test_container_binds_dashboard_cpanel_restart_adapter(): void
     {
-        $this->assertInstanceOf(GovernedDemoRestartAdapter::class, app(WebRestartAdapter::class));
+        $this->assertInstanceOf(CpanelDashboardRestartAdapter::class, app(WebRestartAdapter::class));
     }
 
-    public function test_disabled_hosting_bridge_requires_host_action_without_mutation(): void
+    public function test_live_payload_must_be_active_before_restart_marker_is_written(): void
     {
-        $release = $this->candidateRelease(str_repeat('a', 40));
-        config(['update_center.demo.hosting_bridge_enabled' => false]);
-
-        $result = app(WebRestartAdapter::class)->restart($release);
-
-        $this->assertSame(RestartResult::STATUS_REQUIRES_HOST_ACTION, $result->status);
-        $this->assertSame('hosting_bridge_disabled', $result->details['reason'] ?? null);
-    }
-
-    public function test_stale_fixed_demo_root_requires_host_action_before_restart(): void
-    {
-        $releaseSha = str_repeat('b', 40);
+        $releaseSha = str_repeat('a', 40);
         $release = $this->candidateRelease($releaseSha);
-        $liveRoot = sys_get_temp_dir().DIRECTORY_SEPARATOR.'modrik-live-web-'.bin2hex(random_bytes(8));
-        File::ensureDirectoryExists($liveRoot);
-        File::put($liveRoot.DIRECTORY_SEPARATOR.'RELEASE_SHA.txt', str_repeat('c', 40)."\n");
-        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory($liveRoot));
+        $webRoot = $this->webRoot();
+        config(['updates.live_web_root' => $webRoot]);
+        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(false, false));
 
-        config([
-            'update_center.demo.hosting_bridge_enabled' => true,
-            'update_center.demo.web_root' => $liveRoot,
-            'update_center.demo.node_app_root' => 'public_html/demo.modrik.org',
-            'update_center.demo.domain' => 'demo.modrik.org',
-            'update_center.demo.origin_ip' => '65.21.208.232',
-            'update_center.demo.node_major' => 22,
-        ]);
-
-        $result = app(WebRestartAdapter::class)->restart($release);
+        $result = $adapter->restart($release);
 
         $this->assertSame(RestartResult::STATUS_REQUIRES_HOST_ACTION, $result->status);
         $this->assertSame('live_payload_activation_required', $result->details['reason'] ?? null);
+        $this->assertFileDoesNotExist($webRoot.'/tmp/restart.txt');
+    }
+
+    public function test_verified_live_payload_uses_standard_cpanel_restart_marker(): void
+    {
+        $releaseSha = str_repeat('b', 40);
+        $release = $this->candidateRelease($releaseSha);
+        $webRoot = $this->webRoot();
+        config(['updates.live_web_root' => $webRoot]);
+        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(true, true));
+
+        $result = $adapter->restart($release);
+
+        $this->assertSame(RestartResult::STATUS_SUCCEEDED, $result->status);
         $this->assertSame($releaseSha, $result->details['release_sha'] ?? null);
+        $this->assertFileExists($webRoot.'/tmp/restart.txt');
+    }
+
+    private function liveActivator(bool $contains, bool $healthy): LivePayloadActivator
+    {
+        return new class($contains, $healthy) implements LivePayloadActivator
+        {
+            public function __construct(private bool $contains, private bool $healthy) {}
+
+            public function activate(string $releasePath, string $runtimeRoot, string $releaseId, string $releaseSha): array
+            {
+                return ['backup_path' => $runtimeRoot.'/backup', 'previous_release_sha' => null];
+            }
+
+            public function liveContains(string $releaseSha): bool
+            {
+                return $this->contains;
+            }
+
+            public function runtimeHealthy(string $releaseSha): bool
+            {
+                return $this->healthy;
+            }
+
+            public function rollback(string $backupPath, ?string $previousReleaseSha): bool
+            {
+                return true;
+            }
+        };
     }
 
     private function candidateRelease(string $releaseSha): string
     {
         $root = sys_get_temp_dir().DIRECTORY_SEPARATOR.'modrik-restart-candidate-'.bin2hex(random_bytes(8));
-        $web = $root.DIRECTORY_SEPARATOR.'payload'.DIRECTORY_SEPARATOR.'web';
-        File::ensureDirectoryExists($web);
+        File::ensureDirectoryExists($root);
         File::put($root.DIRECTORY_SEPARATOR.'manifest.json', json_encode([
             'release_sha' => $releaseSha,
         ], JSON_THROW_ON_ERROR));
-        File::put($web.DIRECTORY_SEPARATOR.'RELEASE_SHA.txt', $releaseSha."\n");
-        File::put($web.DIRECTORY_SEPARATOR.'WEB_APPLICATION_ROOT.txt', ".\n");
-        File::put($web.DIRECTORY_SEPARATOR.'server.js', "require('./apps/web/server.js');\n");
+        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory($root));
+
+        return $root;
+    }
+
+    private function webRoot(): string
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR.'modrik-live-web-'.bin2hex(random_bytes(8));
+        File::ensureDirectoryExists($root);
+        File::put($root.DIRECTORY_SEPARATOR.'server.js', "module.exports = {};\n");
         $this->beforeApplicationDestroyed(fn () => File::deleteDirectory($root));
 
         return $root;
