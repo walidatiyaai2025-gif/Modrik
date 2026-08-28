@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-updated: 2026-08-26
+updated: 2026-08-28
 governance_id: GOV-SURFACE-001
 source:
   - MODRIK_Master_Product_Engineering_Plan_v1.5_CODEX_READY
@@ -118,6 +118,12 @@ capabilities:
     surface: NotificationSettings / SystemSettingsRegistry
     status: present
     notes: Integrated by PR #198. Global enablement and quiet-hours policy are versioned/audited. Implemented verification/recovery email channels are distinguished from still-audited Student Notification Center scope.
+  - id: admin.notifications.smtp_provider_pool
+    area: notifications
+    classification: admin_manageable
+    surface: SmtpProviderPool
+    status: present
+    notes: Issue #331 adds Admin-managed multiple SMTP transports for verification/recovery mail. Enabled providers are randomly ordered per message with transport failover; provider passwords are write-only, encrypted at rest, excluded from audit/UI/log output, and the existing .env mailer remains fallback only when no managed provider is enabled.
   - id: student.notifications.center
     area: notifications
     classification: user_facing
