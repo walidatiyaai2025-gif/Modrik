@@ -106,6 +106,14 @@ final class StudentContentCatalogueService
             ->whereIn('curriculum_node_id', $visibleIds)
             ->where('status', 'published')
             ->whereIn('kind', ['practice', 'quiz', 'mock_exam'])
+            ->whereExists(function ($query): void {
+                $query->selectRaw('1')
+                    ->from('quiz_questions')
+                    ->join('questions', 'questions.id', '=', 'quiz_questions.question_id')
+                    ->whereColumn('quiz_questions.quiz_id', 'quizzes.id')
+                    ->whereColumn('questions.curriculum_node_id', 'quizzes.curriculum_node_id')
+                    ->where('questions.status', 'published');
+            })
             ->orderBy('created_at')
             ->orderBy('id')
             ->get(['id', 'curriculum_node_id', 'kind', 'blueprint_version', 'title']) as $quiz) {
