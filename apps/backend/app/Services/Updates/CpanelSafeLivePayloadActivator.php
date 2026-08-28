@@ -2,6 +2,8 @@
 
 namespace App\Services\Updates;
 
+use Illuminate\Support\Facades\File;
+
 final class CpanelSafeLivePayloadActivator implements LivePayloadActivator
 {
     public function __construct(private CpanelLivePayloadActivator $inner) {}
@@ -11,7 +13,10 @@ final class CpanelSafeLivePayloadActivator implements LivePayloadActivator
      */
     public function activate(string $releasePath, string $runtimeRoot, string $releaseId, string $releaseSha): array
     {
-        return $this->inner->activate($releasePath, $runtimeRoot, $releaseId, $releaseSha);
+        $result = $this->inner->activate($releasePath, $runtimeRoot, $releaseId, $releaseSha);
+        $this->clearCandidateConfigCache();
+
+        return $result;
     }
 
     public function liveContains(string $releaseSha): bool
@@ -44,5 +49,17 @@ final class CpanelSafeLivePayloadActivator implements LivePayloadActivator
     public function rollback(string $backupPath, ?string $previousReleaseSha): bool
     {
         return $this->inner->rollback($backupPath, $previousReleaseSha);
+    }
+
+    private function clearCandidateConfigCache(): void
+    {
+        $backendRoot = rtrim((string) config('updates.live_backend_root', base_path()), DIRECTORY_SEPARATOR);
+        $cacheDirectory = $backendRoot.DIRECTORY_SEPARATOR.'bootstrap'.DIRECTORY_SEPARATOR.'cache';
+        File::ensureDirectoryExists($cacheDirectory);
+
+        $configCache = $cacheDirectory.DIRECTORY_SEPARATOR.'config.php';
+        if (is_file($configCache) && ! @unlink($configCache)) {
+            throw new \RuntimeException('live_config_cache_clear_failed');
+        }
     }
 }
