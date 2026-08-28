@@ -66,9 +66,6 @@ final class CpanelLivePayloadActivator implements LivePayloadActivator
             $this->copyTree($sourceWeb, $webRoot, ['.htaccess']);
             File::ensureDirectoryExists($webRoot.DIRECTORY_SEPARATOR.'tmp');
 
-            File::ensureDirectoryExists(dirname($releaseIdentity));
-            File::put($releaseIdentity, $releaseSha.PHP_EOL, true);
-            @chmod($releaseIdentity, 0600);
             File::put($backendRoot.DIRECTORY_SEPARATOR.'RELEASE_SHA.txt', $releaseSha.PHP_EOL, true);
 
             if (! $this->liveContains($releaseSha)) {
@@ -94,7 +91,7 @@ final class CpanelLivePayloadActivator implements LivePayloadActivator
 
         $backendRoot = $this->backendRoot();
         $webRoot = $this->webRoot();
-        $backendIdentity = storage_path('app/modrik-release.txt');
+        $backendIdentity = $backendRoot.DIRECTORY_SEPARATOR.'RELEASE_SHA.txt';
         $webIdentity = $webRoot.DIRECTORY_SEPARATOR.'RELEASE_SHA.txt';
 
         $backendSha = is_readable($backendIdentity) ? strtolower(trim((string) file_get_contents($backendIdentity))) : '';
