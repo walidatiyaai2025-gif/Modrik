@@ -107,6 +107,38 @@ final class CpanelLivePayloadActivator
             && hash_equals($releaseSha, $webSha);
     }
 
+    public function runtimeHealthy(string $releaseSha): bool
+    {
+        if (! $this->liveContains($releaseSha)) {
+            return false;
+        }
+
+        $releaseSha = strtolower($releaseSha);
+        $shortSha = substr($releaseSha, 0, 12);
+        $api = $this->request((string) config('update_center.demo.api_up_url', 'https://api.demo.modrik.org/up'));
+        $web = $this->request((string) config('update_center.demo.web_url', 'https://demo.modrik.org/'));
+        $student = $this->request((string) config('update_center.demo.student_url', 'https://demo.modrik.org/student'));
+
+        if ($api === null || $api['status'] < 200 || $api['status'] >= 300) {
+            return false;
+        }
+        if ($web === null || $web['status'] < 200 || $web['status'] >= 300
+            || ! str_contains($web['body'], 'data-testid="modrik-web-release-badge"')
+            || ! str_contains($web['body'], "MODRIK deployed release: {$releaseSha}")
+            || ! str_contains($web['body'], "Build {$shortSha}")
+            || ! str_contains($web['body'], 'data-testid="modrik-landing-page"')) {
+            return false;
+        }
+
+        return $student !== null
+            && $student['status'] >= 200
+            && $student['status'] < 300
+            && str_contains($student['body'], 'data-testid="modrik-web-release-badge"')
+            && str_contains($student['body'], "MODRIK deployed release: {$releaseSha}")
+            && str_contains($student['body'], "Build {$shortSha}")
+            && str_contains($student['body'], 'data-testid="modrik-student-portal"');
+    }
+
     public function rollback(string $backupPath, ?string $previousReleaseSha): bool
     {
         $backupBackend = rtrim($backupPath, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'backend';
@@ -139,6 +171,43 @@ final class CpanelLivePayloadActivator
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /** @return array{status:int,body:string}|null */
+    private function request(string $url): ?array
+    {
+        if (! extension_loaded('curl') || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+        $curl = curl_init();
+        if ($curl === false) {
+            return null;
+        }
+        $separator = str_contains($url, '?') ? '&' : '?';
+        curl_setopt_array($curl, [
+            CURLOPT_URL => $url.$separator.'modrik_update_verify='.rawurlencode(bin2hex(random_bytes(6))),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => max(6, min(20, (int) config('update_center.demo.health_timeout_seconds', 8))),
+            CURLOPT_NOSIGNAL => true,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HTTPHEADER => ['Cache-Control: no-cache, no-store, max-age=0', 'Pragma: no-cache'],
+            CURLOPT_USERAGENT => 'MODRIK-Dashboard-Update/1.0',
+            CURLOPT_ENCODING => '',
+        ]);
+        $body = curl_exec($curl);
+        if (! is_string($body)) {
+            curl_close($curl);
+
+            return null;
+        }
+        $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+        curl_close($curl);
+
+        return ['status' => $status, 'body' => $body];
     }
 
     private function backendRoot(): string
@@ -202,7 +271,7 @@ final class CpanelLivePayloadActivator
             if (! @copy($entry->getPathname(), $target)) {
                 throw new RuntimeException('live_payload_copy_failed');
             }
-            @chmod($target, $entry->getPerms() & 0777 ?: 0644);
+            @chmod($target, ($entry->getPerms() & 0777) ?: 0644);
         }
     }
 
