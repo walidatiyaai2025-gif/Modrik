@@ -67,7 +67,7 @@ final class SmtpProviderPoolService
             $before = $existing === null ? null : $this->safeProvider((array) $existing);
             $password = $input['password'];
 
-            if ($existing === null && (! is_string($password) || $password === '')) {
+            if ($existing === null && (is_string($password) === false || $password === '')) {
                 throw new \InvalidArgumentException('SMTP password is required when creating a provider.');
             }
 
@@ -346,7 +346,7 @@ final class SmtpProviderPoolService
     private function mailManager(): MailManager
     {
         $manager = app('mail.manager');
-        if (! $manager instanceof MailManager) {
+        if (($manager instanceof MailManager) === false) {
             throw new \RuntimeException('Mail manager is unavailable.');
         }
 
