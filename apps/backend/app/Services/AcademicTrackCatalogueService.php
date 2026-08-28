@@ -21,7 +21,7 @@ final class AcademicTrackCatalogueService
             ->orderBy('academic_tracks.id')
             ->get() as $row) {
             $track = (array) $row;
-            $labels = $this->displayLabels($track['title'] ?? null);
+            $labels = $this->displayLabels($track['title'] ?? null, ! (bool) ($track['is_fixture'] ?? false));
             $year = $this->displayYear($track['year_level'] ?? null);
             if ($labels === null || $year === null) {
                 continue;
@@ -49,7 +49,7 @@ final class AcademicTrackCatalogueService
         }
 
         $track = (array) $row;
-        if ($this->displayLabels($track['title'] ?? null) === null || $this->displayYear($track['year_level'] ?? null) === null) {
+        if ($this->displayLabels($track['title'] ?? null, ! (bool) ($track['is_fixture'] ?? false)) === null || $this->displayYear($track['year_level'] ?? null) === null) {
             throw $this->unavailableTrack();
         }
 
@@ -109,7 +109,7 @@ final class AcademicTrackCatalogueService
     }
 
     /** @return null|array{ar: string, en: string, fr: string} */
-    private function displayLabels(mixed $value): ?array
+    private function displayLabels(mixed $value, bool $allowFallback = false): ?array
     {
         if (is_string($value)) {
             $decoded = json_decode($value, true);
@@ -123,9 +123,17 @@ final class AcademicTrackCatalogueService
             return null;
         }
 
-        $labels = [];
+        /** @var array<string, non-empty-string> $validated */
+        $validated = [];
         foreach (self::LOCALES as $locale) {
             $candidate = $decoded[$locale] ?? null;
+            if ($candidate === null || $candidate === '') {
+                if ($allowFallback) {
+                    continue;
+                }
+
+                return null;
+            }
             if (! is_string($candidate)) {
                 return null;
             }
@@ -135,10 +143,31 @@ final class AcademicTrackCatalogueService
                 return null;
             }
 
-            $labels[$locale] = $label;
+            $validated[$locale] = $label;
         }
 
-        return $labels;
+        if (! $allowFallback) {
+            if (! isset($validated['ar'], $validated['en'], $validated['fr'])) {
+                return null;
+            }
+
+            return [
+                'ar' => $validated['ar'],
+                'en' => $validated['en'],
+                'fr' => $validated['fr'],
+            ];
+        }
+
+        $fallback = $validated['en'] ?? $validated['ar'] ?? $validated['fr'] ?? null;
+        if (! is_string($fallback)) {
+            return null;
+        }
+
+        return [
+            'ar' => $validated['ar'] ?? $fallback,
+            'en' => $validated['en'] ?? $fallback,
+            'fr' => $validated['fr'] ?? $fallback,
+        ];
     }
 
     private function containsUnsafeMarkupOrControls(string $label): bool
