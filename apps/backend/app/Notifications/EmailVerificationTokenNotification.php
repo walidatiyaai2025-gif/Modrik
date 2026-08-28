@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Channels\RotatingSmtpMailChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -12,10 +13,10 @@ final class EmailVerificationTokenNotification extends Notification
 
     public function __construct(public readonly string $token) {}
 
-    /** @return list<string> */
+    /** @return list<class-string> */
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return [RotatingSmtpMailChannel::class];
     }
 
     public function toMail(object $notifiable): MailMessage
