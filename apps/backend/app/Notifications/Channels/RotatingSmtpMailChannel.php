@@ -7,6 +7,7 @@ use Illuminate\Contracts\Mail\Factory as MailFactory;
 use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Mail\Markdown;
 use Illuminate\Notifications\Channels\MailChannel;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use RuntimeException;
 use Throwable;
@@ -14,11 +15,11 @@ use Throwable;
 final class RotatingSmtpMailChannel extends MailChannel
 {
     public function __construct(
-        MailFactory $mailer,
+        private readonly MailFactory $mailFactory,
         Markdown $markdown,
         private readonly SmtpProviderPoolService $providers,
     ) {
-        parent::__construct($mailer, $markdown);
+        parent::__construct($mailFactory, $markdown);
     }
 
     public function send($notifiable, Notification $notification)
@@ -27,10 +28,18 @@ final class RotatingSmtpMailChannel extends MailChannel
             return parent::send($notifiable, $notification);
         }
 
+        if (! method_exists($notification, 'toMail')) {
+            throw new RuntimeException('SMTP_PROVIDER_UNSUPPORTED_NOTIFICATION');
+        }
+
         $message = $notification->toMail($notifiable);
 
         if ($message instanceof Mailable) {
             return parent::send($notifiable, $notification);
+        }
+
+        if (! $message instanceof MailMessage) {
+            throw new RuntimeException('SMTP_PROVIDER_UNSUPPORTED_MAIL_MESSAGE');
         }
 
         if (! $notifiable->routeNotificationFor('mail', $notification)) {
@@ -42,15 +51,16 @@ final class RotatingSmtpMailChannel extends MailChannel
             throw new RuntimeException('SMTP_PROVIDER_SECRET_UNAVAILABLE');
         }
 
-        $lastException = null;
+        $lastException = new RuntimeException('SMTP_PROVIDER_DELIVERY_FAILED');
 
         foreach ($candidates as $provider) {
             $attempt = clone $message;
-            $attempt->mailer($this->providers->configureMailer($provider));
+            $mailerName = $this->providers->configureMailer($provider);
+            $attempt->mailer($mailerName);
             $attempt->from((string) $provider['from_address'], (string) $provider['from_name']);
 
             try {
-                return $this->mailer->mailer($attempt->mailer)->send(
+                return $this->mailFactory->mailer($mailerName)->send(
                     $this->buildView($attempt),
                     array_merge($attempt->data(), $this->additionalMessageData($notification)),
                     $this->messageBuilder($notifiable, $notification, $attempt),
@@ -60,10 +70,6 @@ final class RotatingSmtpMailChannel extends MailChannel
             }
         }
 
-        if ($lastException instanceof Throwable) {
-            throw $lastException;
-        }
-
-        throw new RuntimeException('SMTP_PROVIDER_DELIVERY_FAILED');
+        throw $lastException;
     }
 }
