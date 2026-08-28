@@ -41,20 +41,8 @@ final class CpanelDashboardRestartAdapter implements WebRestartAdapter
             );
         }
 
-        for ($attempt = 1; $attempt <= 4; $attempt++) {
-            if ($attempt > 1) {
-                sleep(2);
-            }
-            if ($this->live->runtimeHealthy($releaseSha)) {
-                return RestartResult::success(
-                    'The live cPanel runtime converged to the candidate release after the restart marker.',
-                    ['release_sha' => $releaseSha, 'verification_attempts' => $attempt],
-                );
-            }
-        }
-
         return RestartResult::requiresHostAction(
-            'The code is active, but the Node runtime still needs a cPanel Restart. Restart the demo.modrik.org Node application, then use Verify & Complete in MODRIK.',
+            'The code is active and the cPanel restart marker was written. Restart the demo.modrik.org Node application once, then use Verify & Complete in MODRIK.',
             [
                 'reason' => 'cpanel_restart_confirmation_required',
                 'release_sha' => $releaseSha,
