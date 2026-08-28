@@ -14,6 +14,12 @@ Route::middleware('install.uninstalled')->group(function (): void {
 Route::middleware('auth')->post('/admin/system-updates/upload-package', SystemUpdateUploadController::class)
     ->name('system-updates.upload-package');
 
+Route::get('/up', function () {
+    return response()->json([
+        'status' => 'ok',
+    ]);
+})->name('health.up');
+
 Route::get('/', function () {
     return response()->json([
         'name' => config('app.name'),
