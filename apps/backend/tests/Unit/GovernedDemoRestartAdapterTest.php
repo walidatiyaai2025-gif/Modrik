@@ -22,10 +22,9 @@ final class GovernedDemoRestartAdapterTest extends TestCase
         $release = $this->candidateRelease($releaseSha);
         $webRoot = $this->webRoot();
         config(['updates.live_web_root' => $webRoot]);
-        $this->app->instance(LivePayloadActivator::class, $this->liveActivator(false, false));
-        $this->app->forgetInstance(WebRestartAdapter::class);
+        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(false, false));
 
-        $result = app(WebRestartAdapter::class)->restart($release);
+        $result = $adapter->restart($release);
 
         $this->assertSame(RestartResult::STATUS_REQUIRES_HOST_ACTION, $result->status);
         $this->assertSame('live_payload_activation_required', $result->details['reason'] ?? null);
@@ -38,12 +37,11 @@ final class GovernedDemoRestartAdapterTest extends TestCase
         $release = $this->candidateRelease($releaseSha);
         $webRoot = $this->webRoot();
         config(['updates.live_web_root' => $webRoot]);
-        $this->app->instance(LivePayloadActivator::class, $this->liveActivator(true, true));
-        $this->app->forgetInstance(WebRestartAdapter::class);
+        $adapter = new CpanelDashboardRestartAdapter($this->liveActivator(true, true));
 
-        $result = app(WebRestartAdapter::class)->restart($release);
+        $result = $adapter->restart($release);
 
-        $this->assertSame(RestartResult::STATUS_SUCCEEDED, $result->status);
+        $this->assertSame(RestartResult::STATUS_SUCCEEDED, $result->status, json_encode($result->toArray()));
         $this->assertSame($releaseSha, $result->details['release_sha'] ?? null);
         $this->assertFileExists($webRoot.'/tmp/restart.txt');
     }
