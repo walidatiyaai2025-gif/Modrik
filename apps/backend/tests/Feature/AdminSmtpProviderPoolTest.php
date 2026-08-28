@@ -55,16 +55,16 @@ class AdminSmtpProviderPoolTest extends TestCase
         }
 
         $this->assertDatabaseCount('smtp_providers', 2);
-        $rows = DB::table('smtp_providers')->orderBy('name')->get();
-        $this->assertCount(2, $rows);
-        $this->assertNotSame('secret-a', (string) $rows[0]->password_ciphertext);
-        $this->assertNotSame('secret-b', (string) $rows[1]->password_ciphertext);
+        $ciphertexts = DB::table('smtp_providers')->orderBy('name')->pluck('password_ciphertext')->all();
+        $this->assertCount(2, $ciphertexts);
+        $this->assertNotSame('secret-a', (string) ($ciphertexts[0] ?? ''));
+        $this->assertNotSame('secret-b', (string) ($ciphertexts[1] ?? ''));
 
         $safeProviders = app(SmtpProviderPoolService::class)->providers();
         foreach ($safeProviders as $provider) {
             $this->assertArrayNotHasKey('password', $provider);
             $this->assertArrayNotHasKey('password_ciphertext', $provider);
-            $this->assertTrue($provider['password_set']);
+            $this->assertTrue((bool) $provider['password_set']);
         }
 
         $auditJson = DB::table('smtp_provider_audits')->pluck('after_state')->implode("\n");
@@ -116,6 +116,7 @@ class AdminSmtpProviderPoolTest extends TestCase
         foreach ($candidates as $provider) {
             $mailer = $service->configureMailer($provider);
             $config = config('mail.mailers.'.$mailer);
+            $this->assertIsArray($config);
             $this->assertSame('smtp', $config['transport']);
             $this->assertSame($provider['scheme'], $config['scheme']);
             $this->assertSame($provider['host'], $config['host']);
