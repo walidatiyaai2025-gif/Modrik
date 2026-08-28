@@ -20,9 +20,31 @@ class MobileBootstrapConfig {
     const rawBase = String.fromEnvironment('MODRIK_API_BASE_URL');
 
     return MobileBootstrapConfig(
-      apiBaseUrl: rawBase.isEmpty
-          ? null
-          : Uri.parse(rawBase.endsWith('/') ? rawBase : '$rawBase/'),
+      apiBaseUrl: normalizeProductionApiBase(rawBase),
+    );
+  }
+
+  /// Converts the owner supplied Backend origin into the canonical Mobile API
+  /// root. Mobile gateways resolve paths such as `auth/register` and `session`
+  /// relative to this URI, while the Backend contract is rooted at `/v1`.
+  ///
+  /// Accept both the convenient deployment origin (`https://host`) and an
+  /// explicitly versioned value (`https://host/v1/`) without ever producing a
+  /// double `/v1/v1/` prefix.
+  static Uri? normalizeProductionApiBase(String rawBase) {
+    final trimmed = rawBase.trim();
+    if (trimmed.isEmpty) return null;
+
+    final parsed = Uri.parse(trimmed);
+    final segments = parsed.pathSegments.where((segment) => segment.isNotEmpty).toList();
+    if (segments.isEmpty || segments.last != 'v1') {
+      segments.add('v1');
+    }
+
+    return parsed.replace(
+      path: '/${segments.join('/')}/',
+      query: null,
+      fragment: null,
     );
   }
 
