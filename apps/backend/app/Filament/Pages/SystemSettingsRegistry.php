@@ -6,6 +6,7 @@ use App\Exceptions\StaleSystemSettingVersion;
 use App\Filament\Support\AdminNavigationGroup;
 use App\Models\User;
 use App\Services\SystemSettingsRegistry as Registry;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Enums\Width;
 use Illuminate\Support\Facades\App;
@@ -32,6 +33,8 @@ final class SystemSettingsRegistry extends Page
     public array $reasons = [];
 
     public string $selectedKey = '';
+
+    public string $pendingSaveKey = '';
 
     public static function canAccess(): bool
     {
@@ -95,12 +98,62 @@ final class SystemSettingsRegistry extends Page
         return $groups;
     }
 
+    public function requestSave(string $key): void
+    {
+        $user = auth()->user();
+        abort_unless($user instanceof User && (string) $user->role === 'admin', 403);
+
+        $definitions = app(Registry::class)->definitions();
+        abort_unless(array_key_exists($key, $definitions), 404);
+
+        $stateKey = $this->stateKey($key);
+        $this->resetErrorBag('values.'.$stateKey);
+        $this->resetErrorBag('reasons.'.$stateKey);
+
+        $reason = trim((string) ($this->reasons[$stateKey] ?? ''));
+        if (mb_strlen($reason) < 8 || mb_strlen($reason) > 500) {
+            $this->pendingSaveKey = '';
+            $this->selectedKey = $key;
+            $this->addError(
+                'reasons.'.$stateKey,
+                $this->translate(
+                    'Enter a change reason between 8 and 500 characters before saving.',
+                    'اكتب سببًا للتغيير من 8 إلى 500 حرف قبل الحفظ.',
+                    'Saisissez un motif de modification de 8 à 500 caractères avant l’enregistrement.',
+                ),
+            );
+
+            return;
+        }
+
+        $this->selectedKey = $key;
+        $this->pendingSaveKey = $key;
+    }
+
+    public function cancelSave(): void
+    {
+        $this->pendingSaveKey = '';
+    }
+
+    public function confirmSave(): void
+    {
+        if ($this->pendingSaveKey === '') {
+            return;
+        }
+
+        $key = $this->pendingSaveKey;
+        $this->pendingSaveKey = '';
+        $this->saveSetting($key);
+    }
+
     public function saveSetting(string $key): void
     {
         $user = auth()->user();
         abort_unless($user instanceof User && (string) $user->role === 'admin', 403);
 
         $stateKey = $this->stateKey($key);
+        $this->resetErrorBag('values.'.$stateKey);
+        $this->resetErrorBag('reasons.'.$stateKey);
 
         try {
             app(Registry::class)->update(
@@ -114,6 +167,16 @@ final class SystemSettingsRegistry extends Page
             $this->reasons[$stateKey] = '';
             $this->selectedKey = $key;
             $this->reloadSetting($key);
+
+            Notification::make()
+                ->title($this->translate('Setting saved', 'تم حفظ الإعداد', 'Paramètre enregistré'))
+                ->body($this->translate(
+                    'The new version was saved and added to the audit history.',
+                    'تم حفظ الإصدار الجديد وإضافته إلى سجل التدقيق.',
+                    'La nouvelle version a été enregistrée et ajoutée à l’historique d’audit.',
+                ))
+                ->success()
+                ->send();
         } catch (StaleSystemSettingVersion) {
             $this->reloadSetting($key);
             $this->addError(
@@ -125,7 +188,10 @@ final class SystemSettingsRegistry extends Page
                 ),
             );
         } catch (InvalidArgumentException $exception) {
-            $this->addError('values.'.$stateKey, $exception->getMessage());
+            $field = str_contains($exception->getMessage(), 'change reason')
+                ? 'reasons.'.$stateKey
+                : 'values.'.$stateKey;
+            $this->addError($field, $exception->getMessage());
         }
     }
 
@@ -161,7 +227,10 @@ final class SystemSettingsRegistry extends Page
                 'La restauration a été bloquée car une version plus récente existe. Vérifiez d’abord l’état actuel.',
             ));
         } catch (InvalidArgumentException $exception) {
-            $this->addError('values.'.$stateKey, $exception->getMessage());
+            $field = str_contains($exception->getMessage(), 'change reason')
+                ? 'reasons.'.$stateKey
+                : 'values.'.$stateKey;
+            $this->addError($field, $exception->getMessage());
         }
     }
 

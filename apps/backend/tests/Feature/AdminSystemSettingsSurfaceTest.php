@@ -81,6 +81,59 @@ final class AdminSystemSettingsSurfaceTest extends TestCase
         $this->assertStringNotContainsString('password', $serialized);
     }
 
+    public function test_save_button_uses_visible_confirmation_and_persists_after_confirmation(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'account_status' => 'active',
+        ]);
+        $this->actingAs($admin);
+
+        $component = Livewire::test(SystemSettingsRegistry::class)
+            ->set('values.ads__global__enabled', false)
+            ->set('reasons.ads__global__enabled', 'Disable advertising during the controlled acceptance window.')
+            ->call('requestSave', 'ads.global.enabled')
+            ->assertSet('pendingSaveKey', 'ads.global.enabled')
+            ->assertSee('Confirm saving this change?')
+            ->call('confirmSave')
+            ->assertSet('pendingSaveKey', '')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('system_settings', [
+            'key' => 'ads.global.enabled',
+            'environment' => app()->environment(),
+            'version' => 1,
+            'value' => 'false',
+        ]);
+        $this->assertDatabaseHas('system_setting_audits', [
+            'action' => 'updated',
+            'to_version' => 1,
+            'actor_id' => $admin->id,
+        ]);
+    }
+
+    public function test_save_button_shows_reason_error_instead_of_silently_doing_nothing(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'account_status' => 'active',
+        ]);
+        $this->actingAs($admin);
+
+        Livewire::test(SystemSettingsRegistry::class)
+            ->set('values.auth__apple__enabled', true)
+            ->set('reasons.auth__apple__enabled', 'short')
+            ->call('requestSave', 'auth.apple.enabled')
+            ->assertSet('pendingSaveKey', '')
+            ->assertHasErrors(['reasons.auth__apple__enabled'])
+            ->assertSee('Enter a change reason between 8 and 500 characters before saving.');
+
+        $this->assertDatabaseMissing('system_settings', [
+            'key' => 'auth.apple.enabled',
+            'environment' => app()->environment(),
+        ]);
+    }
+
     public function test_restore_from_ui_creates_new_version_instead_of_rewriting_history(): void
     {
         $admin = User::factory()->create([
