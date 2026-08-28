@@ -41,7 +41,7 @@ final class GovernedDemoRestartAdapterTest extends TestCase
 
         $result = $adapter->restart($release);
 
-        $this->assertSame(RestartResult::STATUS_SUCCEEDED, $result->status, json_encode($result->toArray()));
+        $this->assertSame(RestartResult::STATUS_SUCCEEDED, $result->status);
         $this->assertSame($releaseSha, $result->details['release_sha'] ?? null);
         $this->assertFileExists($webRoot.'/tmp/restart.txt');
     }
