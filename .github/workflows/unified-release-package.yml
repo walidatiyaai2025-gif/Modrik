@@ -1,6 +1,16 @@
 name: Unified Release Package
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/web/**'
+      - 'apps/backend/**'
+      - 'deploy/unified/**'
+      - 'scripts/package-demo-cpanel.sh'
+      - 'scripts/package-unified-release.sh'
+      - '.github/workflows/unified-release-package.yml'
   pull_request:
     paths:
       - 'apps/web/**'
