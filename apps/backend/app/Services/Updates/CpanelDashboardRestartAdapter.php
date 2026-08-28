@@ -8,7 +8,7 @@ use Throwable;
 
 final class CpanelDashboardRestartAdapter implements WebRestartAdapter
 {
-    public function __construct(private CpanelLivePayloadActivator $live) {}
+    public function __construct(private LivePayloadActivator $live) {}
 
     public function restart(string $releasePath): RestartResult
     {
