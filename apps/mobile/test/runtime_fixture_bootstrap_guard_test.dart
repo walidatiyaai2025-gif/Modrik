@@ -25,4 +25,32 @@ void main() {
     expect(config.academicTrackId, isNull);
     expect(config.initialLessonId, isNull);
   });
+
+  test('production API origin is normalized to the Backend v1 root', () {
+    expect(
+      MobileBootstrapConfig.normalizeProductionApiBase(
+        'https://api.demo.modrik.org',
+      ).toString(),
+      'https://api.demo.modrik.org/v1/',
+    );
+    expect(
+      MobileBootstrapConfig.normalizeProductionApiBase(
+        'https://api.demo.modrik.org/',
+      ).toString(),
+      'https://api.demo.modrik.org/v1/',
+    );
+    expect(
+      MobileBootstrapConfig.normalizeProductionApiBase(
+        'https://api.demo.modrik.org/v1/',
+      ).toString(),
+      'https://api.demo.modrik.org/v1/',
+    );
+    expect(
+      MobileBootstrapConfig.normalizeProductionApiBase(
+        'https://example.invalid/api',
+      ).toString(),
+      'https://example.invalid/api/v1/',
+    );
+    expect(MobileBootstrapConfig.normalizeProductionApiBase('   '), isNull);
+  });
 }
