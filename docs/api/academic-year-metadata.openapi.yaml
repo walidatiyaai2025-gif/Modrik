@@ -1,0 +1,47 @@
+# Issue #310 OpenAPI contract supplement.
+# This supplement records the academic-year metadata semantics consumed by Web/Mobile.
+# Integration may fold these annotations into docs/api/openapi.yaml without changing the wire shape.
+paths:
+  /v1/academic-tracks:
+    get:
+      operationId: listAvailableAcademicTracks
+      tags: [Academics]
+      summary: List school-year-scoped academic tracks in Backend-curated display order
+      description: >-
+        The Backend returns only display-safe published tracks. Response order is authoritative:
+        configured school-year display order first, deterministic year-key fallback when metadata is
+        absent, configured track display order inside each year, then stable track identity fallback.
+        The year.label value is the configured AR/EN/FR label selected for the current request locale;
+        when operator metadata is absent the Backend supplies its existing readable fallback. Clients
+        must preserve the returned order and must not infer board, syllabus, version, or operator fields.
+      responses:
+        '200':
+          description: Ordered display-safe learner catalogue; may be empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademicTrackCatalogueResponse'
+components:
+  schemas:
+    AcademicTrackCatalogueItem:
+      type: object
+      additionalProperties: false
+      required: [id, year, labels]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        year:
+          type: object
+          additionalProperties: false
+          required: [key, label]
+          properties:
+            key:
+              type: string
+              minLength: 1
+              maxLength: 160
+              description: Stable opaque Backend school-year identity; clients do not synthesize it.
+            label:
+              type: string
+              minLength: 1
+              maxLength: 160
+              description: Display-safe localized school-year label selected by the Backend for the current locale.
+        labels: {$ref: '#/components/schemas/AcademicTrackLabels'}
