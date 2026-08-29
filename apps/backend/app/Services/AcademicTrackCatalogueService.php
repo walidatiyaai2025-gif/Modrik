@@ -11,18 +11,27 @@ final class AcademicTrackCatalogueService
 {
     private const LOCALES = ['ar', 'en', 'fr'];
 
-    /** @return list<array{id: string, year: array{key: string, label: string}, labels: array{ar: string, en: string, fr: string}}> */
+    /** @return list<array{id: string, year: array{key: string, label: string, labels: array{ar: string, en: string, fr: string}}, labels: array{ar: string, en: string, fr: string}}> */
     public function catalogue(): array
     {
         $tracks = [];
 
         foreach ($this->availableQuery()
+            ->leftJoin('academic_year_metadata', 'academic_year_metadata.year_level', '=', 'academic_tracks.year_level')
+            ->addSelect([
+                'academic_year_metadata.labels as year_labels',
+                'academic_year_metadata.display_order as year_display_order',
+                'academic_tracks.display_order as track_display_order',
+            ])
+            ->orderByRaw('CASE WHEN academic_year_metadata.display_order IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('academic_year_metadata.display_order')
             ->orderBy('academic_tracks.year_level')
+            ->orderBy('academic_tracks.display_order')
             ->orderBy('academic_tracks.id')
             ->get() as $row) {
             $track = (array) $row;
             $labels = $this->displayLabels($track['title'] ?? null, ! (bool) ($track['is_fixture'] ?? false));
-            $year = $this->displayYear($track['year_level'] ?? null);
+            $year = $this->displayYear($track['year_level'] ?? null, $track['year_labels'] ?? null);
             if ($labels === null || $year === null) {
                 continue;
             }
@@ -78,8 +87,8 @@ final class AcademicTrackCatalogueService
         return $query;
     }
 
-    /** @return null|array{key: string, label: string} */
-    private function displayYear(mixed $value): ?array
+    /** @return null|array{key: string, label: string, labels: array{ar: string, en: string, fr: string}} */
+    private function displayYear(mixed $value, mixed $metadataLabels = null): ?array
     {
         if (! is_string($value)) {
             return null;
@@ -90,22 +99,31 @@ final class AcademicTrackCatalogueService
             return null;
         }
 
-        $segments = preg_split('/[:\/]+/', $key) ?: [$key];
-        if (Str::upper((string) $segments[0]) === 'YEAR') {
-            array_shift($segments);
-        }
-        if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
-            array_pop($segments);
-        }
-
-        $readable = trim(implode(' ', $segments));
-        $readable = str_replace(['-', '_', '.'], ' ', $readable);
-        $label = Str::headline($readable === '' ? $key : $readable);
-        if ($label === '' || mb_strlen($label) > 160 || $this->containsUnsafeMarkupOrControls($label)) {
+        $labels = $metadataLabels === null ? null : $this->displayLabels($metadataLabels);
+        if ($metadataLabels !== null && $labels === null) {
             return null;
         }
 
-        return ['key' => $key, 'label' => $label];
+        if ($labels === null) {
+            $segments = preg_split('/[:\/]+/', $key) ?: [$key];
+            if (Str::upper((string) $segments[0]) === 'YEAR') {
+                array_shift($segments);
+            }
+            if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
+                array_pop($segments);
+            }
+
+            $readable = trim(implode(' ', $segments));
+            $readable = str_replace(['-', '_', '.'], ' ', $readable);
+            $label = Str::headline($readable === '' ? $key : $readable);
+            if ($label === '' || mb_strlen($label) > 160 || $this->containsUnsafeMarkupOrControls($label)) {
+                return null;
+            }
+
+            $labels = ['ar' => $label, 'en' => $label, 'fr' => $label];
+        }
+
+        return ['key' => $key, 'label' => $labels['en'], 'labels' => $labels];
     }
 
     /** @return null|array{ar: string, en: string, fr: string} */
