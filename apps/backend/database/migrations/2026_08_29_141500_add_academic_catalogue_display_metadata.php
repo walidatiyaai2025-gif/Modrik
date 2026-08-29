@@ -30,7 +30,7 @@ return new class extends Migration
             $table->string('reason', 500);
             $table->timestamp('occurred_at');
             $table->timestamps();
-            $table->index(['target_type', 'target_key', 'occurred_at']);
+            $table->index(['target_type', 'target_key', 'occurred_at'], 'acad_catalogue_audit_target_idx');
         });
     }
 
