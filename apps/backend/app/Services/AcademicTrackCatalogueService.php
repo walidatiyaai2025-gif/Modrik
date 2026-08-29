@@ -106,8 +106,11 @@ final class AcademicTrackCatalogueService
         }
 
         if ($labels !== null) {
-            $locale = App::getLocale();
-            $label = $labels[in_array($locale, self::LOCALES, true) ? $locale : 'en'];
+            $label = match (App::getLocale()) {
+                'ar' => $labels['ar'],
+                'fr' => $labels['fr'],
+                default => $labels['en'],
+            };
 
             return ['key' => $key, 'label' => $label];
         }
