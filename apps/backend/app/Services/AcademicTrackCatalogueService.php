@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\ApiProblemException;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -11,7 +12,7 @@ final class AcademicTrackCatalogueService
 {
     private const LOCALES = ['ar', 'en', 'fr'];
 
-    /** @return list<array{id: string, year: array{key: string, label: string, labels: array{ar: string, en: string, fr: string}}, labels: array{ar: string, en: string, fr: string}}> */
+    /** @return list<array{id: string, year: array{key: string, label: string}, labels: array{ar: string, en: string, fr: string}}> */
     public function catalogue(): array
     {
         $tracks = [];
@@ -87,7 +88,7 @@ final class AcademicTrackCatalogueService
         return $query;
     }
 
-    /** @return null|array{key: string, label: string, labels: array{ar: string, en: string, fr: string}} */
+    /** @return null|array{key: string, label: string} */
     private function displayYear(mixed $value, mixed $metadataLabels = null): ?array
     {
         if (! is_string($value)) {
@@ -104,26 +105,29 @@ final class AcademicTrackCatalogueService
             return null;
         }
 
-        if ($labels === null) {
-            $segments = preg_split('/[:\/]+/', $key) ?: [$key];
-            if (Str::upper((string) $segments[0]) === 'YEAR') {
-                array_shift($segments);
-            }
-            if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
-                array_pop($segments);
-            }
+        if ($labels !== null) {
+            $locale = App::getLocale();
+            $label = $labels[in_array($locale, self::LOCALES, true) ? $locale : 'en'];
 
-            $readable = trim(implode(' ', $segments));
-            $readable = str_replace(['-', '_', '.'], ' ', $readable);
-            $label = Str::headline($readable === '' ? $key : $readable);
-            if ($label === '' || mb_strlen($label) > 160 || $this->containsUnsafeMarkupOrControls($label)) {
-                return null;
-            }
-
-            $labels = ['ar' => $label, 'en' => $label, 'fr' => $label];
+            return ['key' => $key, 'label' => $label];
         }
 
-        return ['key' => $key, 'label' => $labels['en'], 'labels' => $labels];
+        $segments = preg_split('/[:\/]+/', $key) ?: [$key];
+        if (Str::upper((string) $segments[0]) === 'YEAR') {
+            array_shift($segments);
+        }
+        if (count($segments) > 1 && preg_match('/^[A-F0-9]{8}$/i', (string) end($segments)) === 1) {
+            array_pop($segments);
+        }
+
+        $readable = trim(implode(' ', $segments));
+        $readable = str_replace(['-', '_', '.'], ' ', $readable);
+        $label = Str::headline($readable === '' ? $key : $readable);
+        if ($label === '' || mb_strlen($label) > 160 || $this->containsUnsafeMarkupOrControls($label)) {
+            return null;
+        }
+
+        return ['key' => $key, 'label' => $label];
     }
 
     /** @return null|array{ar: string, en: string, fr: string} */
