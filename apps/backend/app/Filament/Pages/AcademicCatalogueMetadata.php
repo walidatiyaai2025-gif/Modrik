@@ -7,6 +7,7 @@ use App\Models\User;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use UnitEnum;
 
@@ -19,18 +20,14 @@ final class AcademicCatalogueMetadata extends Page
     protected static string|UnitEnum|null $navigationGroup = AdminNavigationGroup::Academic;
 
     public ?string $yearLevel = null;
-
     public string $yearLabelAr = '';
-
     public string $yearLabelEn = '';
-
     public string $yearLabelFr = '';
-
     public int $yearDisplayOrder = 0;
-
+    public string $yearReason = '';
     public ?string $trackId = null;
-
     public int $trackDisplayOrder = 0;
+    public string $trackReason = '';
 
     public static function canAccess(): bool
     {
@@ -114,6 +111,7 @@ final class AcademicCatalogueMetadata extends Page
         $this->yearLabelEn = (string) ($labels['en'] ?? '');
         $this->yearLabelFr = (string) ($labels['fr'] ?? '');
         $this->yearDisplayOrder = (int) ($data['display_order'] ?? 0);
+        $this->yearReason = '';
     }
 
     public function saveYear(): void
@@ -134,23 +132,33 @@ final class AcademicCatalogueMetadata extends Page
             ]);
         }
 
-        $now = now();
-        $payload = [
-            'labels' => json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-            'display_order' => $this->yearDisplayOrder,
-            'updated_at' => $now,
-        ];
-        if (DB::table('academic_year_metadata')->where('year_level', $yearLevel)->exists()) {
-            DB::table('academic_year_metadata')->where('year_level', $yearLevel)->update($payload);
-        } else {
-            DB::table('academic_year_metadata')->insert([
-                'year_level' => $yearLevel,
-                ...$payload,
-                'created_at' => $now,
-            ]);
-        }
+        $reason = $this->validatedReason($this->yearReason, 'yearReason');
+        DB::transaction(function () use ($yearLevel, $labels, $reason): void {
+            if (! DB::table('academic_tracks')->where('year_level', $yearLevel)->lockForUpdate()->exists()) {
+                throw ValidationException::withMessages(['yearReason' => $this->translate('School year no longer exists.', 'السنة الدراسية لم تعد موجودة.', 'L’année scolaire n’existe plus.')]);
+            }
+
+            $before = DB::table('academic_year_metadata')->where('year_level', $yearLevel)->lockForUpdate()->first();
+            $beforeData = $before === null ? null : (array) $before;
+            $now = now();
+            $payload = [
+                'labels' => json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                'display_order' => $this->yearDisplayOrder,
+                'updated_at' => $now,
+            ];
+
+            if ($before === null) {
+                DB::table('academic_year_metadata')->insert(['year_level' => $yearLevel, ...$payload, 'created_at' => $now]);
+            } else {
+                DB::table('academic_year_metadata')->where('year_level', $yearLevel)->update($payload);
+            }
+
+            $after = DB::table('academic_year_metadata')->where('year_level', $yearLevel)->first();
+            $this->audit('year', $yearLevel, 'metadata_updated', $beforeData, $after === null ? [] : (array) $after, $reason, $now);
+        });
 
         $this->yearLevel = null;
+        $this->yearReason = '';
     }
 
     public function beginTrack(string $trackId): void
@@ -163,20 +171,65 @@ final class AcademicCatalogueMetadata extends Page
         $data = (array) $track;
         $this->trackId = $trackId;
         $this->trackDisplayOrder = (int) ($data['display_order'] ?? 0);
+        $this->trackReason = '';
     }
 
     public function saveTrack(): void
     {
         $trackId = $this->trackId;
-        if ($trackId === null || ! DB::table('academic_tracks')->where('id', $trackId)->exists()) {
+        if ($trackId === null) {
             return;
         }
 
-        DB::table('academic_tracks')->where('id', $trackId)->update([
-            'display_order' => $this->trackDisplayOrder,
-            'updated_at' => now(),
-        ]);
+        $reason = $this->validatedReason($this->trackReason, 'trackReason');
+        DB::transaction(function () use ($trackId, $reason): void {
+            $before = DB::table('academic_tracks')->where('id', $trackId)->lockForUpdate()->first(['id', 'year_level', 'display_order']);
+            if ($before === null) {
+                throw ValidationException::withMessages(['trackReason' => $this->translate('Track no longer exists.', 'المسار لم يعد موجودًا.', 'Le parcours n’existe plus.')]);
+            }
+
+            $beforeData = (array) $before;
+            $now = now();
+            DB::table('academic_tracks')->where('id', $trackId)->update([
+                'display_order' => $this->trackDisplayOrder,
+                'updated_at' => $now,
+            ]);
+            $after = DB::table('academic_tracks')->where('id', $trackId)->first(['id', 'year_level', 'display_order']);
+            $this->audit('track', $trackId, 'display_order_updated', $beforeData, $after === null ? [] : (array) $after, $reason, $now);
+        });
+
         $this->trackId = null;
+        $this->trackReason = '';
+    }
+
+    private function validatedReason(string $value, string $field): string
+    {
+        $reason = trim($value);
+        if (mb_strlen($reason) < 8 || mb_strlen($reason) > 500 || strip_tags($reason) !== $reason || preg_match('/[\p{Cc}\p{Cf}]/u', $reason) === 1) {
+            throw ValidationException::withMessages([
+                $field => $this->translate('Enter a safe operator reason between 8 and 500 characters.', 'اكتب سببًا تشغيليًا آمنًا بين 8 و500 حرف.', 'Saisissez un motif opérateur sûr de 8 à 500 caractères.'),
+            ]);
+        }
+
+        return $reason;
+    }
+
+    /** @param null|array<string, mixed> $before @param array<string, mixed> $after */
+    private function audit(string $targetType, string $targetKey, string $action, ?array $before, array $after, string $reason, mixed $now): void
+    {
+        DB::table('academic_catalogue_metadata_audits')->insert([
+            'id' => (string) Str::ulid(),
+            'target_type' => $targetType,
+            'target_key' => $targetKey,
+            'actor_id' => auth()->id(),
+            'action' => $action,
+            'before' => $before === null ? null : json_encode($before, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            'after' => json_encode($after, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            'reason' => $reason,
+            'occurred_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
     }
 
     private function safeLabel(string $value): ?string

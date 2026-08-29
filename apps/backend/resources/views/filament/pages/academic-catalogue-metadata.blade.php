@@ -8,10 +8,10 @@
         <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <p class="text-sm text-gray-600">
                 {{ $locale === 'ar'
-                    ? 'أدخل أسماء السنوات وترتيب العرض فقط من مصادر تشغيلية معتمدة. لا تنشئ هذه الصفحة حقائق منهجية أو تعليمية.'
+                    ? 'أدخل أسماء السنوات وترتيب العرض فقط من مصادر تشغيلية معتمدة. كل تغيير يتطلب سببًا ويسجل في سجل تدقيق. لا تنشئ هذه الصفحة حقائق منهجية أو تعليمية.'
                     : ($locale === 'fr'
-                        ? 'Saisissez uniquement les libellés d’année et l’ordre d’affichage provenant de sources opérateur approuvées. Cette page ne crée aucun fait curriculaire.'
-                        : 'Enter only operator-approved year labels and display ordering. This page does not create curriculum or academic facts.') }}
+                        ? 'Saisissez uniquement les libellés d’année et l’ordre d’affichage provenant de sources opérateur approuvées. Chaque changement exige un motif et est audité. Cette page ne crée aucun fait curriculaire.'
+                        : 'Enter only operator-approved year labels and display ordering. Every change requires a reason and is audited. This page does not create curriculum or academic facts.') }}
             </p>
         </section>
 
@@ -50,7 +50,9 @@
                     <label><span class="text-sm font-medium">FR</span><input class="fi-input mt-1 block w-full rounded-lg border-gray-300" maxlength="160" wire:model="yearLabelFr" /></label>
                     <label><span class="text-sm font-medium">{{ $locale === 'ar' ? 'ترتيب السنة' : ($locale === 'fr' ? 'Ordre de l’année' : 'Year order') }}</span><input type="number" class="fi-input mt-1 block w-full rounded-lg border-gray-300" wire:model="yearDisplayOrder" /></label>
                 </div>
+                <label class="mt-4 block"><span class="text-sm font-medium">{{ $locale === 'ar' ? 'سبب التغيير' : ($locale === 'fr' ? 'Motif du changement' : 'Change reason') }}</span><textarea class="fi-input mt-1 block w-full rounded-lg border-gray-300" maxlength="500" wire:model="yearReason"></textarea></label>
                 @error('yearLabelEn') <p class="mt-2 text-sm text-danger-600">{{ $message }}</p> @enderror
+                @error('yearReason') <p class="mt-2 text-sm text-danger-600">{{ $message }}</p> @enderror
                 <div class="mt-4"><x-filament::button wire:click="saveYear">{{ $locale === 'ar' ? 'حفظ' : ($locale === 'fr' ? 'Enregistrer' : 'Save') }}</x-filament::button></div>
             </section>
         @endif
@@ -72,6 +74,8 @@
         @if ($trackId)
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                 <label><span class="text-sm font-medium">{{ $locale === 'ar' ? 'ترتيب عرض المسار' : ($locale === 'fr' ? 'Ordre d’affichage du parcours' : 'Track display order') }}</span><input type="number" class="fi-input mt-1 block w-full rounded-lg border-gray-300" wire:model="trackDisplayOrder" /></label>
+                <label class="mt-4 block"><span class="text-sm font-medium">{{ $locale === 'ar' ? 'سبب التغيير' : ($locale === 'fr' ? 'Motif du changement' : 'Change reason') }}</span><textarea class="fi-input mt-1 block w-full rounded-lg border-gray-300" maxlength="500" wire:model="trackReason"></textarea></label>
+                @error('trackReason') <p class="mt-2 text-sm text-danger-600">{{ $message }}</p> @enderror
                 <div class="mt-4"><x-filament::button wire:click="saveTrack">{{ $locale === 'ar' ? 'حفظ الترتيب' : ($locale === 'fr' ? 'Enregistrer l’ordre' : 'Save order') }}</x-filament::button></div>
             </section>
         @endif
