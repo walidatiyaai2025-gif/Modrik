@@ -222,7 +222,10 @@ final class AcademicCatalogueMetadata extends Page
         return $reason;
     }
 
-    /** @param null|array<string, mixed> $before @param array<string, mixed> $after */
+    /**
+     * @param  null|array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     */
     private function audit(string $targetType, string $targetKey, string $action, ?array $before, array $after, string $reason, mixed $now): void
     {
         DB::table('academic_catalogue_metadata_audits')->insert([
