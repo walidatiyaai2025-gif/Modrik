@@ -19,12 +19,17 @@ final class AcademicCatalogueMetadata extends Page
     protected static string|UnitEnum|null $navigationGroup = AdminNavigationGroup::Academic;
 
     public ?string $yearLevel = null;
+
     public string $yearLabelAr = '';
+
     public string $yearLabelEn = '';
+
     public string $yearLabelFr = '';
+
     public int $yearDisplayOrder = 0;
 
     public ?string $trackId = null;
+
     public int $trackDisplayOrder = 0;
 
     public static function canAccess(): bool
