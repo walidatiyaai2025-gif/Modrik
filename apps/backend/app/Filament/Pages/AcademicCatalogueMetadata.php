@@ -58,10 +58,10 @@ final class AcademicCatalogueMetadata extends Page
         return self::getNavigationLabel();
     }
 
-    /** @return list<array<string, mixed>> */
+    /** @return list<array{year_level: string, labels: array<mixed>, display_order: int}> */
     public function years(): array
     {
-        return DB::table('academic_tracks')
+        $rows = DB::table('academic_tracks')
             ->select('academic_tracks.year_level', 'academic_year_metadata.labels', 'academic_year_metadata.display_order')
             ->leftJoin('academic_year_metadata', 'academic_year_metadata.year_level', '=', 'academic_tracks.year_level')
             ->distinct()
@@ -79,21 +79,23 @@ final class AcademicCatalogueMetadata extends Page
                     'display_order' => (int) ($data['display_order'] ?? 0),
                 ];
             })
-            ->values()
             ->all();
+
+        return array_values($rows);
     }
 
     /** @return list<array<string, mixed>> */
     public function tracks(): array
     {
-        return DB::table('academic_tracks')
+        $rows = DB::table('academic_tracks')
             ->orderBy('year_level')
             ->orderBy('display_order')
             ->orderBy('id')
             ->get(['id', 'year_level', 'title', 'display_order'])
             ->map(static fn (object $row): array => (array) $row)
-            ->values()
             ->all();
+
+        return array_values($rows);
     }
 
     public function beginYear(string $yearLevel): void
