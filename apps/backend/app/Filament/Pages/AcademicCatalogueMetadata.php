@@ -127,15 +127,21 @@ final class AcademicCatalogueMetadata extends Page
             ]);
         }
 
-        DB::table('academic_year_metadata')->updateOrInsert(
-            ['year_level' => $yearLevel],
-            [
-                'labels' => json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-                'display_order' => $this->yearDisplayOrder,
-                'updated_at' => now(),
-                'created_at' => DB::raw('COALESCE(created_at, CURRENT_TIMESTAMP)'),
-            ],
-        );
+        $now = now();
+        $payload = [
+            'labels' => json_encode($labels, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            'display_order' => $this->yearDisplayOrder,
+            'updated_at' => $now,
+        ];
+        if (DB::table('academic_year_metadata')->where('year_level', $yearLevel)->exists()) {
+            DB::table('academic_year_metadata')->where('year_level', $yearLevel)->update($payload);
+        } else {
+            DB::table('academic_year_metadata')->insert([
+                'year_level' => $yearLevel,
+                ...$payload,
+                'created_at' => $now,
+            ]);
+        }
 
         $this->yearLevel = null;
     }
@@ -155,7 +161,7 @@ final class AcademicCatalogueMetadata extends Page
     public function saveTrack(): void
     {
         $trackId = $this->trackId;
-        if ($trackId === null) {
+        if ($trackId === null || ! DB::table('academic_tracks')->where('id', $trackId)->exists()) {
             return;
         }
 
