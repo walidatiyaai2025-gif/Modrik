@@ -73,7 +73,9 @@ Content rights remain a separate fail-closed gate. `pending_review` material mus
 
 The authorized evaluation target remains `demo.modrik.org`.
 
-Last repository-recorded successful Demo deployment remains `c82604443c5d6b3100e8df03f8fb37f089fc2853`. Source integration, package success and manual restart evidence do not advance deployed state.
+Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+
+Source integration, package success and manual restart evidence do not advance deployed state.
 
 Issue #260 contains later source-backed host diagnostics showing the repository/user-space Node/Next/CloudLinux Selector path cannot currently complete governed live acceptance without a root/WHM LiteSpeed remediation and subsequent fresh host verification. Do not run or claim a new successful deployment merely because source CI is green; the protected deployment path must independently prove exact API, Web, Admin, Landing and Student release identity and external smoke.
 
