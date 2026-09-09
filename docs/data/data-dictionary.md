@@ -11,7 +11,6 @@ Status: BOOT-008 learning, P0-CONTENT-001 preparation-staging, P0-SYNC-001 offli
 | `auth_provider_intents` | One-time login/link handshake state for external identity providers. | Persists only SHA-256 `state_hash` and `nonce_hash`, provider, purpose, optional bound user, expiry/consumption. Link intents require an authenticated recent session; login intents are public but one-time/rate-limited. |
 | `auth_security_events` | Minimal Auth audit trail. | Opaque user/session IDs, stable `event_type`, optional HMAC `context_hash`, timestamp. No password, bearer, verification/reset token, provider assertion/subject, raw email, IP or user-agent. |
 | `academic_tracks` | Backend-owned curriculum/board/syllabus/year combination and source of learner-selectable tracks. | Unique stable internal `code`; board and syllabus may be null in fixtures only and cannot be guessed for real content. `availability_state` is Backend-authoritative with controlled values `draft`, `published`, `retired`; new direct inserts fail closed as `draft`, only `published` rows are learner-selectable, and retirement removes a track from future catalogue/selection without deleting learner or curriculum history. Catalogue responses expose the stable opaque ULID, an opaque `year.key`, a safe readable `year.label`, and validated AR/EN/FR track labels. Internal track code, board, syllabus, fixture metadata and availability state remain server-side. Issue #19 publication consumes an existing track and does not create or synthesize one. |
-| `academic_track_authorizations` | Legacy compatibility table from the superseded per-user assignment model. | Issue #305 removes this table from Student catalogue/activate/reset authority. Existing rows are retained temporarily for backward migration/history compatibility only; no learner requires an Admin-created row to see or choose a track. A follow-up migration may remove the table after all residual fixtures/tests/consumers are proven absent. |
 | `user_academic_contexts` | Current and archived user track selections. | At most one `active` row per user, enforced transactionally; resets archive old rows. |
 | `academic_context_transitions` | Immutable activation/reset audit linking prior and new contexts. | Records actor-owned transition IDs and archived row counts; no attempt, answer, or PII payloads. |
 | `curriculum_nodes` | Hierarchical subject/unit/topic structure. | Unique `(academic_track_id, parent_id, code)`; official publication is restricted to authorized Admin/Content Team workflow. |
@@ -49,7 +48,13 @@ Activation and reset validate the target through the same published-track source
 
 Availability transitions are operator-controlled through the discoverable Admin Academic Track Availability surface. Only `draft -> published` and `published -> retired` are accepted. Each mutation requires Admin RBAC, an explicit operator reason, server-side state revalidation and immutable audit evidence. Retiring a track referenced by learner or curriculum history requires explicit confirmation and never deletes those historical references.
 
-Production track definitions remain owner/content-managed input. The repository does not invent real board, syllabus, version or year values. `academic_track_authorizations` is legacy compatibility state only and is no longer runtime selection authority.
+Production track definitions remain owner/content-managed input. The repository does not invent real board, syllabus, version or year values.
+
+## Legacy per-user track authorization retirement
+
+Issue #309 physically removes the superseded per-user authorization table after executable repository-wide consumer checks prove that runtime code, workers, Admin, fixtures/tests, Web, Mobile, QA and external API/requirements contracts no longer depend on it. `user_academic_contexts` and `academic_context_transitions` remain untouched and continue to preserve learner selection/history.
+
+The retirement migration has a schema-complete `down()` path for operational rollback. Recreating the former compatibility table during rollback does not restore it as catalogue, activation, reset, Admin-assignment or learner-eligibility authority.
 
 ## Production authentication lifecycle contract
 
@@ -79,7 +84,6 @@ No UGC identifier, real board, syllabus, syllabus version or rights claim is syn
 - Auth provider intent purpose: `login`, `link`; intent lifecycle is open until consumed or expired.
 - Auth provider identity: active when `revoked_at` is null; stable subject uniqueness remains even when revoked until explicit lifecycle handling.
 - Academic-track availability: `draft`, `published`, `retired`. New rows default to `draft`; only `published` is eligible for learner catalogue/activate/reset; `retired` preserves historical learner/curriculum references while preventing future selection.
-- Academic-track authorization: legacy compatibility state only after Issue #305; it is not consulted by catalogue/activation/reset and should receive no new product dependency.
 - Academic context: `active`, `archived`.
 - Canonical content rows: `draft`, `published`, `superseded` where the entity supports publication versioning.
 - Attempt: `in_progress`, `submitted`, `graded`, `abandoned`.
