@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 Updated: 2026-09-10
-Last reconciled baseline: `69378d028905820c0771c63d0c738e3ec4556968`
+Last reconciled baseline: `4f4cbe23952340ed10cf03c055c64d3df32580a2`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records a reconciled implementation baseline, deployed-build evidence and known work state; it does not predict the SHA that a later reconciliation merge will make live `main`.
 
@@ -38,6 +38,7 @@ The owner-authorized `GOV-SURFACE-001` follow-on and academic-selection stack ar
 - PR #345 reconciled #309 closure evidence and merged at `9f51632c8b27be75603fcdd0d478394be7cb49bb`.
 - PR #346 reconciled `OWNER_LAST` / `DEFERRED_EXTERNAL` control state and merged at `0c4bd41c239c77763c74384fc350bf1fb93b9f51` after exact-head Bootstrap #1389 passed the complete governed matrix.
 - PR #347 reconciled the P0 phase gate and merged at `69378d028905820c0771c63d0c738e3ec4556968` after exact-head Bootstrap #1391 passed the complete governed matrix.
+- PR #348 reconciled shared P0 control/state/evidence and merged at `4f4cbe23952340ed10cf03c055c64d3df32580a2` after exact-head Bootstrap #1393 passed the complete governed matrix; exact-main Bootstrap #1394 / run `34407560916`, attempt 2, subsequently revalidated that merge SHA successfully.
 
 The capability matrix has no remaining `audit_required` row. Unsupported capabilities remain represented by truthful deferred, unavailable or activation-gated states rather than fake operator authority.
 
@@ -56,14 +57,14 @@ PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap C
 
 ## P0 phase-gate status
 
-At the reconciled baseline `69378d028905820c0771c63d0c738e3ec4556968`, repository/cloud-actionable P0 engineering and integration work is converged. There were no open pull requests at that checkpoint, and Bootstrap CI #1392 / run `34402304281` completed successfully on that exact SHA. Attempt 2 re-ran the governed matrix on the same SHA and also completed successfully, including control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate.
+At the reconciled baseline `4f4cbe23952340ed10cf03c055c64d3df32580a2`, repository/cloud-actionable P0 engineering, integration and control-state reconciliation work is converged. There were no open pull requests at that checkpoint, and Bootstrap CI #1394 / run `34407560916`, attempt 2, completed successfully on that exact SHA with control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate green.
 
 This does **not** satisfy the P0 phase-exit gate. `P0_PHASE_EXIT = NOT_SATISFIED / BLOCKED_EXTERNAL` because #260 and #318 remain open for live-hosting Definition-of-Done evidence. Neither owner/external dependency is PASS, and a green repository CI run cannot substitute for governed live deployment acceptance. P1/community activation remains deferred until the P0 gate is actually satisfied or repository governance is explicitly and lawfully changed.
 
 ## Repository-verifiable work queue at this checkpoint
 
 There is no known unintegrated cloud-actionable P0 implementation candidate at this checkpoint. Remaining repository-visible P0 boundaries are:
-- #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST`: deployment acceptance remains OPEN. Current evidence identifies a root/WHM-level LiteSpeed host prerequisite; repository/user-space code must not bypass or weaken exact API/Web/Admin/Landing/Student release-identity and external-smoke gates.
+- #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST`: deployment acceptance remains OPEN. Fresh read-only evidence reports LiteSpeed 6.3.6 Build 6 and no sudo/root write capability; repository/user-space code must not bypass or weaken exact API/Web/Admin/Landing/Student release-identity and external-smoke gates.
 - #318 — `DEFERRED_EXTERNAL`: Unified Installer + Dashboard Update Center remains OPEN only for its live-hosting slices/acceptance coupled to #260. Engineering/package/wizard/transaction/update-center work is already integrated; do not create a replacement installer implementation.
 
 Real-content evaluation remains gated by owner-approved academic scope and evidence-backed content rights. Production activation remains gated by external owner/security/legal inputs.
@@ -80,6 +81,8 @@ Recent relevant exact-head/exact-main evidence includes:
 - Exact main `0c4bd41c239c77763c74384fc350bf1fb93b9f51` passed Bootstrap #1390 / run `34400232246`, including Pilot strict and the final governed aggregate.
 - PR #347 exact head `b0827b6e2623a83e427fa46ef7160e0acf9e2c78` passed Bootstrap #1391 before merge at `69378d028905820c0771c63d0c738e3ec4556968`.
 - Exact main `69378d028905820c0771c63d0c738e3ec4556968` passed Bootstrap #1392 / run `34402304281`; attempt 2 revalidated the same exact SHA successfully with Pilot normal/strict and the final governed aggregate.
+- PR #348 exact head `baf2e5d42428a7fa5c6b54fe32fa81816e7b09fe` passed Bootstrap #1393 before merge at `4f4cbe23952340ed10cf03c055c64d3df32580a2`.
+- Exact main `4f4cbe23952340ed10cf03c055c64d3df32580a2` passed Bootstrap #1394 / run `34407560916`; attempt 2 revalidated that same SHA successfully with control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 
@@ -97,7 +100,7 @@ Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2
 
 Source integration, package success and manual restart evidence do not advance deployed state.
 
-Issue #260 contains source-backed host diagnostics showing the repository/user-space Node/Next/CloudLinux Selector path cannot currently complete governed live acceptance without root/WHM LiteSpeed remediation and subsequent fresh host verification. The latest recorded blocker is LSWS 6.3.6 Build 6, while the accepted host remediation evidence requires a fixed build level before a fresh governed deployment. Do not claim deployment success merely because source CI is green; the protected deployment path must independently prove exact API, Web, Admin, Landing and Student release identity and external smoke.
+Issue #260 contains fresh source-backed host diagnostics showing the repository/user-space Node/Next/CloudLinux Selector path cannot currently complete governed live acceptance without root/WHM LiteSpeed remediation and subsequent fresh host verification. The latest recorded blocker is LSWS 6.3.6 Build 6 with `sudo_available=false`, `sudo_noninteractive=false` and `lsws_root_writable=false`; the accepted host remediation evidence requires a fixed build level before a fresh governed deployment. Do not claim deployment success merely because source CI is green; the protected deployment path must independently prove exact API, Web, Admin, Landing and Student release identity and external smoke.
 
 The Demo remains separate from production `modrik.org` cutover and is not a Production Ready claim.
 
