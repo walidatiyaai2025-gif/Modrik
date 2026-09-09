@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-09-09
-Last reconciled baseline: `38660e6bc11b4deb422c667a4af27021b6cb7833`
+Last reconciled baseline: `0c4bd41c239c77763c74384fc350bf1fb93b9f51`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -46,8 +46,17 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 ## Current repository-verifiable P0 queue
 
 - [x] #342 / PR #343 — fail-closed Bootstrap npm-advisory remediation integrated at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481` without weakening audit policy; exact PR head passed Bootstrap, Unified Release, Demo Package and Web runtime acceptance before merge.
-- [ ] #260 — deployment acceptance only. Current source-backed evidence requires root/WHM-level LiteSpeed host remediation/verification before a fresh governed Demo deployment can lawfully claim success. Do not bypass exact API/Web/Admin/Landing/Student identity or external smoke gates.
-- [ ] #318 — Unified Installer + Dashboard Update Center remains open only for its live-hosting slices/acceptance coupled to #260. Engineering/package/wizard/transaction/update-center work is already integrated; do not create a replacement installer implementation.
+- [x] PR #346 — `OWNER_LAST` / `DEFERRED_EXTERNAL` project-control reconciliation integrated at `0c4bd41c239c77763c74384fc350bf1fb93b9f51`; exact-main Bootstrap #1390 / run `34400232246` passed the complete governed matrix on that exact SHA.
+- [ ] #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST`, deployment acceptance only. Current source-backed evidence requires root/WHM-level LiteSpeed host remediation/verification before a fresh governed Demo deployment can lawfully claim success. Do not bypass exact API/Web/Admin/Landing/Student identity or external smoke gates.
+- [ ] #318 — `DEFERRED_EXTERNAL`, Unified Installer + Dashboard Update Center remains open only for its live-hosting slices/acceptance coupled to #260. Engineering/package/wizard/transaction/update-center work is already integrated; do not create a replacement installer implementation.
+
+## P0 phase gate
+
+- [x] Repository/cloud-actionable P0 implementation work converged at baseline `0c4bd41c239c77763c74384fc350bf1fb93b9f51`.
+- [x] No open PR remained at that checkpoint.
+- [x] Exact-main Bootstrap #1390 / run `34400232246` passed control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and final governed aggregate.
+- [ ] `P0_PHASE_EXIT` — **NOT SATISFIED / BLOCKED_EXTERNAL**. #260 and #318 remain open for live-hosting Definition-of-Done evidence; neither is PASS.
+- [ ] Do not start/activate P1/community work until the P0 exit gate is actually satisfied or repository governance is explicitly and lawfully changed.
 
 ## Control plane / release
 
@@ -58,7 +67,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] Landing/Student runtime and external deployment acceptance integrated via PR #248.
 - [x] Remote post-copy route/release validation before success recording integrated via PR #252.
 - [x] Restart-convergence implementation integrated via PR #268 and PR #273.
-- [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
+- [x] Reconciled `PROJECT_CONTROL.md`, `CURRENT_STATE.md` and `TASKS.md` after PR #346 / exact-main Bootstrap #1390 without hard-coding a claim that a checkpoint SHA is dynamically live main. Repeat this reconciliation after future material integration/deployment changes.
 
 ## Real-content evaluation
 
