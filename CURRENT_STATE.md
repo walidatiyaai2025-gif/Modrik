@@ -1,7 +1,7 @@
 # CURRENT STATE
 
-Updated: 2026-09-09
-Last reconciled baseline: `0c4bd41c239c77763c74384fc350bf1fb93b9f51`
+Updated: 2026-09-10
+Last reconciled baseline: `69378d028905820c0771c63d0c738e3ec4556968`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records a reconciled implementation baseline, deployed-build evidence and known work state; it does not predict the SHA that a later reconciliation merge will make live `main`.
 
@@ -37,6 +37,7 @@ The owner-authorized `GOV-SURFACE-001` follow-on and academic-selection stack ar
 - Legacy per-user academic-track authorization persistence retired through PR #344 / Issue #309 at implementation merge `38660e6bc11b4deb422c667a4af27021b6cb7833`.
 - PR #345 reconciled #309 closure evidence and merged at `9f51632c8b27be75603fcdd0d478394be7cb49bb`.
 - PR #346 reconciled `OWNER_LAST` / `DEFERRED_EXTERNAL` control state and merged at `0c4bd41c239c77763c74384fc350bf1fb93b9f51` after exact-head Bootstrap #1389 passed the complete governed matrix.
+- PR #347 reconciled the P0 phase gate and merged at `69378d028905820c0771c63d0c738e3ec4556968` after exact-head Bootstrap #1391 passed the complete governed matrix.
 
 The capability matrix has no remaining `audit_required` row. Unsupported capabilities remain represented by truthful deferred, unavailable or activation-gated states rather than fake operator authority.
 
@@ -55,7 +56,7 @@ PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap C
 
 ## P0 phase-gate status
 
-At the reconciled baseline `0c4bd41c239c77763c74384fc350bf1fb93b9f51`, repository/cloud-actionable P0 engineering and integration work is converged. There are no open pull requests, and push-triggered Bootstrap CI #1390 (`34400232246`) completed successfully on that exact SHA, including control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate.
+At the reconciled baseline `69378d028905820c0771c63d0c738e3ec4556968`, repository/cloud-actionable P0 engineering and integration work is converged. There were no open pull requests at that checkpoint, and Bootstrap CI #1392 / run `34402304281` completed successfully on that exact SHA. Attempt 2 re-ran the governed matrix on the same SHA and also completed successfully, including control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate.
 
 This does **not** satisfy the P0 phase-exit gate. `P0_PHASE_EXIT = NOT_SATISFIED / BLOCKED_EXTERNAL` because #260 and #318 remain open for live-hosting Definition-of-Done evidence. Neither owner/external dependency is PASS, and a green repository CI run cannot substitute for governed live deployment acceptance. P1/community activation remains deferred until the P0 gate is actually satisfied or repository governance is explicitly and lawfully changed.
 
@@ -77,6 +78,8 @@ Recent relevant exact-head/exact-main evidence includes:
 - PR #345 exact head `47fe6116253a3f837ef531ec33a4cbde8f9b2809` passed Bootstrap #1387 before merge at `9f51632c8b27be75603fcdd0d478394be7cb49bb`.
 - PR #346 exact head `b6894a049cc64ca64d7012ca3c7db26683904364` passed Bootstrap #1389 before merge at `0c4bd41c239c77763c74384fc350bf1fb93b9f51`.
 - Exact main `0c4bd41c239c77763c74384fc350bf1fb93b9f51` passed Bootstrap #1390 / run `34400232246`, including Pilot strict and the final governed aggregate.
+- PR #347 exact head `b0827b6e2623a83e427fa46ef7160e0acf9e2c78` passed Bootstrap #1391 before merge at `69378d028905820c0771c63d0c738e3ec4556968`.
+- Exact main `69378d028905820c0771c63d0c738e3ec4556968` passed Bootstrap #1392 / run `34402304281`; attempt 2 revalidated the same exact SHA successfully with Pilot normal/strict and the final governed aggregate.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 
