@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
-Updated: 2026-08-23
-Last reconciled baseline: `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`
+Updated: 2026-09-09
+Last reconciled baseline: `9f51632c8b27be75603fcdd0d478394be7cb49bb`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -12,6 +12,8 @@ Locked product decisions, the Master Product & Engineering Plan, REQ/AC, ADRs, O
 Only the owner may approve or provide new product scope, exact real academic values not already supplied by an authorized workflow, real content-rights evidence, final legal facts/wording, production credentials/signing, production age/ad/community policy, RPO/RTO/retention decisions and production cutover. Missing owner values block only the affected activation/release task and must never be fabricated.
 
 Engineering, repository, PR, CI, documentation, conflict resolution and release preparation proceed autonomously where tooling allows. Red CI is merge-blocking. Clients and Admin surfaces consume Backend/domain authority and must not redefine Auth, Academic, Assessment, Sync, Content, Safety, notification or publication policy merely to expose UI.
+
+External or owner-only dependencies must be recorded explicitly as `OWNER_LAST`, `DEFERRED_EXTERNAL`, `DECISION REQUIRED` or BLOCKED according to the governing evidence. Those classifications are never equivalent to PASS and never block unrelated cloud-actionable work.
 
 ## Capability governance — `GOV-SURFACE-001`
 
@@ -47,46 +49,45 @@ Any deployment PR must update executable contract coverage and preserve these in
 
 ## Reconciled integration checkpoint
 
-Recent integrated milestones include:
-- PR #201 / Issue #182 — Content Operations lifecycle, ingestion/retry, exception triage, provenance/traceability and coverage visibility.
-- PR #209 / Issue #208 — discoverable Student academic-track change using Backend reset/archive authority.
-- PR #207 and PR #229 / Issues #217/#183 — Assessment Admin visibility and immutable-attempt authority boundaries.
-- PR #218 / Issue #216 — Accounts, Sessions, fixed-role RBAC visibility and Operations Control Center.
-- PR #225 / Issues #224/#184 — Public/Legal/Help operational visibility with unsupported legal management kept read-only/deferred.
-- PR #234 / Issue #233 — capability-surface governance contract enforced in CI.
-- PR #232 / Issue #231 — exact Demo Web/Admin Build SHA verification added to authorized deployment smoke.
-- PR #239 — Windows client explicitly classified `deferred_disabled`.
-- PR #230 — successful Demo deployment checkpoint evidence.
-- PR #236 / Issue #235 — Backend-owned Student Notification Center across Backend, Student Web and Student Mobile.
-- PR #248 / Issue #244 — restored explicit public Landing `/` and Student Portal `/student` runtime/deployment gates.
-- PR #252 / Issue #250 — hardened remote cPanel post-copy release validation before deployment-success markers.
-- PR #257 / Issue #256 — Admin sidebar contrast integration.
-- PR #270 / Issue #262 — removed Mobile/Admin simulated runtime fallbacks.
-- PR #268 and PR #273 / Issue #260 — bounded restart convergence plus CloudLinux Node Selector restart invocation; implementation is integrated, while #260 remains open for a successful governed redeploy.
-- PR #275 / Issue #274 — transport-truthful integration availability and safe secret-state reporting.
-- PR #279 / Issue #277 — truthful first-party Notification Center operational status independent of FCM transport readiness.
-- PR #280 / Issue #264 — post-#279 control-state reconciliation integrated at `9261033fe79446bdaa6521cb6b1031955386b115`.
-- PR #282 / Issue #266 — one-file post-runtime-integrity CHANGELOG reconciliation integrated at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31` after exact-head Bootstrap #1126.
+The previous runtime-auth and academic-selection work is no longer active work:
 
-PR #275 exact head `7676e3b5937f67b6e3ffb7cd354b8399b78ae5d9` passed Bootstrap #1114, Admin UX Browser Acceptance #168 and Demo cPanel Package #287 before merge at `65aaa52e1c2c1c4757f96ca32d5ee9b1c503d236`.
+- #259 / #271 / #261 / #263 are integrated/closed through the terminal composed PR #313. Historical component PRs that were superseded by that composed candidate must not be reopened as duplicate implementation.
+- #305 / PR #306 integrated Backend-owned year-scoped learner self-selection; Student Web chooses school year → track while reset/archive history semantics remain Backend-owned.
+- #307 and #308 are integrated through the composed PR #313 stack, covering Backend/Admin track availability lifecycle and Mobile Year → Track parity.
+- #310 / PR #341 integrated canonical localized academic-year metadata and operator-curated track ordering at `119a1821aa237ba5194e9d7529915700db27c02c`.
+- #342 / PR #343 restored fail-closed Bootstrap CI after npm security advisories at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481` without weakening audit policy.
+- #309 / PR #344 retired the superseded physical `academic_track_authorizations` persistence at implementation merge `38660e6bc11b4deb422c667a4af27021b6cb7833`; Issue #309 is CLOSED / COMPLETED. PR #345 then reconciled `CURRENT_STATE.md`, `TASKS.md` and the dedicated closure evidence into baseline `9f51632c8b27be75603fcdd0d478394be7cb49bb`.
+- #318 installer/update engineering is already integrated: deterministic unified package, Setup Wizard, transactional install/update engine, Dashboard Update Center, rollback/failure safety and fail-closed hosting handoff. Its remaining scope is live-hosting acceptance, not replacement implementation.
 
-PR #279 exact head `1407a160f6fca750fc22ab2387655580e110a931` passed Bootstrap #1118, Admin UX Browser Acceptance #169 and Demo cPanel Package #288 before merge at `42c280f9a29245d439a92445033650be511655f9`; the merged tree exactly matches the tested-head tree `4d602d8e53fad49466db6b091a4a956315d4b97e`.
+The detailed history remains in `CURRENT_STATE.md`, `TASKS.md`, `CHANGELOG.md`, merged PRs and Issue timelines. Historical failed CI/deployment runs remain evidence and are not rewritten as successful merely because later repairs passed.
 
 ## Active repository-verifiable work at this checkpoint
 
-Issue #264 is reopened only for the post-PR #280 self-staleness correction in these three control documents. The previous reconciliation is integrated; this follow-up does not reopen product/runtime scope.
+At this checkpoint there are no open pull requests. The open Issue queue is intentionally narrow:
 
-Issue #266 / PR #282 is integrated and closed completed. The CHANGELOG now preserves the post-#257 deployment/runtime-integrity history without advancing the recorded Demo deployment SHA.
+### #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST` host remediation and Demo acceptance
 
-Runtime-auth hardening remains sequenced and non-overlapping:
-- #271 / PR #272 owns canonical Backend runtime fixture-auth removal and default/demo seeding hardening. Its last exact-head Bootstrap #1101 is red on Pilot acceptance because the old Pilot flow still requires fixture auth; that failure must not be waived.
-- #261 / PR #265 owns Web BFF fixture-token removal plus focused real-session Web smoke only. It remains stale and must reconcile after the canonical Backend candidate while dropping historical Backend overlap.
-- #263 / PR #278 owns terminal real-session Pilot/browser acceptance plus the project-wide runtime-mock guard. Its current dependency branch is stale relative to canonical main and needs fresh governed CI after #271 + cleaned #261 composition.
-- #259 remains the umbrella until #271/#261/#263 are integrated and the project-wide runtime-mock guard is green on canonical main.
+Repository/user-space deployment implementation is integrated. The last source-backed host evidence records LiteSpeed Web Server `6.3.6` Build `6`, while the connected cPanel user cannot perform the required root remediation (`sudo_available=false`; LSWS root not writable). Repository/user-space Node 22, Next standalone, CloudLinux Selector/CageFS, permissions, rollback and exact-release gates must not be bypassed or weakened.
 
-Issue #260 remains open for deployment acceptance and deployment-path convergence. The current remediation must make routine cPanel/LiteSpeed deployment deterministic under `GOV-DEPLOY-001`; #260 may close only after a newer canonical-main release completes the full governed path and external smoke.
+Required owner/provider action:
 
-Real-content evaluation remains gated by owner-approved academic values, deterministic validation and content-rights review. Production activation remains separately gated by external owner/security/legal inputs.
+1. use root/WHM or the hosting provider to update/force-update LiteSpeed to a supported build containing the Node process-management fix; the current Issue evidence requires `BUILD >= 8` for the 6.3.6 line, or a newer supported fixed build;
+2. verify LiteSpeed `VERSION`/`BUILD` and healthy restart at the host level;
+3. verify the protected cPanel origin/diagnostic is consistently available and no longer returning the recorded intermittent 503 condition;
+4. only then authorize a fresh governed Demo deployment from the then-current exact `main`;
+5. require protected deployment success plus exact API, Landing `/`, Student `/student`, Admin and release-identity external smoke before recording a newer deployed SHA or closing #260.
+
+This evidence is not PASS until those external actions and the fresh governed deployment actually succeed.
+
+### #318 — `DEFERRED_EXTERNAL` live-hosting slices coupled to #260
+
+The installer/update engineering slices remain integrated. Slices E/F remain open only for live-hosting acceptance coupled to #260. No replacement installer/update branch is authorized.
+
+After #260 host remediation and fresh governed deployment evidence exist, #318 may be reconciled only if the installer/update hosting bridge activates the exact authorized release without routine manual cPanel restart, protected API/Landing/Student/Admin/static health and exact release identity are green, and failure/rollback/shared-persistent-state invariants remain intact. Until then #318 remains OPEN and live-hosting completion must not be fabricated.
+
+### Other owner/external gates
+
+Real-content evaluation remains gated by owner-approved academic scope and evidence-backed content rights. Production activation remains separately gated by final owner/security/legal/provider inputs. Missing inputs block only their affected tasks and do not authorize guessed values.
 
 ## Merge and CI policy
 
@@ -95,6 +96,10 @@ All implementation enters `main` through focused PRs. Never merge red CI or weak
 The governed matrix includes control-state validation, capability-surface validation, repository contracts/REQ/AC/schemas, OpenAPI lint, design tokens, Composer validate/audit, Pint, Larastan, full SQLite PHPUnit, MariaDB 10.11 migration/full suite, Web audit/lint/typecheck/tests/build, Flutter analyze/tests/signing gate, Gitleaks, dependency review, Pilot normal/strict acceptance and relevant browser/runtime/demo acceptance.
 
 Release/deployment changes must preserve exact Web/Admin Build SHA verification from PR #232, Landing/Student route/runtime acceptance from PR #248, the pre-success remote marker/release validation integrated by PR #252, and `GOV-DEPLOY-001` desired-state/runtime rollback guarantees.
+
+PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap #1382, Unified Release Package #103 and Demo cPanel Package #467 before integration. Its implementation merge `38660e6bc11b4deb422c667a4af27021b6cb7833` then passed push-triggered Bootstrap #1383, including normal/strict Pilot and the final governed aggregate, plus Unified Release Package #104.
+
+PR #345 exact head `47fe6116253a3f837ef531ec33a4cbde8f9b2809` passed Bootstrap #1387 including control-state validation and the complete governed aggregate before integration. Fresh exact-main workflow state after later reconciliation merges must always be read from GitHub and is not predicted by this checkpoint.
 
 ## Demo deployment authorization and state
 
@@ -110,7 +115,17 @@ Demo authorization does not imply production `modrik.org` cutover or Production 
 
 ## External inputs still explicit
 
-These do not block unrelated engineering but remain required for affected activation: curriculum/content-rights evidence; final legal facts/approval; production provider/Firebase/store credentials/signing; production age/ad/community policy; RPO/RTO/retention; production hosting/cutover approval.
+These remain owner/external gates and do not block unrelated engineering:
+
+- `OWNER_LAST` — exact owner-approved curriculum/academic scope values where not already supplied through an authorized workflow;
+- `OWNER_LAST` / `DEFERRED_EXTERNAL` — evidence-backed content-rights approval for official publication;
+- `OWNER_LAST` — final legal entity/controller/contact/jurisdiction facts and approved wording;
+- `OWNER_LAST` / `DEFERRED_EXTERNAL` — production provider/Firebase/store identifiers, credentials, callbacks and signing where enabled;
+- `OWNER_LAST` — production age/ad/community activation policy;
+- `OWNER_LAST` — RPO/RTO, backup retention and data-retention decisions;
+- `OWNER_LAST` — production hosting and `modrik.org` cutover approval.
+
+None of these classifications is PASS without the required evidence.
 
 ## Completion language
 
@@ -118,4 +133,4 @@ Domain implementation completion is recorded as:
 
 `ISSUE IMPLEMENTATION COMPLETE — PR GREEN AND READY FOR INTEGRATION`
 
-No capability or release task is complete until its required authority classification and exact-head regression evidence are present.
+Only the Integration Captain may declare a Wave closed after integrated-main verification and repository closure evidence are complete. No capability or release task is complete until its required authority classification and exact-head regression evidence are present. `VERIFIED_FINAL_COMPLETE` must never be claimed without actual final evidence.
