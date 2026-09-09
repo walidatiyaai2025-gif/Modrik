@@ -1,7 +1,7 @@
 # TASKS
 
-Updated: 2026-08-23
-Last reconciled baseline: `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`
+Updated: 2026-09-09
+Last reconciled baseline: `119a1821aa237ba5194e9d7529915700db27c02c`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -30,6 +30,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 
 ## Current repository-verifiable P0 queue
 
+- [x] #342 — restore fail-closed Bootstrap CI after current npm advisories by upgrading Web Next.js / `eslint-config-next` to 16.3.4 and resolving patched `js-yaml`, `sharp` and root `fast-uri` versions without weakening audit policy. Local root/Web clean installs and audits, Web lint/typecheck/build, and dependency resolution checks pass; exact-head Linux CI remains the integration gate because Windows line endings affect one byte-for-byte SVG test and the deployment-smoke harness requires Linux process semantics.
 - [ ] #271 / PR #272 — reconcile canonical Backend runtime fixture-auth/default/demo-seeding hardening onto current integration state without restoring fixture auth. The last exact-head Bootstrap #1101 is red on the legacy Pilot fixture-auth dependency and must not be waived.
 - [ ] #261 / PR #265 — after the canonical Backend candidate is ready, reconcile to Web BFF + focused real-session smoke only and remove historical Backend overlap.
 - [ ] #263 / PR #278 — after #271 + cleaned #261 composition, reconcile terminal real-session Pilot/browser acceptance and the project-wide runtime-mock guard; run fresh exact-head contracts, Backend SQLite/MariaDB, normal/strict Pilot/browser and Bootstrap governed aggregate.
@@ -41,7 +42,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [ ] #307 — add an explicit Backend-authoritative `academic_tracks` availability lifecycle (`draft/published/retired` or approved equivalent) plus discoverable audited Admin control. The current schema has no track publication/active field, so #305 can only filter fixture/display safety, not operator availability.
 - [ ] #308 — add Mobile Year → Track UX parity. The current Mobile parser remains wire-compatible because it ignores the new `year` field, but it does not yet expose the owner-approved year-first selection flow.
 - [ ] #309 — retire the legacy `academic_track_authorizations` table after repository-wide consumer/fixture verification; #305 removes it from runtime selection authority but deliberately avoids a destructive migration in the same product-contract change.
-- [ ] #310 — define canonical localized school-year metadata and operator-controlled track display order. #305 safely derives a readable year label and deterministic ordering from current track data, but full AR/EN/FR year naming and curated ordering are not represented in the existing schema.
+- [x] #310 / PR #341 — canonical localized school-year metadata and operator-controlled track display order integrated at `119a1821aa237ba5194e9d7529915700db27c02c`.
 
 ## Control plane / release
 
@@ -52,7 +53,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] Landing/Student runtime and external deployment acceptance integrated via PR #248.
 - [x] Remote post-copy route/release validation before success-recording integrated via PR #252.
 - [x] Restart-convergence implementation integrated via PR #268 and PR #273.
-- [ ] #260 — run a newer owner-authorized Demo deployment from canonical main; close only if API, Web, Admin, Landing, Student, protected success markers and external smoke all pass. Source merge/package success/manual restart evidence must not advance deployed state.
+- [ ] #260 — after #342 is integrated with exact-head Linux CI green, run a newer owner-authorized Demo deployment from canonical main; close only if API, Web, Admin, Landing, Student, protected success markers and external smoke all pass. Source merge/package success/manual restart evidence must not advance deployed state.
 - [ ] #264 — post-PR #280 self-staleness correction only: advance the reconciled baseline to current canonical main, remove stale pre-merge #264 wording, preserve current ownership/deployment truth, and require fresh exact-head control-state CI on the follow-up three-file PR.
 - [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
 

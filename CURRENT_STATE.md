@@ -1,9 +1,15 @@
 # CURRENT STATE
 
-Updated: 2026-08-23
-Last reconciled baseline: `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`
+Updated: 2026-09-09
+Last reconciled baseline: `119a1821aa237ba5194e9d7529915700db27c02c`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
+
+## Active CI security restoration
+
+Issue #342 is the focused remediation for a time-dependent npm advisory update that made Bootstrap CI on canonical `main` fail closed before the governed Demo deployment could start. The candidate keeps the audit policy intact, moves Web to the patched Next.js / `eslint-config-next` 16.3.4 pair, resolves `js-yaml` 4.3.2 and `sharp` 0.35.4 in the Web lock, and resolves root `fast-uri` 3.1.7 through the existing `ajv` dependency.
+
+Local clean installs and both npm audits pass with zero vulnerabilities; Web lint, typecheck and the Next production build pass. The Windows checkout runs 89/90 Web tests, with the only failure being the existing byte-for-byte canonical SVG assertion observing CRLF versus LF. The bash-driven deployment-smoke contract harness also requires Linux process semantics that the Windows host does not reproduce. Neither local-environment limitation is waived: exact-head Linux Bootstrap CI remains mandatory before integration and before any #260 Demo deployment.
 
 ## Integrated capability / Admin / Student state
 
@@ -25,14 +31,15 @@ The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
 - Notification Center operational status reconciled via PR #279 / Issue #277 so the first-party inbox reports `present` independently of auxiliary FCM readiness.
 - Post-#279 control-state reconciliation integrated via PR #280 / Issue #264 at `9261033fe79446bdaa6521cb6b1031955386b115`.
 - Post-runtime-integrity CHANGELOG reconciliation integrated via PR #282 / Issue #266 at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31` after exact-head Bootstrap #1126.
+- Canonical localized academic-year metadata and operator-curated track ordering integrated via PR #341 / Issue #310 at `119a1821aa237ba5194e9d7529915700db27c02c`.
 
 The capability matrix has no remaining `audit_required` row. Remaining unsupported capabilities are explicitly represented by truthful `backend_contract_missing`, deferred or activation-gated states rather than fake operator authority.
 
 ## Owner-directed academic selection change
 
-Issue #305 records the 2026-08-23 owner decision that academic-track eligibility is school-year scoped rather than assigned per learner. The implementation candidate changes the Backend catalogue from `academic_track_authorizations` to display-safe `academic_tracks`, adds year metadata, and makes Student Web choose **year → track** while preserving the existing full reset/archive transition.
+Issue #305 records the 2026-08-23 owner decision that academic-track eligibility is school-year scoped rather than assigned per learner. The integrated implementation changes the Backend catalogue from `academic_track_authorizations` to display-safe `academic_tracks`, adds year metadata, and makes Student Web choose **year → track** while preserving the existing full reset/archive transition. PR #341 / Issue #310 now also provide canonical localized school-year metadata and operator-curated track ordering.
 
-Gap audit from this contract change is explicit: `academic_tracks` still lacks a publication/availability lifecycle; Mobile still needs year-first UX parity; the old authorization table needs a later non-destructive retirement after residual-consumer proof; and canonical localized school-year labels / operator-curated track ordering need dedicated metadata rather than inferred references.
+Remaining gaps are explicit: `academic_tracks` still lacks a publication/availability lifecycle; Mobile still needs year-first UX parity; and the old authorization table needs a later non-destructive retirement after residual-consumer proof.
 
 ## Repository-verifiable work queue at this checkpoint
 

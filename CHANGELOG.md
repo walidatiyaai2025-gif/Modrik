@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-09-09 — Bootstrap npm advisory remediation (#342)
+
+- Kept the fail-closed `npm audit --audit-level=moderate` gates intact and updated Web from Next.js / `eslint-config-next` 16.3.1 to the patched 16.3.4 pair after current advisories made canonical-main Bootstrap CI fail before deployment.
+- Refreshed deterministic locks to `js-yaml` 4.3.2 and `sharp` 0.35.4 for Web, plus `fast-uri` 3.1.7 through root `ajv`; root and Web `npm ci` and audits report zero vulnerabilities, and dependency-resolution checks confirm every patched version.
+- Web lint, TypeScript checking and the Next.js 16.3.4 production build pass. The Windows checkout passes 89/90 Web tests; the remaining assertion is an existing byte-for-byte SVG LF/CRLF mismatch. The bash-driven deployment-smoke harness likewise depends on Linux process semantics, so exact-head Linux Bootstrap CI remains mandatory and is not replaced by local evidence.
+- Integrated PR #341 / Issue #310 at `119a1821aa237ba5194e9d7529915700db27c02c`, adding canonical localized academic-year metadata and operator-curated track ordering. The next safe task after #342 integration is the governed #260 Demo deployment; production `modrik.org` remains out of scope.
+
 ## 2026-08-23 — owner-directed year-scoped academic self-selection (#305)
 
 - Owner product authority supersedes the per-user academic-track eligibility model from Issue #21: students choose a school year and then any display-safe track configured for that year; Admin does not assign tracks to individual learners.
