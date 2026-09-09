@@ -34,12 +34,5 @@ final class PilotAcceptanceSeeder extends Seeder
                 'user_id' => (string) $student->getKey(),
                 'updated_at' => now(),
             ]);
-
-        DB::table('academic_track_authorizations')
-            ->where('user_id', LearningSliceSeeder::USER_ID)
-            ->update([
-                'user_id' => (string) $student->getKey(),
-                'updated_at' => now(),
-            ]);
     }
 }
