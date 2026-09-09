@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-09-09
-Last reconciled baseline: `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481`
+Last reconciled implementation baseline: `38660e6bc11b4deb422c667a4af27021b6cb7833`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -40,7 +40,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] #305 / PR #306 — per-user assignment replaced by Backend-owned year-scoped learner self-selection; Student Web chooses **school year → track** while reset/archive history authority remains unchanged.
 - [x] #307 / composed PR #313 stack — Backend-authoritative `academic_tracks` `draft/published/retired` availability lifecycle plus discoverable audited Admin control.
 - [x] #308 / composed PR #313 stack — Mobile Year → Track UX parity with Backend-owned year metadata and reset/archive semantics.
-- [ ] #309 — retire the legacy per-user academic-track authorization table. Canonical branch `task/p2-academic-auth-cleanup-309` is recovered onto current main and contains the focused migration, residual fixture/test cleanup, repository-wide consumer guard and retirement documentation. Exact-head CI and integration remain required.
+- [x] #309 / PR #344 — legacy per-user academic-track authorization persistence retired and Issue closed completed at implementation merge `38660e6bc11b4deb422c667a4af27021b6cb7833`; executable zero-consumer guards, reversible schema retirement, SQLite/MariaDB acceptance and learner-history preservation are integrated.
 - [x] #310 / PR #341 — canonical localized school-year metadata and operator-controlled track display order integrated at `119a1821aa237ba5194e9d7529915700db27c02c`.
 
 ## Current repository-verifiable P0 queue
