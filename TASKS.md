@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-09-09
-Last reconciled implementation baseline: `38660e6bc11b4deb422c667a4af27021b6cb7833`
+Last reconciled baseline: `38660e6bc11b4deb422c667a4af27021b6cb7833`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
