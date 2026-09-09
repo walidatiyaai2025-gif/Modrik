@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 Updated: 2026-09-09
-Last reconciled baseline: `38660e6bc11b4deb422c667a4af27021b6cb7833`
+Last reconciled baseline: `0c4bd41c239c77763c74384fc350bf1fb93b9f51`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records a reconciled implementation baseline, deployed-build evidence and known work state; it does not predict the SHA that a later reconciliation merge will make live `main`.
 
@@ -35,6 +35,8 @@ The owner-authorized `GOV-SURFACE-001` follow-on and academic-selection stack ar
 - Mobile Year → Track parity #308 and Backend/Admin track availability lifecycle #307 are integrated through the composed PR #313 stack.
 - Canonical localized academic-year metadata and operator-curated track ordering #310 integrated via PR #341 at `119a1821aa237ba5194e9d7529915700db27c02c`.
 - Legacy per-user academic-track authorization persistence retired through PR #344 / Issue #309 at implementation merge `38660e6bc11b4deb422c667a4af27021b6cb7833`.
+- PR #345 reconciled #309 closure evidence and merged at `9f51632c8b27be75603fcdd0d478394be7cb49bb`.
+- PR #346 reconciled `OWNER_LAST` / `DEFERRED_EXTERNAL` control state and merged at `0c4bd41c239c77763c74384fc350bf1fb93b9f51` after exact-head Bootstrap #1389 passed the complete governed matrix.
 
 The capability matrix has no remaining `audit_required` row. Unsupported capabilities remain represented by truthful deferred, unavailable or activation-gated states rather than fake operator authority.
 
@@ -51,21 +53,30 @@ The integration:
 
 PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap CI #1382, Unified Release Package #103 and Demo cPanel Package #467 before merge. Exact implementation main `38660e6bc11b4deb422c667a4af27021b6cb7833` then passed push-triggered Bootstrap CI #1383, including normal and strict Pilot acceptance plus the final governed aggregate, and Unified Release Package #104.
 
+## P0 phase-gate status
+
+At the reconciled baseline `0c4bd41c239c77763c74384fc350bf1fb93b9f51`, repository/cloud-actionable P0 engineering and integration work is converged. There are no open pull requests, and push-triggered Bootstrap CI #1390 (`34400232246`) completed successfully on that exact SHA, including control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate.
+
+This does **not** satisfy the P0 phase-exit gate. `P0_PHASE_EXIT = NOT_SATISFIED / BLOCKED_EXTERNAL` because #260 and #318 remain open for live-hosting Definition-of-Done evidence. Neither owner/external dependency is PASS, and a green repository CI run cannot substitute for governed live deployment acceptance. P1/community activation remains deferred until the P0 gate is actually satisfied or repository governance is explicitly and lawfully changed.
+
 ## Repository-verifiable work queue at this checkpoint
 
-Cloud-actionable engineering work no longer includes #309. Remaining repository-visible boundaries are:
-- #260 — deployment acceptance remains OPEN. Current evidence identifies a root/WHM-level LiteSpeed host prerequisite; repository/user-space code must not bypass or weaken exact API/Web/Admin/Landing/Student release-identity and external-smoke gates.
-- #318 — Unified Installer + Dashboard Update Center remains OPEN. Engineering/package/wizard/transaction/update-center slices are integrated; its remaining live-hosting acceptance is intentionally coupled to #260 and must not be reimplemented as a replacement installer branch.
+There is no known unintegrated cloud-actionable P0 implementation candidate at this checkpoint. Remaining repository-visible P0 boundaries are:
+- #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST`: deployment acceptance remains OPEN. Current evidence identifies a root/WHM-level LiteSpeed host prerequisite; repository/user-space code must not bypass or weaken exact API/Web/Admin/Landing/Student release-identity and external-smoke gates.
+- #318 — `DEFERRED_EXTERNAL`: Unified Installer + Dashboard Update Center remains OPEN only for its live-hosting slices/acceptance coupled to #260. Engineering/package/wizard/transaction/update-center work is already integrated; do not create a replacement installer implementation.
 
 Real-content evaluation remains gated by owner-approved academic scope and evidence-backed content rights. Production activation remains gated by external owner/security/legal inputs.
 
 ## CI / integration evidence
 
-Recent relevant exact-head evidence includes:
+Recent relevant exact-head/exact-main evidence includes:
 - PR #313 composed the runtime-auth, Mobile Year → Track and academic availability stack after governed Backend SQLite/MariaDB, Web, Mobile, Pilot, browser, native compile, security/dependency and Demo-package evidence on its component exact heads.
 - PR #341 / Issue #310 passed exact-head Bootstrap, Admin UX browser acceptance, Demo/unified packaging, Web runtime acceptance and Mobile native compile proof before merge at `119a1821aa237ba5194e9d7529915700db27c02c`.
 - PR #343 exact head `8d78308ecfa2bfef5b58d2dbd9a6f46e9471bf38` passed Bootstrap CI #1377, Unified Release Package #98, Demo cPanel Package #463 and Web Portals Runtime Acceptance #93 before merge at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481`.
 - PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap CI #1382, Unified Release Package #103 and Demo cPanel Package #467 before merge at `38660e6bc11b4deb422c667a4af27021b6cb7833`; exact implementation main then passed Bootstrap #1383 and Unified Release #104.
+- PR #345 exact head `47fe6116253a3f837ef531ec33a4cbde8f9b2809` passed Bootstrap #1387 before merge at `9f51632c8b27be75603fcdd0d478394be7cb49bb`.
+- PR #346 exact head `b6894a049cc64ca64d7012ca3c7db26683904364` passed Bootstrap #1389 before merge at `0c4bd41c239c77763c74384fc350bf1fb93b9f51`.
+- Exact main `0c4bd41c239c77763c74384fc350bf1fb93b9f51` passed Bootstrap #1390 / run `34400232246`, including Pilot strict and the final governed aggregate.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 
