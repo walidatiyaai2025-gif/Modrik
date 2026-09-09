@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\ApiProblemException;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -17,12 +18,21 @@ final class AcademicTrackCatalogueService
         $tracks = [];
 
         foreach ($this->availableQuery()
+            ->leftJoin('academic_year_metadata', 'academic_year_metadata.year_level', '=', 'academic_tracks.year_level')
+            ->addSelect([
+                'academic_year_metadata.labels as year_labels',
+                'academic_year_metadata.display_order as year_display_order',
+                'academic_tracks.display_order as track_display_order',
+            ])
+            ->orderByRaw('CASE WHEN academic_year_metadata.display_order IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('academic_year_metadata.display_order')
             ->orderBy('academic_tracks.year_level')
+            ->orderBy('academic_tracks.display_order')
             ->orderBy('academic_tracks.id')
             ->get() as $row) {
             $track = (array) $row;
             $labels = $this->displayLabels($track['title'] ?? null, ! (bool) ($track['is_fixture'] ?? false));
-            $year = $this->displayYear($track['year_level'] ?? null);
+            $year = $this->displayYear($track['year_level'] ?? null, $track['year_labels'] ?? null);
             if ($labels === null || $year === null) {
                 continue;
             }
@@ -79,7 +89,7 @@ final class AcademicTrackCatalogueService
     }
 
     /** @return null|array{key: string, label: string} */
-    private function displayYear(mixed $value): ?array
+    private function displayYear(mixed $value, mixed $metadataLabels = null): ?array
     {
         if (! is_string($value)) {
             return null;
@@ -88,6 +98,21 @@ final class AcademicTrackCatalogueService
         $key = trim($value);
         if ($key === '' || mb_strlen($key) > 160 || $this->containsUnsafeMarkupOrControls($key)) {
             return null;
+        }
+
+        $labels = $metadataLabels === null ? null : $this->displayLabels($metadataLabels);
+        if ($metadataLabels !== null && $labels === null) {
+            return null;
+        }
+
+        if ($labels !== null) {
+            $label = match (App::getLocale()) {
+                'ar' => $labels['ar'],
+                'fr' => $labels['fr'],
+                default => $labels['en'],
+            };
+
+            return ['key' => $key, 'label' => $label];
         }
 
         $segments = preg_split('/[:\/]+/', $key) ?: [$key];
