@@ -49,7 +49,7 @@ The integration:
 - adds executable repository-wide consumer guards so Backend runtime/workers/Admin, fixtures/tests, Web, Mobile, QA/scripts and external contracts cannot silently reintroduce reliance on the retired table;
 - preserves authoritative `academic_tracks`, `user_academic_contexts`, `academic_context_transitions`, attempts, progress and curriculum history.
 
-PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap CI #1382, Unified Release Package #103 and Demo cPanel Package #467 before merge. Post-merge exact-main workflow status must be read live from GitHub; closure evidence records terminal results only after those runs complete.
+PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap CI #1382, Unified Release Package #103 and Demo cPanel Package #467 before merge. Exact implementation main `38660e6bc11b4deb422c667a4af27021b6cb7833` then passed push-triggered Bootstrap CI #1383, including normal and strict Pilot acceptance plus the final governed aggregate, and Unified Release Package #104.
 
 ## Repository-verifiable work queue at this checkpoint
 
@@ -65,7 +65,7 @@ Recent relevant exact-head evidence includes:
 - PR #313 composed the runtime-auth, Mobile Year → Track and academic availability stack after governed Backend SQLite/MariaDB, Web, Mobile, Pilot, browser, native compile, security/dependency and Demo-package evidence on its component exact heads.
 - PR #341 / Issue #310 passed exact-head Bootstrap, Admin UX browser acceptance, Demo/unified packaging, Web runtime acceptance and Mobile native compile proof before merge at `119a1821aa237ba5194e9d7529915700db27c02c`.
 - PR #343 exact head `8d78308ecfa2bfef5b58d2dbd9a6f46e9471bf38` passed Bootstrap CI #1377, Unified Release Package #98, Demo cPanel Package #463 and Web Portals Runtime Acceptance #93 before merge at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481`.
-- PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap CI #1382, Unified Release Package #103 and Demo cPanel Package #467 before merge at `38660e6bc11b4deb422c667a4af27021b6cb7833`.
+- PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap CI #1382, Unified Release Package #103 and Demo cPanel Package #467 before merge at `38660e6bc11b4deb422c667a4af27021b6cb7833`; exact implementation main then passed Bootstrap #1383 and Unified Release #104.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 
