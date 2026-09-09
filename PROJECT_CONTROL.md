@@ -1,7 +1,7 @@
 # MODRIK Project Control Plane
 
 Updated: 2026-09-10
-Last reconciled baseline: `69378d028905820c0771c63d0c738e3ec4556968`
+Last reconciled baseline: `4f4cbe23952340ed10cf03c055c64d3df32580a2`
 
 Live authoritative `main` is always fetched from GitHub at the beginning of every Project Manager, Integration Captain, implementation, QA, release and deployment run. This document is a reconciled checkpoint, not a replacement for live repository state. See `docs/project/CONTROL_STATE_CONVENTION.md`.
 
@@ -60,13 +60,14 @@ The previous runtime-auth and academic-selection work is no longer active work:
 - PR #346 reconciled OWNER_LAST / DEFERRED_EXTERNAL control state and merged at `0c4bd41c239c77763c74384fc350bf1fb93b9f51` after exact-head Bootstrap #1389 passed the complete governed matrix.
 - Exact-main Bootstrap CI #1390 (`34400232246`) then passed on `0c4bd41c239c77763c74384fc350bf1fb93b9f51`, including control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate.
 - PR #347 reconciled the P0 phase gate and merged at `69378d028905820c0771c63d0c738e3ec4556968` after exact-head Bootstrap #1391 passed the complete governed matrix. Exact-main Bootstrap #1392 / run `34402304281` then passed on that merge SHA; attempt 2 re-ran the governed matrix on the same SHA and also completed successfully, including Pilot normal/strict and the final aggregate.
+- PR #348 reconciled shared P0 control/state/evidence and merged at `4f4cbe23952340ed10cf03c055c64d3df32580a2` after exact-head Bootstrap #1393 passed the complete governed matrix. Exact-main Bootstrap #1394 / run `34407560916`, attempt 2, revalidated the same merge SHA successfully with control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate.
 - #318 installer/update engineering is already integrated: deterministic unified package, Setup Wizard, transactional install/update engine, Dashboard Update Center, rollback/failure safety and fail-closed hosting handoff. Its remaining scope is live-hosting acceptance, not replacement implementation.
 
 The detailed history remains in `CURRENT_STATE.md`, `TASKS.md`, `CHANGELOG.md`, merged PRs and Issue timelines. Historical failed CI/deployment runs remain evidence and are not rewritten as successful merely because later repairs passed.
 
 ## P0 phase gate checkpoint
 
-At baseline `69378d028905820c0771c63d0c738e3ec4556968`, repository/cloud-actionable P0 implementation and reconciliation work is converged: exact-main governed Bootstrap #1392 attempt 2 is green and there were no open pull requests at the checkpoint. This is **not** a P0 phase-exit declaration.
+At baseline `4f4cbe23952340ed10cf03c055c64d3df32580a2`, repository/cloud-actionable P0 implementation and reconciliation work is converged: exact-main governed Bootstrap #1394 attempt 2 is green and there were no open pull requests at the checkpoint. This is **not** a P0 phase-exit declaration.
 
 `P0_PHASE_EXIT = NOT_SATISFIED / BLOCKED_EXTERNAL` because the P0 Definition-of-Done still contains live-hosting acceptance in #260 and #318. Neither Issue is PASS, and neither may be closed from repository/CI evidence alone. P1/community activation remains deferred and must not be started merely because cloud-actionable P0 work is exhausted.
 
@@ -78,7 +79,7 @@ At this checkpoint there were no open pull requests. The open Issue queue is int
 
 ### #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST` host remediation and Demo acceptance
 
-Repository/user-space deployment implementation is integrated. The last source-backed host evidence records LiteSpeed Web Server `6.3.6` Build `6`, while the connected cPanel user cannot perform the required root remediation (`sudo_available=false`; LSWS root not writable). Repository/user-space Node 22, Next standalone, CloudLinux Selector/CageFS, permissions, rollback and exact-release gates must not be bypassed or weakened.
+Repository/user-space deployment implementation is integrated. Fresh read-only host evidence records LiteSpeed Web Server `6.3.6` Build `6`; the connected cPanel user cannot perform the required root remediation (`sudo_available=false`, `sudo_noninteractive=false`, `lsws_root_writable=false`). Repository/user-space Node 22, Next standalone, CloudLinux Selector/CageFS, permissions, rollback and exact-release gates must not be bypassed or weakened.
 
 Required owner/provider action:
 
@@ -110,7 +111,7 @@ Release/deployment changes must preserve exact Web/Admin Build SHA verification 
 
 PR #344 exact head `2c43629b061dc9fb619d879547cad73e8165b330` passed Bootstrap #1382, Unified Release Package #103 and Demo cPanel Package #467 before integration. Its implementation merge `38660e6bc11b4deb422c667a4af27021b6cb7833` then passed push-triggered Bootstrap #1383, including normal/strict Pilot and the final governed aggregate, plus Unified Release Package #104.
 
-PR #345 exact head `47fe6116253a3f837ef531ec33a4cbde8f9b2809` passed Bootstrap #1387 including control-state validation and the complete governed aggregate before integration. PR #346 exact head `b6894a049cc64ca64d7012ca3c7db26683904364` passed Bootstrap #1389 before integration; its merge `0c4bd41c239c77763c74384fc350bf1fb93b9f51` passed exact-main Bootstrap #1390. PR #347 exact head `b0827b6e2623a83e427fa46ef7160e0acf9e2c78` passed Bootstrap #1391 before integration; its merge `69378d028905820c0771c63d0c738e3ec4556968` passed exact-main Bootstrap #1392, and attempt 2 revalidated the same exact SHA successfully. Fresh exact-main workflow state after later reconciliation merges must always be read from GitHub and is not predicted by this checkpoint.
+PR #345 exact head `47fe6116253a3f837ef531ec33a4cbde8f9b2809` passed Bootstrap #1387 including control-state validation and the complete governed aggregate before integration. PR #346 exact head `b6894a049cc64ca64d7012ca3c7db26683904364` passed Bootstrap #1389 before integration; its merge `0c4bd41c239c77763c74384fc350bf1fb93b9f51` passed exact-main Bootstrap #1390. PR #347 exact head `b0827b6e2623a83e427fa46ef7160e0acf9e2c78` passed Bootstrap #1391 before integration; its merge `69378d028905820c0771c63d0c738e3ec4556968` passed exact-main Bootstrap #1392, and attempt 2 revalidated the same exact SHA successfully. PR #348 exact head `baf2e5d42428a7fa5c6b54fe32fa81816e7b09fe` passed Bootstrap #1393 before integration; its merge `4f4cbe23952340ed10cf03c055c64d3df32580a2` passed exact-main Bootstrap #1394, and attempt 2 revalidated the same exact SHA successfully. Fresh exact-main workflow state after later reconciliation merges must always be read from GitHub and is not predicted by this checkpoint.
 
 ## Demo deployment authorization and state
 
