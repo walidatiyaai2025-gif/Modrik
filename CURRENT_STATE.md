@@ -79,7 +79,7 @@ Content rights remain a separate fail-closed gate. `pending_review` material mus
 
 The authorized evaluation target remains `demo.modrik.org`.
 
-Last repository-recorded successful Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
+Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
 Source integration, package success and manual restart evidence do not advance deployed state.
 
