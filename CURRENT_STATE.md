@@ -1,19 +1,19 @@
 # CURRENT STATE
 
 Updated: 2026-09-09
-Last reconciled baseline: `119a1821aa237ba5194e9d7529915700db27c02c`
+Last reconciled baseline: `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records the last reconciled baseline, deployed-build evidence and known work state; it does not predict the SHA that a later merge will make live `main`.
 
-## Active CI security restoration
+## Canonical-main CI security restoration
 
-Issue #342 is the focused remediation for a time-dependent npm advisory update that made Bootstrap CI on canonical `main` fail closed before the governed Demo deployment could start. The candidate keeps the audit policy intact, moves Web to the patched Next.js / `eslint-config-next` 16.3.4 pair, resolves `js-yaml` 4.3.2 and `sharp` 0.35.4 in the Web lock, and resolves root `fast-uri` 3.1.7 through the existing `ajv` dependency.
+Issue #342 / PR #343 is integrated at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481`. The remediation kept fail-closed `npm audit --audit-level=moderate` policy intact, upgraded Web Next.js / `eslint-config-next` to 16.3.4, resolved Web `js-yaml` 4.3.2 and `sharp` 0.35.4, and resolved root `fast-uri` 3.1.7. PR #343 exact head `8d78308ecfa2bfef5b58d2dbd9a6f46e9471bf38` passed Bootstrap CI, Unified Release Package, Demo cPanel Package and Web Portals Runtime Acceptance before merge.
 
-Local clean installs and both npm audits pass with zero vulnerabilities; Web lint, typecheck and the Next production build pass. The Windows checkout runs 89/90 Web tests, with the only failure being the existing byte-for-byte canonical SVG assertion observing CRLF versus LF. The bash-driven deployment-smoke contract harness also requires Linux process semantics that the Windows host does not reproduce. Neither local-environment limitation is waived: exact-head Linux Bootstrap CI remains mandatory before integration and before any #260 Demo deployment.
+Fresh exact-main workflows on the merge commit remain the authority for post-merge verification; historical red advisory runs remain evidence and are not rewritten as successful.
 
 ## Integrated capability / Admin / Student state
 
-The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
+The owner-authorized `GOV-SURFACE-001` follow-on and academic-selection stack are substantially integrated:
 - Content Operations via PR #201 / Issue #182.
 - Student academic-track change via PR #209 / Issue #208.
 - Assessment Admin Stages A/B via PR #207 and PR #229; immutable attempt seed/order/resume/scoring authority remains Backend-owned.
@@ -26,46 +26,40 @@ The owner-authorized `GOV-SURFACE-001` follow-on is substantially integrated:
 - Landing `/` and Student Portal `/student` runtime/release acceptance via PR #248 / Issue #244.
 - Remote cPanel pre-success Landing/Student route and release verification via PR #252 / Issue #250.
 - Mobile/Admin simulated runtime fallbacks removed via PR #270 / Issue #262.
-- cPanel restart convergence implementation integrated through PR #268 and PR #273 / Issue #260; #260 remains open for successful governed redeploy acceptance only.
-- Transport-truthful integration availability via PR #275 / Issue #274, preserving fail-closed external channels and safe secret-state reporting.
-- Notification Center operational status reconciled via PR #279 / Issue #277 so the first-party inbox reports `present` independently of auxiliary FCM readiness.
-- Post-#279 control-state reconciliation integrated via PR #280 / Issue #264 at `9261033fe79446bdaa6521cb6b1031955386b115`.
-- Post-runtime-integrity CHANGELOG reconciliation integrated via PR #282 / Issue #266 at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31` after exact-head Bootstrap #1126.
-- Canonical localized academic-year metadata and operator-curated track ordering integrated via PR #341 / Issue #310 at `119a1821aa237ba5194e9d7529915700db27c02c`.
+- cPanel restart convergence implementation integrated through PR #268 and PR #273 / Issue #260; #260 remains open for governed live-hosting acceptance.
+- Transport-truthful integration availability via PR #275 / Issue #274.
+- Notification Center operational status reconciled via PR #279 / Issue #277.
+- Control-state self-staleness correction integrated through PR #284 / Issue #264.
+- Runtime mock/fixture elimination stack #259/#271/#261/#263 integrated through the terminal composed candidate PR #313, preserving real Auth/session acceptance and the global runtime-mock guard. Historical component PR #272 and #265 were closed after their commits were incorporated into the composed integration; they must not be reopened as duplicate implementation.
+- Year-scoped learner self-selection #305 integrated; Student Web chooses **year → track** with reset/archive history semantics preserved.
+- Mobile Year → Track parity #308 and Backend/Admin track availability lifecycle #307 are integrated through the composed PR #313 stack.
+- Canonical localized academic-year metadata and operator-curated track ordering #310 integrated via PR #341 at `119a1821aa237ba5194e9d7529915700db27c02c`.
 
-The capability matrix has no remaining `audit_required` row. Remaining unsupported capabilities are explicitly represented by truthful `backend_contract_missing`, deferred or activation-gated states rather than fake operator authority.
+The capability matrix has no remaining `audit_required` row. Unsupported capabilities remain represented by truthful deferred, unavailable or activation-gated states rather than fake operator authority.
 
-## Owner-directed academic selection change
+## Academic authorization-table retirement / Issue #309
 
-Issue #305 records the 2026-08-23 owner decision that academic-track eligibility is school-year scoped rather than assigned per learner. The integrated implementation changes the Backend catalogue from `academic_track_authorizations` to display-safe `academic_tracks`, adds year metadata, and makes Student Web choose **year → track** while preserving the existing full reset/archive transition. PR #341 / Issue #310 now also provide canonical localized school-year metadata and operator-curated track ordering.
+The superseded per-user `academic_track_authorizations` table is no longer Student catalogue, activate/reset, Admin, Web or Mobile authority after #305. Issue #309 owns the remaining physical-schema retirement only.
 
-Remaining gaps are explicit: `academic_tracks` still lacks a publication/availability lifecycle; Mobile still needs year-first UX parity; and the old authorization table needs a later non-destructive retirement after residual-consumer proof.
+The canonical branch `task/p2-academic-auth-cleanup-309` has been recovered from its stale ancestor and fast-forwarded to the current canonical baseline. Its candidate removes residual fixture/test table writes, adds a forward drop migration with a schema-complete rollback, adds executable repository-wide consumer guards, and records the retirement contract without changing `academic_tracks`, `user_academic_contexts`, `academic_context_transitions`, attempts, progress or curriculum history.
+
+This candidate must not be called integrated until exact-head CI is green and the focused PR is merged.
 
 ## Repository-verifiable work queue at this checkpoint
 
-Issue #264 is reopened only for a narrow post-merge self-staleness correction: the merged PR #280 control files retained the older baseline and pre-merge #264 wording. The follow-up is control-only and does not reopen product/runtime scope.
-
-Issue #266 / PR #282 is integrated and closed completed; it no longer belongs in the active work queue.
-
-Runtime mock/fixture hardening remains active under #259:
-- #271 / PR #272 — canonical Backend runtime fixture-auth/default/demo-seeding hardening. Its last exact-head Bootstrap #1101 remains red because the Pilot still executes the old fixture-auth flow. This is a real acceptance dependency and must not be waived.
-- #261 / PR #265 — Web BFF auth boundary + focused real-session smoke only. The branch remains stale and contains historical Backend overlap that must be dropped after the canonical Backend candidate is reconciled.
-- #263 / PR #278 — terminal real-session Pilot/browser acceptance + global runtime-mock guard. It still targets a stale dependency branch and needs fresh governed CI only after #271 plus cleaned #261 are composed.
-- #262 / PR #270 — integrated completed.
-- #274 / PR #275 — integrated completed.
-- #277 / PR #279 — integrated completed.
-
-Issue #260 is no longer an implementation blocker. It remains open only until a newer owner-authorized canonical-main Demo deployment completes the governed success path and external smoke.
+Cloud-actionable engineering work is now narrow:
+- #309 — focused legacy academic authorization-table retirement candidate on the existing canonical branch; exact-head CI/integration still required.
+- #260 — deployment acceptance remains open, but current evidence identifies a root/WHM-level LiteSpeed host prerequisite. Repository/user-space code must not bypass or weaken exact-release gates to hide that external condition.
+- #318 — Unified Installer/Update Center engineering slices are integrated; its remaining live-hosting acceptance is intentionally coupled to #260 and must not be reimplemented as a replacement installer branch.
 
 Real-content evaluation remains gated by owner-approved academic scope and evidence-backed content rights. Production activation remains gated by external owner/security/legal inputs.
 
 ## CI / integration evidence
 
-Recent exact-head evidence includes:
-- PR #275 exact head `7676e3b5937f67b6e3ffb7cd354b8399b78ae5d9`: Bootstrap #1114, Admin UX Browser Acceptance #168 and Demo cPanel Package #287 green before merge at `65aaa52e1c2c1c4757f96ca32d5ee9b1c503d236`.
-- PR #279 exact head `1407a160f6fca750fc22ab2387655580e110a931`: Bootstrap #1118, Admin UX Browser Acceptance #169 and Demo cPanel Package #288 green before merge at `42c280f9a29245d439a92445033650be511655f9`.
-- PR #279 tested-head tree and merged-main tree are both `4d602d8e53fad49466db6b091a4a956315d4b97e`, so no merge-only code difference was introduced.
-- PR #282 exact head `c0dc5dcd8e8bf0c73a5350e8586ca2edfd761196`: Bootstrap #1126 green before merge at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31`.
+Recent relevant exact-head evidence includes:
+- PR #313 composed the runtime-auth, Mobile Year → Track and academic availability stack after governed Backend SQLite/MariaDB, Web, Mobile, Pilot, browser, native compile, security/dependency and Demo-package evidence on its component exact heads.
+- PR #341 / Issue #310 passed exact-head Bootstrap, Admin UX browser acceptance, Demo/unified packaging, Web runtime acceptance and Mobile native compile proof before merge at `119a1821aa237ba5194e9d7529915700db27c02c`.
+- PR #343 exact head `8d78308ecfa2bfef5b58d2dbd9a6f46e9471bf38` passed Bootstrap CI #1377, Unified Release Package #98, Demo cPanel Package #463 and Web Portals Runtime Acceptance #93 before merge at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481`.
 
 Historical failed runs remain evidence and are not rewritten as successful because a later repair passed.
 
@@ -81,9 +75,9 @@ The authorized evaluation target remains `demo.modrik.org`.
 
 Last repository-recorded Demo deployment: `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 
-GitHub Actions run `32563427725`, attempt 2, successfully deployed that immutable source checkpoint. Repository source is now ahead; source integration, package success and prior manual cPanel restart evidence do not update deployed state.
+Source integration, package success and manual restart evidence do not advance deployed state.
 
-The next authorized deployment must check out canonical main, resolve its immutable SHA and prove API health, exact Web/Admin release identity, Landing `/` identity and Student `/student` identity before protected deployment-success markers are recorded.
+Issue #260 contains later source-backed host diagnostics showing the repository/user-space Node/Next/CloudLinux Selector path cannot currently complete governed live acceptance without a root/WHM LiteSpeed remediation and subsequent fresh host verification. Do not run or claim a new successful deployment merely because source CI is green; the protected deployment path must independently prove exact API, Web, Admin, Landing and Student release identity and external smoke.
 
 The Demo remains separate from production `modrik.org` cutover and is not a Production Ready claim.
 

@@ -22,8 +22,6 @@ class LearningSliceSeeder extends Seeder
 
     public const TOPIC_NODE_ID = '01J00000000000000000000034';
 
-    public const TRACK_AUTHORIZATION_ID = '01J00000000000000000000035';
-
     public const QUIZ_ID = '01J00000000000000000000020';
 
     /**
@@ -91,19 +89,6 @@ class LearningSliceSeeder extends Seeder
                 ]),
                 'is_fixture' => true,
                 'availability_state' => 'published',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-        );
-
-        DB::table('academic_track_authorizations')->updateOrInsert(
-            ['id' => self::TRACK_AUTHORIZATION_ID],
-            [
-                'user_id' => self::USER_ID,
-                'academic_track_id' => self::TRACK_ID,
-                'sort_order' => 100,
-                'authorized_at' => $now,
-                'revoked_at' => null,
                 'created_at' => $now,
                 'updated_at' => $now,
             ],

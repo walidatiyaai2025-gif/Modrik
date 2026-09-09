@@ -31,8 +31,6 @@ class AcademicTrackCatalogueTest extends TestCase
         $this->getJson('/v1/academic-tracks')->assertUnauthorized()
             ->assertJsonPath('code', 'AUTHENTICATION_REQUIRED');
 
-        DB::table('academic_track_authorizations')->delete();
-
         $sameYearId = '01J00000000000000000000050';
         $otherYearId = '01J00000000000000000000051';
         $this->createTrack($sameYearId, 'FIXTURE:CATALOGUE:SAME-YEAR', 'FIXTURE-YEAR-6-7', [
@@ -69,7 +67,6 @@ class AcademicTrackCatalogueTest extends TestCase
 
     public function test_catalogue_exposes_shared_year_scope_for_all_tracks_in_that_year(): void
     {
-        DB::table('academic_track_authorizations')->delete();
         $firstId = '01J00000000000000000000052';
         $secondId = '01J00000000000000000000053';
         foreach ([
@@ -97,7 +94,6 @@ class AcademicTrackCatalogueTest extends TestCase
 
     public function test_display_invalid_track_or_year_fails_closed(): void
     {
-        DB::table('academic_track_authorizations')->delete();
         $missingLocaleId = '01J00000000000000000000054';
         $unsafeYearId = '01J00000000000000000000055';
         $markupId = '01J00000000000000000000056';
@@ -132,7 +128,6 @@ class AcademicTrackCatalogueTest extends TestCase
 
     public function test_reset_accepts_a_display_safe_track_without_an_assignment_row(): void
     {
-        DB::table('academic_track_authorizations')->delete();
         $targetId = '01J00000000000000000000057';
         $this->createTrack($targetId, 'FIXTURE:SELF-SELECT:TARGET', 'YEAR:GRADE-7:1234ABCD', [
             'ar' => 'مسار يختاره الطالب',
@@ -156,7 +151,6 @@ class AcademicTrackCatalogueTest extends TestCase
 
     public function test_draft_and_retired_tracks_are_hidden_and_rejected_by_selection_authority(): void
     {
-        DB::table('academic_track_authorizations')->delete();
         $draftId = '01J00000000000000000000059';
         $retiredId = '01J00000000000000000000060';
         $this->createTrack($draftId, 'FIXTURE:AVAILABILITY:DRAFT', 'YEAR:GRADE-8:DRAFT001', [

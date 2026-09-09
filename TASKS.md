@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-09-09
-Last reconciled baseline: `119a1821aa237ba5194e9d7529915700db27c02c`
+Last reconciled baseline: `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -20,29 +20,34 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] #231 / PR #232 — exact Demo Web/Admin Build SHA release smoke hardening.
 - [x] PR #239 — Windows client explicitly classified `deferred_disabled`.
 - [x] #235 / PR #236 — Backend-owned Student Notification Center integrated on Web and Mobile.
-- [x] #244 / PR #248 — Landing `/` + Student Portal `/student` runtime/deployment acceptance restored with exact-head multilingual/RTL/narrow/200% and route/release guards.
-- [x] #250 / PR #252 — remote cPanel post-copy success recording now fails closed until exact Landing/Student release identity and meaningful runtime markers pass.
+- [x] #244 / PR #248 — Landing `/` + Student Portal `/student` runtime/deployment acceptance restored.
+- [x] #250 / PR #252 — remote cPanel post-copy route/release verification before success recording.
 - [x] #262 / PR #270 — Mobile/Admin simulated runtime fallbacks removed.
 - [x] #274 / PR #275 — integration transport availability and secret-state reporting made fail-closed/truthful.
-- [x] #277 / PR #279 — Notification Center operational status reconciled with the accepted first-party capability while FCM readiness remains separate.
-- [x] #264 / PR #280 — post-#279 control-state reconciliation integrated at `9261033fe79446bdaa6521cb6b1031955386b115`; #264 is temporarily reopened only for narrow post-merge self-staleness correction.
-- [x] #266 / PR #282 — post-runtime-integrity CHANGELOG reconciliation integrated at `4e1f16ad1291636710a8ac44d00e505ac2fe6d31` after exact-head Bootstrap #1126.
+- [x] #277 / PR #279 — Notification Center operational status reconciled with the accepted first-party capability.
+- [x] #264 / PR #284 — post-merge control-state self-staleness correction integrated and Issue closed completed.
+- [x] #266 / PR #282 — post-runtime-integrity CHANGELOG reconciliation integrated.
+
+## COMPLETE — runtime mock / real-session convergence
+
+- [x] #271 — canonical Backend runtime fixture-auth/default/demo-seeding hardening incorporated into the terminal composed integration; historical PR #272 is closed and must not be reopened as duplicate work.
+- [x] #261 — Web BFF auth-boundary cleanup incorporated into the terminal composed integration; historical PR #265 is closed and must not be reopened as duplicate work.
+- [x] #263 — terminal real-session Pilot/browser acceptance and project-wide runtime-mock guard incorporated through the final composed stack.
+- [x] #259 — umbrella closed completed after the runtime-auth composition reached canonical integration via PR #313.
+
+## Academic year-scoped self-selection
+
+- [x] #305 / PR #306 — per-user assignment replaced by Backend-owned year-scoped learner self-selection; Student Web chooses **school year → track** while reset/archive history authority remains unchanged.
+- [x] #307 / composed PR #313 stack — Backend-authoritative `academic_tracks` `draft/published/retired` availability lifecycle plus discoverable audited Admin control.
+- [x] #308 / composed PR #313 stack — Mobile Year → Track UX parity with Backend-owned year metadata and reset/archive semantics.
+- [ ] #309 — retire the legacy per-user academic-track authorization table. Canonical branch `task/p2-academic-auth-cleanup-309` is recovered onto current main and contains the focused migration, residual fixture/test cleanup, repository-wide consumer guard and retirement documentation. Exact-head CI and integration remain required.
+- [x] #310 / PR #341 — canonical localized school-year metadata and operator-controlled track display order integrated at `119a1821aa237ba5194e9d7529915700db27c02c`.
 
 ## Current repository-verifiable P0 queue
 
-- [x] #342 — restore fail-closed Bootstrap CI after current npm advisories by upgrading Web Next.js / `eslint-config-next` to 16.3.4 and resolving patched `js-yaml`, `sharp` and root `fast-uri` versions without weakening audit policy. Local root/Web clean installs and audits, Web lint/typecheck/build, and dependency resolution checks pass; exact-head Linux CI remains the integration gate because Windows line endings affect one byte-for-byte SVG test and the deployment-smoke harness requires Linux process semantics.
-- [ ] #271 / PR #272 — reconcile canonical Backend runtime fixture-auth/default/demo-seeding hardening onto current integration state without restoring fixture auth. The last exact-head Bootstrap #1101 is red on the legacy Pilot fixture-auth dependency and must not be waived.
-- [ ] #261 / PR #265 — after the canonical Backend candidate is ready, reconcile to Web BFF + focused real-session smoke only and remove historical Backend overlap.
-- [ ] #263 / PR #278 — after #271 + cleaned #261 composition, reconcile terminal real-session Pilot/browser acceptance and the project-wide runtime-mock guard; run fresh exact-head contracts, Backend SQLite/MariaDB, normal/strict Pilot/browser and Bootstrap governed aggregate.
-- [ ] #259 — close the runtime-mock umbrella only after #271/#261/#263 are integrated and the global runtime-mock guard is green on canonical main.
-
-## Academic year-scoped self-selection / Issue #305
-
-- [ ] #305 / PR #306 — replace per-user academic-track assignment with Backend-owned year-scoped learner self-selection; Student Web chooses **school year → track**, while reset/archive history authority remains unchanged.
-- [ ] #307 — add an explicit Backend-authoritative `academic_tracks` availability lifecycle (`draft/published/retired` or approved equivalent) plus discoverable audited Admin control. The current schema has no track publication/active field, so #305 can only filter fixture/display safety, not operator availability.
-- [ ] #308 — add Mobile Year → Track UX parity. The current Mobile parser remains wire-compatible because it ignores the new `year` field, but it does not yet expose the owner-approved year-first selection flow.
-- [ ] #309 — retire the legacy `academic_track_authorizations` table after repository-wide consumer/fixture verification; #305 removes it from runtime selection authority but deliberately avoids a destructive migration in the same product-contract change.
-- [x] #310 / PR #341 — canonical localized school-year metadata and operator-controlled track display order integrated at `119a1821aa237ba5194e9d7529915700db27c02c`.
+- [x] #342 / PR #343 — fail-closed Bootstrap npm-advisory remediation integrated at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481` without weakening audit policy; exact PR head passed Bootstrap, Unified Release, Demo Package and Web runtime acceptance before merge.
+- [ ] #260 — deployment acceptance only. Current source-backed evidence requires root/WHM-level LiteSpeed host remediation/verification before a fresh governed Demo deployment can lawfully claim success. Do not bypass exact API/Web/Admin/Landing/Student identity or external smoke gates.
+- [ ] #318 — Unified Installer + Dashboard Update Center remains open only for its live-hosting slices/acceptance coupled to #260. Engineering/package/wizard/transaction/update-center work is already integrated; do not create a replacement installer implementation.
 
 ## Control plane / release
 
@@ -51,10 +56,8 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] Successful authorized Demo deployment evidence recorded for run `32563427725`, attempt 2, deployed SHA `c82604443c5d6b3100e8df03f8fb37f089fc2853`.
 - [x] Exact Web/Admin Build SHA release smoke integrated via PR #232.
 - [x] Landing/Student runtime and external deployment acceptance integrated via PR #248.
-- [x] Remote post-copy route/release validation before success-recording integrated via PR #252.
+- [x] Remote post-copy route/release validation before success recording integrated via PR #252.
 - [x] Restart-convergence implementation integrated via PR #268 and PR #273.
-- [ ] #260 — after #342 is integrated with exact-head Linux CI green, run a newer owner-authorized Demo deployment from canonical main; close only if API, Web, Admin, Landing, Student, protected success markers and external smoke all pass. Source merge/package success/manual restart evidence must not advance deployed state.
-- [ ] #264 — post-PR #280 self-staleness correction only: advance the reconciled baseline to current canonical main, remove stale pre-merge #264 wording, preserve current ownership/deployment truth, and require fresh exact-head control-state CI on the follow-up three-file PR.
 - [ ] Keep PROJECT_CONTROL.md, CURRENT_STATE.md and TASKS.md reconciled after material integration/deployment changes without hard-coding a claim that a checkpoint SHA is dynamically live main.
 
 ## Real-content evaluation
