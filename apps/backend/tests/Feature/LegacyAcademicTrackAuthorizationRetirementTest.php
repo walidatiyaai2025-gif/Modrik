@@ -104,5 +104,13 @@ class LegacyAcademicTrackAuthorizationRetirementTest extends TestCase
                 }
             }
         }
+
+        $erd = file_get_contents($repositoryRoot.'/docs/data/erd.md');
+        $this->assertNotFalse($erd);
+        $this->assertStringNotContainsString(
+            'academic_track_authorizations',
+            $erd,
+            'Logical ERD still models the retired per-user authorization table.',
+        );
     }
 }
