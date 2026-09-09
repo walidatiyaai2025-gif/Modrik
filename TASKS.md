@@ -1,7 +1,7 @@
 # TASKS
 
 Updated: 2026-09-10
-Last reconciled baseline: `69378d028905820c0771c63d0c738e3ec4556968`
+Last reconciled baseline: `4f4cbe23952340ed10cf03c055c64d3df32580a2`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
@@ -48,14 +48,15 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] #342 / PR #343 — fail-closed Bootstrap npm-advisory remediation integrated at `ddfc611f1cb6801c24cf1cfaec8dbcc2352a7481` without weakening audit policy; exact PR head passed Bootstrap, Unified Release, Demo Package and Web runtime acceptance before merge.
 - [x] PR #346 — `OWNER_LAST` / `DEFERRED_EXTERNAL` project-control reconciliation integrated at `0c4bd41c239c77763c74384fc350bf1fb93b9f51`; exact-main Bootstrap #1390 / run `34400232246` passed the complete governed matrix on that exact SHA.
 - [x] PR #347 — P0 phase-gate reconciliation integrated at `69378d028905820c0771c63d0c738e3ec4556968`; exact-head Bootstrap #1391 passed before merge, and exact-main Bootstrap #1392 / run `34402304281` succeeded on the merge SHA. Attempt 2 re-ran the governed matrix on the same SHA and also succeeded, including Pilot normal/strict and the final governed aggregate.
-- [ ] #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST`, deployment acceptance only. Current source-backed evidence requires root/WHM-level LiteSpeed host remediation/verification before a fresh governed Demo deployment can lawfully claim success. Do not bypass exact API/Web/Admin/Landing/Student identity or external smoke gates.
+- [x] PR #348 — shared control/state/evidence reconciliation integrated at `4f4cbe23952340ed10cf03c055c64d3df32580a2`; exact-head Bootstrap #1393 passed before merge, and exact-main Bootstrap #1394 / run `34407560916`, attempt 2, revalidated the same merge SHA with control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate all green.
+- [ ] #260 — `DEFERRED_EXTERNAL` / `OWNER_LAST`, deployment acceptance only. Fresh read-only host evidence still reports LiteSpeed 6.3.6 Build 6 with no sudo/root write capability; root/WHM/provider remediation and a fresh governed Demo deployment are required before closure. Do not bypass exact API/Web/Admin/Landing/Student identity or external smoke gates.
 - [ ] #318 — `DEFERRED_EXTERNAL`, Unified Installer + Dashboard Update Center remains open only for its live-hosting slices/acceptance coupled to #260. Engineering/package/wizard/transaction/update-center work is already integrated; do not create a replacement installer implementation.
 
 ## P0 phase gate
 
-- [x] Repository/cloud-actionable P0 implementation work converged at baseline `69378d028905820c0771c63d0c738e3ec4556968`.
+- [x] Repository/cloud-actionable P0 implementation and reconciliation work converged at baseline `4f4cbe23952340ed10cf03c055c64d3df32580a2`.
 - [x] No open PR remained at that checkpoint.
-- [x] Exact-main Bootstrap #1392 / run `34402304281`, attempt 2, passed control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and final governed aggregate on that exact SHA.
+- [x] Exact-main Bootstrap #1394 / run `34407560916`, attempt 2, passed control-state/contracts, Backend, MariaDB, Web, Mobile, secret scan, Pilot normal/strict and the final governed aggregate on that exact SHA.
 - [ ] `P0_PHASE_EXIT` — **NOT SATISFIED / BLOCKED_EXTERNAL**. #260 and #318 remain open for live-hosting Definition-of-Done evidence; neither is PASS.
 - [ ] Do not start/activate P1/community work until the P0 exit gate is actually satisfied or repository governance is explicitly and lawfully changed.
 
@@ -68,7 +69,7 @@ Live repository state must be fetched from GitHub before scheduling or integrati
 - [x] Landing/Student runtime and external deployment acceptance integrated via PR #248.
 - [x] Remote post-copy route/release validation before success recording integrated via PR #252.
 - [x] Restart-convergence implementation integrated via PR #268 and PR #273.
-- [x] Reconciled `PROJECT_CONTROL.md`, `CURRENT_STATE.md` and `TASKS.md` through PR #347 baseline `69378d028905820c0771c63d0c738e3ec4556968`, with exact-main Bootstrap #1392 attempt 2 green, without hard-coding a claim that a checkpoint SHA is dynamically live main. Repeat this reconciliation after future material integration/deployment changes.
+- [x] Reconciled `PROJECT_CONTROL.md`, `CURRENT_STATE.md`, `TASKS.md` and dedicated P0 phase-gate evidence through PR #348 baseline `4f4cbe23952340ed10cf03c055c64d3df32580a2`, with exact-main Bootstrap #1394 attempt 2 green, without treating the checkpoint SHA as a permanent live-main alias. Repeat reconciliation only after material integration/deployment/evidence changes.
 
 ## Real-content evaluation
 
