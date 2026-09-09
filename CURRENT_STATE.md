@@ -1,7 +1,7 @@
 # CURRENT STATE
 
 Updated: 2026-09-09
-Last reconciled implementation baseline: `38660e6bc11b4deb422c667a4af27021b6cb7833`
+Last reconciled baseline: `38660e6bc11b4deb422c667a4af27021b6cb7833`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records a reconciled implementation baseline, deployed-build evidence and known work state; it does not predict the SHA that a later reconciliation merge will make live `main`.
 
