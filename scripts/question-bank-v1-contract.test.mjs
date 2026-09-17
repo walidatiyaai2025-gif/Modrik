@@ -11,6 +11,15 @@ const schema = JSON.parse(
   await readFile(path.join(root, "schemas/question-bank/v1/import.schema.json"), "utf8"),
 );
 
+async function readFixture(relativePath) {
+  return JSON.parse(
+    await readFile(
+      path.join(root, "schemas/question-bank/v1/fixtures", relativePath),
+      "utf8",
+    ),
+  );
+}
+
 function validator() {
   const ajv = new Ajv2020({
     allErrors: true,
@@ -202,4 +211,21 @@ test("modrik-question-bank-v1 semantic guard rejects dangling source and option 
   const duplicateItem = validPack();
   duplicateItem.items[1].id = duplicateItem.items[0].id;
   assert(semanticErrors(duplicateItem).includes("DUPLICATE_ITEM_ID"));
+});
+
+test("modrik-question-bank-v1 golden fixtures remain deterministic", async () => {
+  const validate = validator();
+  const valid = await readFixture("valid/minimal.json");
+
+  assert.equal(validate(valid), true, JSON.stringify(validate.errors, null, 2));
+  assert.deepEqual(semanticErrors(valid), []);
+
+  const invalid = await readFixture("invalid/unsupported-schema-version.json");
+  assert.equal(validate(invalid), false);
+  assert(
+    validate.errors?.some(
+      (error) => error.instancePath === "/schema_version" && error.keyword === "const",
+    ),
+    JSON.stringify(validate.errors, null, 2),
+  );
 });
