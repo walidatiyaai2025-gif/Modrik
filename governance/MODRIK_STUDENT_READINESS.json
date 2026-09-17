@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "program": "MODRIK Student Learning Readiness",
+  "umbrella_issue": 352,
+  "integration_issue": 363,
+  "status": "UNRECONCILED_INITIAL_BASELINE",
+  "children_ready": false,
+  "overall_readiness_percent": 0,
+  "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
+  "hosting_readiness_is_separate": true,
+  "domains": [
+    {"id":"foundation","name":"Data/Curriculum Foundation","weight":8,"percent":0,"status":"not_evidenced","owner_issue":353},
+    {"id":"question_content","name":"Question Bank + Content Workflow","weight":18,"percent":0,"status":"not_evidenced","owner_issue":354},
+    {"id":"assessment","name":"Quiz/Assessment Engine","weight":14,"percent":0,"status":"not_evidenced","owner_issue":355},
+    {"id":"mastery_adaptive","name":"Mastery + Adaptive Engine","weight":14,"percent":0,"status":"not_evidenced","owner_issues":[356,357]},
+    {"id":"revision_plan","name":"Revision + Daily Planner","weight":10,"percent":0,"status":"not_evidenced","owner_issue":357},
+    {"id":"student_ux","name":"Student Web/Mobile UX","weight":12,"percent":0,"status":"not_evidenced","owner_issue":358},
+    {"id":"parent","name":"Parent Analytics","weight":7,"percent":0,"status":"not_evidenced","owner_issue":360},
+    {"id":"rtl_accessibility","name":"Arabic/RTL/Typography/Accessibility","weight":7,"percent":0,"status":"not_evidenced","owner_issue":359},
+    {"id":"operations","name":"Admin Feature/Job Controls","weight":4,"percent":0,"status":"not_evidenced","owner_issue":361},
+    {"id":"quality_security","name":"Security/Tests/Data Integrity","weight":4,"percent":0,"status":"not_evidenced","owner_issue":363},
+    {"id":"real_pilot","name":"Real Children Pilot Acceptance","weight":2,"percent":0,"status":"not_evidenced","owner_issues":[362,363]}
+  ],
+  "mandatory_gates": {
+    "identity_academic_context": "not_evidenced",
+    "curriculum_content": "not_evidenced",
+    "question_bank": "not_evidenced",
+    "assessment_runtime": "not_evidenced",
+    "mastery_adaptive": "not_evidenced",
+    "student_ux": "not_evidenced",
+    "parent_ux": "not_evidenced",
+    "arabic_english_accessibility": "not_evidenced",
+    "admin_controls": "not_evidenced",
+    "security_integrity_qa": "not_evidenced",
+    "real_year6_pilot": "not_evidenced",
+    "real_year7_pilot": "not_evidenced",
+    "parent_real_pilot": "not_evidenced",
+    "open_mandatory_learning_blockers_zero": "not_evidenced",
+    "exact_main_governed_ci_green": "not_evidenced"
+  },
+  "evidence": [],
+  "notes": [
+    "Initial ledger intentionally starts at zero/not_evidenced rather than guessing credit for pre-existing capabilities.",
+    "Integration Captain #363 must reconcile existing and newly integrated evidence from live main before publishing any readiness percentage.",
+    "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger."
+  ]
+}
