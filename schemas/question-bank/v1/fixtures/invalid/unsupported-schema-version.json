@@ -1,0 +1,64 @@
+{
+  "schema_version": "modrik-question-bank-v2",
+  "preparation_request_id": "01J00000000000000000000001",
+  "settings_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "pack_id": "01J00000000000000000000002",
+  "generated_at": "2026-09-17T20:30:00Z",
+  "prompt": {
+    "id": "MODRIK_QUESTION_BANK_MASTER_V1",
+    "version": "1.0.0"
+  },
+  "sources": [
+    {
+      "source_id": "synthetic-contract-source-001",
+      "source_name": "Synthetic question-bank contract fixture source"
+    }
+  ],
+  "items": [
+    {
+      "id": "fixture-q-001",
+      "academic_scope": {
+        "academic_year": null,
+        "track_reference": null,
+        "subject": null,
+        "unit": null,
+        "topic": null,
+        "skill": null
+      },
+      "learning_objective": null,
+      "type": "multiple_choice",
+      "language": "en",
+      "question_text": "Which option equals 1 + 1?",
+      "options": [
+        {
+          "id": "a",
+          "text": "2"
+        },
+        {
+          "id": "b",
+          "text": "3"
+        }
+      ],
+      "answer_contract": {
+        "correct_option_id": "a"
+      },
+      "explanation": "1 + 1 equals 2.",
+      "hints": [],
+      "difficulty": "Easy",
+      "source": {
+        "source_id": "synthetic-contract-source-001",
+        "source_page": null,
+        "notes": "No source page is asserted by this synthetic contract fixture."
+      },
+      "provenance": {
+        "derivation": "generated_derivative",
+        "confidence": null,
+        "generation_notes": "Synthetic fixture for deterministic schema validation only."
+      }
+    }
+  ],
+  "warnings": [],
+  "unknowns": [
+    "Academic scope is intentionally null in this synthetic contract fixture."
+  ]
+}
