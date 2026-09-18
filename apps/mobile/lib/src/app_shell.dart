@@ -628,6 +628,15 @@ class _ProgressView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (controller.progress.isEmpty && controller.isOffline) {
+      return _StateView(
+        icon: Icons.cloud_off_outlined,
+        title: copy.t('progress'),
+        body: copy.t('progress_offline'),
+        actionLabel: copy.t('retry'),
+        onAction: controller.refresh,
+      );
+    }
     if (controller.progress.isEmpty) {
       return _StateView(
         icon: Icons.insights_outlined,
