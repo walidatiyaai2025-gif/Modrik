@@ -433,7 +433,7 @@ final class QuestionBankWorkbenchTest extends TestCase
     }
 
     /**
-     * @param callable(): array<string, mixed> $callback
+     * @param  callable(): array<string, mixed>  $callback
      */
     private function expectProblem(callable $callback, string $code): void
     {
