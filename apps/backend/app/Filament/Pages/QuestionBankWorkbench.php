@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Exceptions\ApiProblemException;
 use App\Filament\Support\AdminNavigationGroup;
 use App\Models\User;
+use App\Services\ContentAdminWorkflowService;
 use App\Services\QuestionBankWorkbenchService;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -416,8 +417,7 @@ final class QuestionBankWorkbench extends Page
     {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
-        app(QuestionBankWorkbenchService::class);
-        app(\App\Services\ContentAdminWorkflowService::class)->assertOperator($user);
+        app(ContentAdminWorkflowService::class)->assertOperator($user);
 
         return $user;
     }
