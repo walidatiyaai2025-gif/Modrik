@@ -359,13 +359,23 @@ final class AttemptService
             'revision' => $revision,
         ]);
 
-        return [
-            'revision' => $revision,
-            'value' => $value,
-            'duration_ms' => $durationMs,
-            'hint_count' => $hintCount,
-            'answered_at' => $answeredAt->toIso8601String(),
-        ];
+        $persisted = DB::table('attempt_answers')
+            ->where('attempt_question_id', $attemptQuestionId)
+            ->where('revision', $revision)
+            ->first(['revision', 'value', 'duration_ms', 'hint_count', 'answered_at']);
+        if ($persisted === null) {
+            throw new ApiProblemException(
+                500,
+                'ANSWER_PERSISTENCE_REREAD_FAILED',
+                'Answer persistence could not be verified',
+                'The answer was written but could not be re-read authoritatively before success.',
+            );
+        }
+
+        /** @var array<string, mixed> $persistedRow */
+        $persistedRow = (array) $persisted;
+
+        return $this->answerData($persistedRow);
     }
 
     /**
