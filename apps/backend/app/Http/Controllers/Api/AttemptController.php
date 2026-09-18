@@ -49,7 +49,7 @@ class AttemptController extends Controller
     {
         $this->assertUlid($attemptId, 'attempt');
         $this->assertUlid($attemptQuestionId, 'attempt question');
-        $payload = $this->payload($request, ['expected_revision', 'value']);
+        $payload = $this->payload($request, ['expected_revision', 'value', 'duration_ms', 'hint_count']);
         $expectedRevision = $payload['expected_revision'] ?? null;
         if (! is_int($expectedRevision) || $expectedRevision < 0) {
             throw $this->validation('/expected_revision', 'EXPECTED_REVISION_INVALID', 'expected_revision must be an integer of zero or greater.');
@@ -57,18 +57,35 @@ class AttemptController extends Controller
         if (! array_key_exists('value', $payload)) {
             throw $this->validation('/value', 'ANSWER_VALUE_REQUIRED', 'value is required.');
         }
+        $durationMs = $payload['duration_ms'] ?? 0;
+        $hintCount = $payload['hint_count'] ?? 0;
+        if (! is_int($durationMs) || $durationMs < 0 || $durationMs > 3_600_000) {
+            throw $this->validation('/duration_ms', 'DURATION_MS_INVALID', 'duration_ms must be an integer between 0 and 3600000.');
+        }
+        if (! is_int($hintCount) || $hintCount < 0 || $hintCount > 20) {
+            throw $this->validation('/hint_count', 'HINT_COUNT_INVALID', 'hint_count must be an integer between 0 and 20.');
+        }
 
-        return $this->idempotency->execute($request, 'attempt.answer', function () use ($request, $attemptId, $attemptQuestionId, $expectedRevision, $payload): array {
+        return $this->idempotency->execute($request, 'attempt.answer', function () use ($request, $attemptId, $attemptQuestionId, $expectedRevision, $payload, $durationMs, $hintCount): array {
             $answer = $this->attempts->recordAnswer(
                 $this->user($request),
                 $attemptId,
                 $attemptQuestionId,
                 $expectedRevision,
                 $payload['value'],
+                $durationMs,
+                $hintCount,
             );
 
             return ['status' => 200, 'body' => ApiResponse::body($request, $answer)];
         });
+    }
+
+    public function result(Request $request, string $attemptId): JsonResponse
+    {
+        $this->assertUlid($attemptId, 'attempt');
+
+        return ApiResponse::success($request, $this->attempts->result($this->user($request), $attemptId));
     }
 
     public function submit(Request $request, string $attemptId): JsonResponse

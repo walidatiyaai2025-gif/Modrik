@@ -288,3 +288,10 @@ capabilities:
     surface: Backend contracts/tests; #356 owns the mastery algorithm and future operational visibility
     status: foundation_present
     notes: Issue #353 provides persistence only for versioned Student×Skill mastery state bound to academic context. It does not expose client mutation or invent a mastery formula.
+
+  - id: assessment.adaptive_runtime_modes
+    area: assessment
+    classification: internal_non_editable
+    surface: Backend AttemptService / API contracts / AssessmentOperations read-only boundary
+    status: present
+    notes: Issue #355 extends the existing authoritative attempt engine with practice/daily/topic/skill/weak/revision/mistakes/diagnostic/exam/custom-assignment mode policy, deterministic template materialization, telemetry, reveal policy and authoritative result reread. Mode policy is not an operator-editable scoring/security setting.

@@ -122,3 +122,11 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-023, AC-P0-024, AC-P0-025]
     status: owner_authorized_2026_09_17
+
+  - id: REQ-P0-017
+    title: Authoritative question-first assessment runtime
+    statement: MODRIK runs practice, diagnostic, exam and assignment variants through the existing Backend attempt authority with immutable mode/selection snapshots, deterministic template materialization, retry-safe answer/submission persistence, and no paid-AI runtime dependency.
+    area: assessment
+    priority: P0
+    acceptance_criteria: [AC-P0-026, AC-P0-027, AC-P0-028]
+    status: owner_authorized_2026_09_17
