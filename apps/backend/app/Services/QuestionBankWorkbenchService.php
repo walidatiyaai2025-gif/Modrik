@@ -49,7 +49,11 @@ final class QuestionBankWorkbenchService
             throw $this->problem(413, 'QUESTION_BANK_PACK_TOO_LARGE', 'Question Bank pack too large', 'Question Bank JSON is limited to 20 MB.');
         }
 
-        $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        try {
+            $decoded = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw $this->problem(422, 'QUESTION_BANK_JSON_INVALID', 'Question Bank JSON invalid', 'The uploaded file is not valid JSON.');
+        }
         if (! is_array($decoded) || array_is_list($decoded)) {
             throw $this->problem(422, 'QUESTION_BANK_SCHEMA_INVALID', 'Question Bank schema invalid', 'The uploaded JSON must be an object.');
         }
@@ -334,6 +338,39 @@ final class QuestionBankWorkbenchService
                 'kind' => $kind,
                 'reference' => $reference === '' ? null : $reference,
             ]);
+
+            if ($rightsStatus !== 'approved') {
+                $publishedImportIds = DB::table('question_bank_import_sources as links')
+                    ->join('question_bank_imports as imports', 'imports.id', '=', 'links.question_bank_import_id')
+                    ->where('links.source_material_id', $sourceMaterialId)
+                    ->where('imports.status', 'published')
+                    ->pluck('imports.id')
+                    ->map(static fn (mixed $id): string => (string) $id)
+                    ->all();
+
+                foreach ($publishedImportIds as $publishedImportId) {
+                    $questionIds = DB::table('question_bank_import_items')
+                        ->where('question_bank_import_id', $publishedImportId)
+                        ->whereNotNull('canonical_question_id')
+                        ->pluck('canonical_question_id');
+                    if ($questionIds->isNotEmpty()) {
+                        DB::table('questions')->whereIn('id', $questionIds)->update([
+                            'status' => 'suspended',
+                            'updated_at' => $now,
+                        ]);
+                    }
+                    DB::table('question_bank_import_items')->where('question_bank_import_id', $publishedImportId)->update([
+                        'status' => 'suspended',
+                        'updated_at' => $now,
+                    ]);
+                    DB::table('question_bank_imports')->where('id', $publishedImportId)->update([
+                        'status' => 'suspended',
+                        'suspended_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                    $this->audit($user, $publishedImportId, null, $sourceMaterialId, 'rights_auto_suspended', 'published', 'suspended', 'Source rights are no longer approved.');
+                }
+            }
         });
 
         $row = DB::table('question_bank_source_materials')->where('id', $sourceMaterialId)->first();
@@ -351,8 +388,9 @@ final class QuestionBankWorkbenchService
             if ((string) $import->status === 'published') {
                 return;
             }
-            if ((string) $import->status !== 'approved') {
-                throw $this->invalidState($import, 'approved');
+            $fromStatus = (string) $import->status;
+            if (! in_array($fromStatus, ['approved', 'suspended'], true)) {
+                throw $this->invalidState($import, 'approved or suspended');
             }
             $this->assertSourcesRightsApproved($importId);
 
@@ -402,7 +440,7 @@ final class QuestionBankWorkbenchService
                 'suspended_at' => null,
                 'updated_at' => $now,
             ]);
-            $this->audit($user, $importId, null, null, 'published', 'approved', 'published', null, [
+            $this->audit($user, $importId, null, null, 'published', $fromStatus, 'published', null, [
                 'question_count' => $items->count(),
             ]);
         });
