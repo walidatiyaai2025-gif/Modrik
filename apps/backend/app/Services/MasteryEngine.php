@@ -359,7 +359,7 @@ final class MasteryEngine
                 'last_evidence_at' => null,
                 'calculated_at' => null,
                 'archived_at' => null,
-                'display_band' => $this->bands->band(0.0, $environment ?? app()->environment()),
+                'display_band' => $this->bands->band(0.0, $environment ?? (string) app()->environment()),
             ];
         }
         if ((string) $row->user_id !== (string) $user->getKey()) {
@@ -380,7 +380,7 @@ final class MasteryEngine
             'last_evidence_at' => $row->last_evidence_at === null ? null : CarbonImmutable::parse((string) $row->last_evidence_at)->toIso8601String(),
             'calculated_at' => $row->calculated_at === null ? null : CarbonImmutable::parse((string) $row->calculated_at)->toIso8601String(),
             'archived_at' => $row->archived_at === null ? null : CarbonImmutable::parse((string) $row->archived_at)->toIso8601String(),
-            'display_band' => $this->bands->band($scorePercent, $environment ?? app()->environment()),
+            'display_band' => $this->bands->band($scorePercent, $environment ?? (string) app()->environment()),
         ];
     }
 
