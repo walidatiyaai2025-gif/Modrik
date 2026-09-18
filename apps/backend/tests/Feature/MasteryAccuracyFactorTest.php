@@ -103,7 +103,7 @@ class MasteryAccuracyFactorTest extends TestCase
     }
 
     /**
-     * @param list<bool> $revisions
+     * @param  list<bool>  $revisions
      */
     private function insertEvidence(
         string $userId,
