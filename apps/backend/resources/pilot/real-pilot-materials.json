@@ -1,0 +1,683 @@
+{
+  "schema_version": "modrik-real-pilot-sources-v1",
+  "campaign_id": "MODRIK-CHILDREN-READY-20260917-A",
+  "owner_issue": 362,
+  "source_received_date": "2026-09-18",
+  "policy": {
+    "raw_binaries_committed_to_repository": false,
+    "fingerprint_algorithm": "sha256",
+    "student_delivery_default": false,
+    "rights_default": "pending_review",
+    "unknown_academic_mapping": "mapping_required",
+    "pii_policy": "redact_before_controlled_storage_or_content_preparation"
+  },
+  "materials": [
+    {
+      "source_id": "pilot-y6-arabic-kuwait-2025-2026-t2-part1",
+      "title": {
+        "ar": "لغتي العربية - الصف السادس - الفصل الدراسي الثاني - القسم الأول",
+        "en": "Arabic Language - Grade 6 - Second Term - Part 1",
+        "fr": "Langue arabe - 6e année - deuxième semestre - partie 1"
+      },
+      "kind": "book_pdf",
+      "mime_type": "application/pdf",
+      "sha256": "8753a45a324214b59f5688219189ef662c425636303a546a12f889f40a3c1a24",
+      "page_count": 157,
+      "publisher": "Ministry of Education - State of Kuwait",
+      "language": "ar",
+      "subject": "Arabic",
+      "source_claims": {
+        "year_level": "Grade 6",
+        "term": "Second term",
+        "part": "Part 1",
+        "edition": "2025/2026"
+      },
+      "curriculum_mapping": {
+        "status": "partial_source_verified",
+        "year_level": "Grade 6",
+        "subject": "Arabic",
+        "track_reference": null,
+        "board_reference": null,
+        "syllabus_version": null,
+        "reason": "Year, term, part and subject are explicit in the source. The exact MODRIK pilot academic-track binding remains an owner-approved mapping step."
+      },
+      "rights": {
+        "status": "pending_review",
+        "copyright_notice_present": true,
+        "note": "The source states that copyright, printing and publication rights are reserved to the Kuwait Ministry of Education. Registration does not assert redistribution or publication rights."
+      },
+      "privacy": {
+        "status": "clear_for_registry",
+        "note": "No student PII is retained in this registry entry."
+      },
+      "storage": {
+        "state": "fingerprinted_owner_supplied_not_in_repo",
+        "note": "The raw PDF is intentionally not committed to GitHub. Controlled storage must bind the uploaded copy to this SHA-256 before content preparation."
+      },
+      "delivery_eligible": false,
+      "delivery_blockers": [
+        "rights_review",
+        "academic_track_mapping",
+        "question_bank_generation_review_publication"
+      ],
+      "learning_outcome_families": [
+        "reading",
+        "vocabulary",
+        "comprehension",
+        "literary_appreciation",
+        "grammar",
+        "spelling",
+        "handwriting",
+        "writing",
+        "listening"
+      ],
+      "segments": [
+        {
+          "segment_id": "y6-ar-t2-u1-overview",
+          "unit": "الوحدة الأولى",
+          "topic": "نواتج تعلم الوحدة الأولى",
+          "skill_families": ["reading", "vocabulary", "comprehension", "literary_appreciation", "grammar", "spelling", "handwriting", "writing", "listening"],
+          "printed_page_start": 15,
+          "printed_page_end": 17,
+          "pdf_page_start": 16,
+          "pdf_page_end": 18
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-source",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["source_text"],
+          "printed_page_start": 18,
+          "printed_page_end": 18,
+          "pdf_page_start": 19,
+          "pdf_page_end": 19
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-reading-1",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 19,
+          "printed_page_end": 21,
+          "pdf_page_start": 20,
+          "pdf_page_end": 22
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-reading-2",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 22,
+          "printed_page_end": 24,
+          "pdf_page_start": 23,
+          "pdf_page_end": 25
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-reading-3",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 25,
+          "printed_page_end": 27,
+          "pdf_page_start": 26,
+          "pdf_page_end": 28
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-simile",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["literary_appreciation", "complete_simile"],
+          "printed_page_start": 28,
+          "printed_page_end": 31,
+          "pdf_page_start": 29,
+          "pdf_page_end": 32
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-inna-1",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["grammar", "inna_and_sisters"],
+          "printed_page_start": 32,
+          "printed_page_end": 35,
+          "pdf_page_start": 33,
+          "pdf_page_end": 36
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-inna-2",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["grammar", "inna_and_sisters"],
+          "printed_page_start": 36,
+          "printed_page_end": 38,
+          "pdf_page_start": 37,
+          "pdf_page_end": 39
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-tanween-damm-kasr",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["spelling", "handwriting", "tanween"],
+          "printed_page_start": 39,
+          "printed_page_end": 41,
+          "pdf_page_start": 40,
+          "pdf_page_end": 42
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-writing-training",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["writing", "two_linked_paragraphs"],
+          "printed_page_start": 42,
+          "printed_page_end": 43,
+          "pdf_page_start": 43,
+          "pdf_page_end": 44
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-writing-application",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["writing", "two_linked_paragraphs"],
+          "printed_page_start": 44,
+          "printed_page_end": 46,
+          "pdf_page_start": 45,
+          "pdf_page_end": 47
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic1-training",
+          "unit": "الوحدة الأولى",
+          "topic": "آيات من سورة القصص",
+          "skill_families": ["mixed_review"],
+          "printed_page_start": 47,
+          "printed_page_end": 49,
+          "pdf_page_start": 48,
+          "pdf_page_end": 50
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-source",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["source_text"],
+          "printed_page_start": 50,
+          "printed_page_end": 50,
+          "pdf_page_start": 51,
+          "pdf_page_end": 51
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-reading-1",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 51,
+          "printed_page_end": 52,
+          "pdf_page_start": 52,
+          "pdf_page_end": 53
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-reading-2",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 53,
+          "printed_page_end": 56,
+          "pdf_page_start": 54,
+          "pdf_page_end": 57
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-reading-3",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 57,
+          "printed_page_end": 60,
+          "pdf_page_start": 58,
+          "pdf_page_end": 61
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-simile",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["literary_appreciation", "complete_simile"],
+          "printed_page_start": 61,
+          "printed_page_end": 63,
+          "pdf_page_start": 62,
+          "pdf_page_end": 64
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-predicate-types-1",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["grammar", "inna_and_sisters", "predicate_types"],
+          "printed_page_start": 64,
+          "printed_page_end": 66,
+          "pdf_page_start": 65,
+          "pdf_page_end": 67
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-predicate-types-2",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["grammar", "inna_and_sisters", "predicate_types"],
+          "printed_page_start": 67,
+          "printed_page_end": 69,
+          "pdf_page_start": 68,
+          "pdf_page_end": 70
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-tanween-fath",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["spelling", "handwriting", "tanween"],
+          "printed_page_start": 70,
+          "printed_page_end": 73,
+          "pdf_page_start": 71,
+          "pdf_page_end": 74
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-writing",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["writing", "two_linked_paragraphs"],
+          "printed_page_start": 74,
+          "printed_page_end": 75,
+          "pdf_page_start": 75,
+          "pdf_page_end": 76
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-topic2-training",
+          "unit": "الوحدة الأولى",
+          "topic": "الحديث الشريف - أعظم الصدقة",
+          "skill_families": ["mixed_review"],
+          "printed_page_start": 76,
+          "printed_page_end": 78,
+          "pdf_page_start": 77,
+          "pdf_page_end": 79
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-listening",
+          "unit": "الوحدة الأولى",
+          "topic": "هاجر ثبات ويقين",
+          "skill_families": ["listening", "comprehension"],
+          "printed_page_start": 79,
+          "printed_page_end": 81,
+          "pdf_page_start": 80,
+          "pdf_page_end": 82
+        },
+        {
+          "segment_id": "y6-ar-t2-u1-comprehensive",
+          "unit": "الوحدة الأولى",
+          "topic": "التطبيق الشامل",
+          "skill_families": ["mixed_review"],
+          "printed_page_start": 82,
+          "printed_page_end": 84,
+          "pdf_page_start": 83,
+          "pdf_page_end": 85
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-overview",
+          "unit": "الوحدة الثانية",
+          "topic": "نواتج تعلم الوحدة الثانية",
+          "skill_families": ["reading", "vocabulary", "comprehension", "literary_appreciation", "grammar", "spelling", "handwriting", "writing", "listening"],
+          "printed_page_start": 85,
+          "printed_page_end": 88,
+          "pdf_page_start": 86,
+          "pdf_page_end": 89
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic1-source",
+          "unit": "الوحدة الثانية",
+          "topic": "هذي بلادي",
+          "skill_families": ["source_text"],
+          "printed_page_start": 89,
+          "printed_page_end": 89,
+          "pdf_page_start": 90,
+          "pdf_page_end": 90
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic1-reading",
+          "unit": "الوحدة الثانية",
+          "topic": "هذي بلادي",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 90,
+          "printed_page_end": 100,
+          "pdf_page_start": 91,
+          "pdf_page_end": 101
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic1-simile",
+          "unit": "الوحدة الثانية",
+          "topic": "هذي بلادي",
+          "skill_families": ["literary_appreciation", "incomplete_simile"],
+          "printed_page_start": 101,
+          "printed_page_end": 104,
+          "pdf_page_start": 102,
+          "pdf_page_end": 105
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic1-adjective",
+          "unit": "الوحدة الثانية",
+          "topic": "هذي بلادي",
+          "skill_families": ["grammar", "adjective"],
+          "printed_page_start": 105,
+          "printed_page_end": 108,
+          "pdf_page_start": 106,
+          "pdf_page_end": 109
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic1-ta-marbuta-maftuha",
+          "unit": "الوحدة الثانية",
+          "topic": "هذي بلادي",
+          "skill_families": ["spelling", "handwriting", "ta_marbuta", "ta_maftuha"],
+          "printed_page_start": 109,
+          "printed_page_end": 112,
+          "pdf_page_start": 110,
+          "pdf_page_end": 113
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic1-writing-letter",
+          "unit": "الوحدة الثانية",
+          "topic": "هذي بلادي",
+          "skill_families": ["writing", "letter_writing"],
+          "printed_page_start": 113,
+          "printed_page_end": 116,
+          "pdf_page_start": 114,
+          "pdf_page_end": 117
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic1-training",
+          "unit": "الوحدة الثانية",
+          "topic": "هذي بلادي",
+          "skill_families": ["mixed_review"],
+          "printed_page_start": 117,
+          "printed_page_end": 119,
+          "pdf_page_start": 118,
+          "pdf_page_end": 120
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic2-source",
+          "unit": "الوحدة الثانية",
+          "topic": "من عبق التاريخ",
+          "skill_families": ["source_text"],
+          "printed_page_start": 120,
+          "printed_page_end": 122,
+          "pdf_page_start": 121,
+          "pdf_page_end": 123
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic2-reading",
+          "unit": "الوحدة الثانية",
+          "topic": "من عبق التاريخ",
+          "skill_families": ["reading", "vocabulary", "comprehension"],
+          "printed_page_start": 123,
+          "printed_page_end": 133,
+          "pdf_page_start": 124,
+          "pdf_page_end": 134
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic2-simile",
+          "unit": "الوحدة الثانية",
+          "topic": "من عبق التاريخ",
+          "skill_families": ["literary_appreciation", "incomplete_simile"],
+          "printed_page_start": 134,
+          "printed_page_end": 136,
+          "pdf_page_start": 135,
+          "pdf_page_end": 137
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic2-adjective",
+          "unit": "الوحدة الثانية",
+          "topic": "من عبق التاريخ",
+          "skill_families": ["grammar", "adjective"],
+          "printed_page_start": 137,
+          "printed_page_end": 139,
+          "pdf_page_start": 138,
+          "pdf_page_end": 140
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic2-ta-marbuta-ha",
+          "unit": "الوحدة الثانية",
+          "topic": "من عبق التاريخ",
+          "skill_families": ["spelling", "handwriting", "ta_marbuta", "ha"],
+          "printed_page_start": 140,
+          "printed_page_end": 143,
+          "pdf_page_start": 141,
+          "pdf_page_end": 144
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic2-writing-letter",
+          "unit": "الوحدة الثانية",
+          "topic": "من عبق التاريخ",
+          "skill_families": ["writing", "letter_writing"],
+          "printed_page_start": 144,
+          "printed_page_end": 144,
+          "pdf_page_start": 145,
+          "pdf_page_end": 145
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-topic2-training",
+          "unit": "الوحدة الثانية",
+          "topic": "من عبق التاريخ",
+          "skill_families": ["mixed_review"],
+          "printed_page_start": 145,
+          "printed_page_end": 147,
+          "pdf_page_start": 146,
+          "pdf_page_end": 148
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-listening",
+          "unit": "الوحدة الثانية",
+          "topic": "النوخذة العادل",
+          "skill_families": ["listening", "comprehension"],
+          "printed_page_start": 148,
+          "printed_page_end": 149,
+          "pdf_page_start": 149,
+          "pdf_page_end": 150
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-comprehensive",
+          "unit": "الوحدة الثانية",
+          "topic": "التطبيق الشامل",
+          "skill_families": ["mixed_review"],
+          "printed_page_start": 150,
+          "printed_page_end": 153,
+          "pdf_page_start": 151,
+          "pdf_page_end": 154
+        },
+        {
+          "segment_id": "y6-ar-t2-u2-free-reading",
+          "unit": "الوحدة الثانية",
+          "topic": "القراءة الحرة",
+          "skill_families": ["reading"],
+          "printed_page_start": 154,
+          "printed_page_end": 156,
+          "pdf_page_start": 155,
+          "pdf_page_end": 157
+        }
+      ]
+    },
+    {
+      "source_id": "pilot-en-fanboys-completed-worksheet",
+      "title": {
+        "ar": "ورقة عمل أدوات الربط FANBOYS - نسخة محلولة",
+        "en": "FANBOYS coordinating conjunctions - completed worksheet",
+        "fr": "Conjonctions FANBOYS - fiche complétée"
+      },
+      "kind": "worksheet_scan",
+      "mime_type": "image/jpeg",
+      "sha256": "4ad0be9adf324b187ce93124d08e8ba50fac0b590b61c2e9b4ae9af036c0120f",
+      "language": "en",
+      "subject": "English",
+      "content_summary": {
+        "topic": "Coordinating conjunctions (FANBOYS)",
+        "visible_question_count": 30,
+        "worksheet_state": "student_completed",
+        "paired_source_id": "pilot-en-fanboys-answer-key"
+      },
+      "curriculum_mapping": {
+        "status": "mapping_required",
+        "year_level": null,
+        "subject": "English",
+        "track_reference": null,
+        "reason": "Subject and skill are visible; target pilot year/track is not printed on the supplied scan."
+      },
+      "rights": {
+        "status": "pending_review",
+        "note": "Source ownership/licensing is not established by the scan."
+      },
+      "privacy": {
+        "status": "pii_redaction_required",
+        "note": "Handwritten student-identifying text is visible. The raw scan must be redacted before controlled storage or reuse."
+      },
+      "storage": {
+        "state": "fingerprinted_owner_supplied_not_in_repo"
+      },
+      "delivery_eligible": false,
+      "delivery_blockers": ["pii_redaction", "rights_review", "academic_mapping", "question_bank_generation_review_publication"]
+    },
+    {
+      "source_id": "pilot-en-fanboys-answer-key",
+      "title": {
+        "ar": "مفتاح إجابة أدوات الربط FANBOYS",
+        "en": "FANBOYS coordinating conjunctions - answer key",
+        "fr": "Conjonctions FANBOYS - corrigé"
+      },
+      "kind": "answer_key",
+      "mime_type": "image/jpeg",
+      "sha256": "713247b180ce5d2692e54348267767aaf69bc0c997a02fcfc16a75cac09d7b57",
+      "language": "en",
+      "subject": "English",
+      "content_summary": {
+        "topic": "Coordinating conjunctions (FANBOYS)",
+        "visible_question_count": 30,
+        "paired_source_id": "pilot-en-fanboys-completed-worksheet"
+      },
+      "curriculum_mapping": {
+        "status": "mapping_required",
+        "year_level": null,
+        "subject": "English",
+        "track_reference": null,
+        "reason": "Subject and skill are visible; target pilot year/track is not printed on the supplied image."
+      },
+      "rights": {
+        "status": "pending_review",
+        "note": "Source ownership/licensing is not established by the image."
+      },
+      "privacy": {
+        "status": "clear_for_registry"
+      },
+      "storage": {
+        "state": "fingerprinted_owner_supplied_not_in_repo"
+      },
+      "delivery_eligible": false,
+      "delivery_blockers": ["rights_review", "academic_mapping", "question_bank_generation_review_publication"]
+    },
+    {
+      "source_id": "pilot-math-negative-number-guide",
+      "title": {
+        "ar": "دليل الأعداد السالبة",
+        "en": "Negative Number Guide",
+        "fr": "Guide des nombres négatifs"
+      },
+      "kind": "reference_guide",
+      "mime_type": "image/jpeg",
+      "sha256": "2a4dc30582c61b1f382adf2e7301083725c4babb678c327fff2c9da1632bbf38",
+      "language": "en",
+      "subject": "Mathematics",
+      "content_summary": {
+        "topic": "Integers and negative numbers",
+        "source_framing": ["same signs = add", "different signs = subtract"]
+      },
+      "curriculum_mapping": {
+        "status": "mapping_required",
+        "year_level": null,
+        "subject": "Mathematics",
+        "track_reference": null,
+        "reason": "The concept is visible, but no target pilot year/track is printed on the supplied guide."
+      },
+      "rights": {
+        "status": "pending_review",
+        "note": "Source ownership/licensing is not established by the image."
+      },
+      "privacy": {
+        "status": "clear_for_registry"
+      },
+      "storage": {
+        "state": "fingerprinted_owner_supplied_not_in_repo"
+      },
+      "delivery_eligible": false,
+      "delivery_blockers": ["rights_review", "academic_mapping", "question_bank_generation_review_publication"]
+    },
+    {
+      "source_id": "pilot-math-integers-practice",
+      "title": {
+        "ar": "تدريبات جمع وطرح الأعداد الصحيحة",
+        "en": "Integer addition and subtraction practice",
+        "fr": "Exercices d'addition et de soustraction d'entiers"
+      },
+      "kind": "worksheet_scan",
+      "mime_type": "image/jpeg",
+      "sha256": "5e86d6ad983f22f9d1d673457c226731434aa6a9e7af47995c7d2e7187c9a854",
+      "language": "en",
+      "subject": "Mathematics",
+      "content_summary": {
+        "topic": "Adding and subtracting integers",
+        "sections": ["Taking away a positive number", "Taking away a negative number", "Adding negative numbers"]
+      },
+      "curriculum_mapping": {
+        "status": "mapping_required",
+        "year_level": null,
+        "subject": "Mathematics",
+        "track_reference": null,
+        "reason": "The mathematical skill is visible, but no target pilot year/track is printed on the supplied worksheet."
+      },
+      "rights": {
+        "status": "pending_review",
+        "note": "Source ownership/licensing is not established by the image."
+      },
+      "privacy": {
+        "status": "clear_for_registry"
+      },
+      "storage": {
+        "state": "fingerprinted_owner_supplied_not_in_repo"
+      },
+      "delivery_eligible": false,
+      "delivery_blockers": ["rights_review", "academic_mapping", "question_bank_generation_review_publication"]
+    },
+    {
+      "source_id": "pilot-math-subtracting-integers-grade5",
+      "title": {
+        "ar": "ورقة عمل طرح الأعداد الصحيحة - المصدر يذكر Grade 5",
+        "en": "Subtracting integers worksheet - source-labelled Grade 5",
+        "fr": "Soustraction d'entiers - source indiquée Grade 5"
+      },
+      "kind": "worksheet_scan",
+      "mime_type": "image/jpeg",
+      "sha256": "72f0348846526e7968f54c4945e5d99da5580d81de19eebffb521ecbd9db9982",
+      "language": "en",
+      "subject": "Mathematics",
+      "content_summary": {
+        "topic": "Subtracting integers",
+        "visible_question_count": 20,
+        "source_grade_label": "Grade 5"
+      },
+      "curriculum_mapping": {
+        "status": "mapping_required",
+        "year_level": null,
+        "subject": "Mathematics",
+        "track_reference": null,
+        "reason": "The source itself says Grade 5. It may be useful for revision, but MODRIK must not silently relabel it as Year 6 or Year 7."
+      },
+      "rights": {
+        "status": "pending_review",
+        "note": "Third-party branding is visible; reuse/publication rights are not established by the image."
+      },
+      "privacy": {
+        "status": "clear_for_registry"
+      },
+      "storage": {
+        "state": "fingerprinted_owner_supplied_not_in_repo"
+      },
+      "delivery_eligible": false,
+      "delivery_blockers": ["rights_review", "academic_mapping", "question_bank_generation_review_publication"]
+    }
+  ]
+}
