@@ -7,11 +7,16 @@ on:
       - "apps/backend/app/Services/ContentPreparationService.php"
       - "apps/backend/tests/Feature/ContentPreparationWorkflowTest.php"
       - "apps/backend/app/Filament/Pages/PromptLibrary.php"
+      - "apps/backend/app/Filament/Pages/QuestionBankWorkbench.php"
+      - "apps/backend/app/Services/QuestionBankWorkbenchService.php"
+      - "apps/backend/database/migrations/2026_09_18_050000_create_question_bank_workbench.php"
       - "apps/backend/app/Filament/Pages/ContentIngestionOperations.php"
       - "apps/backend/app/Filament/Pages/ContentReviewExceptions.php"
       - "apps/backend/app/Filament/Pages/ContentTraceability.php"
       - "apps/backend/resources/views/filament/pages/content-operations.blade.php"
       - "apps/backend/resources/views/filament/pages/prompt-library.blade.php"
+      - "apps/backend/resources/views/filament/pages/question-bank-workbench.blade.php"
+      - "apps/backend/tests/Feature/QuestionBankWorkbenchTest.php"
       - "apps/backend/resources/content-prompts/**"
       - "apps/backend/resources/views/filament/pages/content-ingestion-operations.blade.php"
       - "apps/backend/resources/views/filament/pages/content-review-exceptions.blade.php"
@@ -141,6 +146,7 @@ jobs:
             const surfaces = [
               { name: 'content-operations', url: '/admin/content-operations', selector: '[data-testid="modrik-content-operations"]' },
               { name: 'prompt-library', url: '/admin/prompt-library', selector: '[data-testid="modrik-prompt-library"]' },
+              { name: 'question-bank-workbench', url: '/admin/question-bank-workbench', selector: '[data-testid="modrik-question-bank-workbench"]' },
               { name: 'content-ingestion', url: '/admin/content-ingestion-operations', selector: '[data-testid="content-ingestion-operations"]' },
               { name: 'content-review-exceptions', url: '/admin/content-review-exceptions', selector: '[data-testid="modrik-content-review-exceptions"]' },
               { name: 'content-traceability', url: '/admin/content-traceability', selector: '[data-testid="modrik-content-traceability"]' },
