@@ -3,23 +3,106 @@
   "program": "MODRIK Student Learning Readiness",
   "umbrella_issue": 352,
   "integration_issue": 363,
-  "status": "UNRECONCILED_INITIAL_BASELINE",
+  "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
   "overall_readiness_percent": 0,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
-    {"id":"foundation","name":"Data/Curriculum Foundation","weight":8,"percent":0,"status":"not_evidenced","owner_issue":353},
-    {"id":"question_content","name":"Question Bank + Content Workflow","weight":18,"percent":0,"status":"not_evidenced","owner_issue":354},
-    {"id":"assessment","name":"Quiz/Assessment Engine","weight":14,"percent":0,"status":"not_evidenced","owner_issue":355},
-    {"id":"mastery_adaptive","name":"Mastery + Adaptive Engine","weight":14,"percent":0,"status":"not_evidenced","owner_issues":[356,357]},
-    {"id":"revision_plan","name":"Revision + Daily Planner","weight":10,"percent":0,"status":"not_evidenced","owner_issue":357},
-    {"id":"student_ux","name":"Student Web/Mobile UX","weight":12,"percent":0,"status":"not_evidenced","owner_issue":358},
-    {"id":"parent","name":"Parent Analytics","weight":7,"percent":0,"status":"not_evidenced","owner_issue":360},
-    {"id":"rtl_accessibility","name":"Arabic/RTL/Typography/Accessibility","weight":7,"percent":0,"status":"not_evidenced","owner_issue":359},
-    {"id":"operations","name":"Admin Feature/Job Controls","weight":4,"percent":0,"status":"not_evidenced","owner_issue":361},
-    {"id":"quality_security","name":"Security/Tests/Data Integrity","weight":4,"percent":0,"status":"not_evidenced","owner_issue":363},
-    {"id":"real_pilot","name":"Real Children Pilot Acceptance","weight":2,"percent":0,"status":"not_evidenced","owner_issues":[362,363]}
+    {
+      "id": "foundation",
+      "name": "Data/Curriculum Foundation",
+      "weight": 8,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 353
+    },
+    {
+      "id": "question_content",
+      "name": "Question Bank + Content Workflow",
+      "weight": 18,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 354
+    },
+    {
+      "id": "assessment",
+      "name": "Quiz/Assessment Engine",
+      "weight": 14,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 355
+    },
+    {
+      "id": "mastery_adaptive",
+      "name": "Mastery + Adaptive Engine",
+      "weight": 14,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issues": [
+        356,
+        357
+      ]
+    },
+    {
+      "id": "revision_plan",
+      "name": "Revision + Daily Planner",
+      "weight": 10,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 357
+    },
+    {
+      "id": "student_ux",
+      "name": "Student Web/Mobile UX",
+      "weight": 12,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 358
+    },
+    {
+      "id": "parent",
+      "name": "Parent Analytics",
+      "weight": 7,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 360
+    },
+    {
+      "id": "rtl_accessibility",
+      "name": "Arabic/RTL/Typography/Accessibility",
+      "weight": 7,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 359
+    },
+    {
+      "id": "operations",
+      "name": "Admin Feature/Job Controls",
+      "weight": 4,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 361
+    },
+    {
+      "id": "quality_security",
+      "name": "Security/Tests/Data Integrity",
+      "weight": 4,
+      "percent": 0,
+      "status": "not_evidenced",
+      "owner_issue": 363
+    },
+    {
+      "id": "real_pilot",
+      "name": "Real Children Pilot Acceptance",
+      "weight": 2,
+      "percent": 0,
+      "status": "blocked_owner_last",
+      "owner_issues": [
+        362,
+        363
+      ]
+    }
   ],
   "mandatory_gates": {
     "identity_academic_context": "not_evidenced",
@@ -32,16 +115,87 @@
     "arabic_english_accessibility": "not_evidenced",
     "admin_controls": "not_evidenced",
     "security_integrity_qa": "not_evidenced",
-    "real_year6_pilot": "not_evidenced",
-    "real_year7_pilot": "not_evidenced",
-    "parent_real_pilot": "not_evidenced",
+    "real_year6_pilot": "blocked_owner_last",
+    "real_year7_pilot": "blocked_owner_last",
+    "parent_real_pilot": "blocked_dependency",
     "open_mandatory_learning_blockers_zero": "not_evidenced",
     "exact_main_governed_ci_green": "not_evidenced"
   },
-  "evidence": [],
+  "evidence": [
+    {
+      "id": "L11_REAL_PILOT_SOURCE_REGISTRY",
+      "owner_issue": 362,
+      "integration_issue": 363,
+      "status": "integrated",
+      "pr": 399,
+      "exact_head_sha": "1c604c2a24a3cee46142673e2887c8614ecb52ed",
+      "integrated_main_sha": "db3d75b67a6046d1fff3f89d8a011f0e3a15f6eb",
+      "paths": [
+        "apps/backend/resources/pilot/real-pilot-materials.json",
+        "docs/learning/REAL_PILOT_MATERIALS_REGISTRY.md"
+      ],
+      "facts": {
+        "registered_sources": 6,
+        "segmented_sources": 1,
+        "rights_pending_sources": 6,
+        "mapping_required_sources": 5,
+        "pii_redaction_required_sources": 1,
+        "student_delivery_eligible_sources": 0
+      },
+      "exact_head_ci": {
+        "bootstrap_run": 35362500927,
+        "bootstrap_number": 1504,
+        "unified_release_number": 199,
+        "admin_ux_number": 312,
+        "content_operations_number": 190,
+        "demo_package_number": 546,
+        "conclusion": "success"
+      },
+      "exact_main_ci": {
+        "bootstrap_run": 35364090293,
+        "bootstrap_number": 1505,
+        "unified_release_run": 35364090365,
+        "unified_release_number": 200,
+        "conclusion": "success"
+      }
+    },
+    {
+      "id": "L11_REAL_PILOT_COVERAGE",
+      "owner_issue": 362,
+      "integration_issue": 363,
+      "status": "blocked_owner_last",
+      "pr": 400,
+      "exact_head_sha": "798386d26c290cc4c23b0e41d745085a21c3418d",
+      "integrated_main_sha": "00278c827f6030d957c5f519e3b384fca1f64426",
+      "coverage_path": "governance/MODRIK_REAL_PILOT_COVERAGE.json",
+      "facts": {
+        "year6_source_evidence": "partial_pass",
+        "year6_academic_scope": "blocked_owner_last",
+        "year6_rights": "blocked_owner_last",
+        "year6_published_question_coverage": "not_evidenced",
+        "year7_source_evidence": "blocked_owner_last",
+        "year7_published_question_coverage": "not_evidenced"
+      },
+      "exact_head_ci": {
+        "bootstrap_run": 35364674506,
+        "bootstrap_number": 1507,
+        "unified_release_number": 202,
+        "demo_package_number": 548,
+        "conclusion": "success"
+      },
+      "exact_main_ci": {
+        "bootstrap_run": 35365475370,
+        "bootstrap_number": 1508,
+        "unified_release_run": 35365475386,
+        "unified_release_number": 203,
+        "conclusion": "success"
+      }
+    }
+  ],
   "notes": [
-    "Initial ledger intentionally starts at zero/not_evidenced rather than guessing credit for pre-existing capabilities.",
-    "Integration Captain #363 must reconcile existing and newly integrated evidence from live main before publishing any readiness percentage.",
+    "Readiness remains 0 until objective domain percentages are reconciled; this L11 update records evidence/blockers without inventing readiness credit.",
+    "L11 Real Content Pilot engineering/evidence is integrated, but acceptance remains blocked_owner_last by missing owner-approved academic scope, rights approval, Year 7 source material and unresolved source-year mapping/PII inputs.",
+    "Exact-main governed CI is green for the L11 integration evidence SHAs recorded above. The global exact_main_governed_ci_green mandatory gate remains unreconciled until the final program composition is verified.",
     "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger."
   ]
 }
