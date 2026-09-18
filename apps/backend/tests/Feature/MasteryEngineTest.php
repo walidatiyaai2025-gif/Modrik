@@ -487,7 +487,11 @@ final class MasteryEngineTest extends TestCase
             'id' => self::TARGET_TRACK_ID,
             'code' => 'FIXTURE:MASTERY:RESET-TARGET',
             'year_level' => 'FIXTURE-YEAR-8',
-            'title' => json_encode(['en' => 'Mastery reset target'], JSON_THROW_ON_ERROR),
+            'title' => json_encode([
+                'ar' => 'مسار هدف لاختبار إتقان',
+                'en' => 'Mastery reset target',
+                'fr' => 'Parcours cible pour la maîtrise',
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
             'is_fixture' => true,
             'availability_state' => 'published',
             'created_at' => now(),
