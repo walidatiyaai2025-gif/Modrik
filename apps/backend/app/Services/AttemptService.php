@@ -377,9 +377,6 @@ final class AttemptService
     public function submit(User $user, string $attemptId): array
     {
         $attempt = $this->ownedAttempt($user, $attemptId, lock: true);
-        if ($attempt['status'] === 'graded') {
-            return $this->result($user, $attemptId);
-        }
         if ($attempt['status'] !== 'in_progress') {
             throw new ApiProblemException(409, 'ATTEMPT_ALREADY_SUBMITTED', 'Attempt already submitted', 'Only an in-progress attempt can be submitted.');
         }
