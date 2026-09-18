@@ -29,8 +29,8 @@
       "id": "assessment",
       "name": "Quiz/Assessment Engine",
       "weight": 14,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 355
     },
     {
@@ -108,7 +108,7 @@
     "identity_academic_context": "not_evidenced",
     "curriculum_content": "not_evidenced",
     "question_bank": "not_evidenced",
-    "assessment_runtime": "not_evidenced",
+    "assessment_runtime": "PASS",
     "mastery_adaptive": "not_evidenced",
     "student_ux": "not_evidenced",
     "parent_ux": "not_evidenced",
@@ -190,12 +190,49 @@
         "unified_release_number": 203,
         "conclusion": "success"
       }
+    },
+    {
+      "id": "AL03_ASSESSMENT_RUNTIME",
+      "owner_issue": 355,
+      "integration_issue": 363,
+      "status": "integrated",
+      "core_pr": 370,
+      "hardening_prs": [
+        375,
+        385,
+        389,
+        402
+      ],
+      "integrated_main_sha": "9cefd3ec44f71e65a29e3f41d22ecd7c2380b1cd",
+      "facts": {
+        "practice_session_creation": "pass",
+        "server_selection_order_seed_authority": "pass",
+        "immutable_same_attempt_resume": "pass",
+        "answer_retry_idempotency": "pass",
+        "backend_authoritative_scoring": "pass",
+        "persistence_reread_before_success": "pass",
+        "exam_no_hint_no_explanation_policy": "pass",
+        "cross_user_direct_id_mutation": "fail_closed"
+      },
+      "exact_head_ci": {
+        "recovery_pr": 402,
+        "exact_head_sha": "33a50537c8c9302e942f2c19b5075a9b5651b9f0",
+        "bootstrap_run": 35367109808,
+        "bootstrap_number": 1511,
+        "unified_release_run": 35367109761,
+        "unified_release_number": 206,
+        "demo_package_run": 35367109866,
+        "demo_package_number": 550,
+        "conclusion": "success"
+      }
     }
   ],
   "notes": [
     "Readiness remains 0 until objective domain percentages are reconciled; this L11 update records evidence/blockers without inventing readiness credit.",
     "L11 Real Content Pilot engineering/evidence is integrated, but acceptance remains blocked_owner_last by missing owner-approved academic scope, rights approval, Year 7 source material and unresolved source-year mapping/PII inputs.",
     "Exact-main governed CI is green for the L11 integration evidence SHAs recorded above. The global exact_main_governed_ci_green mandatory gate remains unreconciled until the final program composition is verified.",
-    "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger."
+    "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger.",
+    "Assessment Runtime (#355) is reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation.",
+    "The assessment domain is 100% evidenced, but overall_readiness_percent remains 0 until the Integration Captain performs a separate global weighted-score reconciliation across all domains; children_ready remains false."
   ]
 }
