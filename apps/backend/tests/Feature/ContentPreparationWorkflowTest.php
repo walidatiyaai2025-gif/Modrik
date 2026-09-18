@@ -366,7 +366,17 @@ class ContentPreparationWorkflowTest extends TestCase
             ->assertJsonPath('errors.0.code', 'CONTENT_SCHEMA_INVALID')
             ->assertJsonPath('errors.0.pointer', '/lessons/0/title');
 
-        $this->assertSame(2, DB::table('preparation_imports')->where('status', 'rejected')->count());
+        $whitespacePack = $this->fixtureJson('valid/content-pack.json');
+        $whitespacePack['lessons'][0]['title']['en'] = " \t ";
+        $this->upload(
+            $this->archiveBytes($manifest, $whitespacePack),
+            'preparation-invalid-whitespace-localized-text-0001',
+        )
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.0.code', 'CONTENT_SCHEMA_INVALID')
+            ->assertJsonPath('errors.0.pointer', '/lessons/0/title');
+
+        $this->assertSame(3, DB::table('preparation_imports')->where('status', 'rejected')->count());
         $this->assertDatabaseCount('preparation_import_files', 0);
         $this->assertSame($curriculumCounts, $this->curriculumCounts());
     }

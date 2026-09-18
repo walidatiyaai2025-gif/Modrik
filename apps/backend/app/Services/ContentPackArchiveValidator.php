@@ -538,7 +538,7 @@ final class ContentPackArchiveValidator
             $this->schemaFail('Localized text must contain only ar, en, or fr values.', $pointer, $manifest);
         }
         foreach ($value as $text) {
-            if (! is_string($text) || $text === '' || mb_strlen($text) > 10000) {
+            if (! is_string($text) || trim($text) === '' || mb_strlen($text) > 10000) {
                 $this->schemaFail('Localized text values must be non-empty and bounded.', $pointer, $manifest);
             }
         }
