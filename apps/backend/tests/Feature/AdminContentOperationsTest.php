@@ -222,7 +222,7 @@ class AdminContentOperationsTest extends TestCase
         $this->assertSame(['required', 'active', 'active', 'gate', 'gate'], array_column($steps, 'state'));
         $this->assertNotContains('', array_column($steps, 'url'));
         $supporting = $operations->supportingSurfaces();
-        $this->assertCount(3, $supporting);
+        $this->assertCount(4, $supporting);
         $this->assertNotContains('', array_column($supporting, 'url'));
         foreach ($operations->deferredCapabilities() as $capability) {
             $this->assertSame('deferred_disabled', $capability['classification']);
