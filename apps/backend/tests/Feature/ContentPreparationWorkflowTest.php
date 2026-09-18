@@ -50,6 +50,13 @@ class ContentPreparationWorkflowTest extends TestCase
             ->assertJsonPath('data.schema_version', '1.0.0')
             ->assertJsonPath('data.settings_hash', 'b23dfe0e6b57b63f3003dd463ae060d8d0a22197c8213ea8ae95d2a7693edff5')
             ->assertJsonPath('data.status', 'ready')
+            ->assertJsonPath('data.bundle.prompt_contract.id', 'MODRIK_QUESTION_BANK_MASTER_V1')
+            ->assertJsonPath('data.bundle.prompt_contract.version', '1.0.0')
+            ->assertJsonPath('data.bundle.prompt_contract.compatible_schema', 'modrik-question-bank-v1')
+            ->assertJsonPath('data.bundle.prompt_contract.runtime_dependency', 'none')
+            ->assertJsonPath('data.bundle.sample_output.schema_version', 'modrik-question-bank-v1')
+            ->assertJsonPath('data.bundle.sample_output.prompt.id', 'MODRIK_QUESTION_BANK_MASTER_V1')
+            ->assertJsonPath('data.bundle.sample_output.prompt.version', '1.0.0')
             ->assertJsonPath('data.bundle.settings.generation.paid_ai_required', false);
 
         $requestId = (string) $created->json('data.preparation_request_id');
@@ -66,6 +73,29 @@ class ContentPreparationWorkflowTest extends TestCase
             'aggregate_id' => $requestId,
             'event_type' => 'content.preparation_requested',
         ]);
+        $this->assertDatabaseHas('content_workflow_audits', [
+            'preparation_request_id' => $requestId,
+            'actor_id' => LearningSliceSeeder::USER_ID,
+            'action' => 'preparation_created',
+            'to_status' => 'ready',
+        ]);
+        $audit = DB::table('content_workflow_audits')
+            ->where('preparation_request_id', $requestId)
+            ->where('action', 'preparation_created')
+            ->first();
+        $this->assertNotNull($audit);
+        $auditMetadata = json_decode((string) $audit->metadata, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame('MODRIK_QUESTION_BANK_MASTER_V1', $auditMetadata['prompt_id'] ?? null);
+        $this->assertSame('1.0.0', $auditMetadata['prompt_version'] ?? null);
+        $this->assertSame('modrik-question-bank-v1', $auditMetadata['compatible_schema'] ?? null);
+        $this->assertSame('none', $auditMetadata['runtime_dependency'] ?? null);
+
+        $canonicalSample = file_get_contents(base_path('../../schemas/question-bank/v1/fixtures/valid/minimal.json'));
+        $this->assertIsString($canonicalSample);
+        $this->assertSame(
+            json_decode($canonicalSample, true, flags: JSON_THROW_ON_ERROR),
+            $created->json('data.bundle.sample_output'),
+        );
 
         $replay = $this->withToken(self::TOKEN)
             ->withHeader('Idempotency-Key', $key)
@@ -74,6 +104,7 @@ class ContentPreparationWorkflowTest extends TestCase
             ->assertHeader('Idempotency-Replayed', 'true');
         $this->assertSame($created->json(), $replay->json());
         $this->assertDatabaseCount('preparation_requests', 1);
+        $this->assertSame(1, DB::table('content_workflow_audits')->where('preparation_request_id', $requestId)->where('action', 'preparation_created')->count());
 
         $changed = $this->requestPayload();
         $changed['settings']['generation']['maximum_questions_per_quiz'] = 9;
