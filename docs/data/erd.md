@@ -428,3 +428,53 @@ erDiagram
 - Advertising configuration absence is meaningful canonical state and resolves off. Placement-to-zone mappings and no-ad zones are code-owned; clients and mutable rows cannot redefine them.
 - Outbox publication is at least once. Per-event row locks prevent overlapping workers from republishing a row already completed; a failure keeps it unpublished and preserves the event ID for idempotent consumer retry.
 - Soft deletion, archival or explicit supersession is used where history is product-significant. Retention periods remain owner input.
+
+
+## Adaptive learning foundation additions — Issue #353
+
+```mermaid
+erDiagram
+    curriculum_nodes ||--o{ learning_objectives : "skill owns"
+    learning_objectives ||--o{ questions : "optional objective"
+    users ||--o{ student_skill_mastery_states : "owns"
+    user_academic_contexts ||--o{ student_skill_mastery_states : "scopes"
+    curriculum_nodes ||--o{ student_skill_mastery_states : "skill state"
+
+    learning_objectives {
+      char26 id PK
+      char26 skill_node_id FK
+      varchar code
+      json title
+      json description_nullable
+      varchar status
+    }
+    questions {
+      char26 learning_objective_id FK_nullable
+      varchar difficulty_nullable
+      varchar generation_kind
+      json template_contract_nullable
+      json source_provenance_nullable
+      varchar review_state
+      int review_version
+      char26 reviewed_by_nullable
+      datetime reviewed_at_nullable
+      char26 published_by_nullable
+      datetime published_at_nullable
+    }
+    student_skill_mastery_states {
+      char26 id PK
+      char26 user_id FK
+      char26 academic_context_id FK
+      char26 skill_node_id FK
+      varchar algorithm_version_nullable
+      decimal mastery_score_nullable
+      decimal confidence_nullable
+      int evidence_count
+      int state_version
+      datetime last_evidence_at_nullable
+      datetime calculated_at_nullable
+      datetime archived_at_nullable
+    }
+```
+
+The existing `curriculum_nodes`, `questions`, attempts and `progress_snapshots` remain authoritative. This foundation adds skill/objective semantics and detailed mastery-state persistence without creating parallel assessment or curriculum authorities.
