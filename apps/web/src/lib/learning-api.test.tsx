@@ -52,10 +52,10 @@ test("assessment requests never send a client seed/order and resume reads persis
 
 test("numeric assessment answers are sent to the Backend as JSON numbers", async () => {
   const originalFetch = globalThis.fetch;
-  let request: { url: string; init: RequestInit | undefined } | null = null;
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
 
   globalThis.fetch = async (input, init) => {
-    request = { url: String(input), init };
+    calls.push({ url: String(input), init });
     return Response.json({
       data: {
         revision: 1,
@@ -79,6 +79,7 @@ test("numeric assessment answers are sent to the Backend as JSON numbers", async
     globalThis.fetch = originalFetch;
   }
 
+  const request = calls[0];
   assert.ok(request);
   assert.equal(request.url, `/api/learning/attempts/${attemptFixture.id}/answers/01J00000000000000000000021`);
   assert.equal(request.init?.method, "PUT");
