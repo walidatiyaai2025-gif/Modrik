@@ -172,3 +172,13 @@ A full accepted content flow proves:
 `source -> preparation package -> manual ChatGPT -> returned pack -> validation -> review -> rights gate -> publish -> student question -> authoritative answer -> provenance back-reference`
 
 with no paid AI runtime dependency and no fabricated academic/source metadata.
+
+## Implemented Workbench authority — Issue #354
+
+The governed Admin Question Bank Workbench is the mutation surface for returned `modrik-question-bank-v1` packs. It binds each pack to a non-superseded preparation request and exact `settings_hash`, validates canonical prompt/schema/type/source/provenance semantics, rejects duplicate active questions deterministically, and never guesses missing curriculum nodes. Unresolved scope is explicitly `mapping_required`.
+
+Source-material records preserve a metadata reference to the owner-provided book/PDF/worksheet/exam without copying the source binary into the Question Bank tables. Publication requires every source to be `approved`; if a source later becomes pending/rejected, dependent published questions are automatically suspended until rights are approved again.
+
+Review and lifecycle states are Backend-owned. A pack moves through `needs_review -> approved -> published`; rejected, suspended and archived states are explicit. Unpublish returns canonical questions to non-deliverable draft state. Suspend and archive preserve canonical IDs, provenance and audit history. Bulk actions require an explicit reason and persist a separate audit event.
+
+JSON export returns the original traceable governed pack. CSV is intentionally a safe operational summary and excludes question text and answer contracts. Correct-answer contracts stay within trusted Backend/canonical assessment storage and are never added to safe CSV exports.
