@@ -125,6 +125,12 @@ final class ContentOperations extends Page
 
         return [
             [
+                'label' => $label('منضدة بنك الأسئلة', 'Question Bank Workbench', 'Atelier banque de questions'),
+                'description' => $label('استورد حزم Question Bank JSON، اربطها بالمنهج والمصادر، راجع الحقوق ثم انشرها بشكل خاضع للتدقيق.', 'Import Question Bank JSON packs, map curriculum and sources, review rights, then publish with audit evidence.', 'Importez les packs Question Bank JSON, mappez programme et sources, contrôlez les droits puis publiez avec audit.'),
+                'url' => QuestionBankWorkbench::getUrl(),
+                'state' => 'active',
+            ],
+            [
                 'label' => $label('مكتبة الـPrompt', 'Prompt Library', 'Bibliothèque de prompts'),
                 'description' => $label('اعرض الـPrompt المعتمد وإصداره والـSchema المتوافق ونموذج الناتج لاستخدامه يدويًا خارج وقت التشغيل.', 'Open the approved prompt, version, compatible schema and sample output for manual use outside runtime.', 'Ouvrez le prompt approuvé, sa version, le schéma compatible et un exemple pour une utilisation manuelle hors runtime.'),
                 'url' => PromptLibrary::getUrl(),
