@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Exceptions\ApiProblemException;
+use App\Filament\Pages\ContentRightsReview;
 use App\Models\User;
 use App\Services\ContentAdminWorkflowService;
 use App\Services\ContentPreparationService;
@@ -11,6 +12,7 @@ use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -76,6 +78,18 @@ final class ContentRightsReviewTest extends TestCase
         } catch (ApiProblemException $exception) {
             $this->assertSame('CONTENT_WORKFLOW_STATE_INVALID', $exception->problemCode);
         }
+    }
+
+    public function test_rights_approval_admin_action_requires_explicit_confirmation(): void
+    {
+        $importId = $this->pendingRightsImport();
+        $this->actingAs($this->operator);
+
+        Livewire::test(ContentRightsReview::class)
+            ->set('rightsBases.'.$importId, 'licensed')
+            ->set('evidenceReferences.'.$importId, 'rights-evidence://documented-owner-or-license-reference')
+            ->assertSee('Approve rights and continue')
+            ->assertSeeHtml('wire:confirm="Approve these content rights and allow this pack to continue toward review and publication? Confirm only after verifying the recorded rights basis and evidence."');
     }
 
     public function test_rights_approval_requires_basis_and_evidence_and_unblocks_staging_with_audit(): void
