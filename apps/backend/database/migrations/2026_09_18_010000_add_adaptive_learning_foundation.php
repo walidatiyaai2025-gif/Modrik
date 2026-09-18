@@ -36,7 +36,6 @@ return new class extends Migration
             $table->timestamp('reviewed_at')->nullable()->after('reviewed_by');
             $table->char('published_by', 26)->nullable()->after('reviewed_at');
             $table->timestamp('published_at')->nullable()->after('published_by');
-            $table->index(['curriculum_node_id', 'status', 'review_state'], 'question_skill_publication_idx');
             $table->index(['learning_objective_id', 'status'], 'question_objective_status_idx');
         });
 
@@ -68,7 +67,6 @@ return new class extends Migration
             $table->dropForeign(['learning_objective_id']);
         });
         Schema::table('questions', function (Blueprint $table): void {
-            $table->dropIndex('question_skill_publication_idx');
             $table->dropIndex('question_objective_status_idx');
             $table->dropColumn([
                 'learning_objective_id',
