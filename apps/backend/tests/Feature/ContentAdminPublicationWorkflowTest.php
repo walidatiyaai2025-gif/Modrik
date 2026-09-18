@@ -139,6 +139,8 @@ class ContentAdminPublicationWorkflowTest extends TestCase
         $otherPayload = $this->requestPayload();
         $otherPayload['settings']['generation']['maximum_questions_per_quiz'] = 9;
         $other = $workflow->createRequest($operator, $otherPayload);
+        $this->assertSame(2, DB::table('content_workflow_audits')->where('action', 'preparation_created')->count());
+        $auditCountBeforeMismatch = DB::table('content_workflow_audits')->count();
 
         try {
             $workflow->stageReturnedArchive(
@@ -152,7 +154,8 @@ class ContentAdminPublicationWorkflowTest extends TestCase
         }
 
         $this->assertDatabaseCount('preparation_imports', 0);
-        $this->assertDatabaseCount('content_workflow_audits', 0);
+        $this->assertSame($auditCountBeforeMismatch, DB::table('content_workflow_audits')->count());
+        $this->assertSame(2, DB::table('content_workflow_audits')->where('action', 'preparation_created')->count());
     }
 
     public function test_changed_settings_supersede_nonpublished_work_and_make_old_request_visibly_stale(): void
