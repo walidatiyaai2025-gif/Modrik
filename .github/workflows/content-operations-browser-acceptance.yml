@@ -5,7 +5,9 @@ on:
     paths:
       - "apps/backend/app/Filament/Pages/ContentOperations.php"
       - "apps/backend/app/Services/ContentPreparationService.php"
+      - "apps/backend/app/Services/ContentPackArchiveValidator.php"
       - "apps/backend/tests/Feature/ContentPreparationWorkflowTest.php"
+      - "apps/backend/tests/Feature/ContentPackShortTextValidationTest.php"
       - "apps/backend/app/Filament/Pages/PromptLibrary.php"
       - "apps/backend/app/Filament/Pages/ContentIngestionOperations.php"
       - "apps/backend/app/Filament/Pages/ContentReviewExceptions.php"
