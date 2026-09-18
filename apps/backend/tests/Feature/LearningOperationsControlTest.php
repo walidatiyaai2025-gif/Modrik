@@ -9,6 +9,7 @@ use App\Services\LearningOperationsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -141,7 +142,7 @@ final class LearningOperationsControlTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
         $now = now();
         DB::table('idempotency_keys')->insert([
-            'id' => (string) \Illuminate\Support\Str::ulid(),
+            'id' => (string) Str::ulid(),
             'actor_id' => $admin->id,
             'operation' => 'test.expired',
             'key_digest' => str_repeat('a', 64),
