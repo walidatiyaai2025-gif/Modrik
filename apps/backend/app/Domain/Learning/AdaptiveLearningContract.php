@@ -46,7 +46,5 @@ final class AdaptiveLearningContract
     /** @var list<string> */
     public const QUESTION_GENERATION_KINDS = ['static', 'template'];
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 }
