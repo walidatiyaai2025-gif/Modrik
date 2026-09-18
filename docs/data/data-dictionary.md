@@ -98,3 +98,7 @@ No UGC identifier, real board, syllabus, syllabus version or rights claim is syn
 - Outbox delivery attempt: `started`, `published`, `failed`; five failed attempts are observable as exhausted until an explicit forward repair/redrive.
 
 Enum changes are contract changes and require migrations, API/schema updates where exposed, and compatibility tests together.
+- Adaptive-learning foundation reuses `curriculum_nodes`; a skill is a canonical node with `type=skill` beneath a topic. No separate skill tree is authoritative.
+- Learning objectives are relational rows under a skill so multiple objectives can be versioned/managed without embedding authorization or hierarchy semantics in JSON.
+- `student_skill_mastery_states` is state storage only. #356 owns algorithm/version semantics; clients cannot write mastery authority.
+- Question template/provenance fields describe production inputs, but published delivery and correctness remain governed by existing Backend publication/assessment contracts.
