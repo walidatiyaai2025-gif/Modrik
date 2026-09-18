@@ -7,8 +7,8 @@ use App\Exceptions\ApiProblemException;
 final class DeterministicQuestionTemplateService
 {
     /**
-     * @param array<string, mixed> $contract
-     * @param array<string, mixed> $prompt
+     * @param  array<string, mixed>  $contract
+     * @param  array<string, mixed>  $prompt
      * @return array{prompt: array<string, mixed>, grading_contract: array<string, mixed>, instance: array<string, int|string>}
      */
     public function materialize(array $contract, array $prompt, string $seed, string $questionId): array
@@ -18,7 +18,7 @@ final class DeterministicQuestionTemplateService
         }
 
         $operator = $contract['operator'] ?? null;
-        if (! is_string($operator) || ! in_array($operator, ['add', 'subtract', 'multiply'], true)) {
+        if (!is_string($operator) || !in_array($operator, ['add', 'subtract', 'multiply'], true)) {
             throw $this->invalid('Template operator must be add, subtract, or multiply.');
         }
 
@@ -35,7 +35,7 @@ final class DeterministicQuestionTemplateService
 
         $rendered = [];
         foreach ($prompt as $locale => $text) {
-            if (! is_string($locale) || ! is_string($text)) {
+            if (!is_string($locale) || !is_string($text)) {
                 throw $this->invalid('Template prompt entries must be localized strings.');
             }
             $rendered[$locale] = strtr($text, [
@@ -51,15 +51,15 @@ final class DeterministicQuestionTemplateService
         ];
     }
 
-    /** @return array{0:int,1:int} */
+    /** @return array{0: int, 1: int} */
     private function range(mixed $value, string $name): array
     {
-        if (! is_array($value) || array_is_list($value)) {
+        if (!is_array($value) || array_is_list($value)) {
             throw $this->invalid("Template {$name} range must be an object.");
         }
         $min = $value['min'] ?? null;
         $max = $value['max'] ?? null;
-        if (! is_int($min) || ! is_int($max) || $min < -10000 || $max > 10000 || $min > $max) {
+        if (!is_int($min) || !is_int($max) || $min < -10000 || $max > 10000 || $min > $max) {
             throw $this->invalid("Template {$name} range is invalid.");
         }
 
