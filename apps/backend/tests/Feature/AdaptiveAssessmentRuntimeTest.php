@@ -225,6 +225,43 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             ->assertJsonPath('data.review.0.correct', true);
     }
 
+    public function test_foreign_user_cannot_mutate_answer_by_direct_ids(): void
+    {
+        $start = $this->start(LearningSliceSeeder::QUIZ_ID, 'adaptive-owner-answer-idor-start-0001')->assertCreated();
+
+        /** @var list<array<string, mixed>> $questions */
+        $questions = $start->json('data.questions');
+        $question = $questions[0];
+        $attemptId = (string) $start->json('data.id');
+        $attemptQuestionId = (string) $question['attempt_question_id'];
+        $value = $this->answerValue($question);
+        $foreignUser = User::factory()->create();
+
+        try {
+            app(AttemptService::class)->recordAnswer(
+                $foreignUser,
+                $attemptId,
+                $attemptQuestionId,
+                0,
+                $value,
+                900,
+                0,
+            );
+            self::fail('Foreign user must not mutate another user\'s attempt answer by direct IDs.');
+        } catch (ApiProblemException $exception) {
+            self::assertSame(404, $exception->status);
+            self::assertSame('RESOURCE_NOT_FOUND', $exception->problemCode);
+        }
+
+        $this->assertDatabaseMissing('attempt_answers', [
+            'attempt_question_id' => $attemptQuestionId,
+        ]);
+        $this->assertDatabaseMissing('outbox_events', [
+            'aggregate_id' => $attemptId,
+            'event_type' => 'assessment.answer_recorded',
+        ]);
+    }
+
     public function test_result_and_direct_ids_fail_closed_across_users(): void
     {
         $start = $this->start(LearningSliceSeeder::QUIZ_ID, 'adaptive-owner-start-0001')->assertCreated();
