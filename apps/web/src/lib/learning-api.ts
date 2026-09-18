@@ -84,17 +84,19 @@ export type Lesson = {
 };
 
 export type ChoiceOption = { id: string; label: LocalizedText };
+export type AnswerValue = string | number;
 export type ResponseContract =
   | { kind: "single_choice"; options: ChoiceOption[] }
+  | { kind: "numeric" }
   | { kind: "short_text"; max_length: number };
 
 export type AttemptQuestion = {
   attempt_question_id: string;
   position: number;
-  type: "single_choice" | "short_text";
+  type: "single_choice" | "numeric" | "short_text";
   prompt: LocalizedText;
   response_contract: ResponseContract;
-  current_answer: null | { revision: number; value: string; answered_at: string };
+  current_answer: null | { revision: number; value: AnswerValue; answered_at: string };
 };
 
 export type Attempt = {
@@ -247,10 +249,10 @@ export const learningApi = {
     attemptId: string,
     attemptQuestionId: string,
     expectedRevision: number,
-    value: string,
+    value: AnswerValue,
     idempotencyKey: string,
   ) =>
-    requestData<{ revision: number; value: string; answered_at: string }>(
+    requestData<{ revision: number; value: AnswerValue; answered_at: string }>(
       "learning:answer",
       `attempts/${attemptId}/answers/${attemptQuestionId}`,
       command("PUT", { expected_revision: expectedRevision, value }, idempotencyKey),
