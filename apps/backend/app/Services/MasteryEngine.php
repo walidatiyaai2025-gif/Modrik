@@ -397,7 +397,8 @@ final class MasteryEngine
             return [];
         }
 
-        return DB::table('outbox_events')
+        /** @var list<array<string, mixed>> $history */
+        $history = array_values(DB::table('outbox_events')
             ->where('aggregate_type', 'student_skill_mastery')
             ->where('aggregate_id', $stateId)
             ->whereIn('event_type', ['mastery.state_recalculated', 'mastery.state_archived'])
@@ -414,7 +415,9 @@ final class MasteryEngine
                     'payload' => is_array($payload) ? $payload : [],
                 ];
             })
-            ->all();
+            ->all());
+
+        return $history;
     }
 
     /**
@@ -476,18 +479,11 @@ final class MasteryEngine
             $timestamp = CarbonImmutable::parse((string) $record['graded_at']);
             $latestTimestamp = $latestTimestamp === null || $timestamp->greaterThan($latestTimestamp) ? $timestamp : $latestTimestamp;
         }
-        if (! $latestTimestamp instanceof CarbonImmutable) {
-            throw $this->invalidEvidence('Mastery evidence has no valid grading timestamp.');
-        }
-
         $evidence = [];
         foreach ($latest as $record) {
             /** @var array<string, mixed> $snapshot */
             $snapshot = $record['snapshot'];
             $difficulty = $snapshot['difficulty'] ?? 'Medium';
-            if ($difficulty === null) {
-                $difficulty = 'Medium';
-            }
             if (! is_string($difficulty)
                 || ! in_array($difficulty, AdaptiveLearningContract::QUESTION_DIFFICULTIES, true)
                 || ! array_key_exists($difficulty, self::DIFFICULTY_WEIGHTS)) {
@@ -624,9 +620,7 @@ final class MasteryEngine
             'duration_factor' => $row['duration_factor'] ?? null,
             'revision_factor' => $row['revision_factor'] ?? null,
             'recency_weight' => $row['recency_weight'] ?? null,
-            'graded_at' => ($row['graded_at'] ?? null) instanceof CarbonImmutable
-                ? $row['graded_at']->toIso8601String()
-                : null,
+            'graded_at' => $row['graded_at']->toIso8601String(),
         ], $evidence);
 
         return hash('sha256', json_encode([
@@ -635,14 +629,22 @@ final class MasteryEngine
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 
+    /**
+     * @param array{score_ratio:float, confidence:float, evidence_count:int, last_evidence_at:string|null} $calculation
+     */
     private function sameState(object $row, array $calculation): bool
     {
-        $lastEvidence = $row->last_evidence_at === null ? null : CarbonImmutable::parse((string) $row->last_evidence_at)->toIso8601String();
+        /** @var array<string, mixed> $stored */
+        $stored = (array) $row;
+        $rawLastEvidence = $stored['last_evidence_at'] ?? null;
+        $lastEvidence = is_string($rawLastEvidence) && $rawLastEvidence !== ''
+            ? CarbonImmutable::parse($rawLastEvidence)->toIso8601String()
+            : null;
 
-        return (string) ($row->algorithm_version ?? '') === self::ALGORITHM_VERSION
-            && round((float) ($row->mastery_score ?? 0.0), 4) === $calculation['score_ratio']
-            && round((float) ($row->confidence ?? 0.0), 4) === $calculation['confidence']
-            && (int) $row->evidence_count === $calculation['evidence_count']
+        return (string) ($stored['algorithm_version'] ?? '') === self::ALGORITHM_VERSION
+            && round((float) ($stored['mastery_score'] ?? 0.0), 4) === $calculation['score_ratio']
+            && round((float) ($stored['confidence'] ?? 0.0), 4) === $calculation['confidence']
+            && (int) ($stored['evidence_count'] ?? 0) === $calculation['evidence_count']
             && $lastEvidence === $calculation['last_evidence_at'];
     }
 
