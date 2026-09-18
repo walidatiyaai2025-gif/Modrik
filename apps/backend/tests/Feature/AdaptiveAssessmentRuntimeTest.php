@@ -37,7 +37,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             $resolved = $policy->forQuizKind($mode);
             self::assertSame($mode, $resolved['mode']);
             self::assertSame('after_submit', $resolved['reveal_policy']);
-            self::assertSame(! in_array($mode, ['diagnostic', 'exam'], true), $resolved['hints_allowed']);
+            self::assertSame(!in_array($mode, ['diagnostic', 'exam'], true), $resolved['hints_allowed']);
         }
 
         self::assertSame('exam', $policy->forQuizKind('mock_exam')['mode']);
@@ -211,7 +211,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             ->postJson('/v1/attempts/'.$attemptId.'/submit', []);
     }
 
-    /** @param array<string, mixed> $question */
+    /** @param  array<string, mixed>  $question */
     private function answerValue(array $question): mixed
     {
         $contract = $question['response_contract'];
@@ -226,11 +226,11 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $answerContract
-     * @param list<array<string, mixed>>|null $options
-     * @param array<string, mixed>|null $templateContract
-     * @param array<string, string>|null $prompt
-     * @return array{0:string,1:string}
+     * @param  array<string, mixed>  $answerContract
+     * @param  list<array<string, mixed>>|null  $options
+     * @param  array<string, mixed>|null  $templateContract
+     * @param  array<string, string>|null  $prompt
+     * @return array{0: string, 1: string}
      */
     private function insertQuestionAndQuiz(
         string $type,
