@@ -214,6 +214,56 @@ class ContentPreparationWorkflowTest extends TestCase
         }
     }
 
+    public function test_direct_import_rejects_archive_bound_to_superseded_preparation_request(): void
+    {
+        $this->grantContentRole();
+        $created = $this->createRequest();
+        $requestId = (string) $created->json('data.preparation_request_id');
+        $settingsHash = (string) $created->json('data.settings_hash');
+
+        $replacementPayload = $this->requestPayload();
+        $replacementPayload['settings']['generation']['maximum_questions_per_quiz'] = 9;
+        $replacement = $this->withToken(self::TOKEN)
+            ->withHeader('Idempotency-Key', 'preparation-create-replacement-0001')
+            ->postJson('/v1/admin/preparation-requests', $replacementPayload)
+            ->assertCreated();
+        $replacementId = (string) $replacement->json('data.preparation_request_id');
+
+        DB::table('preparation_requests')->where('id', $requestId)->update([
+            'status' => 'superseded',
+            'superseded_by_request_id' => $replacementId,
+            'superseded_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $curriculumCounts = $this->curriculumCounts();
+        $this->upload(
+            $this->validArchiveBytes($requestId, $settingsHash),
+            'preparation-import-stale-request-0001',
+        )
+            ->assertUnprocessable()
+            ->assertHeader('Content-Type', 'application/problem+json')
+            ->assertJsonPath('code', 'CONTENT_PREPARATION_IMPORT_REJECTED')
+            ->assertJsonPath('errors.0.code', 'PREPARATION_REGENERATION_REQUIRED')
+            ->assertJsonPath('errors.0.pointer', '/preparation_request_id');
+
+        $this->assertDatabaseHas('preparation_requests', [
+            'id' => $requestId,
+            'status' => 'superseded',
+            'superseded_by_request_id' => $replacementId,
+        ]);
+        $this->assertDatabaseHas('preparation_imports', [
+            'preparation_request_id' => $requestId,
+            'claimed_preparation_request_id' => $requestId,
+            'status' => 'rejected',
+        ]);
+        $this->assertDatabaseHas('outbox_events', [
+            'event_type' => 'content.preparation_import_rejected',
+        ]);
+        $this->assertDatabaseCount('preparation_import_files', 0);
+        $this->assertSame($curriculumCounts, $this->curriculumCounts());
+    }
+
     public function test_traversal_symlink_and_compression_bomb_entries_fail_closed(): void
     {
         $this->grantContentRole();
