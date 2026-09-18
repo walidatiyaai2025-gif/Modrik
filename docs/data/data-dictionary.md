@@ -117,6 +117,19 @@ Enum changes are contract changes and require migrations, API/schema updates whe
 | `student_skill_mastery_states` | Versioned Backend-owned Student×Skill state storage for #356. | Unique `(academic_context_id, skill_node_id)`; user/context/skill are server-derived; scores/confidence may be null until the mastery engine calculates them; archival preserves history. |
 
 
+## Adaptive assessment runtime — Issue #355
+
+| Entity / field | Purpose | Invariants |
+| --- | --- | --- |
+| `attempts.scope_snapshot.mode` | Immutable runtime mode resolved from the published quiz kind. | Only the owner-authorized mode inventory is accepted; unknown modes fail closed. |
+| `attempts.scope_snapshot.hints_allowed` / `reveal_policy` | Immutable student-safety behavior for the attempt. | Diagnostic/exam hints are disabled; grading keys/explanations are not exposed by the in-progress attempt response. |
+| `attempt_questions.question_snapshot` v3 | Reproducible question instance. | Persists content version, skill/objective, difficulty, generation kind/template instance, response contract and hidden grading/explanation contract. |
+| `attempt_answers.duration_ms` / `hint_count` | Per-revision learning telemetry. | Backend validates bounded non-negative values; hints are rejected when mode policy forbids them. |
+| `attempt_answers.is_correct` / `awarded_score` / `graded_at` | Persisted grading evidence for the latest submitted revision. | Written only by Backend grading; clients cannot submit these fields. |
+
+The runtime reuses `AttemptService`, `AssessmentEngine`, idempotency records and immutable attempt snapshots. #356/#357 consume the resulting evidence but do not replace assessment authority.
+
+
 ## Learning operations control — Issue #361
 
 | Entity | Purpose | Invariants |

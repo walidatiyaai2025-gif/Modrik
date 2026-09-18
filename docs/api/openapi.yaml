@@ -470,6 +470,24 @@ paths:
                 $ref: '#/components/schemas/AttemptResponse'
         '401': {$ref: '#/components/responses/AuthenticationRequired'}
         '404': {$ref: '#/components/responses/ResourceNotFound'}
+  /v1/attempts/{attemptId}/result:
+    parameters:
+      - $ref: '#/components/parameters/AttemptId'
+    get:
+      summary: Read the authoritative graded attempt result
+      operationId: getAttemptResult
+      tags: [Attempts]
+      description: Fails closed until the attempt is graded. Correct-answer and explanation material is never returned by the in-progress attempt endpoint.
+      responses:
+        '200':
+          description: Persisted score and per-question review according to the immutable reveal policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttemptResultResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '404': {$ref: '#/components/responses/ResourceNotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
   /v1/attempts/{attemptId}/answers/{attemptQuestionId}:
     parameters:
       - $ref: '#/components/parameters/AttemptId'
@@ -1107,13 +1125,25 @@ components:
     AttemptQuestion:
       type: object
       additionalProperties: false
-      required: [attempt_question_id, position, type, prompt, response_contract]
+      required: [attempt_question_id, position, type, difficulty, skill_node_id, prompt, response_contract, hints, current_answer]
       properties:
         attempt_question_id: {$ref: '#/components/schemas/Ulid'}
         position: {type: integer, minimum: 1}
-        type: {type: string, enum: [single_choice, multiple_choice, short_text, numeric]}
+        type:
+          type: string
+          enum: [single_choice, multiple_choice, true_false, numeric, fill_blank, short_answer, matching, ordering, multi_select, image_question, reading_comprehension, multi_step_math, short_text]
+        difficulty:
+          oneOf: [{type: 'null'}, {type: string}]
+        skill_node_id:
+          oneOf: [{type: 'null'}, {$ref: '#/components/schemas/Ulid'}]
         prompt: {$ref: '#/components/schemas/LocalizedText'}
-        response_contract: {type: object}
+        response_contract:
+          type: object
+          description: Student-safe response shape only; no grading answer is exposed.
+        hints:
+          type: array
+          items: {type: string}
+          description: Empty when the immutable assessment mode disallows hints.
         current_answer:
           oneOf:
             - type: 'null'
@@ -1121,11 +1151,16 @@ components:
     Attempt:
       type: object
       additionalProperties: false
-      required: [id, academic_context_id, quiz_id, status, blueprint_version, ordering_algorithm, started_at, completed_at, archived_at, questions]
+      required: [id, academic_context_id, quiz_id, mode, hints_allowed, reveal_policy, status, blueprint_version, ordering_algorithm, started_at, completed_at, archived_at, questions]
       properties:
         id: {$ref: '#/components/schemas/Ulid'}
         academic_context_id: {$ref: '#/components/schemas/Ulid'}
         quiz_id: {$ref: '#/components/schemas/Ulid'}
+        mode:
+          type: string
+          enum: [practice, daily_practice, topic_practice, skill_practice, weak_skills, revision, mistakes, diagnostic, exam, custom_assignment]
+        hints_allowed: {type: boolean}
+        reveal_policy: {type: string, enum: [after_submit]}
         status: {type: string, enum: [in_progress, submitted, graded, abandoned]}
         blueprint_version: {type: integer, minimum: 1}
         ordering_algorithm: {type: string, const: modrik-fy-v1}
@@ -1148,10 +1183,12 @@ components:
     Answer:
       type: object
       additionalProperties: false
-      required: [revision, value, answered_at]
+      required: [revision, value, duration_ms, hint_count, answered_at]
       properties:
         revision: {type: integer, minimum: 1}
         value: {}
+        duration_ms: {type: integer, minimum: 0, maximum: 3600000}
+        hint_count: {type: integer, minimum: 0, maximum: 20}
         answered_at: {type: string, format: date-time}
     PutAnswerRequest:
       type: object
@@ -1160,6 +1197,8 @@ components:
       properties:
         expected_revision: {type: integer, minimum: 0}
         value: {}
+        duration_ms: {type: integer, minimum: 0, maximum: 3600000, default: 0}
+        hint_count: {type: integer, minimum: 0, maximum: 20, default: 0}
     AnswerResponse:
       type: object
       additionalProperties: false
@@ -1226,6 +1265,30 @@ components:
               maxItems: 100
               items: {$ref: '#/components/schemas/AnswerSyncAcknowledgement'}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AttemptReviewItem:
+      type: object
+      additionalProperties: false
+      required: [attempt_question_id, position, skill_node_id, difficulty, content_version, current_answer, correct, awarded_score, maximum_score, correct_answer, explanation]
+      properties:
+        attempt_question_id: {$ref: '#/components/schemas/Ulid'}
+        position: {type: integer, minimum: 1}
+        skill_node_id:
+          oneOf: [{type: 'null'}, {$ref: '#/components/schemas/Ulid'}]
+        difficulty:
+          oneOf: [{type: 'null'}, {type: string}]
+        content_version: {type: integer, minimum: 1}
+        current_answer:
+          oneOf: [{type: 'null'}, {$ref: '#/components/schemas/Answer'}]
+        correct:
+          oneOf: [{type: 'null'}, {type: boolean}]
+        awarded_score: {type: number, minimum: 0}
+        maximum_score: {type: number, minimum: 0}
+        correct_answer:
+          description: Present only after the immutable reveal policy allows it.
+          oneOf: [{type: 'null'}, {type: object}]
+        explanation:
+          description: Localized explanation present only after the immutable reveal policy allows it.
+          oneOf: [{type: 'null'}, {$ref: '#/components/schemas/LocalizedText'}]
     AttemptResultResponse:
       type: object
       additionalProperties: false
@@ -1234,11 +1297,14 @@ components:
         data:
           type: object
           additionalProperties: false
-          required: [attempt, score, max_score]
+          required: [attempt, score, max_score, review]
           properties:
             attempt: {$ref: '#/components/schemas/Attempt'}
             score: {type: number, minimum: 0}
-            max_score: {type: number, exclusiveMinimum: 0}
+            max_score: {type: number, minimum: 0}
+            review:
+              type: array
+              items: {$ref: '#/components/schemas/AttemptReviewItem'}
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     ProgressResponse:
       type: object

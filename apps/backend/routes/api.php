@@ -59,12 +59,15 @@ Route::prefix('/v1')->middleware('auth.modrik')->group(function (): void {
         ->name('advertising-decisions.show');
 
     Route::post('/attempts', [AttemptController::class, 'start'])
-        ->middleware('auth.verified-password')->name('attempts.store');
-    Route::get('/attempts/{attemptId}', [AttemptController::class, 'show'])->name('attempts.show');
+        ->middleware(['auth.verified-password', 'throttle:60,1'])->name('attempts.store');
+    Route::get('/attempts/{attemptId}', [AttemptController::class, 'show'])
+        ->middleware('throttle:120,1')->name('attempts.show');
+    Route::get('/attempts/{attemptId}/result', [AttemptController::class, 'result'])
+        ->middleware('throttle:120,1')->name('attempts.result');
     Route::put('/attempts/{attemptId}/answers/{attemptQuestionId}', [AttemptController::class, 'answer'])
-        ->middleware('auth.verified-password')->name('attempts.answers.update');
+        ->middleware(['auth.verified-password', 'throttle:240,1'])->name('attempts.answers.update');
     Route::post('/attempts/{attemptId}/submit', [AttemptController::class, 'submit'])
-        ->middleware('auth.verified-password')->name('attempts.submit');
+        ->middleware(['auth.verified-password', 'throttle:60,1'])->name('attempts.submit');
     Route::post('/sync/answers', [OfflineAnswerSyncController::class, 'store'])
         ->middleware('auth.verified-password')->name('sync.answers.store');
 

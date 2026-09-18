@@ -104,6 +104,20 @@ acceptance_criteria:
     statement: Student×Skill mastery state is persisted as a Backend-owned versioned projection bound to user, academic context and skill; no client may author mastery and no #353 foundation code invents the later mastery algorithm.
     verification: migration/schema tests, authorization architecture review, and MariaDB migration job
 
+  - id: AC-P0-026
+    requirement_ids: [REQ-P0-017]
+    statement: The authoritative assessment runtime supports practice, daily practice, topic/skill practice, weak-skills, revision, mistakes, diagnostic, exam and custom-assignment modes through one attempt engine; adaptive selection inputs remain hooks for #356/#357 rather than a second engine.
+    verification: Backend mode-policy and integration tests
+  - id: AC-P0-027
+    requirement_ids: [REQ-P0-017]
+    statement: Attempt snapshots retain question version, skill/objective context, difficulty, generated template instance and reveal/hint policy; answer revisions retain duration and hint telemetry; direct-ID/cross-user access fails closed and in-progress responses never expose grading keys.
+    verification: Backend security/runtime tests plus OpenAPI contract
+  - id: AC-P0-028
+    requirement_ids: [REQ-P0-017]
+    statement: Static and arithmetic template questions are scored by Backend-owned deterministic contracts, submit retries reread persisted graded state without duplicate submission effects, and exam/diagnostic hints fail closed.
+    verification: deterministic template, retry/idempotency, SQLite and MariaDB tests
+
+
   - id: AC-P0-029
     requirement_ids: [REQ-P0-018]
     statement: Learning feature state changes are Admin-only, reasoned, versioned, audited and bounded to the allowlisted enabled/disabled/pilot/admin-only states and safe rollout scopes; invariant security/scoring/privacy/publication controls are absent from the mutable inventory.
