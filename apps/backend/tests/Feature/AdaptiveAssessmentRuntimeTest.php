@@ -10,6 +10,7 @@ use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class AdaptiveAssessmentRuntimeTest extends TestCase
@@ -157,8 +158,11 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
 
         $prompt = (string) $start->json('data.questions.0.prompt.en');
         self::assertDoesNotMatchRegularExpression('/\{\{(?:left|right)\}\}/', $prompt);
-        preg_match('/(-?\d+) \+ (-?\d+)/', $prompt, $matches);
-        self::assertCount(3, $matches);
+        $matched = preg_match('/(-?\d+) \+ (-?\d+)/', $prompt, $matches);
+        self::assertSame(1, $matched);
+        if ($matched !== 1 || ! isset($matches[1], $matches[2])) {
+            self::fail('Materialized arithmetic prompt must expose both deterministic operands.');
+        }
         $answer = (int) $matches[1] + (int) $matches[2];
 
         $attemptId = (string) $start->json('data.id');
@@ -187,14 +191,14 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         }
     }
 
-    private function start(string $quizId, string $key)
+    private function start(string $quizId, string $key): TestResponse
     {
         return $this->withToken(self::TOKEN)
             ->withHeader('Idempotency-Key', $key)
             ->postJson('/v1/attempts', ['quiz_id' => $quizId]);
     }
 
-    private function answer(string $attemptId, string $questionId, mixed $value, string $key, int $durationMs, int $hintCount)
+    private function answer(string $attemptId, string $questionId, mixed $value, string $key, int $durationMs, int $hintCount): TestResponse
     {
         return $this->withToken(self::TOKEN)
             ->withHeader('Idempotency-Key', $key)
@@ -206,7 +210,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             ]);
     }
 
-    private function submit(string $attemptId, string $key)
+    private function submit(string $attemptId, string $key): TestResponse
     {
         return $this->withToken(self::TOKEN)
             ->withHeader('Idempotency-Key', $key)
