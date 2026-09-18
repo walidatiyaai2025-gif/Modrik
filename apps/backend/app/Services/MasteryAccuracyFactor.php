@@ -79,13 +79,12 @@ final class MasteryAccuracyFactor
     {
         try {
             $snapshot = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
-        } catch (JsonException $exception) {
+        } catch (JsonException) {
             throw new ApiProblemException(
                 500,
                 'MASTERY_EVIDENCE_INVALID',
                 'Mastery evidence is invalid',
                 'An immutable assessment question snapshot could not be decoded.',
-                previous: $exception,
             );
         }
 
