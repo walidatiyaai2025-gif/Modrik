@@ -243,6 +243,149 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         );
     }
 
+    public function test_same_attempt_resume_uses_immutable_snapshots_and_latest_authoritative_answer(): void
+    {
+        $start = $this->start(LearningSliceSeeder::QUIZ_ID, 'adaptive-resume-start-0001')
+            ->assertCreated();
+
+        /** @var list<array<string, mixed>> $initialQuestions */
+        $initialQuestions = $start->json('data.questions');
+        self::assertNotEmpty($initialQuestions);
+
+        $attemptId = (string) $start->json('data.id');
+        $firstQuestion = $initialQuestions[0];
+        $attemptQuestionId = (string) $firstQuestion['attempt_question_id'];
+        $value = $this->answerValue($firstQuestion);
+
+        $answer = $this->answer(
+            $attemptId,
+            $attemptQuestionId,
+            $value,
+            'adaptive-resume-answer-0001',
+            2468,
+            0,
+        )
+            ->assertOk()
+            ->assertJsonPath('data.revision', 1)
+            ->assertJsonPath('data.duration_ms', 2468)
+            ->assertJsonPath('data.hint_count', 0);
+
+        $storedAnswer = DB::table('attempt_answers')
+            ->where('attempt_question_id', $attemptQuestionId)
+            ->where('revision', 1)
+            ->first(['revision', 'value', 'duration_ms', 'hint_count', 'answered_at']);
+
+        self::assertNotNull($storedAnswer);
+        self::assertSame((int) $storedAnswer->revision, $answer->json('data.revision'));
+        self::assertSame(
+            json_decode((string) $storedAnswer->value, true, flags: JSON_THROW_ON_ERROR),
+            $answer->json('data.value'),
+        );
+        self::assertSame((int) $storedAnswer->duration_ms, $answer->json('data.duration_ms'));
+        self::assertSame((int) $storedAnswer->hint_count, $answer->json('data.hint_count'));
+        self::assertSame(
+            CarbonImmutable::parse((string) $storedAnswer->answered_at)->toIso8601String(),
+            $answer->json('data.answered_at'),
+        );
+
+        $attemptQuestion = DB::table('attempt_questions')
+            ->where('id', $attemptQuestionId)
+            ->where('attempt_id', $attemptId)
+            ->first(['question_id', 'question_snapshot']);
+        self::assertNotNull($attemptQuestion);
+
+        $snapshotBeforeSourceMutation = json_decode(
+            (string) $attemptQuestion->question_snapshot,
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        self::assertIsArray($snapshotBeforeSourceMutation);
+
+        $originalMode = (string) $start->json('data.mode');
+        $mutatedQuizKind = $originalMode === 'exam' ? 'practice' : 'exam';
+        $originalBlueprintVersion = (int) $start->json('data.blueprint_version');
+
+        DB::table('quizzes')
+            ->where('id', LearningSliceSeeder::QUIZ_ID)
+            ->update([
+                'kind' => $mutatedQuizKind,
+                'blueprint_version' => $originalBlueprintVersion + 100,
+                'updated_at' => now(),
+            ]);
+
+        DB::table('questions')
+            ->where('id', (string) $attemptQuestion->question_id)
+            ->update([
+                'content_version' => ((int) ($snapshotBeforeSourceMutation['content_version'] ?? 1)) + 100,
+                'difficulty' => 'Exam-style',
+                'prompt' => json_encode(
+                    ['en' => 'MUTATED AFTER START', 'ar' => 'تغير بعد البدء', 'fr' => 'MODIFIÉ APRÈS DÉMARRAGE'],
+                    JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE,
+                ),
+                'answer_contract' => json_encode(['correct_option_id' => 'mutated'], JSON_THROW_ON_ERROR),
+                'explanation' => json_encode(
+                    ['en' => 'Mutated', 'ar' => 'متغير', 'fr' => 'Modifié'],
+                    JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE,
+                ),
+                'assessment_metadata' => json_encode(['hints' => ['Mutated hint']], JSON_THROW_ON_ERROR),
+                'updated_at' => now(),
+            ]);
+
+        $resumed = $this->withToken(self::TOKEN)
+            ->getJson('/v1/attempts/'.$attemptId)
+            ->assertOk()
+            ->assertJsonPath('data.id', $attemptId)
+            ->assertJsonPath('data.mode', $originalMode)
+            ->assertJsonPath('data.hints_allowed', $start->json('data.hints_allowed'))
+            ->assertJsonPath('data.reveal_policy', $start->json('data.reveal_policy'))
+            ->assertJsonPath('data.blueprint_version', $originalBlueprintVersion)
+            ->assertJsonPath('data.ordering_algorithm', $start->json('data.ordering_algorithm'));
+
+        /** @var list<array<string, mixed>> $resumedQuestions */
+        $resumedQuestions = $resumed->json('data.questions');
+        self::assertCount(count($initialQuestions), $resumedQuestions);
+
+        foreach ($initialQuestions as $index => $initialQuestion) {
+            foreach ([
+                'attempt_question_id',
+                'position',
+                'type',
+                'difficulty',
+                'skill_node_id',
+                'prompt',
+                'response_contract',
+                'hints',
+            ] as $field) {
+                self::assertSame(
+                    $initialQuestion[$field] ?? null,
+                    $resumedQuestions[$index][$field] ?? null,
+                    "Resumed attempt drifted from the persisted question snapshot for {$field}.",
+                );
+            }
+        }
+
+        $resumedAnswer = $resumedQuestions[0]['current_answer'] ?? null;
+        self::assertIsArray($resumedAnswer);
+        self::assertSame((int) $storedAnswer->revision, $resumedAnswer['revision'] ?? null);
+        self::assertSame(
+            json_decode((string) $storedAnswer->value, true, flags: JSON_THROW_ON_ERROR),
+            $resumedAnswer['value'] ?? null,
+        );
+        self::assertSame((int) $storedAnswer->duration_ms, $resumedAnswer['duration_ms'] ?? null);
+        self::assertSame((int) $storedAnswer->hint_count, $resumedAnswer['hint_count'] ?? null);
+        self::assertSame(
+            CarbonImmutable::parse((string) $storedAnswer->answered_at)->toIso8601String(),
+            $resumedAnswer['answered_at'] ?? null,
+        );
+
+        $this->assertDatabaseHas('quizzes', [
+            'id' => LearningSliceSeeder::QUIZ_ID,
+            'kind' => $mutatedQuizKind,
+            'blueprint_version' => $originalBlueprintVersion + 100,
+        ]);
+        self::assertNotSame('MUTATED AFTER START', $resumedQuestions[0]['prompt']['en'] ?? null);
+    }
+
     public function test_template_question_materializes_deterministically_without_runtime_ai(): void
     {
         [$quizId] = $this->insertQuestionAndQuiz(
