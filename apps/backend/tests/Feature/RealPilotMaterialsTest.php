@@ -169,8 +169,6 @@ final class RealPilotMaterialsTest extends TestCase
         }
 
         self::fail('Missing pilot material '.$sourceId);
-
-        return [];
     }
 
     /**
@@ -186,7 +184,5 @@ final class RealPilotMaterialsTest extends TestCase
         }
 
         self::fail('Missing pilot source segment '.$segmentId);
-
-        return [];
     }
 }
