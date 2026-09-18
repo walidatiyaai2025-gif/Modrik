@@ -1402,5 +1402,85 @@ components:
                   type: array
                   maxItems: 0
         meta: {$ref: '#/components/schemas/ResponseMeta'}
+    AdaptiveSkillNode:
+      type: object
+      additionalProperties: false
+      required: [id, academic_track_id, parent_topic_id, code, type, title, status]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        academic_track_id: {$ref: '#/components/schemas/Ulid'}
+        parent_topic_id: {$ref: '#/components/schemas/Ulid'}
+        code: {type: string, maxLength: 160}
+        type: {type: string, const: skill}
+        title:
+          type: object
+          additionalProperties:
+            type: string
+        status: {type: string, enum: [draft, published, superseded]}
+    LearningObjective:
+      type: object
+      additionalProperties: false
+      required: [id, skill_node_id, code, title, status]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        skill_node_id: {$ref: '#/components/schemas/Ulid'}
+        code: {type: string, maxLength: 160}
+        title:
+          type: object
+          additionalProperties:
+            type: string
+        description:
+          oneOf:
+            - type: 'null'
+            - type: object
+              additionalProperties:
+                type: string
+        status: {type: string, enum: [draft, published, retired]}
+    QuestionFoundationMetadata:
+      type: object
+      additionalProperties: false
+      required: [generation_kind, review_state, review_version]
+      properties:
+        learning_objective_id:
+          oneOf: [{type: 'null'}, {$ref: '#/components/schemas/Ulid'}]
+        difficulty:
+          oneOf:
+            - type: 'null'
+            - type: string
+              enum: [Easy, Medium, Hard, Revision, Exam]
+        generation_kind: {type: string, enum: [static, template]}
+        template_contract:
+          oneOf: [{type: 'null'}, {type: object}]
+        source_provenance:
+          oneOf: [{type: 'null'}, {type: object}]
+        review_state: {type: string, enum: [pending, needs_review, approved, rejected]}
+        review_version: {type: integer, minimum: 1}
+        reviewed_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
+        published_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
+    SkillMasteryState:
+      type: object
+      additionalProperties: false
+      required: [id, user_id, academic_context_id, skill_node_id, evidence_count, state_version]
+      properties:
+        id: {$ref: '#/components/schemas/Ulid'}
+        user_id: {$ref: '#/components/schemas/Ulid'}
+        academic_context_id: {$ref: '#/components/schemas/Ulid'}
+        skill_node_id: {$ref: '#/components/schemas/Ulid'}
+        algorithm_version:
+          oneOf: [{type: 'null'}, {type: string, maxLength: 80}]
+        mastery_score:
+          oneOf: [{type: 'null'}, {type: number, minimum: 0, maximum: 1}]
+        confidence:
+          oneOf: [{type: 'null'}, {type: number, minimum: 0, maximum: 1}]
+        evidence_count: {type: integer, minimum: 0}
+        state_version: {type: integer, minimum: 1}
+        last_evidence_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
+        calculated_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
+        archived_at:
+          oneOf: [{type: 'null'}, {type: string, format: date-time}]
 security:
   - bearerAuth: []
