@@ -40,7 +40,7 @@ final class AdaptiveLearningContract
     public const QUESTION_REVIEW_STATES = ['pending', 'needs_review', 'approved', 'rejected'];
 
     /** @var list<string> */
-    public const QUESTION_DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Revision', 'Exam'];
+    public const QUESTION_DIFFICULTIES = ['Easy', 'Medium', 'Hard', 'Revision', 'Exam-style'];
 
     /** @var list<string> */
     public const QUESTION_GENERATION_KINDS = ['static', 'template'];

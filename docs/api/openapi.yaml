@@ -1513,7 +1513,7 @@ components:
           oneOf:
             - type: 'null'
             - type: string
-              enum: [Easy, Medium, Hard, Revision, Exam]
+              enum: [Easy, Medium, Hard, Revision, Exam-style]
         generation_kind: {type: string, enum: [static, template]}
         template_contract:
           oneOf: [{type: 'null'}, {type: object}]
