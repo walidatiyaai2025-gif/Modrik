@@ -509,6 +509,7 @@ final class QuestionBankWorkbenchService
         $reason = $this->requiredReason($reason);
         $results = [];
         foreach ($importIds as $importId) {
+            $beforeStatus = DB::table('question_bank_imports')->where('id', $importId)->value('status');
             $results[$importId] = match ($action) {
                 'approve' => $this->review($user, $importId, 'approved', $reason),
                 'reject' => $this->review($user, $importId, 'rejected', $reason),
@@ -518,6 +519,18 @@ final class QuestionBankWorkbenchService
                 'archive' => $this->archive($user, $importId, $reason),
                 default => throw $this->problem(422, 'QUESTION_BANK_BULK_ACTION_INVALID', 'Bulk action invalid', 'The requested bulk action is not supported.'),
             };
+            $afterStatus = $results[$importId]['import']['status'] ?? null;
+            $this->audit(
+                $user,
+                $importId,
+                null,
+                null,
+                'bulk_'.$action,
+                is_string($beforeStatus) ? $beforeStatus : null,
+                is_string($afterStatus) ? $afterStatus : null,
+                $reason,
+                ['bulk_action' => $action],
+            );
         }
 
         return ['action' => $action, 'count' => count($results), 'results' => $results];
