@@ -15,7 +15,7 @@ final class StudentReadinessAssessmentReconciliationTest extends TestCase
         $this->assertSame('pass', $assessment['status'] ?? null);
         $this->assertSame('PASS', $ledger['mandatory_gates']['assessment_runtime'] ?? null);
         $this->assertFalse((bool) ($ledger['children_ready'] ?? true));
-        $this->assertSame(0, $ledger['overall_readiness_percent'] ?? null);
+        $this->assertSame(14, $ledger['overall_readiness_percent'] ?? null);
 
         $evidence = $this->evidenceById($ledger, 'AL03_ASSESSMENT_RUNTIME');
 
@@ -44,6 +44,10 @@ final class StudentReadinessAssessmentReconciliationTest extends TestCase
         $this->assertSame(206, $evidence['exact_head_ci']['unified_release_number'] ?? null);
         $this->assertSame(550, $evidence['exact_head_ci']['demo_package_number'] ?? null);
         $this->assertSame('success', $evidence['exact_head_ci']['conclusion'] ?? null);
+        $this->assertSame(1512, $evidence['exact_main_ci']['bootstrap_number'] ?? null);
+        $this->assertSame(207, $evidence['exact_main_ci']['unified_release_number'] ?? null);
+        $this->assertSame('skipped_on_push', $evidence['exact_main_ci']['dependency_review'] ?? null);
+        $this->assertSame('success', $evidence['exact_main_ci']['conclusion'] ?? null);
 
         $this->assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year6_pilot'] ?? null);
         $this->assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year7_pilot'] ?? null);
