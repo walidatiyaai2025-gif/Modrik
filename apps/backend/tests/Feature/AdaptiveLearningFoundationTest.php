@@ -68,6 +68,33 @@ class AdaptiveLearningFoundationTest extends TestCase
         self::assertContains('approved', AdaptiveLearningContract::QUESTION_REVIEW_STATES);
     }
 
+    public function test_question_bank_difficulties_match_versioned_import_and_openapi_contracts(): void
+    {
+        $schemaPath = base_path('../../schemas/question-bank/v1/import.schema.json');
+        $schemaContents = file_get_contents($schemaPath);
+        self::assertIsString($schemaContents);
+
+        /** @var array<string, mixed> $schema */
+        $schema = json_decode($schemaContents, true, flags: JSON_THROW_ON_ERROR);
+        $defs = $schema['$defs'] ?? null;
+        self::assertIsArray($defs);
+        $question = $defs['question'] ?? null;
+        self::assertIsArray($question);
+        $properties = $question['properties'] ?? null;
+        self::assertIsArray($properties);
+        $difficulty = $properties['difficulty'] ?? null;
+        self::assertIsArray($difficulty);
+
+        self::assertSame(AdaptiveLearningContract::QUESTION_DIFFICULTIES, $difficulty['enum'] ?? null);
+
+        $openApiContents = file_get_contents(base_path('../../docs/api/openapi.yaml'));
+        self::assertIsString($openApiContents);
+        self::assertStringContainsString(
+            'enum: [Easy, Medium, Hard, Revision, Exam-style]',
+            $openApiContents,
+        );
+    }
+
     public function test_migration_rollback_drops_question_foreign_key_before_learning_objectives_table(): void
     {
         $path = database_path('migrations/2026_09_18_010000_add_adaptive_learning_foundation.php');
