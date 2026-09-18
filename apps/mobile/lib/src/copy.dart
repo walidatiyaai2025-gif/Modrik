@@ -221,6 +221,11 @@ class MobileCopy {
       ModrikLocale.ar: 'أكمل نشاط التعلّم لعرض التقدّم المحسوب من الخادم.',
       ModrikLocale.fr: 'Terminez une activité pour recevoir la progression calculée par le serveur.',
     },
+    'progress_offline': {
+      ModrikLocale.en: 'Progress has not been loaded from the backend on this connection. Reconnect and retry to see authoritative progress.',
+      ModrikLocale.ar: 'لم يتم تحميل التقدّم من الخادم أثناء هذا الاتصال. أعد الاتصال ثم حاول مرة أخرى لعرض التقدّم المعتمد.',
+      ModrikLocale.fr: 'La progression n’a pas été chargée depuis le serveur avec cette connexion. Reconnectez-vous puis réessayez pour afficher la progression officielle.',
+    },
     'mastery': {
       ModrikLocale.en: 'Mastery',
       ModrikLocale.ar: 'الإتقان',
