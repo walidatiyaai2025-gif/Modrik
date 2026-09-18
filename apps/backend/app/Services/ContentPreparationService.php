@@ -12,7 +12,10 @@ use JsonException;
 
 final class ContentPreparationService
 {
-    public function __construct(private readonly ContentPackArchiveValidator $archives) {}
+    public function __construct(
+        private readonly ContentPackArchiveValidator $archives,
+        private readonly QuestionBankPromptSeed $promptSeed,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $payload
@@ -29,22 +32,48 @@ final class ContentPreparationService
         $requestId = (string) Str::ulid();
         $createdAt = now();
         $prompt = $this->prompt($requestId, $schemaVersion, $settingsHash, $normalizedSettings);
+        $promptSeed = $this->promptSeed->entry();
+        $sampleOutput = json_decode($promptSeed['sample_output'], true, flags: JSON_THROW_ON_ERROR);
+        if (! is_array($sampleOutput)) {
+            throw new JsonException('Canonical Question Bank sample output must decode to an object.');
+        }
 
-        DB::table('preparation_requests')->insert([
-            'id' => $requestId,
-            'created_by' => $user->getKey(),
-            'schema_version' => $schemaVersion,
-            'settings_hash' => $settingsHash,
-            'normalized_settings' => $normalizedSettings,
-            'prompt' => $prompt,
-            'status' => 'ready',
-            'created_at' => $createdAt,
-            'updated_at' => $createdAt,
-        ]);
-        $this->outbox('preparation_request', $requestId, 'content.preparation_requested', [
-            'schema_version' => $schemaVersion,
-            'settings_hash' => $settingsHash,
-        ]);
+        DB::transaction(function () use ($user, $requestId, $schemaVersion, $settingsHash, $normalizedSettings, $prompt, $createdAt, $promptSeed): void {
+            DB::table('preparation_requests')->insert([
+                'id' => $requestId,
+                'created_by' => $user->getKey(),
+                'schema_version' => $schemaVersion,
+                'settings_hash' => $settingsHash,
+                'normalized_settings' => $normalizedSettings,
+                'prompt' => $prompt,
+                'status' => 'ready',
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
+            ]);
+            $this->outbox('preparation_request', $requestId, 'content.preparation_requested', [
+                'schema_version' => $schemaVersion,
+                'settings_hash' => $settingsHash,
+            ]);
+            DB::table('content_workflow_audits')->insert([
+                'id' => (string) Str::ulid(),
+                'preparation_request_id' => $requestId,
+                'preparation_import_id' => null,
+                'actor_id' => (string) $user->getKey(),
+                'action' => 'preparation_created',
+                'from_status' => null,
+                'to_status' => 'ready',
+                'reason' => null,
+                'metadata' => $this->json([
+                    'schema_version' => $schemaVersion,
+                    'settings_hash' => $settingsHash,
+                    'prompt_id' => $promptSeed['id'],
+                    'prompt_version' => $promptSeed['version'],
+                    'compatible_schema' => $promptSeed['compatible_schema'],
+                    'runtime_dependency' => $promptSeed['runtime_dependency'],
+                ]),
+                'created_at' => $createdAt,
+            ]);
+        });
 
         return [
             'preparation_request_id' => $requestId,
@@ -58,6 +87,14 @@ final class ContentPreparationService
                     'schema_version' => $schemaVersion,
                     'settings_hash' => $settingsHash,
                 ],
+                'prompt_contract' => [
+                    'id' => $promptSeed['id'],
+                    'version' => $promptSeed['version'],
+                    'compatible_schema' => $promptSeed['compatible_schema'],
+                    'runtime_dependency' => $promptSeed['runtime_dependency'],
+                    'source' => $promptSeed['source'],
+                ],
+                'sample_output' => $sampleOutput,
                 'settings' => $settings,
             ],
         ];
