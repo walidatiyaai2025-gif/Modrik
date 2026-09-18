@@ -533,9 +533,9 @@ final class ContentPackArchiveValidator
     /** @param null|array<string, mixed> $manifest */
     private function validateLocalizedText(mixed $value, string $pointer, ?array $manifest): void
     {
-        if (! is_array($value) || array_is_list($value)
+        if (! is_array($value) || array_is_list($value) || $value === []
             || array_diff(array_keys($value), ['ar', 'en', 'fr']) !== []) {
-            $this->schemaFail('Localized text must contain only ar, en, or fr values.', $pointer, $manifest);
+            $this->schemaFail('Localized text must contain at least one ar, en, or fr value.', $pointer, $manifest);
         }
         foreach ($value as $text) {
             if (! is_string($text) || $text === '' || mb_strlen($text) > 10000) {
