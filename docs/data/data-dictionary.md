@@ -115,3 +115,16 @@ Enum changes are contract changes and require migrations, API/schema updates whe
 | `questions.source_provenance` | Source/page/derivation metadata for traceability. | Unknown source facts remain null/explicit; provenance never bypasses rights/review/publication gates. |
 | `questions.review_state` / `review_version` / review/publication actors/timestamps | Separates review evidence from the existing canonical question publication `status`. | Review states are pending/needs_review/approved/rejected. Canonical question status remains aligned to existing draft/published/superseded semantics; future lifecycle expansion must be contract-authorized. |
 | `student_skill_mastery_states` | Versioned Backend-owned Student×Skill state storage for #356. | Unique `(academic_context_id, skill_node_id)`; user/context/skill are server-derived; scores/confidence may be null until the mastery engine calculates them; archival preserves history. |
+
+
+## Learning operations control — Issue #361
+
+| Entity | Purpose | Invariants |
+| --- | --- | --- |
+| `learning_feature_controls` | Current Admin-governed feature state and bounded rollout scope. | Allowlisted keys only; state is disabled/enabled/pilot/admin_only; optimistic versioning; no secrets or scoring/privacy/publication-integrity invariants. |
+| `learning_feature_control_audits` | Immutable before/after feature-control evidence. | Actor, reason and version transition are persisted for every mutation. |
+| `learning_job_controls` | Pause/version/last-run operational state for allowlisted learning jobs. | Missing domain dependencies remain `blocked_dependency`; a pause never fabricates a completed run. |
+| `learning_job_runs` | Durable bounded execution evidence. | Status/counts/duration/error code only; no arbitrary payload/shell/SQL command surface. |
+| `learning_job_control_audits` | Pause/resume audit history. | Admin actor, reason and version transition are immutable evidence. |
+
+Current real Run Now handlers are database-backed question statistics, progress aggregation, content integrity and expired-idempotency cleanup. Mastery recalculation, daily-plan generation, revision scheduling and external notification dispatch remain fail-closed until their authoritative dependencies exist.
