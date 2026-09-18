@@ -137,6 +137,54 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         );
     }
 
+    public function test_answer_success_payload_is_authoritatively_reread_from_persistence(): void
+    {
+        $start = $this->start(LearningSliceSeeder::QUIZ_ID, 'adaptive-answer-reread-start-0001')
+            ->assertCreated();
+
+        /** @var list<array<string, mixed>> $questions */
+        $questions = $start->json('data.questions');
+        $question = $questions[0];
+        $attemptId = (string) $start->json('data.id');
+        $attemptQuestionId = (string) $question['attempt_question_id'];
+        $value = $this->answerValue($question);
+
+        $response = $this->answer(
+            $attemptId,
+            $attemptQuestionId,
+            $value,
+            'adaptive-answer-reread-record-0001',
+            2345,
+            0,
+        )
+            ->assertOk()
+            ->assertJsonPath('data.revision', 1)
+            ->assertJsonPath('data.duration_ms', 2345)
+            ->assertJsonPath('data.hint_count', 0);
+
+        $stored = DB::table('attempt_answers')
+            ->where('attempt_question_id', $attemptQuestionId)
+            ->where('revision', 1)
+            ->first(['revision', 'value', 'duration_ms', 'hint_count', 'answered_at']);
+
+        self::assertNotNull($stored);
+        self::assertSame((int) $stored->revision, $response->json('data.revision'));
+        self::assertSame(
+            json_decode((string) $stored->value, true, flags: JSON_THROW_ON_ERROR),
+            $response->json('data.value'),
+        );
+        self::assertSame((int) $stored->duration_ms, $response->json('data.duration_ms'));
+        self::assertSame((int) $stored->hint_count, $response->json('data.hint_count'));
+        self::assertSame(
+            \Carbon\CarbonImmutable::parse((string) $stored->answered_at)->toIso8601String(),
+            $response->json('data.answered_at'),
+        );
+        $this->assertDatabaseHas('outbox_events', [
+            'aggregate_id' => $attemptId,
+            'event_type' => 'assessment.answer_recorded',
+        ]);
+    }
+
     public function test_template_question_materializes_deterministically_without_runtime_ai(): void
     {
         [$quizId] = $this->insertQuestionAndQuiz(
