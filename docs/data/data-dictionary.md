@@ -115,3 +115,15 @@ Enum changes are contract changes and require migrations, API/schema updates whe
 | `questions.source_provenance` | Source/page/derivation metadata for traceability. | Unknown source facts remain null/explicit; provenance never bypasses rights/review/publication gates. |
 | `questions.review_state` / `review_version` / review/publication actors/timestamps | Separates review evidence from the existing canonical question publication `status`. | Review states are pending/needs_review/approved/rejected. Canonical question status remains aligned to existing draft/published/superseded semantics; future lifecycle expansion must be contract-authorized. |
 | `student_skill_mastery_states` | Versioned Backend-owned Student×Skill state storage for #356. | Unique `(academic_context_id, skill_node_id)`; user/context/skill are server-derived; scores/confidence may be null until the mastery engine calculates them; archival preserves history. |
+
+
+## Question Bank Workbench — Issue #354
+
+| Entity / field | Purpose | Invariants |
+| --- | --- | --- |
+| `question_bank_source_materials` | Stable metadata link to owner-provided book/PDF/worksheet/exam/other source material. | Source key is unique; binary source content is not duplicated; rights default to `pending`; changing rights away from `approved` automatically suspends any published Question Bank import that depends on the source. |
+| `question_bank_imports` | One returned `modrik-question-bank-v1` pack bound to a fresh preparation request. | `pack_id` is unique; request/settings/prompt/schema binding is fail-closed; rejected packs retain validation evidence; raw payload is retained for traceable JSON export; lifecycle is explicit and audited. |
+| `question_bank_import_sources` | Many-to-many pack-to-source linkage. | Every published pack requires every linked source to remain rights-approved. |
+| `question_bank_import_items` | Staged question rows before/after canonical publication. | External ID is unique within import; content hash supports deterministic duplicate detection; curriculum mapping must resolve to an existing published node; learning objectives require a skill mapping; canonical question ID is preserved across suspend/unpublish/republish. |
+| `question_bank_workflow_audits` | Immutable operator/source/import/item action evidence. | Actor, action, prior/next state, reason and bounded metadata are persisted; bulk actions add their own reasoned audit record. |
+| `questions.status` for Workbench lineage | Student-delivery gate for canonical Question Bank questions. | Only `published` is deliverable; unpublish -> `draft`, rights revocation/suspend -> `suspended`, archive -> `archived`; history is not deleted. |
