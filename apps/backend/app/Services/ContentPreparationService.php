@@ -88,7 +88,11 @@ final class ContentPreparationService
             ->where('archive_hash', $archiveHash)
             ->first();
         if ($existing !== null) {
-            return $this->storedResult((array) $existing);
+            /** @var array<string, mixed> $existingRow */
+            $existingRow = (array) $existing;
+            $this->assertStoredImportFresh($existingRow);
+
+            return $this->storedResult($existingRow);
         }
 
         $importId = (string) Str::ulid();
@@ -305,6 +309,34 @@ final class ContentPreparationService
         }
 
         return $settings;
+    }
+
+    /** @param array<string, mixed> $row */
+    private function assertStoredImportFresh(array $row): void
+    {
+        $requestId = is_string($row['preparation_request_id'] ?? null)
+            ? $row['preparation_request_id']
+            : (is_string($row['claimed_preparation_request_id'] ?? null) ? $row['claimed_preparation_request_id'] : null);
+
+        if ($requestId === null) {
+            return;
+        }
+
+        $preparation = DB::table('preparation_requests')->where('id', $requestId)->first();
+        if ($preparation !== null
+            && ((string) $preparation->status === 'superseded' || $preparation->superseded_by_request_id !== null)) {
+            throw new ApiProblemException(
+                422,
+                'CONTENT_PREPARATION_IMPORT_REJECTED',
+                'Content preparation import rejected',
+                'The returned content archive is bound to a stale preparation request.',
+                errors: [[
+                    'pointer' => '/preparation_request_id',
+                    'code' => 'PREPARATION_REGENERATION_REQUIRED',
+                    'message' => 'This preparation request is stale because its settings were replaced. Generate a new prompt and bundle before importing returned content.',
+                ]],
+            );
+        }
     }
 
     private function invalidRequest(string $pointer, string $code, string $message): ApiProblemException

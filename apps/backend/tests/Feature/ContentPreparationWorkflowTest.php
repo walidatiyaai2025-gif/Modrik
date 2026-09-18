@@ -156,6 +156,56 @@ class ContentPreparationWorkflowTest extends TestCase
             ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
     }
 
+    public function test_duplicate_archive_retry_rechecks_superseded_preparation_binding(): void
+    {
+        $this->grantContentRole();
+        $created = $this->createRequest();
+        $requestId = (string) $created->json('data.preparation_request_id');
+        $settingsHash = (string) $created->json('data.settings_hash');
+        $archiveBytes = $this->validArchiveBytes($requestId, $settingsHash);
+        $curriculumCounts = $this->curriculumCounts();
+
+        $staged = $this->upload($archiveBytes, 'preparation-import-stale-duplicate-initial-0001')
+            ->assertStatus(202)
+            ->assertJsonPath('data.status', 'staged');
+        $importId = (string) $staged->json('data.preparation_import_id');
+
+        $replacementPayload = $this->requestPayload();
+        $replacementPayload['settings']['generation']['maximum_questions_per_quiz'] = 9;
+        $replacement = $this->withToken(self::TOKEN)
+            ->withHeader('Idempotency-Key', 'preparation-create-stale-duplicate-replacement-0001')
+            ->postJson('/v1/admin/preparation-requests', $replacementPayload)
+            ->assertCreated();
+        $replacementId = (string) $replacement->json('data.preparation_request_id');
+
+        DB::table('preparation_requests')->where('id', $requestId)->update([
+            'status' => 'superseded',
+            'superseded_by_request_id' => $replacementId,
+            'superseded_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->upload($archiveBytes, 'preparation-import-stale-duplicate-retry-0001')
+            ->assertUnprocessable()
+            ->assertHeader('Content-Type', 'application/problem+json')
+            ->assertJsonPath('code', 'CONTENT_PREPARATION_IMPORT_REJECTED')
+            ->assertJsonPath('errors.0.code', 'PREPARATION_REGENERATION_REQUIRED')
+            ->assertJsonPath('errors.0.pointer', '/preparation_request_id');
+
+        $this->assertDatabaseCount('preparation_imports', 1);
+        $this->assertDatabaseHas('preparation_imports', [
+            'id' => $importId,
+            'preparation_request_id' => $requestId,
+            'status' => 'staged',
+        ]);
+        $this->assertDatabaseCount('preparation_import_files', 1);
+        $this->assertDatabaseMissing('outbox_events', [
+            'aggregate_id' => $importId,
+            'event_type' => 'content.preparation_import_rejected',
+        ]);
+        $this->assertSame($curriculumCounts, $this->curriculumCounts());
+    }
+
     public function test_binding_and_semantic_failures_are_persisted_replayed_and_never_publish(): void
     {
         $this->grantContentRole();
