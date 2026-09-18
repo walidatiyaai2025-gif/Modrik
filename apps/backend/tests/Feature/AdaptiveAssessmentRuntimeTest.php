@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Exceptions\ApiProblemException;
 use App\Models\User;
 use App\Services\AssessmentModePolicy;
+use App\Services\AttemptService;
 use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +39,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             $resolved = $policy->forQuizKind($mode);
             self::assertSame($mode, $resolved['mode']);
             self::assertSame('after_submit', $resolved['reveal_policy']);
-            self::assertSame(!in_array($mode, ['diagnostic', 'exam'], true), $resolved['hints_allowed']);
+            self::assertSame(! in_array($mode, ['diagnostic', 'exam'], true), $resolved['hints_allowed']);
         }
 
         self::assertSame('exam', $policy->forQuizKind('mock_exam')['mode']);
@@ -177,9 +179,9 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
 
         $other = User::factory()->create();
         try {
-            app(\App\Services\AttemptService::class)->result($other, $attemptId);
+            app(AttemptService::class)->result($other, $attemptId);
             self::fail('Foreign user must not read another user\'s attempt result.');
-        } catch (\App\Exceptions\ApiProblemException $exception) {
+        } catch (ApiProblemException $exception) {
             self::assertSame(404, $exception->status);
             self::assertSame('RESOURCE_NOT_FOUND', $exception->problemCode);
         }
