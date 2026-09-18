@@ -4,14 +4,20 @@ on:
   pull_request:
     paths:
       - "apps/backend/app/Filament/Pages/ContentOperations.php"
+      - "apps/backend/app/Services/ContentPreparationService.php"
+      - "apps/backend/tests/Feature/ContentPreparationWorkflowTest.php"
+      - "apps/backend/app/Filament/Pages/PromptLibrary.php"
       - "apps/backend/app/Filament/Pages/ContentIngestionOperations.php"
       - "apps/backend/app/Filament/Pages/ContentReviewExceptions.php"
       - "apps/backend/app/Filament/Pages/ContentTraceability.php"
       - "apps/backend/resources/views/filament/pages/content-operations.blade.php"
+      - "apps/backend/resources/views/filament/pages/prompt-library.blade.php"
+      - "apps/backend/resources/content-prompts/**"
       - "apps/backend/resources/views/filament/pages/content-ingestion-operations.blade.php"
       - "apps/backend/resources/views/filament/pages/content-review-exceptions.blade.php"
       - "apps/backend/resources/views/filament/pages/content-traceability.blade.php"
       - "apps/backend/tests/Feature/AdminContentOperationsTest.php"
+      - "apps/backend/tests/Feature/AdminPromptLibraryTest.php"
       - "docs/product/capability-surface-matrix.yaml"
       - ".github/workflows/content-operations-browser-acceptance.yml"
 
@@ -134,6 +140,7 @@ jobs:
             ];
             const surfaces = [
               { name: 'content-operations', url: '/admin/content-operations', selector: '[data-testid="modrik-content-operations"]' },
+              { name: 'prompt-library', url: '/admin/prompt-library', selector: '[data-testid="modrik-prompt-library"]' },
               { name: 'content-ingestion', url: '/admin/content-ingestion-operations', selector: '[data-testid="content-ingestion-operations"]' },
               { name: 'content-review-exceptions', url: '/admin/content-review-exceptions', selector: '[data-testid="modrik-content-review-exceptions"]' },
               { name: 'content-traceability', url: '/admin/content-traceability', selector: '[data-testid="modrik-content-traceability"]' },
