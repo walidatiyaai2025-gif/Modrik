@@ -22,7 +22,7 @@
                     <h2 class="modrik-panel-title">{{ $label('استيراد حزمة JSON', 'Import JSON pack', 'Importer le pack JSON') }}</h2>
                     <p class="modrik-panel-subtitle">modrik-question-bank-v1 · max 20 MB</p>
                 </div>
-                <x-filament::button tag="a" color="gray" :href="AppFilamentPagesPromptLibrary::getUrl()">
+                <x-filament::button tag="a" color="gray" :href="$this->promptLibraryUrl()">
                     {{ $label('فتح مكتبة الـPrompt', 'Open Prompt Library', 'Ouvrir la bibliothèque') }}
                 </x-filament::button>
             </div>
