@@ -117,8 +117,9 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             ->where('event_type', 'assessment.attempt_submitted')
             ->count();
 
-        $second = $this->submit($attemptId, 'adaptive-mcq-submit-0002')
+        $second = $this->submit($attemptId, 'adaptive-mcq-submit-0001')
             ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'true')
             ->assertJsonPath('data.score', 1)
             ->assertJsonPath('data.review.0.correct', true);
 
@@ -175,10 +176,13 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         $this->submit($attemptId, 'adaptive-owner-submit-0001')->assertOk();
 
         $other = User::factory()->create();
-        $this->actingAs($other)
-            ->getJson('/v1/attempts/'.$attemptId.'/result')
-            ->assertNotFound()
-            ->assertJsonPath('code', 'RESOURCE_NOT_FOUND');
+        try {
+            app(\App\Services\AttemptService::class)->result($other, $attemptId);
+            self::fail('Foreign user must not read another user\'s attempt result.');
+        } catch (\App\Exceptions\ApiProblemException $exception) {
+            self::assertSame(404, $exception->status);
+            self::assertSame('RESOURCE_NOT_FOUND', $exception->problemCode);
+        }
     }
 
     private function start(string $quizId, string $key)
