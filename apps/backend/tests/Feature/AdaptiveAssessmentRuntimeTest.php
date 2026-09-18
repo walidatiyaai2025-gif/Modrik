@@ -6,6 +6,7 @@ use App\Exceptions\ApiProblemException;
 use App\Models\User;
 use App\Services\AssessmentModePolicy;
 use App\Services\AttemptService;
+use Carbon\CarbonImmutable;
 use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\JsonResponse;
@@ -176,7 +177,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         self::assertSame((int) $stored->duration_ms, $response->json('data.duration_ms'));
         self::assertSame((int) $stored->hint_count, $response->json('data.hint_count'));
         self::assertSame(
-            \Carbon\CarbonImmutable::parse((string) $stored->answered_at)->toIso8601String(),
+            CarbonImmutable::parse((string) $stored->answered_at)->toIso8601String(),
             $response->json('data.answered_at'),
         );
         $this->assertDatabaseHas('outbox_events', [
