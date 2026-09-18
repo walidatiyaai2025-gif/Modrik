@@ -576,12 +576,16 @@ final class QuestionBankWorkbenchService
     /** @return list<array<string, mixed>> */
     public function imports(int $limit = 100): array
     {
-        return DB::table('question_bank_imports')
+        $rows = DB::table('question_bank_imports')
             ->orderByDesc('created_at')
             ->limit(max(1, min(200, $limit)))
             ->get()
             ->map(static fn (stdClass $row): array => (array) $row)
+            ->values()
             ->all();
+
+        /** @var list<array<string, mixed>> $rows */
+        return $rows;
     }
 
     /** @return array<string, mixed> */
@@ -597,7 +601,7 @@ final class QuestionBankWorkbenchService
     {
         $this->readImport($importId);
 
-        return DB::table('question_bank_import_items as items')
+        $rows = DB::table('question_bank_import_items as items')
             ->leftJoin('question_bank_source_materials as sources', 'sources.id', '=', 'items.source_material_id')
             ->where('items.question_bank_import_id', $importId)
             ->orderBy('items.created_at')
@@ -613,7 +617,11 @@ final class QuestionBankWorkbenchService
                 'sources.source_key',
             ])
             ->map(static fn (stdClass $row): array => (array) $row)
+            ->values()
             ->all();
+
+        /** @var list<array<string, int|string|null>> $rows */
+        return $rows;
     }
 
     /**
@@ -906,6 +914,7 @@ final class QuestionBankWorkbenchService
         }
     }
 
+    /** @param  array<string, mixed>  $scope */
     private function resolveScopeNode(?stdClass $track, array $scope): ?stdClass
     {
         if (! $track instanceof stdClass) {
@@ -961,6 +970,7 @@ final class QuestionBankWorkbenchService
         return $node;
     }
 
+    /** @param  array<string, mixed>  $payload */
     private function resolveLearningObjective(array $payload, stdClass $node, mixed $now): ?string
     {
         $objective = $payload['learning_objective'] ?? null;
@@ -996,7 +1006,10 @@ final class QuestionBankWorkbenchService
         return $id;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
     private function canonicalQuestionValues(array $payload, stdClass $item, ?string $objectiveId, User $user, mixed $now): array
     {
         $language = (string) $item->language;
