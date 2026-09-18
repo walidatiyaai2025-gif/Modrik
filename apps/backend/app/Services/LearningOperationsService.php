@@ -102,7 +102,7 @@ final class LearningOperationsService
         if (mb_strlen($reason) < 8 || mb_strlen($reason) > 500) {
             throw new InvalidArgumentException('A change reason between 8 and 500 characters is required.');
         }
-        if (!$definition['scope_allowed'] && $scope !== null && $scope !== []) {
+        if (! $definition['scope_allowed'] && $scope !== null && $scope !== []) {
             throw new InvalidArgumentException('This feature does not support a scoped rollout.');
         }
         $scope = $this->normalizeScope($scope);
