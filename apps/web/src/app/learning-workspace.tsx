@@ -16,6 +16,7 @@ import {
   type Session,
 } from "@/lib/learning-api";
 import AcademicTrackSelector from "./academic-track-selector";
+import MathText from "./math-text";
 import { directionForLocale, localize, studentCopy } from "./student-copy";
 
 const activeAttemptStorageKey = "modrik.student.active-attempt";
@@ -521,7 +522,7 @@ export default function LearningWorkspace() {
                   ) : null}
 
                   {result ? (
-                    <div className="metric-card"><span>{labels.result}</span><strong>{result.score} / {result.max_score}</strong></div>
+                    <div className="metric-card"><span>{labels.result}</span><strong><MathText>{result.score} / {result.max_score}</MathText></strong></div>
                   ) : null}
 
                   {!selectedAssessment && !attempt ? (
