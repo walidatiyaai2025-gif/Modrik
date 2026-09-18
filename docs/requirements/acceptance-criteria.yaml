@@ -90,3 +90,16 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-015]
     statement: Every implemented or configurable capability is represented in the capability-to-surface matrix and is either reachable through a discoverable role-appropriate Admin/user/operational surface or explicitly classified as internal_non_editable or deferred_disabled; required Admin surfaces include navigation/list or settings entry points, RBAC, safe secret handling, applicable audit/confirmation/versioning, localization and failure/degraded states, and automated regression coverage prevents silent removal.
     verification: capability-surface matrix validation, navigation/page tests, RBAC/security review, and cross-surface regression audit
+
+  - id: AC-P0-023
+    requirement_ids: [REQ-P0-016]
+    statement: Skills are canonical curriculum nodes beneath topics and may own versioned localized learning objectives; Question Bank records may reference those objectives without creating a second curriculum authority.
+    verification: migration/schema tests, data-contract review, and MariaDB migration job
+  - id: AC-P0-024
+    requirement_ids: [REQ-P0-016]
+    statement: Question foundation data distinguishes static versus deterministic-template questions and persists difficulty, source/provenance, review state/version and publication metadata while preserving existing immutable attempt snapshots and Backend scoring authority.
+    verification: schema/domain contract tests, assessment regression suite, and OpenAPI review
+  - id: AC-P0-025
+    requirement_ids: [REQ-P0-016]
+    statement: Student×Skill mastery state is persisted as a Backend-owned versioned projection bound to user, academic context and skill; no client may author mastery and no #353 foundation code invents the later mastery algorithm.
+    verification: migration/schema tests, authorization architecture review, and MariaDB migration job
