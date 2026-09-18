@@ -167,6 +167,11 @@
                                 <x-filament::button
                                     color="success"
                                     wire:click="approve('{{ $row['id'] }}')"
+                                    wire:confirm="{{ $label(
+                                        'هل تؤكد اعتماد الحقوق لهذا المحتوى والسماح له بالانتقال إلى المراجعة والنشر؟ أكّد فقط بعد التحقق من أساس الحقوق والدليل المسجل.',
+                                        'Approve these content rights and allow this pack to continue toward review and publication? Confirm only after verifying the recorded rights basis and evidence.',
+                                        'Confirmer ces droits et autoriser ce paquet à poursuivre vers la revue et la publication ? Confirmez uniquement après vérification de la base juridique et de la preuve enregistrées.'
+                                    ) }}"
                                     wire:loading.attr="disabled"
                                     :disabled="! ($basisReady && $evidenceReady)"
                                 >
