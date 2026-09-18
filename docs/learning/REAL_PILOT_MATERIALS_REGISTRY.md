@@ -90,3 +90,14 @@ A registered source may move toward real pilot content only through the existing
 `verified controlled-storage source -> approved academic mapping -> preparation request -> manual governed Question Bank preparation -> validation -> review -> rights gate -> publication`
 
 Only published, rights-cleared, correctly mapped canonical Question Bank content can become student-deliverable.
+
+
+## Machine-readable L11 coverage status
+
+Current closure evidence is recorded in:
+
+`governance/MODRIK_REAL_PILOT_COVERAGE.json`
+
+That report is derived from the integrated source registry and intentionally remains `BLOCKED_OWNER_LAST` until the missing owner-controlled academic scope, rights evidence, Year 7 source set and source-year mappings are supplied. It does not convert source receipt into publication authority, and it does not invent published Skill/question counts that are not evidenced by the repository.
+
+The report is regression-checked by `RealPilotCoverageReportTest` so changes to source counts, privacy blockers, mapping state or the Year 6/Year 7 truth boundary cannot silently drift.

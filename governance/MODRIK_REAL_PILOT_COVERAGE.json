@@ -1,0 +1,151 @@
+{
+  "schema_version": "modrik-real-pilot-coverage-v1",
+  "campaign_id": "MODRIK-CHILDREN-READY-20260917-A",
+  "owner_issue": 362,
+  "integration_issue": 363,
+  "evidence_main_sha": "db3d75b67a6046d1fff3f89d8a011f0e3a15f6eb",
+  "source_manifest_path": "apps/backend/resources/pilot/real-pilot-materials.json",
+  "source_manifest_blob_sha": "6806b9ca63fb0285adecb9aa3095029936b37cd8",
+  "status": "BLOCKED_OWNER_LAST",
+  "summary": {
+    "registered_sources": 6,
+    "segmented_sources": 1,
+    "rights_pending_sources": 6,
+    "mapping_required_sources": 5,
+    "partial_source_verified_sources": 1,
+    "pii_redaction_required_sources": 1,
+    "student_delivery_eligible_sources": 0
+  },
+  "pilot_years": {
+    "Year 6": {
+      "source_evidence_status": "PARTIAL_PASS",
+      "source_ids": [
+        "pilot-y6-arabic-kuwait-2025-2026-t2-part1"
+      ],
+      "source_verified_subjects": [
+        "Arabic"
+      ],
+      "source_verified_facts": [
+        "Grade 6",
+        "Second term",
+        "Part 1",
+        "2025/2026"
+      ],
+      "academic_scope_status": "BLOCKED_OWNER_LAST",
+      "academic_scope_reason": "The source proves Grade 6 and Arabic, but the exact owner-approved MODRIK track/board/syllabus/version binding is not present in repository evidence and must not be guessed.",
+      "rights_status": "BLOCKED_OWNER_LAST",
+      "rights_reason": "The source states that copyright, printing and publication rights are reserved to the Kuwait Ministry of Education. No repository evidence authorizes MODRIK publication.",
+      "question_bank_preparation_status": "BLOCKED_BY_SCOPE_AND_RIGHTS",
+      "published_skill_coverage_status": "NOT_EVIDENCED",
+      "published_question_coverage_status": "NOT_EVIDENCED",
+      "student_pilot_acceptance_status": "BLOCKED"
+    },
+    "Year 7": {
+      "source_evidence_status": "BLOCKED_OWNER_LAST",
+      "source_ids": [],
+      "source_verified_subjects": [],
+      "academic_scope_status": "BLOCKED_OWNER_LAST",
+      "rights_status": "BLOCKED_OWNER_LAST",
+      "question_bank_preparation_status": "BLOCKED_OWNER_LAST",
+      "published_skill_coverage_status": "NOT_EVIDENCED",
+      "published_question_coverage_status": "NOT_EVIDENCED",
+      "student_pilot_acceptance_status": "BLOCKED",
+      "reason": "No owner-supplied source in the integrated registry is source-verified as Year 7."
+    }
+  },
+  "unmapped_sources": [
+    {
+      "source_id": "pilot-en-fanboys-completed-worksheet",
+      "subject": "English",
+      "topic": "Coordinating conjunctions (FANBOYS)",
+      "target_year": null,
+      "status": "MAPPING_REQUIRED",
+      "additional_blocker": "PII_REDACTION_REQUIRED"
+    },
+    {
+      "source_id": "pilot-en-fanboys-answer-key",
+      "subject": "English",
+      "topic": "Coordinating conjunctions (FANBOYS)",
+      "target_year": null,
+      "status": "MAPPING_REQUIRED"
+    },
+    {
+      "source_id": "pilot-math-negative-number-guide",
+      "subject": "Mathematics",
+      "topic": "Integers and negative numbers",
+      "target_year": null,
+      "status": "MAPPING_REQUIRED"
+    },
+    {
+      "source_id": "pilot-math-integers-practice",
+      "subject": "Mathematics",
+      "topic": "Adding and subtracting integers",
+      "target_year": null,
+      "status": "MAPPING_REQUIRED"
+    },
+    {
+      "source_id": "pilot-math-subtracting-integers-grade5",
+      "subject": "Mathematics",
+      "topic": "Subtracting integers",
+      "source_grade_label": "Grade 5",
+      "target_year": null,
+      "status": "MAPPING_REQUIRED",
+      "reason": "The source is explicitly Grade 5 and cannot be silently relabelled as Year 6 or Year 7."
+    }
+  ],
+  "acceptance": {
+    "real_owner_authorized_content_both_pilot_years": "BLOCKED_OWNER_LAST",
+    "valid_content_published_only_after_required_rights_review": "PASS_FAIL_CLOSED_NO_REAL_PUBLICATION",
+    "machine_readable_coverage_report": "PASS",
+    "unsupported_curriculum_facts_introduced": "PASS",
+    "year6_real_published_question_content": "BLOCKED_OWNER_LAST",
+    "year7_real_published_question_content": "BLOCKED_OWNER_LAST"
+  },
+  "owner_last_required": [
+    {
+      "id": "Y6_ACADEMIC_SCOPE",
+      "required_input": "Approve the exact MODRIK Year 6 academic track identity and any board/syllabus/version values, including explicit null/no-value decisions where intended."
+    },
+    {
+      "id": "Y6_SOURCE_RIGHTS",
+      "required_input": "Provide authoritative rights/usage approval or a permitted-source replacement for the Year 6 materials before publication."
+    },
+    {
+      "id": "UNMAPPED_SOURCE_YEAR_BINDING",
+      "required_input": "Identify which pilot year, if any, each English/Math image belongs to. Grade 5 material must remain Grade 5 unless used only as explicitly labelled revision source."
+    },
+    {
+      "id": "FANBOYS_PII_REDACTION",
+      "required_input": "Provide/use a redacted controlled-storage copy of the completed FANBOYS worksheet before content preparation."
+    },
+    {
+      "id": "Y7_REAL_SOURCE_SET",
+      "required_input": "Provide at least one owner-approved Year 7 source set with subject/year provenance."
+    },
+    {
+      "id": "Y7_ACADEMIC_SCOPE_AND_RIGHTS",
+      "required_input": "Approve the exact Year 7 academic mapping and rights state before any real Question Bank pack can be published."
+    }
+  ],
+  "next_governed_transition": [
+    "Resolve owner_last_required inputs",
+    "Bind controlled-storage source copies by SHA-256",
+    "Map sources to approved academic scope",
+    "Create canonical preparation requests",
+    "Generate modrik-question-bank-v1 packs through the manual Prompt Library workflow",
+    "Validate/import packs",
+    "Complete rights review",
+    "Complete review and canonical draft import",
+    "Publish approved content",
+    "Recompute Year 6 and Year 7 skill/question coverage",
+    "Run real pilot end-to-end acceptance"
+  ],
+  "truth_boundary": {
+    "raw_sources_in_repository": false,
+    "rights_approval_fabricated": false,
+    "year7_source_fabricated": false,
+    "academic_scope_fabricated": false,
+    "published_real_question_content_claimed": false,
+    "children_ready_claimed": false
+  }
+}
