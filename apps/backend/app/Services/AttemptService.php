@@ -18,6 +18,7 @@ final class AttemptService
         private readonly AssessmentEngine $engine,
         private readonly AssessmentModePolicy $modePolicy,
         private readonly DeterministicQuestionTemplateService $templates,
+        private readonly MasteryEngine $mastery,
     ) {}
 
     /**
@@ -494,6 +495,11 @@ final class AttemptService
             'curriculum_node_id' => $curriculumNodeId,
             'source_version' => $sourceVersion,
         ]);
+
+        // Assessment submission runs inside IdempotencyService's DB transaction.
+        // Recalculate only Skills touched by this graded attempt before truthful
+        // submit success, so assessment + mastery either commit together or roll back.
+        $this->mastery->recalculateForAttempt($user, $attemptId);
 
         return $this->result($user, $attemptId);
     }
