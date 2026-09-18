@@ -186,6 +186,63 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         ]);
     }
 
+    public function test_answer_retry_replays_single_authoritative_revision_without_duplicate_event(): void
+    {
+        $start = $this->start(LearningSliceSeeder::QUIZ_ID, 'adaptive-answer-idempotency-start-0001')
+            ->assertCreated();
+
+        /** @var list<array<string, mixed>> $questions */
+        $questions = $start->json('data.questions');
+        $question = $questions[0];
+        $attemptId = (string) $start->json('data.id');
+        $attemptQuestionId = (string) $question['attempt_question_id'];
+        $value = $this->answerValue($question);
+        $key = 'adaptive-answer-idempotency-record-0001';
+
+        $first = $this->answer($attemptId, $attemptQuestionId, $value, $key, 1750, 0)
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'false')
+            ->assertJsonPath('data.revision', 1);
+
+        $stored = DB::table('attempt_answers')
+            ->where('attempt_question_id', $attemptQuestionId)
+            ->where('revision', 1)
+            ->first(['revision', 'value', 'duration_ms', 'hint_count', 'answered_at']);
+
+        self::assertNotNull($stored);
+        self::assertSame((int) $stored->revision, $first->json('data.revision'));
+        self::assertSame(
+            json_decode((string) $stored->value, true, flags: JSON_THROW_ON_ERROR),
+            $first->json('data.value'),
+        );
+        self::assertSame((int) $stored->duration_ms, $first->json('data.duration_ms'));
+        self::assertSame((int) $stored->hint_count, $first->json('data.hint_count'));
+        self::assertSame(
+            CarbonImmutable::parse((string) $stored->answered_at)->toIso8601String(),
+            $first->json('data.answered_at'),
+        );
+
+        $second = $this->answer($attemptId, $attemptQuestionId, $value, $key, 1750, 0)
+            ->assertOk()
+            ->assertHeader('Idempotency-Replayed', 'true')
+            ->assertJsonPath('data.revision', 1);
+
+        self::assertSame($first->json('data'), $second->json('data'));
+        self::assertSame(
+            1,
+            DB::table('attempt_answers')
+                ->where('attempt_question_id', $attemptQuestionId)
+                ->count(),
+        );
+        self::assertSame(
+            1,
+            DB::table('outbox_events')
+                ->where('aggregate_id', $attemptId)
+                ->where('event_type', 'assessment.answer_recorded')
+                ->count(),
+        );
+    }
+
     public function test_template_question_materializes_deterministically_without_runtime_ai(): void
     {
         [$quizId] = $this->insertQuestionAndQuiz(
