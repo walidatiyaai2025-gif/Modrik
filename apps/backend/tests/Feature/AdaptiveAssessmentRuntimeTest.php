@@ -8,6 +8,7 @@ use App\Services\AssessmentModePolicy;
 use App\Services\AttemptService;
 use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -160,7 +161,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         self::assertDoesNotMatchRegularExpression('/\{\{(?:left|right)\}\}/', $prompt);
         $matched = preg_match('/(-?\d+) \+ (-?\d+)/', $prompt, $matches);
         self::assertSame(1, $matched);
-        if ($matched !== 1 || ! isset($matches[1], $matches[2])) {
+        if (! isset($matches[1], $matches[2])) {
             self::fail('Materialized arithmetic prompt must expose both deterministic operands.');
         }
         $answer = (int) $matches[1] + (int) $matches[2];
@@ -191,6 +192,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
         }
     }
 
+    /** @return TestResponse<JsonResponse> */
     private function start(string $quizId, string $key): TestResponse
     {
         return $this->withToken(self::TOKEN)
@@ -198,6 +200,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             ->postJson('/v1/attempts', ['quiz_id' => $quizId]);
     }
 
+    /** @return TestResponse<JsonResponse> */
     private function answer(string $attemptId, string $questionId, mixed $value, string $key, int $durationMs, int $hintCount): TestResponse
     {
         return $this->withToken(self::TOKEN)
@@ -210,6 +213,7 @@ class AdaptiveAssessmentRuntimeTest extends TestCase
             ]);
     }
 
+    /** @return TestResponse<JsonResponse> */
     private function submit(string $attemptId, string $key): TestResponse
     {
         return $this->withToken(self::TOKEN)
