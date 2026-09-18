@@ -1416,7 +1416,7 @@ components:
           type: object
           additionalProperties:
             type: string
-        status: {type: string, enum: [draft, published, retired]}
+        status: {type: string, enum: [draft, published, superseded]}
     LearningObjective:
       type: object
       additionalProperties: false
