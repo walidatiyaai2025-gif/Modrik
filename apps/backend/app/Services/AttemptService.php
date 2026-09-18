@@ -14,11 +14,22 @@ final class AttemptService
 {
     public const ORDERING_ALGORITHM = AssessmentEngine::ALGORITHM;
 
+    private readonly AssessmentEngine $engine;
+
+    private readonly AssessmentModePolicy $modePolicy;
+
+    private readonly DeterministicQuestionTemplateService $templates;
+
     public function __construct(
-        private readonly AssessmentEngine $engine,
-        private readonly AssessmentModePolicy $modePolicy,
-        private readonly DeterministicQuestionTemplateService $templates,
-    ) {}
+        AssessmentEngine $engine,
+        AssessmentModePolicy $modePolicy,
+        DeterministicQuestionTemplateService $templates,
+    )
+    {
+        $this->engine = $engine;
+        $this->modePolicy = $modePolicy;
+        $this->templates = $templates;
+    }
 
     /**
      * @return array<string, mixed>
@@ -161,7 +172,7 @@ final class AttemptService
             $gradingContract = $this->decodeArray((string) $question['answer_contract']);
             $templateInstance = null;
             if ((string) ($question['generation_kind'] ?? 'static') === 'template') {
-                if (! is_string($question['template_contract'] ?? null)) {
+                if (is_string($question['template_contract'] ?? null) === false) {
                     throw new ApiProblemException(409, 'QUESTION_TEMPLATE_INVALID', 'Question template is invalid', 'The published template question has no template contract.');
                 }
                 $materialized = $this->templates->materialize(
@@ -623,7 +634,7 @@ final class AttemptService
     private function validateAnswerValue(array $snapshot, mixed $value): void
     {
         $contract = $snapshot['response_contract'] ?? null;
-        if (! is_array($contract)) {
+        if (is_array($contract) === false) {
             throw new ApiProblemException(500, 'QUESTION_SNAPSHOT_INVALID', 'Question unavailable', 'The stored response contract is invalid.');
         }
 
@@ -635,7 +646,7 @@ final class AttemptService
                     $optionIds[] = $option['id'];
                 }
             }
-            if (! is_string($value) || ! in_array($value, $optionIds, true)) {
+            if (is_string($value) === false || in_array($value, $optionIds, true) === false) {
                 throw $this->invalidAnswer('Value must be one of the published option identifiers.');
             }
 
@@ -643,7 +654,7 @@ final class AttemptService
         }
 
         if ($kind === 'multi_select') {
-            if (! is_array($value) || $value === [] || ! array_is_list($value)) {
+            if (is_array($value) === false || $value === [] || array_is_list($value) === false) {
                 throw $this->invalidAnswer('Value must contain one or more published option identifiers.');
             }
             $allowed = [];
@@ -654,7 +665,7 @@ final class AttemptService
             }
             $seen = [];
             foreach ($value as $optionId) {
-                if (! is_string($optionId) || ! in_array($optionId, $allowed, true) || isset($seen[$optionId])) {
+                if (is_string($optionId) === false || in_array($optionId, $allowed, true) === false || isset($seen[$optionId])) {
                     throw $this->invalidAnswer('Value must contain unique published option identifiers.');
                 }
                 $seen[$optionId] = true;
@@ -664,7 +675,7 @@ final class AttemptService
         }
 
         if ($kind === 'boolean') {
-            if (! is_bool($value)) {
+            if (is_bool($value) === false) {
                 throw $this->invalidAnswer('Value must be true or false.');
             }
 
@@ -672,7 +683,7 @@ final class AttemptService
         }
 
         if ($kind === 'numeric') {
-            if (! is_int($value) && ! is_float($value)) {
+            if (is_int($value) === false && is_float($value) === false) {
                 throw $this->invalidAnswer('Value must be numeric.');
             }
 
@@ -688,7 +699,7 @@ final class AttemptService
                 throw $this->invalidAnswer('Ordering must contain every option exactly once.');
             }
             foreach ($value as $optionId) {
-                if (! is_string($optionId) || ! in_array($optionId, $allowed, true)) {
+                if (is_string($optionId) === false || in_array($optionId, $allowed, true) === false) {
                     throw $this->invalidAnswer('Ordering contains an unknown option identifier.');
                 }
             }
@@ -701,7 +712,7 @@ final class AttemptService
                 throw $this->invalidAnswer('Value must be a non-empty list of matching pairs.');
             }
             foreach ($value as $pair) {
-                if (! is_array($pair) || ! is_string($pair['left_id'] ?? null) || ! is_string($pair['right_id'] ?? null)) {
+                if (is_array($pair) === false || is_string($pair['left_id'] ?? null) === false || is_string($pair['right_id'] ?? null) === false) {
                     throw $this->invalidAnswer('Each matching pair requires left_id and right_id.');
                 }
             }
@@ -709,7 +720,7 @@ final class AttemptService
             return;
         }
 
-        if ($kind === 'short_text' && (! is_string($value) || trim($value) === '' || mb_strlen($value) > 5000)) {
+        if ($kind === 'short_text' && (is_string($value) === false || trim($value) === '' || mb_strlen($value) > 5000)) {
             throw $this->invalidAnswer('Value must be non-empty text no longer than 5000 characters.');
         }
     }
@@ -748,7 +759,7 @@ final class AttemptService
         if ((is_int($contract['value'] ?? null) || is_float($contract['value'] ?? null))
             && (is_int($value) || is_float($value))) {
             $tolerance = $contract['tolerance'] ?? 0;
-            if (! is_int($tolerance) && ! is_float($tolerance)) {
+            if (is_int($tolerance) === false && is_float($tolerance) === false) {
                 return false;
             }
 
@@ -759,7 +770,7 @@ final class AttemptService
             $caseSensitive = (bool) ($contract['case_sensitive'] ?? false);
             $candidate = trim($value);
             foreach ($contract['accepted_answers'] as $accepted) {
-                if (! is_string($accepted)) {
+                if (is_string($accepted) === false) {
                     continue;
                 }
                 if ($caseSensitive ? hash_equals($accepted, $candidate) : mb_strtolower($accepted) === mb_strtolower($candidate)) {
