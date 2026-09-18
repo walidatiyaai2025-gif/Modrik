@@ -1,5 +1,5 @@
 schema_version: 1.0.0
-updated: 2026-08-28
+updated: 2026-09-18
 governance_id: GOV-SURFACE-001
 source:
   - MODRIK_Master_Product_Engineering_Plan_v1.5_CODEX_READY
@@ -23,6 +23,12 @@ capabilities:
     surface: ContentOperations
     status: present
     notes: Integrated by PR #201. Guided lifecycle entry point with KPI summary links Academic Track, Preparation, Ingestion/Processing, Rights, Review/Publish, exception triage and traceability while preserving Backend authority.
+  - id: admin.content.real_pilot_materials
+    area: content
+    classification: read_only_operational
+    surface: RealPilotMaterials / ContentOperations
+    status: present
+    notes: Issue #362 registers owner-supplied real pilot source evidence by SHA-256 fingerprint and source-derived segmentation. Raw source binaries are not committed; unknown academic mappings, rights review and PII redaction fail closed, and this surface creates no student-delivery or Question Bank publication authority.
   - id: admin.content.rights
     area: content
     classification: admin_manageable
