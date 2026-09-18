@@ -5,7 +5,7 @@
   "integration_issue": 363,
   "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
-  "overall_readiness_percent": 0,
+  "overall_readiness_percent": 14,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
@@ -224,15 +224,23 @@
         "demo_package_run": 35367109866,
         "demo_package_number": 550,
         "conclusion": "success"
+      },
+      "exact_main_ci": {
+        "bootstrap_run": 35367767683,
+        "bootstrap_number": 1512,
+        "unified_release_run": 35367767573,
+        "unified_release_number": 207,
+        "dependency_review": "skipped_on_push",
+        "conclusion": "success"
       }
     }
   ],
   "notes": [
-    "Readiness remains 0 until objective domain percentages are reconciled; this L11 update records evidence/blockers without inventing readiness credit.",
+    "Overall readiness is 14% from the reconciled 100% Assessment domain (weight 14); unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
     "L11 Real Content Pilot engineering/evidence is integrated, but acceptance remains blocked_owner_last by missing owner-approved academic scope, rights approval, Year 7 source material and unresolved source-year mapping/PII inputs.",
     "Exact-main governed CI is green for the L11 integration evidence SHAs recorded above. The global exact_main_governed_ci_green mandatory gate remains unreconciled until the final program composition is verified.",
     "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger.",
     "Assessment Runtime (#355) is reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation.",
-    "The assessment domain is 100% evidenced, but overall_readiness_percent remains 0 until the Integration Captain performs a separate global weighted-score reconciliation across all domains; children_ready remains false."
+    "The Assessment domain is 100% evidenced and contributes its full 14-point weight to overall_readiness_percent; children_ready remains false because the remaining mandatory gates are not all PASS."
   ]
 }
