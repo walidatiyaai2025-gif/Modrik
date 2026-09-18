@@ -6,6 +6,7 @@ use App\Filament\Pages\ContentIngestionOperations;
 use App\Filament\Pages\ContentOperations;
 use App\Filament\Pages\ContentReviewExceptions;
 use App\Filament\Pages\ContentTraceability;
+use App\Filament\Pages\RealPilotMaterials;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
@@ -33,6 +34,7 @@ class AdminContentOperationsTest extends TestCase
                 ->assertSee('Rights')
                 ->assertSee('Review & Publish')
                 ->assertSee('Prompt Library')
+                ->assertSee('Real Pilot Materials')
                 ->assertSee('Review Exceptions')
                 ->assertSee('Traceability & Versions')
                 ->assertSee('Publication authority is preserved');
@@ -50,6 +52,7 @@ class AdminContentOperationsTest extends TestCase
         $this->assertFalse(ContentIngestionOperations::canAccess());
         $this->assertFalse(ContentReviewExceptions::canAccess());
         $this->assertFalse(ContentTraceability::canAccess());
+        $this->assertFalse(RealPilotMaterials::canAccess());
     }
 
     public function test_content_operations_navigation_is_localized_and_rtl_safe(): void
@@ -62,18 +65,22 @@ class AdminContentOperationsTest extends TestCase
         $this->assertSame('Ingestion & Processing', ContentIngestionOperations::getNavigationLabel());
         $this->assertSame('Review Exceptions', ContentReviewExceptions::getNavigationLabel());
         $this->assertSame('Traceability & Versions', ContentTraceability::getNavigationLabel());
+        $this->assertSame('Real Pilot Materials', RealPilotMaterials::getNavigationLabel());
         App::setLocale('fr');
         $this->assertSame('Opérations de contenu', ContentOperations::getNavigationLabel());
         $this->assertSame('Ingestion et traitement', ContentIngestionOperations::getNavigationLabel());
         $this->assertSame('Exceptions de révision', ContentReviewExceptions::getNavigationLabel());
         $this->assertSame('Traçabilité et versions', ContentTraceability::getNavigationLabel());
+        $this->assertSame('Matériaux pilotes réels', RealPilotMaterials::getNavigationLabel());
         App::setLocale('ar');
         $this->assertSame('عمليات المحتوى', ContentOperations::getNavigationLabel());
         $this->assertSame('الاستيعاب والمعالجة', ContentIngestionOperations::getNavigationLabel());
         $this->assertSame('استثناءات المراجعة', ContentReviewExceptions::getNavigationLabel());
         $this->assertSame('التتبع والإصدارات', ContentTraceability::getNavigationLabel());
+        $this->assertSame('مواد التجربة الحقيقية', RealPilotMaterials::getNavigationLabel());
         Livewire::test(ContentReviewExceptions::class)->assertSee('dir="rtl"', false);
         Livewire::test(ContentTraceability::class)->assertSee('dir="rtl"', false);
+        Livewire::test(RealPilotMaterials::class)->assertSee('dir="rtl"', false);
     }
 
     public function test_ingestion_surface_starts_with_empty_state_and_metrics(): void
@@ -222,7 +229,7 @@ class AdminContentOperationsTest extends TestCase
         $this->assertSame(['required', 'active', 'active', 'gate', 'gate'], array_column($steps, 'state'));
         $this->assertNotContains('', array_column($steps, 'url'));
         $supporting = $operations->supportingSurfaces();
-        $this->assertCount(3, $supporting);
+        $this->assertCount(4, $supporting);
         $this->assertNotContains('', array_column($supporting, 'url'));
         foreach ($operations->deferredCapabilities() as $capability) {
             $this->assertSame('deferred_disabled', $capability['classification']);
