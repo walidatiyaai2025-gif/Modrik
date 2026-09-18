@@ -855,7 +855,10 @@ final class QuestionBankWorkbenchService
         return $result;
     }
 
-    /** @param callable(string, string, string): void $error */
+    /**
+     * @param  array<string, mixed>  $item
+     * @param  callable(string, string, string): void  $error
+     */
     private function validateTypeContract(mixed $type, array $item, string $pointer, callable $error): void
     {
         $contract = $item['answer_contract'] ?? [];
