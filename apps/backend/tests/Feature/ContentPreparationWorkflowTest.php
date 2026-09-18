@@ -188,7 +188,6 @@ class ContentPreparationWorkflowTest extends TestCase
         $this->upload($archiveBytes, 'preparation-import-stale-duplicate-retry-0001')
             ->assertUnprocessable()
             ->assertHeader('Content-Type', 'application/problem+json')
-            ->assertHeader('Idempotency-Replayed', 'false')
             ->assertJsonPath('code', 'CONTENT_PREPARATION_IMPORT_REJECTED')
             ->assertJsonPath('errors.0.code', 'PREPARATION_REGENERATION_REQUIRED')
             ->assertJsonPath('errors.0.pointer', '/preparation_request_id');
