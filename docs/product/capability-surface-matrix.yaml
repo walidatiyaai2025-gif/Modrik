@@ -288,3 +288,10 @@ capabilities:
     surface: Backend contracts/tests; #356 owns the mastery algorithm and future operational visibility
     status: foundation_present
     notes: Issue #353 provides persistence only for versioned Student×Skill mastery state bound to academic context. It does not expose client mutation or invent a mastery formula.
+
+  - id: admin.learning.operations
+    area: operations
+    classification: admin_manageable
+    surface: LearningOperationsControl / OperationsControlCenter
+    status: present
+    notes: Issue #361 provides Admin-only versioned feature states and bounded rollout scopes, kill switches, job pause/resume, run-now for currently implemented DB-backed jobs, truthful blocked_dependency state for future mastery/adaptive/external-delivery jobs, immutable audit/run history and no secret/scoring/privacy/publication-integrity editing.
