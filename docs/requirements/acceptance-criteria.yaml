@@ -103,3 +103,12 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-016]
     statement: Student×Skill mastery state is persisted as a Backend-owned versioned projection bound to user, academic context and skill; no client may author mastery and no #353 foundation code invents the later mastery algorithm.
     verification: migration/schema tests, authorization architecture review, and MariaDB migration job
+
+  - id: AC-P0-029
+    requirement_ids: [REQ-P0-018]
+    statement: Learning feature state changes are Admin-only, reasoned, versioned, audited and bounded to the allowlisted enabled/disabled/pilot/admin-only states and safe rollout scopes; invariant security/scoring/privacy/publication controls are absent from the mutable inventory.
+    verification: Backend service, Livewire RBAC, stale-version and capability-surface tests
+  - id: AC-P0-030
+    requirement_ids: [REQ-P0-018]
+    statement: Learning jobs expose schedule, availability, pause state, last run/status/duration/counts and next-run evidence; bounded database-backed Run Now records durable run history only for implemented handlers while unmet mastery/adaptive/external-delivery dependencies fail closed as blocked_dependency.
+    verification: Backend job-control tests, MariaDB migration round-trip and Admin acceptance
