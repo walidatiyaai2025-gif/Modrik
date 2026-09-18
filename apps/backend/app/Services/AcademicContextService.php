@@ -30,7 +30,7 @@ final class AcademicContextService
                 throw new ApiProblemException(409, $code, 'Academic context cannot be activated', $detail);
             }
 
-            return $this->createContext($user, $track, null, 'activated', 0, 0);
+            return $this->createContext($user, $track, null, 'activated', 0, 0, 0);
         });
     }
 
@@ -58,6 +58,13 @@ final class AcademicContextService
                 ->whereNull('archived_at')
                 ->count();
 
+            $masteryStates = DB::table('student_skill_mastery_states')
+                ->where('academic_context_id', $current['id'])
+                ->where('user_id', $user->getKey())
+                ->whereNull('archived_at')
+                ->get(['id', 'skill_node_id', 'state_version', 'mastery_score', 'confidence', 'evidence_count']);
+            $masteryCount = $masteryStates->count();
+
             DB::table('attempts')
                 ->where('academic_context_id', $current['id'])
                 ->where('status', 'in_progress')
@@ -74,6 +81,34 @@ final class AcademicContextService
                 ->where('academic_context_id', $current['id'])
                 ->whereNull('archived_at')
                 ->update(['archived_at' => $occurredAt, 'updated_at' => $occurredAt]);
+            DB::table('student_skill_mastery_states')
+                ->where('academic_context_id', $current['id'])
+                ->where('user_id', $user->getKey())
+                ->whereNull('archived_at')
+                ->update(['archived_at' => $occurredAt, 'updated_at' => $occurredAt]);
+
+            foreach ($masteryStates as $masteryState) {
+                DB::table('outbox_events')->insert([
+                    'id' => (string) Str::ulid(),
+                    'aggregate_type' => 'student_skill_mastery',
+                    'aggregate_id' => (string) $masteryState->id,
+                    'event_type' => 'mastery.state_archived',
+                    'payload' => json_encode([
+                        'user_id' => (string) $user->getKey(),
+                        'academic_context_id' => $current['id'],
+                        'skill_node_id' => (string) $masteryState->skill_node_id,
+                        'state_version' => (int) $masteryState->state_version,
+                        'score_ratio' => $masteryState->mastery_score === null ? null : (float) $masteryState->mastery_score,
+                        'confidence' => $masteryState->confidence === null ? null : (float) $masteryState->confidence,
+                        'evidence_count' => (int) $masteryState->evidence_count,
+                        'reason' => 'academic_context_reset',
+                    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                    'occurred_at' => $occurredAt,
+                    'created_at' => $occurredAt,
+                    'updated_at' => $occurredAt,
+                ]);
+            }
+
             DB::table('user_academic_contexts')
                 ->where('id', $current['id'])
                 ->update([
@@ -89,6 +124,7 @@ final class AcademicContextService
                 'reset',
                 $attemptCount,
                 $progressCount,
+                $masteryCount,
                 $occurredAt,
             );
         });
@@ -134,6 +170,7 @@ final class AcademicContextService
         string $action,
         int $archivedAttemptCount,
         int $archivedProgressCount,
+        int $archivedMasteryCount,
         ?Carbon $occurredAt = null,
     ): array {
         $occurredAt ??= now();
@@ -171,6 +208,7 @@ final class AcademicContextService
                 'previous_context_id' => $fromContextId,
                 'archived_attempt_count' => $archivedAttemptCount,
                 'archived_progress_count' => $archivedProgressCount,
+                'archived_mastery_count' => $archivedMasteryCount,
             ];
         }
         DB::table('outbox_events')->insert([
