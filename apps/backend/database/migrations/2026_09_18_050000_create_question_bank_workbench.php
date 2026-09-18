@@ -81,7 +81,7 @@ return new class extends Migration
         Schema::create('question_bank_workflow_audits', function (Blueprint $table): void {
             $table->ulid('id')->primary();
             $table->foreignUlid('question_bank_import_id')->nullable()->constrained('question_bank_imports')->cascadeOnDelete();
-            $table->foreignUlid('question_bank_import_item_id')->nullable()->constrained('question_bank_import_items')->cascadeOnDelete();
+            $table->foreignUlid('question_bank_import_item_id')->nullable()->constrained('question_bank_import_items', indexName: 'qb_audit_item_fk')->cascadeOnDelete();
             $table->foreignUlid('source_material_id')->nullable()->constrained('question_bank_source_materials')->restrictOnDelete();
             $table->foreignUlid('actor_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('action', 64);
