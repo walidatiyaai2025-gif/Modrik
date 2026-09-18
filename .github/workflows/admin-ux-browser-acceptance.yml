@@ -155,6 +155,7 @@ jobs:
               { name: 'assessment-question-bank', url: '/admin/assessment-question-bank', selector: '[data-testid="modrik-assessment-question-bank"]' },
               { name: 'assessment-quality-review', url: '/admin/assessment-quality-review', selector: '[data-testid="modrik-assessment-quality-review"]' },
               { name: 'content-preparation', url: '/admin/content-preparation', selector: '[data-testid="modrik-content-preparation"]' },
+              { name: 'question-bank-workbench', url: '/admin/question-bank-workbench', selector: '[data-testid="modrik-question-bank-workbench"]' },
               { name: 'content-rights-review', url: '/admin/content-rights-review', selector: '[data-testid="modrik-content-rights-review"]' },
               { name: 'system-settings', url: '/admin/system-settings', selector: '[data-testid="modrik-system-settings"]' },
               { name: 'authentication-providers', url: '/admin/authentication-providers', selector: '[data-testid="modrik-auth-providers"]' },
@@ -226,7 +227,7 @@ jobs:
             fs.writeFileSync(
               path.join(out, 'acceptance.json'),
               JSON.stringify({
-                schema_version: 'modrik.admin-ux-browser-acceptance.v7',
+                schema_version: 'modrik.admin-ux-browser-acceptance.v8',
                 expected_sha: process.env.EXPECTED_SHA,
                 status: 'PASS',
                 surfaces: surfaces.map(({ name, url }) => ({ name, url })),
