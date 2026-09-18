@@ -58,10 +58,14 @@ final class RealPilotMaterialsTest extends TestCase
         $this->assertSame(0, $metrics['delivery_eligible']);
 
         foreach ($materials as $material) {
-            $this->assertSame('pending_review', $material['rights']['status']);
-            $this->assertFalse($material['delivery_eligible']);
-            $this->assertSame('fingerprinted_owner_supplied_not_in_repo', $material['storage']['state']);
-            $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string) $material['sha256']);
+            $rights = $material['rights'] ?? null;
+            $storage = $material['storage'] ?? null;
+            $this->assertIsArray($rights);
+            $this->assertIsArray($storage);
+            $this->assertSame('pending_review', $rights['status'] ?? null);
+            $this->assertFalse((bool) ($material['delivery_eligible'] ?? true));
+            $this->assertSame('fingerprinted_owner_supplied_not_in_repo', $storage['state'] ?? null);
+            $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string) ($material['sha256'] ?? ''));
         }
     }
 
@@ -72,34 +76,44 @@ final class RealPilotMaterialsTest extends TestCase
 
         /** @var RealPilotMaterials $page */
         $page = Livewire::test(RealPilotMaterials::class)->instance();
-        $book = collect($page->materials())->firstWhere('source_id', 'pilot-y6-arabic-kuwait-2025-2026-t2-part1');
+        $book = $this->materialById($page, 'pilot-y6-arabic-kuwait-2025-2026-t2-part1');
 
-        $this->assertIsArray($book);
+        $sourceClaims = $book['source_claims'] ?? null;
+        $mapping = $book['curriculum_mapping'] ?? null;
+        $segments = $book['segments'] ?? null;
+        $outcomes = $book['learning_outcome_families'] ?? null;
+        $this->assertIsArray($sourceClaims);
+        $this->assertIsArray($mapping);
+        $this->assertIsArray($segments);
+        $this->assertIsArray($outcomes);
+
         $this->assertSame(
             '8753a45a324214b59f5688219189ef662c425636303a546a12f889f40a3c1a24',
-            $book['sha256'],
+            $book['sha256'] ?? null,
         );
-        $this->assertSame(157, $book['page_count']);
-        $this->assertSame('Grade 6', $book['source_claims']['year_level']);
-        $this->assertSame('Second term', $book['source_claims']['term']);
-        $this->assertSame('Part 1', $book['source_claims']['part']);
-        $this->assertSame('partial_source_verified', $book['curriculum_mapping']['status']);
-        $this->assertNull($book['curriculum_mapping']['track_reference']);
-        $this->assertGreaterThanOrEqual(30, count($book['segments']));
-        $this->assertContains('reading', $book['learning_outcome_families']);
-        $this->assertContains('grammar', $book['learning_outcome_families']);
-        $this->assertContains('listening', $book['learning_outcome_families']);
+        $this->assertSame(157, $book['page_count'] ?? null);
+        $this->assertSame('Grade 6', $sourceClaims['year_level'] ?? null);
+        $this->assertSame('Second term', $sourceClaims['term'] ?? null);
+        $this->assertSame('Part 1', $sourceClaims['part'] ?? null);
+        $this->assertSame('partial_source_verified', $mapping['status'] ?? null);
+        $this->assertNull($mapping['track_reference'] ?? null);
+        $this->assertGreaterThanOrEqual(30, count($segments));
+        $this->assertContains('reading', $outcomes);
+        $this->assertContains('grammar', $outcomes);
+        $this->assertContains('listening', $outcomes);
 
-        $firstTopic = collect($book['segments'])->firstWhere('segment_id', 'y6-ar-t2-u1-topic1-source');
-        $this->assertSame('الوحدة الأولى', $firstTopic['unit']);
-        $this->assertSame('آيات من سورة القصص', $firstTopic['topic']);
-        $this->assertSame(18, $firstTopic['printed_page_start']);
-        $this->assertSame(19, $firstTopic['pdf_page_start']);
+        $firstTopic = $this->segmentById($segments, 'y6-ar-t2-u1-topic1-source');
+        $this->assertSame('الوحدة الأولى', $firstTopic['unit'] ?? null);
+        $this->assertSame('آيات من سورة القصص', $firstTopic['topic'] ?? null);
+        $this->assertSame(18, $firstTopic['printed_page_start'] ?? null);
+        $this->assertSame(19, $firstTopic['pdf_page_start'] ?? null);
 
-        $secondUnitLetter = collect($book['segments'])->firstWhere('segment_id', 'y6-ar-t2-u2-topic1-writing-letter');
-        $this->assertSame('الوحدة الثانية', $secondUnitLetter['unit']);
-        $this->assertSame('هذي بلادي', $secondUnitLetter['topic']);
-        $this->assertContains('letter_writing', $secondUnitLetter['skill_families']);
+        $secondUnitLetter = $this->segmentById($segments, 'y6-ar-t2-u2-topic1-writing-letter');
+        $skillFamilies = $secondUnitLetter['skill_families'] ?? null;
+        $this->assertIsArray($skillFamilies);
+        $this->assertSame('الوحدة الثانية', $secondUnitLetter['unit'] ?? null);
+        $this->assertSame('هذي بلادي', $secondUnitLetter['topic'] ?? null);
+        $this->assertContains('letter_writing', $skillFamilies);
     }
 
     public function test_unknown_year_materials_are_not_silently_promoted_to_year6_or_year7(): void
@@ -110,16 +124,24 @@ final class RealPilotMaterialsTest extends TestCase
         /** @var RealPilotMaterials $page */
         $page = Livewire::test(RealPilotMaterials::class)->instance();
 
-        $fanboys = collect($page->materials())->firstWhere('source_id', 'pilot-en-fanboys-completed-worksheet');
-        $this->assertSame('mapping_required', $fanboys['curriculum_mapping']['status']);
-        $this->assertNull($fanboys['curriculum_mapping']['year_level']);
-        $this->assertSame('pii_redaction_required', $fanboys['privacy']['status']);
+        $fanboys = $this->materialById($page, 'pilot-en-fanboys-completed-worksheet');
+        $fanboysMapping = $fanboys['curriculum_mapping'] ?? null;
+        $fanboysPrivacy = $fanboys['privacy'] ?? null;
+        $this->assertIsArray($fanboysMapping);
+        $this->assertIsArray($fanboysPrivacy);
+        $this->assertSame('mapping_required', $fanboysMapping['status'] ?? null);
+        $this->assertNull($fanboysMapping['year_level'] ?? null);
+        $this->assertSame('pii_redaction_required', $fanboysPrivacy['status'] ?? null);
         $this->assertArrayNotHasKey('student_name', $fanboys);
 
-        $grade5 = collect($page->materials())->firstWhere('source_id', 'pilot-math-subtracting-integers-grade5');
-        $this->assertSame('Grade 5', $grade5['content_summary']['source_grade_label']);
-        $this->assertNull($grade5['curriculum_mapping']['year_level']);
-        $this->assertSame('mapping_required', $grade5['curriculum_mapping']['status']);
+        $grade5 = $this->materialById($page, 'pilot-math-subtracting-integers-grade5');
+        $grade5Summary = $grade5['content_summary'] ?? null;
+        $grade5Mapping = $grade5['curriculum_mapping'] ?? null;
+        $this->assertIsArray($grade5Summary);
+        $this->assertIsArray($grade5Mapping);
+        $this->assertSame('Grade 5', $grade5Summary['source_grade_label'] ?? null);
+        $this->assertNull($grade5Mapping['year_level'] ?? null);
+        $this->assertSame('mapping_required', $grade5Mapping['status'] ?? null);
     }
 
     public function test_navigation_label_is_localized(): void
@@ -135,5 +157,36 @@ final class RealPilotMaterialsTest extends TestCase
         $this->assertSame('مواد التجربة الحقيقية', RealPilotMaterials::getNavigationLabel());
 
         Livewire::test(RealPilotMaterials::class)->assertSee('dir="rtl"', false);
+    }
+
+    /** @return array<string, mixed> */
+    private function materialById(RealPilotMaterials $page, string $sourceId): array
+    {
+        foreach ($page->materials() as $material) {
+            if (($material['source_id'] ?? null) === $sourceId) {
+                return $material;
+            }
+        }
+
+        self::fail('Missing pilot material '.$sourceId);
+
+        return [];
+    }
+
+    /**
+     * @param  array<mixed>  $segments
+     * @return array<string, mixed>
+     */
+    private function segmentById(array $segments, string $segmentId): array
+    {
+        foreach ($segments as $segment) {
+            if (is_array($segment) && ($segment['segment_id'] ?? null) === $segmentId) {
+                return $segment;
+            }
+        }
+
+        self::fail('Missing pilot source segment '.$segmentId);
+
+        return [];
     }
 }
