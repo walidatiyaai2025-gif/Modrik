@@ -80,7 +80,7 @@ final class LearningOperationsService
     }
 
     /**
-     * @param array<string, mixed>|null $scope
+     * @param  array<string, mixed>|null  $scope
      * @return array<string, mixed>
      */
     public function updateFeature(
@@ -95,14 +95,14 @@ final class LearningOperationsService
         if ($definition === null) {
             throw new InvalidArgumentException('Unknown learning feature.');
         }
-        if (! in_array($state, ['disabled', 'enabled', 'pilot', 'admin_only'], true)) {
+        if (in_array($state, ['disabled', 'enabled', 'pilot', 'admin_only'], true) === false) {
             throw new InvalidArgumentException('Invalid learning feature state.');
         }
         $reason = trim($reason);
         if (mb_strlen($reason) < 8 || mb_strlen($reason) > 500) {
             throw new InvalidArgumentException('A change reason between 8 and 500 characters is required.');
         }
-        if (! $definition['scope_allowed'] && $scope !== null && $scope !== []) {
+        if ($definition['scope_allowed'] === false && $scope !== null && $scope !== []) {
             throw new InvalidArgumentException('This feature does not support a scoped rollout.');
         }
         $scope = $this->normalizeScope($scope);
@@ -379,7 +379,7 @@ final class LearningOperationsService
         return DB::table('learning_job_controls')->where('id', $id)->lockForUpdate()->firstOrFail();
     }
 
-    /** @param array<string, mixed>|null $scope */
+    /** @param  array<string, mixed>|null  $scope */
     private function normalizeScope(?array $scope): ?array
     {
         if ($scope === null || $scope === []) {
@@ -393,15 +393,15 @@ final class LearningOperationsService
 
         $normalized = [];
         foreach ($scope as $key => $values) {
-            if (! is_array($values) || ! array_is_list($values) || count($values) > 100) {
+            if (is_array($values) === false || array_is_list($values) === false || count($values) > 100) {
                 throw new InvalidArgumentException('Learning feature scopes must be bounded lists.');
             }
             $items = [];
             foreach ($values as $value) {
-                if (! is_string($value) || trim($value) === '' || mb_strlen($value) > 160) {
+                if (is_string($value) === false || trim($value) === '' || mb_strlen($value) > 160) {
                     throw new InvalidArgumentException('Learning feature scope values must be bounded strings.');
                 }
-                if ($key === 'user_ids' && ! Str::isUlid($value)) {
+                if ($key === 'user_ids' && Str::isUlid($value) === false) {
                     throw new InvalidArgumentException('Learning feature user scope values must be ULIDs.');
                 }
                 $items[] = trim($value);
@@ -456,7 +456,7 @@ final class LearningOperationsService
     private function decodeObject(string $json): array
     {
         $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        if (! is_array($decoded) || array_is_list($decoded)) {
+        if (is_array($decoded) === false || array_is_list($decoded)) {
             throw new InvalidArgumentException('Stored learning operations JSON is invalid.');
         }
 
