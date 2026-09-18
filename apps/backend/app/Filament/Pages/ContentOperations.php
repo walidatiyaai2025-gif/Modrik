@@ -125,6 +125,12 @@ final class ContentOperations extends Page
 
         return [
             [
+                'label' => $label('مكتبة الـPrompt', 'Prompt Library', 'Bibliothèque de prompts'),
+                'description' => $label('اعرض الـPrompt المعتمد وإصداره والـSchema المتوافق ونموذج الناتج لاستخدامه يدويًا خارج وقت التشغيل.', 'Open the approved prompt, version, compatible schema and sample output for manual use outside runtime.', 'Ouvrez le prompt approuvé, sa version, le schéma compatible et un exemple pour une utilisation manuelle hors runtime.'),
+                'url' => PromptLibrary::getUrl(),
+                'state' => 'active',
+            ],
+            [
                 'label' => $label('استثناءات المراجعة', 'Review Exceptions', 'Exceptions de révision'),
                 'description' => $label('فرز الحواجز والفشل والحقوق وطلبات الإصلاح من الإشارات المحفوظة.', 'Triage blockers, failures, rights gates and fix requests from persisted signals.', 'Triez les blocages, échecs, contrôles de droits et demandes de correction depuis les signaux persistés.'),
                 'url' => ContentReviewExceptions::getUrl(),
