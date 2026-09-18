@@ -297,6 +297,11 @@ final class QuestionBankWorkbench extends Page
         }
     }
 
+    public function promptLibraryUrl(): string
+    {
+        return PromptLibrary::getUrl();
+    }
+
     /** @return array<string, string> */
     public function curriculumOptions(string $importId): array
     {
