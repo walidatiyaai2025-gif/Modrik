@@ -115,6 +115,15 @@ final class ContentPreparationService
             if ($preparation === null) {
                 $this->reject('PREPARATION_REQUEST_NOT_FOUND', 'The bound preparation request does not exist.', '/preparation_request_id', $manifest);
             }
+            if ((string) $preparation->status === 'superseded' || $preparation->superseded_by_request_id !== null) {
+                $this->reject(
+                    'PREPARATION_REGENERATION_REQUIRED',
+                    'This preparation request is stale because its settings were replaced. Generate a new prompt and bundle before importing returned content.',
+                    '/preparation_request_id',
+                    $manifest,
+                );
+            }
+
             /** @var array<string, mixed> $requestRow */
             $requestRow = (array) $preparation;
             $rightsStatus = (string) $manifest['provenance']['rights_status'];
