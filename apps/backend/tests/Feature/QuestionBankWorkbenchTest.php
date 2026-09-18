@@ -263,6 +263,8 @@ final class QuestionBankWorkbenchTest extends TestCase
         $pack = $this->validPack();
         $pack['items'][0]['academic_scope']['skill'] = null;
         $pack['items'][0]['academic_scope']['topic'] = null;
+        $pack['items'][0]['academic_scope']['unit'] = null;
+        $pack['items'][0]['academic_scope']['subject'] = null;
         $pack['items'][0]['learning_objective'] = null;
 
         $stage = $this->workbench->stage($this->admin, $this->encodeJson($pack));
