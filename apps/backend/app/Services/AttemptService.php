@@ -14,22 +14,11 @@ final class AttemptService
 {
     public const ORDERING_ALGORITHM = AssessmentEngine::ALGORITHM;
 
-    private readonly AssessmentEngine $engine;
-
-    private readonly AssessmentModePolicy $modePolicy;
-
-    private readonly DeterministicQuestionTemplateService $templates;
-
     public function __construct(
-        AssessmentEngine $engine,
-        AssessmentModePolicy $modePolicy,
-        DeterministicQuestionTemplateService $templates,
-    )
-    {
-        $this->engine = $engine;
-        $this->modePolicy = $modePolicy;
-        $this->templates = $templates;
-    }
+        private readonly AssessmentEngine $engine,
+        private readonly AssessmentModePolicy $modePolicy,
+        private readonly DeterministicQuestionTemplateService $templates,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -312,8 +301,7 @@ final class AttemptService
         mixed $value,
         int $durationMs = 0,
         int $hintCount = 0,
-    ): array
-    {
+    ): array {
         $attempt = $this->ownedAttempt($user, $attemptId, lock: true);
         if ($attempt['status'] !== 'in_progress') {
             throw new ApiProblemException(409, 'ATTEMPT_NOT_EDITABLE', 'Attempt is not editable', 'Answers cannot change after an attempt is submitted.');
