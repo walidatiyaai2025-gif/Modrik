@@ -130,8 +130,9 @@ final class RealPilotCoverageReportTest extends TestCase
         return $decoded;
     }
 
-    /** @param array<string, mixed> $manifest
-     *  @return array<string, mixed>
+    /**
+     * @param  array<string, mixed>  $manifest
+     * @return array<string, mixed>
      */
     private function materialById(array $manifest, string $sourceId): array
     {
