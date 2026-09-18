@@ -43,7 +43,7 @@ return new class extends Migration
             $table->timestamp('suspended_at')->nullable();
             $table->timestamp('archived_at')->nullable();
             $table->timestamps();
-            $table->unique(['uploaded_by', 'content_hash'], 'qb_import_actor_content_unique');
+            $table->index(['uploaded_by', 'content_hash'], 'qb_import_actor_content_idx');
             $table->index(['status', 'created_at'], 'qb_import_status_time_idx');
         });
 
