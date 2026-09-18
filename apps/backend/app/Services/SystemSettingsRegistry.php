@@ -27,6 +27,9 @@ final class SystemSettingsRegistry
         'firebase.remote_config.enabled' => ['type' => 'boolean', 'default' => false, 'group' => 'firebase', 'rollback' => true],
         'ads.global.enabled' => ['type' => 'boolean', 'default' => true, 'group' => 'ads', 'rollback' => true],
         'ads.test_mode.enabled' => ['type' => 'boolean', 'default' => true, 'group' => 'ads', 'rollback' => true],
+        'learning.mastery.band.critical_max' => ['type' => 'integer', 'default' => 39, 'group' => 'learning', 'rollback' => true],
+        'learning.mastery.band.weak_max' => ['type' => 'integer', 'default' => 59, 'group' => 'learning', 'rollback' => true],
+        'learning.mastery.band.developing_max' => ['type' => 'integer', 'default' => 79, 'group' => 'learning', 'rollback' => true],
     ];
 
     /**
