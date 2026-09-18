@@ -269,3 +269,22 @@ capabilities:
     classification: deferred_disabled
     surface: null
     status: activation_gated
+
+  - id: learning.foundation.skill_objectives
+    area: learning
+    classification: internal_non_editable
+    surface: Backend contracts/tests; future authorized Content Workbench consumes this primitive
+    status: foundation_present
+    notes: Issue #353 reuses curriculum_nodes as the single hierarchy authority and defines skill as a canonical node type with first-class localized learning objectives. No separate curriculum tree or hidden operator mutation route is introduced.
+  - id: learning.foundation.question_contract
+    area: learning
+    classification: internal_non_editable
+    surface: Backend contracts/tests; AssessmentQuestionBank remains read-only until lifecycle mutation is authorized
+    status: foundation_present
+    notes: Issue #353 extends the existing questions authority with objective linkage, normalized difficulty, static/template generation kind, source provenance and review/publication metadata. Correct answers and lifecycle authority remain Backend-owned.
+  - id: learning.foundation.skill_mastery_state
+    area: learning
+    classification: internal_non_editable
+    surface: Backend contracts/tests; #356 owns the mastery algorithm and future operational visibility
+    status: foundation_present
+    notes: Issue #353 provides persistence only for versioned Student×Skill mastery state bound to academic context. It does not expose client mutation or invent a mastery formula.
