@@ -630,7 +630,7 @@ final class MasteryEngine
     }
 
     /**
-     * @param array{score_ratio:float, confidence:float, evidence_count:int, last_evidence_at:string|null} $calculation
+     * @param  array{score_ratio:float, confidence:float, evidence_count:int, last_evidence_at:string|null}  $calculation
      */
     private function sameState(object $row, array $calculation): bool
     {
