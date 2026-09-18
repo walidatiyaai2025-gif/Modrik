@@ -585,11 +585,7 @@ final class AttemptService
 
     /**
      * @param  list<array<string, mixed>>  $options
-     * @return array<string, mixed>
-     */
-    /**
-     * @param list<array<string, mixed>> $options
-     * @param array<string, mixed> $gradingContract
+     * @param  array<string, mixed>  $gradingContract
      * @return array<string, mixed>
      */
     private function publicResponseContract(string $type, array $options, array $gradingContract): array
@@ -617,7 +613,7 @@ final class AttemptService
     }
 
     /**
-     * @param array<string, mixed> $snapshot
+     * @param  array<string, mixed>  $snapshot
      */
     private function validateAnswerValue(array $snapshot, mixed $value): void
     {
@@ -679,7 +675,7 @@ final class AttemptService
         }
 
         if ($kind === 'ordering') {
-            if (! is_array($value) || ! array_is_list($value) || $value === []) {
+            if (is_array($value) === false || array_is_list($value) === false || $value === []) {
                 throw $this->invalidAnswer('Value must be an ordered list of option identifiers.');
             }
             $allowed = is_array($contract['option_ids'] ?? null) ? $contract['option_ids'] : [];
@@ -696,7 +692,7 @@ final class AttemptService
         }
 
         if ($kind === 'matching') {
-            if (! is_array($value) || ! array_is_list($value) || $value === []) {
+            if (is_array($value) === false || array_is_list($value) === false || $value === []) {
                 throw $this->invalidAnswer('Value must be a non-empty list of matching pairs.');
             }
             foreach ($value as $pair) {
