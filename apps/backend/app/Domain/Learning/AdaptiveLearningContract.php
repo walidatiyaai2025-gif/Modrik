@@ -7,6 +7,8 @@ final class AdaptiveLearningContract
     /** @var list<string> */
     public const CURRICULUM_NODE_TYPES = ['subject', 'unit', 'topic', 'skill'];
 
+    public const SKILL_PARENT_TYPE = 'topic';
+
     /** @var list<string> */
     public const LEARNING_OBJECTIVE_STATUSES = ['draft', 'published', 'retired'];
 
@@ -28,13 +30,10 @@ final class AdaptiveLearningContract
     /** @var list<string> */
     public const QUESTION_PUBLICATION_STATUSES = [
         'draft',
-        'imported',
-        'needs_review',
-        'approved',
         'published',
+        'superseded',
         'suspended',
         'archived',
-        'rejected',
     ];
 
     /** @var list<string> */
