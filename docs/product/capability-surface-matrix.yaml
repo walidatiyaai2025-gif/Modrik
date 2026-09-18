@@ -23,6 +23,12 @@ capabilities:
     surface: ContentOperations
     status: present
     notes: Integrated by PR #201. Guided lifecycle entry point with KPI summary links Academic Track, Preparation, Ingestion/Processing, Rights, Review/Publish, exception triage and traceability while preserving Backend authority.
+  - id: admin.content.question_bank_workbench
+    area: content
+    classification: admin_manageable
+    surface: QuestionBankWorkbench / ContentOperations
+    status: present
+    notes: Issue #354 provides governed modrik-question-bank-v1 upload, preparation binding, deterministic validation/dedup/provenance checks, explicit curriculum mapping, source-material rights evidence, reasoned review/lifecycle/bulk actions, canonical question publication, safe JSON/CSV export and immutable audit. No paid-AI runtime call or client-authoritative publication path exists.
   - id: admin.content.rights
     area: content
     classification: admin_manageable
@@ -180,10 +186,10 @@ capabilities:
     notes: Persisted question status, content version, score, assessment metadata, section/difficulty/concept identifiers, explicit option-shuffle safety, membership count and aggregate immutable snapshot usage are visible. No synthetic quality score or student-private answer history is exposed, and no write path is invented.
   - id: admin.assessment.question_lifecycle_management
     area: assessment
-    classification: read_only_operational
-    surface: AssessmentQuestionBank / AssessmentQualityReview / AssessmentOperations
-    status: backend_contract_missing
-    notes: Current Backend stores question status but has no operator-authorized service/policy contract for legal lifecycle transitions, stale edit protection and immutable audit evidence. Lifecycle therefore remains read-only.
+    classification: admin_manageable
+    surface: QuestionBankWorkbench / AssessmentQuestionBank / AssessmentQualityReview
+    status: present
+    notes: Issue #354 authorizes lifecycle transitions only for Question Bank imports created through the governed workbench. Review, rights-cleared publish, suspend, unpublish and archive are Backend-owned and audited; historical attempt snapshots remain immutable and existing questions outside this governed import lineage are not exposed to raw mutation.
   - id: admin.assessment.lifecycle_availability
     area: assessment
     classification: read_only_operational
@@ -279,9 +285,9 @@ capabilities:
   - id: learning.foundation.question_contract
     area: learning
     classification: internal_non_editable
-    surface: Backend contracts/tests; AssessmentQuestionBank remains read-only until lifecycle mutation is authorized
+    surface: Backend contracts/tests; QuestionBankWorkbench consumes this primitive through governed lifecycle authority
     status: foundation_present
-    notes: Issue #353 extends the existing questions authority with objective linkage, normalized difficulty, static/template generation kind, source provenance and review/publication metadata. Correct answers and lifecycle authority remain Backend-owned.
+    notes: Issue #353 extends the existing questions authority with objective linkage, normalized difficulty, static/template generation kind, source provenance and review/publication metadata. Issue #354 consumes that foundation through Backend-owned import/review/rights/publication services; correct answers remain private and immutable attempt snapshots remain authoritative.
   - id: learning.foundation.skill_mastery_state
     area: learning
     classification: internal_non_editable
