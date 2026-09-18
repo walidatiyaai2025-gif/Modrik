@@ -439,7 +439,7 @@ final class ContentPackArchiveValidator
                 $this->schemaFail('Short-text answer contract is invalid.', $pointer.'/answer_contract', $manifest);
             }
             foreach ($answers as $answer) {
-                if (! is_string($answer) || $answer === '') {
+                if (! is_string($answer) || trim($answer) === '') {
                     $this->schemaFail('Short-text accepted answers must be non-empty strings.', $pointer.'/answer_contract/accepted_answers', $manifest);
                 }
             }
