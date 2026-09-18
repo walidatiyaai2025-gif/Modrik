@@ -6,6 +6,7 @@ use App\Exceptions\LearningOperationBlocked;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use stdClass;
 use Throwable;
 
 final class LearningOperationsService
@@ -323,6 +324,7 @@ final class LearningOperationsService
             ->limit(max(1, min(100, $limit)))
             ->get()
             ->map(static fn (object $row): array => (array) $row)
+            ->values()
             ->all();
     }
 
@@ -337,7 +339,7 @@ final class LearningOperationsService
         return $definition;
     }
 
-    private function ensureJobControl(string $jobKey): object
+    private function ensureJobControl(string $jobKey): stdClass
     {
         $existing = DB::table('learning_job_controls')->where('job_key', $jobKey)->first();
         if ($existing !== null) {
@@ -358,7 +360,7 @@ final class LearningOperationsService
         return DB::table('learning_job_controls')->where('id', $id)->firstOrFail();
     }
 
-    private function lockJobControl(string $jobKey): object
+    private function lockJobControl(string $jobKey): stdClass
     {
         $row = DB::table('learning_job_controls')->where('job_key', $jobKey)->lockForUpdate()->first();
         if ($row !== null) {
@@ -379,7 +381,10 @@ final class LearningOperationsService
         return DB::table('learning_job_controls')->where('id', $id)->lockForUpdate()->firstOrFail();
     }
 
-    /** @param  array<string, mixed>|null  $scope */
+    /**
+     * @param  array<string, mixed>|null  $scope
+     * @return array<string, list<string>>|null
+     */
     private function normalizeScope(?array $scope): ?array
     {
         if ($scope === null || $scope === []) {
@@ -391,6 +396,7 @@ final class LearningOperationsService
             throw new InvalidArgumentException('Unknown learning feature scope field.');
         }
 
+        /** @var array<string, list<string>> $normalized */
         $normalized = [];
         foreach ($scope as $key => $values) {
             if (is_array($values) === false || array_is_list($values) === false || count($values) > 100) {
@@ -409,7 +415,7 @@ final class LearningOperationsService
             $normalized[$key] = array_values(array_unique($items));
         }
 
-        return $normalized === [] ? null : $normalized;
+        return $normalized;
     }
 
     /** @return array<string, int> */
