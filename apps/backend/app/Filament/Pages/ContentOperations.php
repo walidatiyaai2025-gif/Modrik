@@ -131,6 +131,12 @@ final class ContentOperations extends Page
                 'state' => 'active',
             ],
             [
+                'label' => $label('مواد التجربة الحقيقية', 'Real Pilot Materials', 'Matériaux pilotes réels'),
+                'description' => $label('اعرض المواد التي سلّمها المالك ببصماتها وتقسيمها وحالة الربط والحقوق والخصوصية قبل إنشاء Question Bank أو نشره.', 'Inspect owner-supplied real materials with fingerprints, segmentation, mapping, rights and privacy gates before Question Bank generation or publication.', 'Consultez les supports réels fournis avec empreintes, segmentation, mapping, droits et confidentialité avant génération ou publication de la banque de questions.'),
+                'url' => RealPilotMaterials::getUrl(),
+                'state' => 'read_only',
+            ],
+            [
                 'label' => $label('استثناءات المراجعة', 'Review Exceptions', 'Exceptions de révision'),
                 'description' => $label('فرز الحواجز والفشل والحقوق وطلبات الإصلاح من الإشارات المحفوظة.', 'Triage blockers, failures, rights gates and fix requests from persisted signals.', 'Triez les blocages, échecs, contrôles de droits et demandes de correction depuis les signaux persistés.'),
                 'url' => ContentReviewExceptions::getUrl(),
