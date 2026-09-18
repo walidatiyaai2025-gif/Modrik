@@ -496,7 +496,7 @@ final class QuestionBankWorkbenchService
     }
 
     /**
-     * @param list<string> $importIds
+     * @param  list<string>  $importIds
      * @return array<string, mixed>
      */
     public function bulk(User $user, array $importIds, string $action, string $reason): array
@@ -617,7 +617,7 @@ final class QuestionBankWorkbenchService
     }
 
     /**
-     * @param array<string, mixed> $decoded
+     * @param  array<string, mixed>  $decoded
      * @return array{errors: list<array{code: string, pointer: string, message: string}>, warnings: list<string>, unknowns: list<string>, sources: list<array{source_id: string, source_name: string}>, items: list<array<string, mixed>>}
      */
     private function validatePack(array $decoded, stdClass $request): array
@@ -824,7 +824,7 @@ final class QuestionBankWorkbenchService
     }
 
     /**
-     * @param callable(string, string, string): void $error
+     * @param  callable(string, string, string): void  $error
      * @return list<string>
      */
     private function stringList(mixed $value, int $max, callable $error, string $pointer): array
@@ -1151,7 +1151,7 @@ final class QuestionBankWorkbenchService
     }
 
     /**
-     * @param array<string, mixed> $metadata
+     * @param  array<string, mixed>  $metadata
      */
     private function audit(
         ?User $user,
