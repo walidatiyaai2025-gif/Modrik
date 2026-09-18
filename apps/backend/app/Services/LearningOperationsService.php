@@ -318,7 +318,7 @@ final class LearningOperationsService
             return [];
         }
 
-        return DB::table('learning_job_runs')
+        $history = DB::table('learning_job_runs')
             ->where('learning_job_control_id', $control->id)
             ->orderByDesc('started_at')
             ->limit(max(1, min(100, $limit)))
@@ -326,6 +326,9 @@ final class LearningOperationsService
             ->map(static fn (object $row): array => (array) $row)
             ->values()
             ->all();
+
+        /** @var list<array<string, mixed>> $history */
+        return $history;
     }
 
     /** @return array{schedule: string, dependency: string|null, runner: string|null} */
