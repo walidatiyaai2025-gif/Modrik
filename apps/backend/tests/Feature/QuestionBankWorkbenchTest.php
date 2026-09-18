@@ -91,7 +91,7 @@ final class QuestionBankWorkbenchTest extends TestCase
 
     public function test_valid_manual_pack_is_bound_mapped_rights_gated_and_published_to_canonical_question_authority(): void
     {
-        $stage = $this->workbench->stage($this->admin, $this->json($this->validPack()));
+        $stage = $this->workbench->stage($this->admin, $this->encodeJson($this->validPack()));
         self::assertSame('needs_review', $stage['import']['status']);
         self::assertSame('mapped', $stage['items'][0]['scope_state']);
         self::assertSame('pending', $stage['sources'][0]['rights_status']);
@@ -217,11 +217,11 @@ final class QuestionBankWorkbenchTest extends TestCase
 
     public function test_duplicate_questions_and_binding_mismatches_fail_closed_with_persisted_evidence(): void
     {
-        $first = $this->workbench->stage($this->admin, $this->json($this->validPack()));
+        $first = $this->workbench->stage($this->admin, $this->encodeJson($this->validPack()));
         self::assertSame('needs_review', $first['import']['status']);
 
         $duplicate = $this->validPack(packId: (string) Str::ulid());
-        $second = $this->workbench->stage($this->admin, $this->json($duplicate));
+        $second = $this->workbench->stage($this->admin, $this->encodeJson($duplicate));
         self::assertSame('rejected', $second['import']['status']);
         $summary = json_decode((string) $second['import']['validation_summary'], true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($summary);
@@ -231,7 +231,7 @@ final class QuestionBankWorkbenchTest extends TestCase
         $mismatch = $this->validPack(packId: (string) Str::ulid());
         $mismatch['settings_hash'] = str_repeat('f', 64);
         $this->expectProblem(
-            fn (): array => $this->workbench->stage($this->admin, $this->json($mismatch)),
+            fn (): array => $this->workbench->stage($this->admin, $this->encodeJson($mismatch)),
             'QUESTION_BANK_SETTINGS_MISMATCH',
         );
     }
@@ -246,7 +246,7 @@ final class QuestionBankWorkbenchTest extends TestCase
         ]);
 
         $this->expectProblem(
-            fn (): array => $this->workbench->stage($this->admin, $this->json($this->validPack())),
+            fn (): array => $this->workbench->stage($this->admin, $this->encodeJson($this->validPack())),
             'PREPARATION_REGENERATION_REQUIRED',
         );
         self::assertSame(0, DB::table('question_bank_imports')->count());
@@ -265,7 +265,7 @@ final class QuestionBankWorkbenchTest extends TestCase
         $pack['items'][0]['academic_scope']['topic'] = null;
         $pack['items'][0]['learning_objective'] = null;
 
-        $stage = $this->workbench->stage($this->admin, $this->json($pack));
+        $stage = $this->workbench->stage($this->admin, $this->encodeJson($pack));
         self::assertSame('mapping_required', $stage['items'][0]['scope_state']);
 
         $itemId = (string) $stage['items'][0]['id'];
@@ -302,7 +302,7 @@ final class QuestionBankWorkbenchTest extends TestCase
 
     public function test_json_and_csv_exports_are_traceable_and_csv_never_exposes_answer_keys(): void
     {
-        $stage = $this->workbench->stage($this->admin, $this->json($this->validPack()));
+        $stage = $this->workbench->stage($this->admin, $this->encodeJson($this->validPack()));
         $importId = (string) $stage['import']['id'];
 
         $json = $this->workbench->exportJson($importId);
@@ -323,7 +323,7 @@ final class QuestionBankWorkbenchTest extends TestCase
         Livewire::test(QuestionBankWorkbench::class)
             ->set('questionBankJson', UploadedFile::fake()->createWithContent(
                 'question-bank.json',
-                $this->json($this->validPack()),
+                $this->encodeJson($this->validPack()),
             ))
             ->call('upload')
             ->assertHasNoErrors()
@@ -335,7 +335,7 @@ final class QuestionBankWorkbenchTest extends TestCase
     /** @return array<string, mixed> */
     private function publishReadyPack(): array
     {
-        $stage = $this->workbench->stage($this->admin, $this->json($this->validPack()));
+        $stage = $this->workbench->stage($this->admin, $this->encodeJson($this->validPack()));
         $importId = (string) $stage['import']['id'];
         $this->workbench->review(
             $this->admin,
@@ -445,7 +445,7 @@ final class QuestionBankWorkbenchTest extends TestCase
         }
     }
 
-    private function json(mixed $value): string
+    private function encodeJson(mixed $value): string
     {
         return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
