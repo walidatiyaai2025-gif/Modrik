@@ -114,3 +114,11 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-021]
     status: owner_authorized_2026_08_22
+
+  - id: REQ-P0-016
+    title: Skill-first adaptive learning foundation
+    statement: MODRIK represents skills beneath curriculum topics, first-class learning objectives, versioned question foundation metadata/provenance, deterministic static/template question contracts, and Backend-owned Student×Skill mastery state without requiring paid AI at runtime.
+    area: learning
+    priority: P0
+    acceptance_criteria: [AC-P0-023, AC-P0-024, AC-P0-025]
+    status: owner_authorized_2026_09_17
