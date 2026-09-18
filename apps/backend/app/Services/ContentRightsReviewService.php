@@ -59,6 +59,22 @@ final class ContentRightsReviewService
             if ((string) $import->status !== 'rights_review') {
                 throw $this->problem(409, 'CONTENT_RIGHTS_REVIEW_STATE_INVALID', 'Rights review state invalid', 'Rights decisions are only available while the import is awaiting rights review.');
             }
+
+            $requestId = is_string($import->preparation_request_id) ? $import->preparation_request_id : '';
+            $request = $requestId === ''
+                ? null
+                : DB::table('preparation_requests')->where('id', $requestId)->lockForUpdate()->first();
+            if (! $request instanceof \stdClass
+                || (string) $request->status === 'superseded'
+                || $request->superseded_by_request_id !== null) {
+                throw $this->problem(
+                    409,
+                    'PREPARATION_REGENERATION_REQUIRED',
+                    'Preparation regeneration required',
+                    'This content belongs to a stale preparation request. Generate a new prompt and bundle before recording a rights decision.',
+                );
+            }
+
             if ((string) $import->rights_status === 'synthetic_fixture') {
                 throw $this->problem(409, 'CONTENT_RIGHTS_REVIEW_NOT_REQUIRED', 'Rights review not required', 'Synthetic fixture content does not enter the real-content rights review workflow.');
             }
