@@ -102,3 +102,16 @@ Enum changes are contract changes and require migrations, API/schema updates whe
 - Learning objectives are relational rows under a skill so multiple objectives can be versioned/managed without embedding authorization or hierarchy semantics in JSON.
 - `student_skill_mastery_states` is state storage only. #356 owns algorithm/version semantics; clients cannot write mastery authority.
 - Question template/provenance fields describe production inputs, but published delivery and correctness remain governed by existing Backend publication/assessment contracts.
+
+
+## Adaptive learning foundation — Issue #353
+
+| Entity / field set | Purpose | Invariants |
+| --- | --- | --- |
+| `curriculum_nodes(type=skill)` | Canonical skill node beneath a topic; reuses the existing hierarchy authority. | No separate skill tree. The domain contract fixes the parent semantic to `topic`; publication remains governed by the existing content workflow. |
+| `learning_objectives` | First-class localized objectives owned by one skill. | Unique `(skill_node_id, code)`; FK restricts deletion; status is explicit and independent from student progress. |
+| `questions.learning_objective_id` | Optional objective linkage for one canonical question version. | Does not replace `curriculum_node_id`; immutable attempt snapshots remain authoritative for scoring/resume. |
+| `questions.difficulty` / `generation_kind` / `template_contract` | Normalized adaptive-learning metadata and static-vs-template contract. | `generation_kind` is `static` or `template`; template configuration is data, never runtime paid-AI authority. |
+| `questions.source_provenance` | Source/page/derivation metadata for traceability. | Unknown source facts remain null/explicit; provenance never bypasses rights/review/publication gates. |
+| `questions.review_state` / `review_version` / review/publication actors/timestamps | Separates review evidence from the existing canonical question publication `status`. | Review states are pending/needs_review/approved/rejected. Canonical question status remains aligned to existing draft/published/superseded semantics; future lifecycle expansion must be contract-authorized. |
+| `student_skill_mastery_states` | Versioned Backend-owned Student×Skill state storage for #356. | Unique `(academic_context_id, skill_node_id)`; user/context/skill are server-derived; scores/confidence may be null until the mastery engine calculates them; archival preserves history. |
