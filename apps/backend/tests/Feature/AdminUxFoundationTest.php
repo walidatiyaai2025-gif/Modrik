@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Admin\Dashboard;
 use App\Filament\Pages\ContentPreparationRequests;
+use App\Filament\Pages\ContentRightsReview;
 use App\Filament\Support\AdminNavigationGroup;
 use App\Models\User;
 use App\Services\ContentAdminWorkflowService;
@@ -105,6 +106,25 @@ class AdminUxFoundationTest extends TestCase
         App::setLocale('fr');
         $this->assertSame('Contenu', AdminNavigationGroup::Content->getLabel());
         $this->assertSame('Opérations', AdminNavigationGroup::Operations->getLabel());
+    }
+
+    public function test_content_rights_review_remains_restricted_to_active_content_roles(): void
+    {
+        $contentOperator = User::factory()->create([
+            'role' => 'content_team',
+            'account_status' => 'active',
+        ]);
+        $student = User::factory()->create([
+            'role' => 'student',
+            'account_status' => 'active',
+        ]);
+
+        $this->actingAs($contentOperator);
+        $this->assertTrue(ContentRightsReview::canAccess());
+        $this->get('/admin/content-rights-review')->assertOk();
+
+        $this->actingAs($student);
+        $this->assertFalse(ContentRightsReview::canAccess());
     }
 
     public function test_preparation_history_prioritizes_operator_context_and_keeps_ids_as_traceability(): void

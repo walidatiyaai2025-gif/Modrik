@@ -143,6 +143,76 @@ final class ContentRightsReviewTest extends TestCase
         ]);
     }
 
+    public function test_rights_review_fails_closed_after_preparation_request_is_superseded(): void
+    {
+        $preparation = app(ContentPreparationService::class)->create($this->operator, $this->requestPayload());
+        $requestId = (string) $preparation['preparation_request_id'];
+        $importId = '01J22222222222222222222222';
+
+        DB::table('preparation_imports')->insert([
+            'id' => $importId,
+            'uploaded_by' => (string) $this->operator->getKey(),
+            'preparation_request_id' => $requestId,
+            'claimed_preparation_request_id' => $requestId,
+            'archive_hash' => str_repeat('b', 64),
+            'status' => 'rights_review',
+            'rights_status' => 'pending_review',
+            'rights_review_status' => 'pending',
+            'validation_summary' => json_encode(['valid' => true, 'errors' => []], JSON_THROW_ON_ERROR),
+            'imported_file_count' => 1,
+            'imported_record_count' => 1,
+            'operation_state' => 'blocked',
+            'operation_checkpoint' => 'rights_review_required',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $changed = $this->requestPayload();
+        $changed['settings']['generation']['maximum_questions_per_quiz'] = 9;
+        app(ContentAdminWorkflowService::class)->regenerateRequest($this->operator, $requestId, $changed);
+
+        $this->assertDatabaseHas('preparation_requests', [
+            'id' => $requestId,
+            'status' => 'superseded',
+        ]);
+        $this->assertDatabaseHas('preparation_imports', [
+            'id' => $importId,
+            'status' => 'rights_review',
+            'rights_review_status' => 'pending',
+            'operation_state' => 'blocked',
+            'operation_checkpoint' => 'rights_review_required',
+        ]);
+
+        $auditCountBeforeReview = DB::table('content_workflow_audits')->count();
+        $outboxCountBeforeReview = DB::table('outbox_events')->count();
+
+        try {
+            app(ContentRightsReviewService::class)->review(
+                $this->operator,
+                $importId,
+                'approved',
+                'rights-evidence://documented-owner-or-license-reference',
+                'Evidence reviewed after request regeneration.',
+                'licensed',
+            );
+            $this->fail('Rights approval for a superseded preparation request must fail closed.');
+        } catch (ApiProblemException $exception) {
+            $this->assertSame('PREPARATION_REGENERATION_REQUIRED', $exception->problemCode);
+        }
+
+        $this->assertSame($auditCountBeforeReview, DB::table('content_workflow_audits')->count());
+        $this->assertSame($outboxCountBeforeReview, DB::table('outbox_events')->count());
+        $this->assertDatabaseHas('preparation_imports', [
+            'id' => $importId,
+            'status' => 'rights_review',
+            'rights_review_status' => 'pending',
+            'rights_basis' => null,
+            'rights_evidence_reference' => null,
+            'operation_state' => 'blocked',
+            'operation_checkpoint' => 'rights_review_required',
+        ]);
+    }
+
     public function test_rights_rejection_requires_reason_and_stays_blocked(): void
     {
         $importId = $this->pendingRightsImport();
