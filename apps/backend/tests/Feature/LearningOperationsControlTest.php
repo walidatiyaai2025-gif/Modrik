@@ -6,6 +6,7 @@ use App\Exceptions\LearningOperationBlocked;
 use App\Filament\Pages\LearningOperationsControl;
 use App\Models\User;
 use App\Services\LearningOperationsService;
+use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
@@ -88,19 +89,42 @@ final class LearningOperationsControlTest extends TestCase
         ]);
     }
 
-    public function test_blocked_dependency_job_never_records_fake_success(): void
+    public function test_remaining_blocked_dependency_job_never_records_fake_success(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
         $service = app(LearningOperationsService::class);
 
         try {
-            $service->runNow('mastery_recalculation', (string) $admin->id);
+            $service->runNow('daily_plan_generation', (string) $admin->id);
             self::fail('Dependency-blocked job must not run.');
         } catch (LearningOperationBlocked $exception) {
             self::assertSame('LEARNING_JOB_DEPENDENCY_BLOCKED', $exception->operationCode);
         }
 
         $this->assertDatabaseMissing('learning_job_runs', ['status' => 'success']);
+    }
+
+    public function test_mastery_recalculation_job_uses_integrated_mastery_engine_and_records_counts(): void
+    {
+        $this->seed(LearningSliceSeeder::class);
+        $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
+        $service = app(LearningOperationsService::class);
+
+        $definition = $service->jobDefinitions()['mastery_recalculation'];
+        self::assertTrue($definition['runnable']);
+        self::assertNull($definition['dependency']);
+
+        $run = $service->runNow('mastery_recalculation', (string) $admin->id);
+
+        self::assertSame('success', $run['status']);
+        $counts = json_decode((string) $run['counts'], true, 512, JSON_THROW_ON_ERROR);
+        self::assertSame(1, $counts['contexts_processed']);
+        self::assertSame(0, $counts['skills_recalculated']);
+        self::assertSame(0, $counts['states_changed']);
+        $this->assertDatabaseHas('learning_job_controls', [
+            'job_key' => 'mastery_recalculation',
+            'last_status' => 'success',
+        ]);
     }
 
     public function test_ready_jobs_record_truthful_counts_and_pause_resume_is_audited(): void
