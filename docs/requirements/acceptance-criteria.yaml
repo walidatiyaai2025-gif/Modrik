@@ -124,5 +124,5 @@ acceptance_criteria:
     verification: Backend service, Livewire RBAC, stale-version and capability-surface tests
   - id: AC-P0-030
     requirement_ids: [REQ-P0-018]
-    statement: Learning jobs expose schedule, availability, pause state, last run/status/duration/counts and next-run evidence; bounded database-backed Run Now records durable run history only for implemented handlers while unmet mastery/adaptive/external-delivery dependencies fail closed as blocked_dependency.
+    statement: Learning jobs expose schedule, availability, pause state, last run/status/duration/counts and next-run evidence; bounded database-backed Run Now records durable run history only for implemented handlers while integrated mastery recalculation is runnable and unmet adaptive/external-delivery dependencies fail closed as blocked_dependency.
     verification: Backend job-control tests, MariaDB migration round-trip and Admin acceptance
