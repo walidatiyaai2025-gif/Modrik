@@ -308,4 +308,4 @@ capabilities:
     classification: admin_manageable
     surface: LearningOperationsControl / OperationsControlCenter
     status: present
-    notes: Issue #361 provides Admin-only versioned feature states and bounded rollout scopes, kill switches, job pause/resume, run-now for currently implemented DB-backed jobs, truthful blocked_dependency state for future mastery/adaptive/external-delivery jobs, immutable audit/run history and no secret/scoring/privacy/publication-integrity editing.
+    notes: Issue #361 provides Admin-only versioned feature states and bounded rollout scopes, kill switches, job pause/resume, run-now for currently implemented DB-backed jobs, truthful blocked_dependency state for adaptive/external-delivery jobs while integrated mastery recalculation is runnable, immutable audit/run history and no secret/scoring/privacy/publication-integrity editing.
