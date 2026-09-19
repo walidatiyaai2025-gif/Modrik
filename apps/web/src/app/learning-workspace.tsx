@@ -507,6 +507,7 @@ export default function LearningWorkspace() {
                                 <span>{labels.textAnswer}</span>
                                 <input
                                   className="text-answer"
+                                  dir="auto"
                                   value={answers[question.attempt_question_id] ?? ""}
                                   maxLength={question.response_contract.max_length}
                                   onChange={(event) => setAnswers((current) => ({ ...current, [question.attempt_question_id]: event.target.value }))}
