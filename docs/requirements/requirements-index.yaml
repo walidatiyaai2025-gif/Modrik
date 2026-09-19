@@ -139,3 +139,11 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-029, AC-P0-030]
     status: owner_authorized_2026_09_17
+
+  - id: REQ-P0-019
+    title: Deterministic adaptive revision scheduling
+    statement: MODRIK schedules spaced revision from the integrated Backend mastery classification using a versioned deterministic interval policy with explicit bounds, lapse reset behavior and reproducible next-review evidence, without duplicating mastery/scoring authority or requiring paid AI at runtime.
+    area: learning
+    priority: P0
+    acceptance_criteria: [AC-P0-031, AC-P0-032]
+    status: owner_authorized_2026_09_17
