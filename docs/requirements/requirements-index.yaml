@@ -147,3 +147,11 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-031, AC-P0-032]
     status: owner_authorized_2026_09_17
+
+  - id: REQ-P0-020
+    title: Deterministic mistake recovery lifecycle
+    statement: MODRIK represents Mistake Notebook recovery as a versioned Backend-owned deterministic lifecycle from new through relearning, review_due, recovered and mastered, with explicit lapse behavior and fail-closed illegal transitions, without client-owned mastery logic or paid AI at runtime.
+    area: learning
+    priority: P0
+    acceptance_criteria: [AC-P0-033, AC-P0-034]
+    status: owner_authorized_2026_09_17
