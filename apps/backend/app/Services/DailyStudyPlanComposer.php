@@ -52,7 +52,9 @@ final class DailyStudyPlanComposer
         }
 
         $seenTargets = [];
+        /** @var list<array{target_key:string,source_type:string,subject_id:string,priority_score:float,available_question_count:int,reason:string}> $available */
         $available = [];
+        /** @var list<array{target_key:string,source_type:string,subject_id:string,reason:string}> $skippedUnavailable */
         $skippedUnavailable = [];
 
         foreach ($candidates as $candidate) {
@@ -113,7 +115,8 @@ final class DailyStudyPlanComposer
                     break;
                 }
 
-                $selected[] = array_shift($subjectQueues[$subjectId]);
+                $selected[] = $subjectQueues[$subjectId][0];
+                array_shift($subjectQueues[$subjectId]);
 
                 if ($subjectQueues[$subjectId] === []) {
                     unset($subjectQueues[$subjectId]);
@@ -149,7 +152,16 @@ final class DailyStudyPlanComposer
         ];
     }
 
-    /** @param array<string, mixed> $candidate */
+    /**
+     * @param  array<string, mixed>  $candidate
+     * @return array{
+     *   target_key:string,
+     *   source_type:string,
+     *   subject_id:string,
+     *   priority_score:float,
+     *   available_question_count:int
+     * }
+     */
     private function normalize(array $candidate): array
     {
         $targetKey = $candidate['target_key'] ?? null;
@@ -189,7 +201,24 @@ final class DailyStudyPlanComposer
         ];
     }
 
-    /** @param array<string, mixed> $left @param array<string, mixed> $right */
+    /**
+     * @param array{
+     *   target_key:string,
+     *   source_type:string,
+     *   subject_id:string,
+     *   priority_score:float,
+     *   available_question_count:int,
+     *   reason:string
+     * } $left
+     * @param array{
+     *   target_key:string,
+     *   source_type:string,
+     *   subject_id:string,
+     *   priority_score:float,
+     *   available_question_count:int,
+     *   reason:string
+     * } $right
+     */
     private function compare(array $left, array $right): int
     {
         $source = self::SOURCE_PRIORITY[$left['source_type']] <=> self::SOURCE_PRIORITY[$right['source_type']];
