@@ -136,3 +136,13 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-019]
     statement: A lapse resets revision to the configured minimum interval, later success recovers deterministically, unknown mastery classifications or out-of-bounds persisted/policy intervals fail closed, and the scheduler introduces no client scoring/mastery authority, schema mutation or paid-AI runtime dependency.
     verification: focused Backend unit tests for lapse/recovery and fail-closed policy validation plus capability-surface contract validation
+
+  - id: AC-P0-033
+    requirement_ids: [REQ-P0-020]
+    statement: The canonical Mistake Notebook path is new -> relearning -> review_due -> recovered -> mastered; identical state/event inputs produce the same versioned transition and fingerprint, and a repeated lapse while already relearning is idempotent.
+    verification: focused Backend unit tests for the complete recovery path, repeat-input equality and relearning lapse idempotency
+
+  - id: AC-P0-034
+    requirement_ids: [REQ-P0-020]
+    statement: Lapse from review_due, recovered or mastered deterministically returns the item to relearning, while unknown states/events and illegal transitions fail closed; the lifecycle introduces no persistence/schema mutation, client mastery/scoring authority or paid-AI dependency.
+    verification: focused Backend unit tests for lapse recovery and fail-closed illegal transition handling plus capability-surface contract validation
