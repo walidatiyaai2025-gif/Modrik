@@ -89,3 +89,52 @@ test("numeric assessment answers are sent to the Backend as JSON numbers", async
   assert.equal(typeof body.value, "number");
   assert.equal(new Headers(request.init?.headers).get("Idempotency-Key"), "web-numeric-answer-key");
 });
+
+
+test("multi-select and boolean answers preserve Backend JSON types", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+
+  globalThis.fetch = async (input, init) => {
+    calls.push({ url: String(input), init });
+    const body = JSON.parse(String(init?.body)) as { value: unknown };
+    return Response.json({
+      data: {
+        revision: 1,
+        value: body.value,
+        answered_at: "2026-09-19T20:00:00Z",
+      },
+      meta: { request_id: "01J00000000000000000000092" },
+    });
+  };
+
+  try {
+    const selected = await learningApi.answer(
+      attemptFixture.id,
+      "01J00000000000000000000022",
+      0,
+      ["option-a", "option-c"],
+      "web-multi-select-answer-key",
+    );
+    assert.deepEqual(selected.value, ["option-a", "option-c"]);
+
+    const boolean = await learningApi.answer(
+      attemptFixture.id,
+      "01J00000000000000000000023",
+      0,
+      false,
+      "web-boolean-answer-key",
+    );
+    assert.equal(boolean.value, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const multiBody = JSON.parse(String(calls[0]?.init?.body)) as { value: unknown };
+  assert.deepEqual(multiBody.value, ["option-a", "option-c"]);
+  assert.ok(Array.isArray(multiBody.value));
+
+  const booleanBody = JSON.parse(String(calls[1]?.init?.body)) as { value: unknown };
+  assert.equal(booleanBody.value, false);
+  assert.equal(typeof booleanBody.value, "boolean");
+});
