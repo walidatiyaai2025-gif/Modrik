@@ -10,22 +10,18 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
     {
         $ledger = $this->jsonFile(base_path('../../governance/MODRIK_STUDENT_READINESS.json'));
 
-        self::assertSame(44, $ledger['overall_readiness_percent'] ?? null);
+        self::assertSame(68, $ledger['overall_readiness_percent'] ?? null);
         self::assertFalse((bool) ($ledger['children_ready'] ?? true));
 
-        foreach (['foundation', 'question_content', 'assessment', 'operations'] as $id) {
+        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'operations'] as $id) {
             $domain = $this->domainById($ledger, $id);
             self::assertSame(100, $domain['percent'] ?? null, $id);
             self::assertSame('pass', $domain['status'] ?? null, $id);
         }
 
-        $masteryAdaptive = $this->domainById($ledger, 'mastery_adaptive');
-        self::assertSame(0, $masteryAdaptive['percent'] ?? null);
-        self::assertSame('not_evidenced', $masteryAdaptive['status'] ?? null);
-
         self::assertSame('PASS', $ledger['mandatory_gates']['admin_controls'] ?? null);
         self::assertSame('not_evidenced', $ledger['mandatory_gates']['question_bank'] ?? null);
-        self::assertSame('not_evidenced', $ledger['mandatory_gates']['mastery_adaptive'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['mastery_adaptive'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year6_pilot'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year7_pilot'] ?? null);
     }
@@ -48,8 +44,16 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
 
         $mastery = $this->evidenceById($ledger, 'AL04_MASTERY_ENGINE');
         self::assertSame(404, $mastery['pr'] ?? null);
-        self::assertSame('withheld_until_357_adaptive_study_is_integrated', $mastery['domain_credit'] ?? null);
+        self::assertSame('credited_with_AL05_after_357_closure', $mastery['domain_credit'] ?? null);
         self::assertSame(1525, $mastery['exact_main_ci']['bootstrap_number'] ?? null);
+
+        $adaptive = $this->evidenceById($ledger, 'AL05_ADAPTIVE_STUDY');
+        self::assertSame(357, $adaptive['owner_issue'] ?? null);
+        self::assertSame([410, 411, 412, 413, 414], $adaptive['prs'] ?? null);
+        self::assertSame('1c4d5c0b6f913c6c8da0d17534a3f4b5e110ff5b', $adaptive['integrated_main_sha'] ?? null);
+        self::assertSame(1556, $adaptive['final_exact_head_ci']['bootstrap_number'] ?? null);
+        self::assertSame('success', $adaptive['final_exact_head_ci']['conclusion'] ?? null);
+        self::assertSame(false, $adaptive['facts']['runtime_paid_ai_required'] ?? null);
 
         $operations = $this->evidenceById($ledger, 'AL09_OPERATIONS');
         self::assertSame(408, $operations['pr'] ?? null);
