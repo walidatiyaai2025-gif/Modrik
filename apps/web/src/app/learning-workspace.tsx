@@ -138,7 +138,7 @@ export default function LearningWorkspace() {
     }
     const nextAnswers = Object.fromEntries(nextAttempt.questions.map((question) => [
       question.attempt_question_id,
-      question.current_answer?.value ?? "",
+      question.current_answer === null ? "" : String(question.current_answer.value),
     ]));
     setAnswers(nextAnswers);
     setSavedAnswers(nextAnswers);
@@ -278,6 +278,13 @@ export default function LearningWorkspace() {
       setMessage(labels.answerRequired);
       return;
     }
+    if (attempt.questions.some((question) =>
+      question.response_contract.kind === "numeric"
+      && !Number.isFinite(Number(answers[question.attempt_question_id])),
+    )) {
+      setMessage(labels.answerRequired);
+      return;
+    }
     setBusy(true);
     setMessage("");
     try {
@@ -288,16 +295,20 @@ export default function LearningWorkspace() {
         if (nextSavedAnswers[questionId] === answers[questionId]) continue;
         const expectedRevision = nextRevisions[questionId] ?? 0;
         const scope = `answer.${attempt.id}.${questionId}.${expectedRevision + 1}`;
+        const rawAnswer = answers[questionId] ?? "";
+        const answerValue = question.response_contract.kind === "numeric"
+          ? Number(rawAnswer)
+          : rawAnswer;
         const saved = await learningApi.answer(
           attempt.id,
           questionId,
           expectedRevision,
-          answers[questionId],
+          answerValue,
           operationKey(scope),
         );
         acknowledge(scope);
         nextRevisions[questionId] = saved.revision;
-        nextSavedAnswers[questionId] = saved.value;
+        nextSavedAnswers[questionId] = String(saved.value);
       }
       setRevisions(nextRevisions);
       setSavedAnswers(nextSavedAnswers);
@@ -502,7 +513,19 @@ export default function LearningWorkspace() {
                                 />
                                 <span dir="auto">{localize(option.label, locale)}</span>
                               </label>
-                            )) : (
+                            )) : question.response_contract.kind === "numeric" ? (
+                              <label className="text-answer-label">
+                                <span>{labels.textAnswer}</span>
+                                <input
+                                  className="text-answer"
+                                  type="number"
+                                  inputMode="decimal"
+                                  step="any"
+                                  value={answers[question.attempt_question_id] ?? ""}
+                                  onChange={(event) => setAnswers((current) => ({ ...current, [question.attempt_question_id]: event.target.value }))}
+                                />
+                              </label>
+                            ) : (
                               <label className="text-answer-label">
                                 <span>{labels.textAnswer}</span>
                                 <input
