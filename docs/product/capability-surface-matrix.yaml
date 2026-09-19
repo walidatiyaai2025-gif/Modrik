@@ -295,6 +295,13 @@ capabilities:
     status: foundation_present
     notes: Issue #353 provides persistence only for versioned Student×Skill mastery state bound to academic context. It does not expose client mutation or invent a mastery formula.
 
+  - id: learning.adaptive.spaced_repetition
+    area: learning
+    classification: internal_non_editable
+    surface: Backend SpacedRepetitionScheduler contracts/tests; no direct operator or client mutation
+    status: present
+    notes: Issue #357 introduces the first bounded adaptive-study unit as a deterministic, versioned spaced-repetition interval kernel. It consumes the integrated mastery classification vocabulary, enforces explicit interval bounds and lapse reset behavior, and does not expose mastery/scoring authority or a mutable hidden control surface.
+
   - id: assessment.adaptive_runtime_modes
     area: assessment
     classification: internal_non_editable
