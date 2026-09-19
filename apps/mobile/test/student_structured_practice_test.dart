@@ -68,10 +68,18 @@ void main() {
     expect(find.text('True'), findsOneWidget);
     expect(find.text('False'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Alpha'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Alpha'));
     await tester.pump();
+
+    await tester.ensureVisible(find.text('Beta'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Beta'));
     await tester.pump();
+
+    await tester.ensureVisible(find.text('False'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('False'));
     await tester.pump();
 
