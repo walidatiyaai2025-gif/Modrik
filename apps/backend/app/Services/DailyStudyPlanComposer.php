@@ -87,7 +87,7 @@ final class DailyStudyPlanComposer
             static fn (array $left, array $right): int => strcmp($left['target_key'], $right['target_key']),
         );
 
-        /** @var array<string, list<array<string, mixed>>> $subjectQueues */
+        /** @var array<string, list<array{target_key:string,source_type:string,subject_id:string,priority_score:float,available_question_count:int,reason:string}>> $subjectQueues */
         $subjectQueues = [];
         foreach ($available as $candidate) {
             $subjectQueues[$candidate['subject_id']][] = $candidate;
@@ -98,6 +98,7 @@ final class DailyStudyPlanComposer
         }
         unset($queue);
 
+        /** @var list<array{target_key:string,source_type:string,subject_id:string,priority_score:float,available_question_count:int,reason:string}> $selected */
         $selected = [];
 
         while ($subjectQueues !== [] && count($selected) < $maxItems) {
