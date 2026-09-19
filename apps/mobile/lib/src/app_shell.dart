@@ -358,6 +358,25 @@ class _DashboardView extends StatelessWidget {
                 : '—',
           ),
         ),
+        if (controller.attempt case final attempt?)
+          _SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _InfoRow(
+                  icon: Icons.play_circle_outline,
+                  title: copy.t('continue_learning'),
+                  value: '${copy.t('practice')} · ${_shortId(attempt.id)} · ${attempt.status}',
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: controller.isBusy ? null : controller.resumeAttempt,
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(copy.t('resume_practice')),
+                ),
+              ],
+            ),
+          ),
         _SurfaceCard(
           child: _InfoRow(
             icon: Icons.download_done_outlined,
