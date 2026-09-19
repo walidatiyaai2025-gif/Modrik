@@ -13,7 +13,7 @@ final class StudentReadinessRealPilotReconciliationTest extends TestCase
 
         $this->assertSame('PARTIALLY_RECONCILED', $ledger['status'] ?? null);
         $this->assertFalse((bool) ($ledger['children_ready'] ?? true));
-        $this->assertSame(14, $ledger['overall_readiness_percent'] ?? null);
+        $this->assertSame(44, $ledger['overall_readiness_percent'] ?? null);
 
         $realPilot = $this->domainById($ledger, 'real_pilot');
         $this->assertSame(0, $realPilot['percent'] ?? null);
@@ -61,7 +61,7 @@ final class StudentReadinessRealPilotReconciliationTest extends TestCase
                 continue;
             }
 
-            if ($id === 'assessment') {
+            if (in_array($id, ['foundation', 'question_content', 'assessment', 'operations'], true)) {
                 $this->assertSame(100, $domain['percent'] ?? null);
                 $this->assertSame('pass', $domain['status'] ?? null);
 

@@ -5,7 +5,7 @@
   "integration_issue": 363,
   "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
-  "overall_readiness_percent": 14,
+  "overall_readiness_percent": 44,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
@@ -13,16 +13,16 @@
       "id": "foundation",
       "name": "Data/Curriculum Foundation",
       "weight": 8,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 353
     },
     {
       "id": "question_content",
       "name": "Question Bank + Content Workflow",
       "weight": 18,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 354
     },
     {
@@ -80,8 +80,8 @@
       "id": "operations",
       "name": "Admin Feature/Job Controls",
       "weight": 4,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 361
     },
     {
@@ -113,7 +113,7 @@
     "student_ux": "not_evidenced",
     "parent_ux": "not_evidenced",
     "arabic_english_accessibility": "not_evidenced",
-    "admin_controls": "not_evidenced",
+    "admin_controls": "PASS",
     "security_integrity_qa": "not_evidenced",
     "real_year6_pilot": "blocked_owner_last",
     "real_year7_pilot": "blocked_owner_last",
@@ -233,14 +233,141 @@
         "dependency_review": "skipped_on_push",
         "conclusion": "success"
       }
+    },
+    {
+      "id": "AL01_FOUNDATION",
+      "owner_issue": 353,
+      "integration_issue": 363,
+      "status": "integrated",
+      "prs": [
+        365,
+        368,
+        393
+      ],
+      "integrated_main_sha": "aca4412919f1ca26cc3414a253b96d722b4a3ef2",
+      "facts": {
+        "skill_learning_objective_foundation": "pass",
+        "question_bank_contract": "pass",
+        "provenance_source_linkage": "pass",
+        "import_schema_golden_fixtures": "pass",
+        "mariadb_migration_rollback": "pass",
+        "canonical_difficulty_contract": "pass",
+        "no_parallel_authority": "pass"
+      },
+      "exact_main_ci": {
+        "bootstrap_run": 35344151464,
+        "bootstrap_number": 1490,
+        "unified_release_run": 35344151544,
+        "unified_release_number": 185,
+        "dependency_review": "passed_on_exact_head",
+        "conclusion": "success"
+      }
+    },
+    {
+      "id": "AL02_QUESTION_CONTENT",
+      "owner_issue": 354,
+      "integration_issue": 363,
+      "status": "integrated",
+      "prs": [
+        369,
+        371,
+        374,
+        383,
+        392,
+        398,
+        395,
+        396
+      ],
+      "integrated_main_sha": "f791100aa41a79a6c56f17644b2cd1c229fbb3b2",
+      "facts": {
+        "prompt_library": "pass",
+        "preparation_package": "pass",
+        "stale_preparation_imports": "fail_closed",
+        "stale_duplicate_retries": "fail_closed",
+        "localized_text_validation": "fail_closed",
+        "rights_confirmation": "pass",
+        "stale_rights_approval": "fail_closed",
+        "short_text_answer_validation": "fail_closed",
+        "review_publication_audit": "pass",
+        "runtime_paid_ai_required": false
+      },
+      "exact_main_ci": {
+        "bootstrap_run": 35347179485,
+        "bootstrap_number": 1501,
+        "unified_release_run": 35347179538,
+        "unified_release_number": 196,
+        "dependency_review": "passed_on_exact_head",
+        "conclusion": "success"
+      }
+    },
+    {
+      "id": "AL04_MASTERY_ENGINE",
+      "owner_issue": 356,
+      "integration_issue": 363,
+      "status": "integrated",
+      "pr": 404,
+      "integrated_main_sha": "a2adbb7326d2265e59cb846d2d27175e42d07c43",
+      "domain_credit": "withheld_until_357_adaptive_study_is_integrated",
+      "facts": {
+        "deterministic_mastery_calculation": "pass",
+        "versioned_state_and_history": "pass",
+        "incremental_full_recalculation_convergence": "pass",
+        "governed_display_bands": "pass",
+        "academic_transition_history_preserved": "pass"
+      },
+      "exact_main_ci": {
+        "bootstrap_run": 35387289905,
+        "bootstrap_number": 1525,
+        "unified_release_run": 35387289796,
+        "unified_release_number": 220,
+        "conclusion": "success"
+      }
+    },
+    {
+      "id": "AL09_OPERATIONS",
+      "owner_issue": 361,
+      "integration_issue": 363,
+      "status": "integrated",
+      "pr": 408,
+      "exact_head_sha": "6fff385875626ca080abef4d2764688a1cc1c5d2",
+      "integrated_main_sha": "756dec118b8f0d21bc2c30d8ec7783bd1a074783",
+      "facts": {
+        "discoverable_admin_surface": "pass",
+        "governed_feature_controls": "pass",
+        "safe_kill_switches": "pass",
+        "job_status_history_pause_resume": "pass",
+        "mastery_recalculation_job": "pass",
+        "adaptive_jobs_without_357": "blocked_dependency",
+        "rbac_audit_localization": "pass",
+        "unsafe_shell_sql_execution": "absent"
+      },
+      "exact_head_ci": {
+        "bootstrap_run": 35429160579,
+        "bootstrap_number": 1540,
+        "admin_ux_number": 323,
+        "content_operations_number": 195,
+        "unified_release_number": 231,
+        "demo_package_number": 570,
+        "conclusion": "success"
+      },
+      "exact_main_ci": {
+        "bootstrap_run": 35429451120,
+        "bootstrap_number": 1541,
+        "unified_release_run": 35429451107,
+        "unified_release_number": 232,
+        "dependency_review": "skipped_on_push",
+        "conclusion": "success"
+      }
     }
   ],
   "notes": [
-    "Overall readiness is 14% from the reconciled 100% Assessment domain (weight 14); unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
+    "Overall readiness is 44% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14) and Operations (4). Unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
+    "Foundation (#353) and Question Bank + Content Workflow (#354) are reconciled PASS from integrated closure evidence and exact-main governed CI; mandatory Question Bank remains unreconciled until full supported-type client rendering/submission is evidenced.",
+    "Operations (#361) is reconciled PASS from current-main recovery PR #408 and exact-main Bootstrap #1541 / Unified Release #232; Admin Controls is PASS from integrated #354 + #361 evidence.",
+    "Mastery Engine (#356) is integrated and exact-main green, but no mastery_adaptive domain credit is assigned because open #357 Adaptive Study is still required by that combined domain.",
     "L11 Real Content Pilot engineering/evidence is integrated, but acceptance remains blocked_owner_last by missing owner-approved academic scope, rights approval, Year 7 source material and unresolved source-year mapping/PII inputs.",
     "Exact-main governed CI is green for the L11 integration evidence SHAs recorded above. The global exact_main_governed_ci_green mandatory gate remains unreconciled until the final program composition is verified.",
     "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger.",
-    "Assessment Runtime (#355) is reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation.",
-    "The Assessment domain is 100% evidenced and contributes its full 14-point weight to overall_readiness_percent; children_ready remains false because the remaining mandatory gates are not all PASS."
+    "Assessment Runtime (#355) is reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation."
   ]
 }
