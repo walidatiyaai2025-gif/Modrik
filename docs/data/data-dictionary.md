@@ -128,3 +128,16 @@ Enum changes are contract changes and require migrations, API/schema updates whe
 | `attempt_answers.is_correct` / `awarded_score` / `graded_at` | Persisted grading evidence for the latest submitted revision. | Written only by Backend grading; clients cannot submit these fields. |
 
 The runtime reuses `AttemptService`, `AssessmentEngine`, idempotency records and immutable attempt snapshots. #356/#357 consume the resulting evidence but do not replace assessment authority.
+
+
+## Learning operations control — Issue #361
+
+| Entity | Purpose | Invariants |
+| --- | --- | --- |
+| `learning_feature_controls` | Current Admin-governed feature state and bounded rollout scope. | Allowlisted keys only; state is disabled/enabled/pilot/admin_only; optimistic versioning; no secrets or scoring/privacy/publication-integrity invariants. |
+| `learning_feature_control_audits` | Immutable before/after feature-control evidence. | Actor, reason and version transition are persisted for every mutation. |
+| `learning_job_controls` | Pause/version/last-run operational state for allowlisted learning jobs. | Missing domain dependencies remain `blocked_dependency`; a pause never fabricates a completed run. |
+| `learning_job_runs` | Durable bounded execution evidence. | Status/counts/duration/error code only; no arbitrary payload/shell/SQL command surface. |
+| `learning_job_control_audits` | Pause/resume audit history. | Admin actor, reason and version transition are immutable evidence. |
+
+Current real Run Now handlers are database-backed mastery recalculation, question statistics, progress aggregation, content integrity and expired-idempotency cleanup. Daily-plan generation and revision scheduling remain fail-closed until #357 Adaptive Study is integrated; external notification dispatch remains fail-closed until its approved delivery adapter exists.
