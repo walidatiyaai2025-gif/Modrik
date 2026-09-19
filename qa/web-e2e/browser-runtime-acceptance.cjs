@@ -451,14 +451,13 @@ async function learningViewport(browser, spec, inspectorExpected) {
     await noKeyboardTrap(page, "E2E_LEARNING_KEYBOARD_TRAP");
 
     const nav = page.locator(".student-nav button");
-    const expectedNavCount = hasAcademicTrackWorkspace ? 6 : 5;
+    const expectedNavCount = hasAcademicTrackWorkspace ? 5 : 4;
     check(await nav.count() === expectedNavCount, "E2E_LEARNING_NAV_COUNT");
-    check(await nav.nth(0).getAttribute("aria-current") === "page", "E2E_HOME_INITIAL_DESTINATION");
-    await nav.nth(2).click();
+    await nav.nth(1).click();
     await reachable(page.locator(".lesson-reader"), page, "E2E_STUDY_WORKSPACE");
     await noHorizontalOverflow(page, "E2E_STUDY_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(3).click();
+    await nav.nth(2).click();
     const start = page.locator(".practice-empty .primary-button");
     await reachable(start, page, "E2E_PRACTICE_START");
     check(!(await start.isDisabled()), "E2E_PRACTICE_START_DISABLED");
@@ -468,11 +467,11 @@ async function learningViewport(browser, spec, inspectorExpected) {
     await reachable(page.locator(".practice-submit-row button[type=submit]"), page, "E2E_ATTEMPT_SUBMIT");
     await noHorizontalOverflow(page, "E2E_ATTEMPT_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(4).click();
+    await nav.nth(3).click();
     await reachable(page.locator(".progress-workspace"), page, "E2E_PROGRESS_WORKSPACE");
     await noHorizontalOverflow(page, "E2E_PROGRESS_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(hasAcademicTrackWorkspace ? 5 : 1).click();
+    await nav.nth(hasAcademicTrackWorkspace ? 4 : 0).click();
     const selectors = page.locator(".academic-track-selector select");
     await selectors.first().waitFor({ state: "visible", timeout: 10000 });
     const selectorCount = await selectors.count();
@@ -549,9 +548,9 @@ async function stateAcceptance(browser) {
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitLearning(page);
     const academicNav = page.locator(".student-nav button");
-    const expectedAcademicNavCount = hasAcademicTrackWorkspace ? 6 : 5;
+    const expectedAcademicNavCount = hasAcademicTrackWorkspace ? 5 : 4;
     check(await academicNav.count() === expectedAcademicNavCount, "E2E_ACADEMIC_NAV_COUNT");
-    if (hasAcademicTrackWorkspace) await academicNav.nth(5).click();
+    if (hasAcademicTrackWorkspace) await academicNav.nth(4).click();
     const catalogueRetry = hasAcademicTrackWorkspace
       ? page.locator(".academic-track-workspace .context-panel .empty-panel button").first()
       : page.locator(".context-panel .empty-panel button").first();
@@ -622,7 +621,7 @@ async function verifyInspector(page, locale, textScale, questionSentinel, answer
   }
 
   const nav = page.locator(".student-nav button");
-  await nav.nth(3).click();
+  await nav.nth(2).click();
   const start = page.locator(".practice-empty .primary-button");
   if (await start.isVisible()) {
     await start.click();
