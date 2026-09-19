@@ -166,3 +166,13 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-022]
     statement: Zero-answer Skills remain explicitly untested without accuracy or mastery values, while duplicate Skill results and impossible correct/answered counts fail closed.
     verification: focused Backend unit tests for untested-state truthfulness, duplicate detection and malformed count validation plus capability-surface contract validation
+
+  - id: AC-P0-039
+    requirement_ids: [REQ-P0-023]
+    statement: Identical Daily Plan candidates and limits produce the same selected items and fingerprint independent of input ordering; due revision, recent mistake and weak-Skill sources follow deterministic priority while active subjects are balanced round-by-round and the configured item limit is applied after ordering.
+    verification: focused Backend unit tests for shuffled input determinism, source priority, subject balance, bounded selection and repeat fingerprint
+
+  - id: AC-P0-040
+    requirement_ids: [REQ-P0-023]
+    statement: Candidates with zero available questions are excluded with explicit question_unavailable evidence, insufficient candidates produce degraded or empty status with a shortfall count, and duplicate/contradictory target identity or invalid limits fail closed.
+    verification: focused Backend unit tests for unavailable content, degraded/empty state, duplicate target integrity and limit validation plus capability-surface contract validation
