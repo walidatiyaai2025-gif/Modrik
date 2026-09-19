@@ -11,7 +11,7 @@ final class SpacedRepetitionSchedulerTest extends TestCase
 {
     public function test_identical_inputs_produce_identical_schedule(): void
     {
-        $scheduler = new SpacedRepetitionScheduler();
+        $scheduler = new SpacedRepetitionScheduler;
         $reviewedAt = CarbonImmutable::parse('2026-09-19T12:00:00+00:00');
 
         $first = $scheduler->schedule('developing', true, 7, $reviewedAt);
@@ -27,7 +27,7 @@ final class SpacedRepetitionSchedulerTest extends TestCase
 
     public function test_first_success_uses_the_bounded_band_base_interval(): void
     {
-        $scheduler = new SpacedRepetitionScheduler();
+        $scheduler = new SpacedRepetitionScheduler;
         $reviewedAt = CarbonImmutable::parse('2026-09-19T12:00:00+00:00');
 
         $schedule = $scheduler->schedule('strong', true, null, $reviewedAt);
@@ -40,7 +40,7 @@ final class SpacedRepetitionSchedulerTest extends TestCase
 
     public function test_lapse_resets_interval_and_later_success_recovers_deterministically(): void
     {
-        $scheduler = new SpacedRepetitionScheduler();
+        $scheduler = new SpacedRepetitionScheduler;
         $reviewedAt = CarbonImmutable::parse('2026-09-19T12:00:00+00:00');
 
         $lapse = $scheduler->schedule('strong', false, 28, $reviewedAt);
@@ -65,7 +65,7 @@ final class SpacedRepetitionSchedulerTest extends TestCase
 
     public function test_custom_policy_and_bounds_are_reproducible_and_capped(): void
     {
-        $scheduler = new SpacedRepetitionScheduler();
+        $scheduler = new SpacedRepetitionScheduler;
         $reviewedAt = CarbonImmutable::parse('2026-09-19T12:00:00+00:00');
         $policy = [
             'critical' => 2,
@@ -86,7 +86,7 @@ final class SpacedRepetitionSchedulerTest extends TestCase
 
     public function test_invalid_band_fails_closed(): void
     {
-        $scheduler = new SpacedRepetitionScheduler();
+        $scheduler = new SpacedRepetitionScheduler;
 
         $this->expectException(InvalidArgumentException::class);
 
@@ -100,7 +100,7 @@ final class SpacedRepetitionSchedulerTest extends TestCase
 
     public function test_policy_interval_below_configured_minimum_fails_closed(): void
     {
-        $scheduler = new SpacedRepetitionScheduler();
+        $scheduler = new SpacedRepetitionScheduler;
 
         $this->expectException(InvalidArgumentException::class);
 
@@ -122,7 +122,7 @@ final class SpacedRepetitionSchedulerTest extends TestCase
 
     public function test_out_of_bounds_previous_interval_fails_closed(): void
     {
-        $scheduler = new SpacedRepetitionScheduler();
+        $scheduler = new SpacedRepetitionScheduler;
 
         $this->expectException(InvalidArgumentException::class);
 
