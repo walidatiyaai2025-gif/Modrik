@@ -126,3 +126,13 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-018]
     statement: Learning jobs expose schedule, availability, pause state, last run/status/duration/counts and next-run evidence; bounded database-backed Run Now records durable run history only for implemented handlers while integrated mastery recalculation is runnable and unmet adaptive/external-delivery dependencies fail closed as blocked_dependency.
     verification: Backend job-control tests, MariaDB migration round-trip and Admin acceptance
+
+  - id: AC-P0-031
+    requirement_ids: [REQ-P0-019]
+    statement: Identical mastery classification, review outcome, previous interval, timestamp and policy inputs produce the same algorithm version, policy fingerprint, next interval and due timestamp; successful reviews extend from the bounded base interval and never exceed the configured maximum.
+    verification: focused Backend unit tests for repeat-input equality, first-success scheduling, successful extension and maximum bounds
+
+  - id: AC-P0-032
+    requirement_ids: [REQ-P0-019]
+    statement: A lapse resets revision to the configured minimum interval, later success recovers deterministically, unknown mastery classifications or out-of-bounds persisted/policy intervals fail closed, and the scheduler introduces no client scoring/mastery authority, schema mutation or paid-AI runtime dependency.
+    verification: focused Backend unit tests for lapse/recovery and fail-closed policy validation plus capability-surface contract validation
