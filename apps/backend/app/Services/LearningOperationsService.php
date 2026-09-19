@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\LearningOperationBlocked;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -28,7 +29,7 @@ final class LearningOperationsService
 
     /** @var array<string, array{schedule: string, dependency: string|null, runner: string|null}> */
     private const JOBS = [
-        'mastery_recalculation' => ['schedule' => 'daily@01:00', 'dependency' => '#356 mastery engine', 'runner' => null],
+        'mastery_recalculation' => ['schedule' => 'daily@01:00', 'dependency' => null, 'runner' => 'runMasteryRecalculation'],
         'daily_plan_generation' => ['schedule' => 'daily@03:00', 'dependency' => '#357 adaptive study', 'runner' => null],
         'revision_scheduling' => ['schedule' => 'hourly', 'dependency' => '#357 adaptive study', 'runner' => null],
         'question_statistics' => ['schedule' => 'daily@02:00', 'dependency' => null, 'runner' => 'runQuestionStatistics'],
@@ -419,6 +420,39 @@ final class LearningOperationsService
         }
 
         return $normalized;
+    }
+
+    /** @return array<string, int> */
+    private function runMasteryRecalculation(): array
+    {
+        $contextsProcessed = 0;
+        $skillsRecalculated = 0;
+        $statesChanged = 0;
+
+        $contexts = DB::table('user_academic_contexts')
+            ->where('status', 'active')
+            ->whereNull('archived_at')
+            ->orderBy('id')
+            ->get(['id', 'user_id']);
+
+        foreach ($contexts as $context) {
+            $user = User::query()->findOrFail((string) $context->user_id);
+            $states = app(MasteryEngine::class)->recalculateContext($user, (string) $context->id);
+
+            $contextsProcessed++;
+            $skillsRecalculated += count($states);
+            foreach ($states as $state) {
+                if (($state['changed'] ?? false) === true) {
+                    $statesChanged++;
+                }
+            }
+        }
+
+        return [
+            'contexts_processed' => $contextsProcessed,
+            'skills_recalculated' => $skillsRecalculated,
+            'states_changed' => $statesChanged,
+        ];
     }
 
     /** @return array<string, int> */
