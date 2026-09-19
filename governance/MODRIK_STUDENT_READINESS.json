@@ -5,7 +5,7 @@
   "integration_issue": 363,
   "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
-  "overall_readiness_percent": 44,
+  "overall_readiness_percent": 68,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
@@ -37,8 +37,8 @@
       "id": "mastery_adaptive",
       "name": "Mastery + Adaptive Engine",
       "weight": 14,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issues": [
         356,
         357
@@ -48,8 +48,8 @@
       "id": "revision_plan",
       "name": "Revision + Daily Planner",
       "weight": 10,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 357
     },
     {
@@ -109,7 +109,7 @@
     "curriculum_content": "not_evidenced",
     "question_bank": "not_evidenced",
     "assessment_runtime": "PASS",
-    "mastery_adaptive": "not_evidenced",
+    "mastery_adaptive": "PASS",
     "student_ux": "not_evidenced",
     "parent_ux": "not_evidenced",
     "arabic_english_accessibility": "not_evidenced",
@@ -307,7 +307,7 @@
       "status": "integrated",
       "pr": 404,
       "integrated_main_sha": "a2adbb7326d2265e59cb846d2d27175e42d07c43",
-      "domain_credit": "withheld_until_357_adaptive_study_is_integrated",
+      "domain_credit": "credited_with_AL05_after_357_closure",
       "facts": {
         "deterministic_mastery_calculation": "pass",
         "versioned_state_and_history": "pass",
@@ -358,16 +358,80 @@
         "dependency_review": "skipped_on_push",
         "conclusion": "success"
       }
+    },
+    {
+      "id": "AL05_ADAPTIVE_STUDY",
+      "owner_issue": 357,
+      "integration_issue": 363,
+      "status": "integrated",
+      "prs": [
+        410,
+        411,
+        412,
+        413,
+        414
+      ],
+      "integrated_main_sha": "1c4d5c0b6f913c6c8da0d17534a3f4b5e110ff5b",
+      "facts": {
+        "spaced_repetition": "pass",
+        "mistake_notebook_lifecycle": "pass",
+        "weak_critical_skill_selection": "pass",
+        "diagnostic_baseline_truthfulness": "pass",
+        "daily_plan_composition": "pass",
+        "subject_balance": "pass",
+        "question_availability_degraded_empty": "pass",
+        "deterministic_rebuild_fingerprint": "pass",
+        "duplicate_contradictory_target": "fail_closed",
+        "runtime_paid_ai_required": false
+      },
+      "component_exact_head_ci": [
+        {
+          "pr": 410,
+          "bootstrap_number": 1545,
+          "conclusion": "success"
+        },
+        {
+          "pr": 411,
+          "bootstrap_number": 1548,
+          "conclusion": "success"
+        },
+        {
+          "pr": 412,
+          "bootstrap_number": 1550,
+          "conclusion": "success"
+        },
+        {
+          "pr": 413,
+          "bootstrap_number": 1552,
+          "conclusion": "success"
+        },
+        {
+          "pr": 414,
+          "bootstrap_number": 1556,
+          "conclusion": "success"
+        }
+      ],
+      "final_exact_head_ci": {
+        "exact_head_sha": "04b935077de8150d147402eb067eb79cc7466c8d",
+        "bootstrap_run": 35464798938,
+        "bootstrap_number": 1556,
+        "unified_release_number": 247,
+        "demo_package_number": 580,
+        "content_operations_number": 204,
+        "conclusion": "success"
+      }
     }
   ],
   "notes": [
-    "Overall readiness is 44% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14) and Operations (4). Unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
-    "Foundation (#353) and Question Bank + Content Workflow (#354) are reconciled PASS from integrated closure evidence and exact-main governed CI; mandatory Question Bank remains unreconciled until full supported-type client rendering/submission is evidenced.",
+    "Overall readiness is 68% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14), Mastery + Adaptive Engine (14), Revision + Daily Planner (10) and Operations (4). Unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
+    "Foundation (#353) and Question Bank + Content Workflow (#354) are reconciled PASS from integrated closure evidence and governed CI; mandatory Question Bank remains unreconciled until full supported-type client rendering/submission is evidenced.",
     "Operations (#361) is reconciled PASS from current-main recovery PR #408 and exact-main Bootstrap #1541 / Unified Release #232; Admin Controls is PASS from integrated #354 + #361 evidence.",
-    "Mastery Engine (#356) is integrated and exact-main green, but no mastery_adaptive domain credit is assigned because open #357 Adaptive Study is still required by that combined domain.",
+    "Mastery + Adaptive Engine is reconciled PASS from integrated #356 Mastery Engine plus CLOSED/COMPLETED #357 Adaptive Study. #357 evidence spans PRs #410-#414: spaced repetition, Mistake Notebook lifecycle, evidenced weak/critical Skill selection, truthful diagnostic baseline and deterministic Daily Study Plan.",
+    "Revision + Daily Planner is reconciled PASS from #357 deterministic revision scheduling, mistake recovery, question-availability truthfulness, subject balancing, bounded plan limits, degraded/empty states and reproducible plan fingerprints.",
     "L11 Real Content Pilot engineering/evidence is integrated, but acceptance remains blocked_owner_last by missing owner-approved academic scope, rights approval, Year 7 source material and unresolved source-year mapping/PII inputs.",
-    "Exact-main governed CI is green for the L11 integration evidence SHAs recorded above. The global exact_main_governed_ci_green mandatory gate remains unreconciled until the final program composition is verified.",
+    "The global exact_main_governed_ci_green mandatory gate remains unreconciled until final program composition is verified; this adaptive reconciliation does not claim whole-program exact-main closure.",
     "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger.",
-    "Assessment Runtime (#355) is reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation."
+    "Assessment Runtime (#355) remains reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation.",
+    "Student UX (#358), Parent Analytics (#360), Arabic/RTL/Accessibility (#359), Quality/Security final reconciliation (#363) and Real Pilot acceptance remain unreconciled or blocked and prevent Children Ready."
   ]
 }
