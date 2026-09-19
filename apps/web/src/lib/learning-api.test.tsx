@@ -48,3 +48,44 @@ test("assessment requests never send a client seed/order and resume reads persis
   assert.equal(calls[1]?.init?.method, undefined);
   assert.equal(calls[1]?.init?.body, undefined);
 });
+
+
+test("numeric assessment answers are sent to the Backend as JSON numbers", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+
+  globalThis.fetch = async (input, init) => {
+    calls.push({ url: String(input), init });
+    return Response.json({
+      data: {
+        revision: 1,
+        value: 12.5,
+        answered_at: "2026-09-18T10:00:00Z",
+      },
+      meta: { request_id: "01J00000000000000000000091" },
+    });
+  };
+
+  try {
+    const saved = await learningApi.answer(
+      attemptFixture.id,
+      "01J00000000000000000000021",
+      0,
+      12.5,
+      "web-numeric-answer-key",
+    );
+    assert.equal(saved.value, 12.5);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const request = calls[0];
+  assert.ok(request);
+  assert.equal(request.url, `/api/learning/attempts/${attemptFixture.id}/answers/01J00000000000000000000021`);
+  assert.equal(request.init?.method, "PUT");
+  const body = JSON.parse(String(request.init?.body)) as { expected_revision: number; value: unknown };
+  assert.equal(body.expected_revision, 0);
+  assert.equal(body.value, 12.5);
+  assert.equal(typeof body.value, "number");
+  assert.equal(new Headers(request.init?.headers).get("Idempotency-Key"), "web-numeric-answer-key");
+});
