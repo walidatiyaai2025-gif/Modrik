@@ -85,6 +85,7 @@
                 <x-filament::button tag="a" href="/admin/account-operations">{{ $locale === 'ar' ? 'الحسابات واسترداد الجلسات' : ($locale === 'fr' ? 'Comptes et récupération des sessions' : 'Accounts & session recovery') }}</x-filament::button>
                 <x-filament::button tag="a" color="gray" href="/admin/content-ingestion-operations">{{ $locale === 'ar' ? 'تشغيل المحتوى وإعادة المحاولة' : ($locale === 'fr' ? 'Ingestion contenu et retry' : 'Content ingestion & retry') }}</x-filament::button>
                 <x-filament::button tag="a" color="gray" href="/admin/system-settings">{{ $locale === 'ar' ? 'سجل الإعدادات' : ($locale === 'fr' ? 'Registre des paramètres' : 'Settings registry') }}</x-filament::button>
+                <x-filament::button tag="a" color="gray" href="/admin/learning-operations">{{ $locale === 'ar' ? 'تشغيل التعلم' : ($locale === 'fr' ? 'Opérations apprentissage' : 'Learning operations') }}</x-filament::button>
             </div>
         </section>
     </div>

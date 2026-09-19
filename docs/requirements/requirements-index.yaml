@@ -130,3 +130,12 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-026, AC-P0-027, AC-P0-028]
     status: owner_authorized_2026_09_17
+
+
+  - id: REQ-P0-018
+    title: Governed learning feature and job operations
+    statement: Authorized Admins can discover and safely control learning feature availability and operational jobs with versioning, audit evidence, kill switches and truthful dependency states without exposing security, scoring, privacy or publication-integrity invariants as mutable settings.
+    area: operations
+    priority: P0
+    acceptance_criteria: [AC-P0-029, AC-P0-030]
+    status: owner_authorized_2026_09_17
