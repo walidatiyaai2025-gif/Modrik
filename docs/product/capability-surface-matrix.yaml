@@ -309,6 +309,13 @@ capabilities:
     status: present
     notes: Issue #357 defines a deterministic versioned Mistake Notebook lifecycle kernel for new, relearning, review_due, recovered and mastered states. Legal recovery/lapse transitions are fail-closed and no client, Admin surface or persistence layer may redefine mastery/scoring authority.
 
+  - id: learning.adaptive.weak_skill_selection
+    area: learning
+    classification: internal_non_editable
+    surface: Backend AdaptiveSkillSelector contracts/tests; no direct operator or client mutation
+    status: present
+    notes: Issue #357 selects only evidenced critical/weak Skills from authoritative mastery state using deterministic Backend ordering and bounded results. Untested zero-evidence Skills are excluded so cold start is not presented as weakness; duplicate or malformed authority fails closed.
+
   - id: assessment.adaptive_runtime_modes
     area: assessment
     classification: internal_non_editable

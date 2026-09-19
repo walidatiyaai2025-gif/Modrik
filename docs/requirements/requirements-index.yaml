@@ -155,3 +155,11 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-033, AC-P0-034]
     status: owner_authorized_2026_09_17
+
+  - id: REQ-P0-021
+    title: Deterministic weak and critical skill selection
+    statement: MODRIK selects evidenced critical and weak Skills from authoritative Backend mastery state using deterministic bounded priority ordering, while excluding untested cold-start Skills and failing closed on duplicate or malformed authority.
+    area: learning
+    priority: P0
+    acceptance_criteria: [AC-P0-035, AC-P0-036]
+    status: owner_authorized_2026_09_17
