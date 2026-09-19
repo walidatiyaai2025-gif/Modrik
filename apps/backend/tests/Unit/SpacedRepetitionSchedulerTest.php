@@ -25,6 +25,19 @@ final class SpacedRepetitionSchedulerTest extends TestCase
         self::assertSame('2026-10-03T12:00:00+00:00', $first['due_at']);
     }
 
+    public function test_first_success_uses_the_bounded_band_base_interval(): void
+    {
+        $scheduler = new SpacedRepetitionScheduler();
+        $reviewedAt = CarbonImmutable::parse('2026-09-19T12:00:00+00:00');
+
+        $schedule = $scheduler->schedule('strong', true, null, $reviewedAt);
+
+        self::assertSame('first_success', $schedule['reason']);
+        self::assertSame(14, $schedule['base_interval_days']);
+        self::assertSame(14, $schedule['next_interval_days']);
+        self::assertSame('2026-10-03T12:00:00+00:00', $schedule['due_at']);
+    }
+
     public function test_lapse_resets_interval_and_later_success_recovers_deterministically(): void
     {
         $scheduler = new SpacedRepetitionScheduler();
@@ -82,6 +95,28 @@ final class SpacedRepetitionSchedulerTest extends TestCase
             true,
             null,
             CarbonImmutable::parse('2026-09-19T12:00:00+00:00'),
+        );
+    }
+
+    public function test_policy_interval_below_configured_minimum_fails_closed(): void
+    {
+        $scheduler = new SpacedRepetitionScheduler();
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $scheduler->schedule(
+            'critical',
+            true,
+            null,
+            CarbonImmutable::parse('2026-09-19T12:00:00+00:00'),
+            [
+                'critical' => 1,
+                'weak' => 4,
+                'developing' => 8,
+                'strong' => 16,
+            ],
+            2,
+            20,
         );
     }
 
