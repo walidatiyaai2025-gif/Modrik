@@ -146,3 +146,13 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-020]
     statement: Lapse from review_due, recovered or mastered deterministically returns the item to relearning, while unknown states/events and illegal transitions fail closed; the lifecycle introduces no persistence/schema mutation, client mastery/scoring authority or paid-AI dependency.
     verification: focused Backend unit tests for lapse recovery and fail-closed illegal transition handling plus capability-surface contract validation
+
+  - id: AC-P0-035
+    requirement_ids: [REQ-P0-021]
+    statement: Selection is independent of input ordering, prioritizes critical before weak mastery, then lower score, higher confidence, greater evidence and stable Skill identity, and applies the requested result limit only after deterministic sorting.
+    verification: focused Backend unit tests for shuffled input, deterministic ties, critical/weak priority and bounded result count
+
+  - id: AC-P0-036
+    requirement_ids: [REQ-P0-021]
+    statement: Zero-evidence cold-start Skills, developing Skills and strong Skills are not selected as weak/critical candidates; duplicate Skill authority, malformed mastery values and invalid limits fail closed without introducing client mastery/scoring authority, persistence changes or paid-AI dependency.
+    verification: focused Backend unit tests for cold-start exclusion, duplicate/integrity failure and malformed state validation plus capability-surface contract validation
