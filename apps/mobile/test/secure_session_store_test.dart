@@ -34,7 +34,7 @@ void main() {
     });
 
     const store = PlatformSecureAuthCredentialStore();
-    final credential = _credential(DateTime.utc(2026, 9, 19));
+    final credential = _credential(DateTime.utc(2099, 9, 19));
     await store.write(credential);
 
     expect(stored, isNotNull);
