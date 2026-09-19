@@ -323,6 +323,13 @@ capabilities:
     status: present
     notes: Issue #357 interprets diagnostic per-Skill evidence deterministically. Tested Skills expose diagnostic accuracy evidence only; zero-answer Skills remain explicitly untested and receive no fabricated mastery score/band.
 
+  - id: learning.adaptive.daily_plan
+    area: learning
+    classification: internal_non_editable
+    surface: Backend DailyStudyPlanComposer contracts/tests; Student clients may consume future Backend plan output only
+    status: present
+    notes: Issue #357 composes deterministic bounded Daily Plan items from due revision, recent mistakes and weak-Skill candidates, balances subjects round-by-round, skips targets without available questions truthfully, and returns ready/degraded/empty status without client-side planning authority.
+
   - id: assessment.adaptive_runtime_modes
     area: assessment
     classification: internal_non_editable
