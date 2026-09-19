@@ -311,10 +311,15 @@ async function main() {
 
     await page.goto(baseURL, { waitUntil: "domcontentloaded" });
     await page.locator(".student-shell").waitFor({ state: "visible", timeout: 15000 });
-    await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 15000 });
+    await page.locator('[data-student-home="continue-learning-empty"]').waitFor({ state: "visible", timeout: 15000 });
     check(await page.locator(".student-shell").getAttribute("lang") === "en", "E2E_CATALOGUE_OFFLINE_LOCALE");
     check(await page.locator(".student-shell").getAttribute("dir") === "ltr", "E2E_CATALOGUE_OFFLINE_DIRECTION");
     await noHorizontalOverflow(page, "E2E_CATALOGUE_OFFLINE_CONTROL_HORIZONTAL_OVERFLOW");
+
+    const nav = page.locator(".student-nav button");
+    check(await nav.count() === 6, "E2E_CATALOGUE_OFFLINE_NAV_COUNT");
+    await nav.nth(1).click();
+    await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 15000 });
 
     const topicActions = page.locator('[data-node-type="topic"] .next-actions');
     const lessonButton = topicActions.nth(0).locator("button").first();
@@ -322,7 +327,7 @@ async function main() {
     await lessonButton.click();
     await page.locator(".lesson-block").first().waitFor({ state: "visible", timeout: 10000 });
 
-    await page.locator(".student-nav button").nth(0).click();
+    await nav.nth(1).click();
     await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
     const assessmentButton = page.locator('[data-node-type="topic"] .next-actions').nth(1).locator("button").first();
     await reachable(assessmentButton, page, "E2E_CATALOGUE_OFFLINE_ASSESSMENT_ACTION");
@@ -336,13 +341,13 @@ async function main() {
     await banner.waitFor({ state: "visible", timeout: 5000 });
     await noHorizontalOverflow(page, "E2E_CATALOGUE_OFFLINE_HORIZONTAL_OVERFLOW");
 
-    const study = page.locator(".student-nav button").nth(1);
+    const study = nav.nth(2);
     await reachable(study, page, "E2E_CATALOGUE_OFFLINE_STUDY_NAV");
     await study.click();
     await page.locator(".lesson-block").first().waitFor({ state: "visible", timeout: 5000 });
     await noHorizontalOverflow(page, "E2E_CATALOGUE_OFFLINE_STUDY_HORIZONTAL_OVERFLOW");
 
-    const practice = page.locator(".student-nav button").nth(2);
+    const practice = nav.nth(3);
     await practice.click();
     await start.waitFor({ state: "visible", timeout: 5000 });
     check(await start.isDisabled(), "E2E_CATALOGUE_OFFLINE_PRACTICE_NOT_GATED");
