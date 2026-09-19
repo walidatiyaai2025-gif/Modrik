@@ -140,4 +140,4 @@ The runtime reuses `AttemptService`, `AssessmentEngine`, idempotency records and
 | `learning_job_runs` | Durable bounded execution evidence. | Status/counts/duration/error code only; no arbitrary payload/shell/SQL command surface. |
 | `learning_job_control_audits` | Pause/resume audit history. | Admin actor, reason and version transition are immutable evidence. |
 
-Current real Run Now handlers are database-backed question statistics, progress aggregation, content integrity and expired-idempotency cleanup. Mastery recalculation, daily-plan generation, revision scheduling and external notification dispatch remain fail-closed until their authoritative dependencies exist.
+Current real Run Now handlers are database-backed mastery recalculation, question statistics, progress aggregation, content integrity and expired-idempotency cleanup. Daily-plan generation and revision scheduling remain fail-closed until #357 Adaptive Study is integrated; external notification dispatch remains fail-closed until its approved delivery adapter exists.
