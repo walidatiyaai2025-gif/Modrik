@@ -156,3 +156,13 @@ acceptance_criteria:
     requirement_ids: [REQ-P0-021]
     statement: Zero-evidence cold-start Skills, developing Skills and strong Skills are not selected as weak/critical candidates; duplicate Skill authority, malformed mastery values and invalid limits fail closed without introducing client mastery/scoring authority, persistence changes or paid-AI dependency.
     verification: focused Backend unit tests for cold-start exclusion, duplicate/integrity failure and malformed state validation plus capability-surface contract validation
+
+  - id: AC-P0-037
+    requirement_ids: [REQ-P0-022]
+    statement: Tested Skills produce deterministic diagnostic accuracy evidence sorted by stable Skill identity, identical inputs are order-independent, and diagnostic output does not contain or write mastery score/band authority.
+    verification: focused Backend unit tests for tested evidence, shuffled input determinism and absence of mastery assignment
+
+  - id: AC-P0-038
+    requirement_ids: [REQ-P0-022]
+    statement: Zero-answer Skills remain explicitly untested without accuracy or mastery values, while duplicate Skill results and impossible correct/answered counts fail closed.
+    verification: focused Backend unit tests for untested-state truthfulness, duplicate detection and malformed count validation plus capability-surface contract validation

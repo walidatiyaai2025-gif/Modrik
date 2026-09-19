@@ -316,6 +316,13 @@ capabilities:
     status: present
     notes: Issue #357 selects only evidenced critical/weak Skills from authoritative mastery state using deterministic Backend ordering and bounded results. Untested zero-evidence Skills are excluded so cold start is not presented as weakness; duplicate or malformed authority fails closed.
 
+  - id: learning.adaptive.diagnostic_baseline
+    area: learning
+    classification: internal_non_editable
+    surface: Backend DiagnosticBaselineInterpreter contracts/tests; no direct operator or client mutation
+    status: present
+    notes: Issue #357 interprets diagnostic per-Skill evidence deterministically. Tested Skills expose diagnostic accuracy evidence only; zero-answer Skills remain explicitly untested and receive no fabricated mastery score/band.
+
   - id: assessment.adaptive_runtime_modes
     area: assessment
     classification: internal_non_editable
