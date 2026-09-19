@@ -26,6 +26,11 @@ class MobileCopy {
       ModrikLocale.ar: 'التدريب',
       ModrikLocale.fr: 'Exercice',
     },
+    'continue_learning': {
+      ModrikLocale.en: 'Continue Learning',
+      ModrikLocale.ar: 'متابعة التعلّم',
+      ModrikLocale.fr: 'Continuer l’apprentissage',
+    },
     'progress': {
       ModrikLocale.en: 'Progress',
       ModrikLocale.ar: 'التقدّم',
