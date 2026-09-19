@@ -14,6 +14,10 @@ const candidate = process.env.MODRIK_E2E_CANDIDATE || "current-tree-catalogue-co
 const appPort = Number(process.env.MODRIK_E2E_APP_PORT || 3200);
 const mockPort = Number(process.env.MODRIK_E2E_MOCK_PORT || 4200);
 const baseURL = `http://127.0.0.1:${appPort}`;
+const learningWorkspacePath = path.join(appDir, "src", "app", "learning-workspace.tsx");
+const hasStudentHome = fs.existsSync(learningWorkspacePath)
+  && fs.readFileSync(learningWorkspacePath, "utf8").includes('data-student-home="continue-learning');
+
 
 const ids = {
   user: "01J00000000000000000000001",
@@ -579,8 +583,19 @@ async function learningViewport(browser, spec) {
     await noKeyboardTrap(page, "E2E_LEARNING_KEYBOARD_TRAP");
 
     const nav = page.locator(".student-nav button");
-    check(await nav.count() === 5, "E2E_LEARNING_NAV_COUNT");
-    check(await nav.nth(0).getAttribute("aria-current") === "page", "E2E_CATALOGUE_INITIAL_DESTINATION");
+    const catalogueIndex = hasStudentHome ? 1 : 0;
+    const progressIndex = hasStudentHome ? 4 : 3;
+    const academicIndex = hasStudentHome ? 5 : 4;
+    check(await nav.count() === (hasStudentHome ? 6 : 5), "E2E_LEARNING_NAV_COUNT");
+
+    if (hasStudentHome) {
+      check(await nav.nth(0).getAttribute("aria-current") === "page", "E2E_HOME_INITIAL_DESTINATION");
+      await reachable(page.locator('[data-student-home="continue-learning-empty"]'), page, "E2E_HOME_CONTINUE_LEARNING_EMPTY");
+      await noHorizontalOverflow(page, "E2E_HOME_HORIZONTAL_OVERFLOW");
+      await nav.nth(catalogueIndex).click();
+    }
+
+    check(await nav.nth(catalogueIndex).getAttribute("aria-current") === "page", "E2E_CATALOGUE_DESTINATION");
     await reachable(page.locator(".dashboard-hero"), page, "E2E_CATALOGUE_HERO");
     await reachable(page.locator('[data-node-type="subject"]'), page, "E2E_CATALOGUE_SUBJECT");
     await reachable(page.locator('[data-node-type="unit"]'), page, "E2E_CATALOGUE_UNIT");
@@ -597,7 +612,7 @@ async function learningViewport(browser, spec) {
     await reachable(page.locator(".lesson-block").first(), page, "E2E_STUDY_PUBLISHED_CONTENT");
     await noHorizontalOverflow(page, "E2E_STUDY_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(0).click();
+    await nav.nth(catalogueIndex).click();
     await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
     const assessmentButton = page.locator('[data-node-type="topic"] .next-actions').nth(1).locator("button").first();
     await reachable(assessmentButton, page, "E2E_CATALOGUE_ASSESSMENT_ACTION");
@@ -611,11 +626,11 @@ async function learningViewport(browser, spec) {
     await reachable(page.locator(".practice-submit-row button[type=submit]"), page, "E2E_ATTEMPT_SUBMIT");
     await noHorizontalOverflow(page, "E2E_ATTEMPT_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(3).click();
+    await nav.nth(progressIndex).click();
     await reachable(page.locator(".progress-workspace"), page, "E2E_PROGRESS_WORKSPACE");
     await noHorizontalOverflow(page, "E2E_PROGRESS_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(4).click();
+    await nav.nth(academicIndex).click();
     const selectors = page.locator(".academic-track-selector select");
     await selectors.first().waitFor({ state: "visible", timeout: 10000 });
     check(await selectors.count() === 2, "E2E_ACADEMIC_SELECTOR_COUNT");
@@ -685,7 +700,7 @@ async function stateAcceptance(browser) {
     await waitLearning(page);
 
     mockState.academicTracksStatus = 503;
-    await page.locator(".student-nav button").nth(4).click();
+    await page.locator(".student-nav button").nth(hasStudentHome ? 5 : 4).click();
     const catalogueRetry = page.locator("#student-main .empty-panel button").first();
     await catalogueRetry.waitFor({ state: "visible", timeout: 10000 });
     await reachable(catalogueRetry, page, "E2E_ACADEMIC_CATALOGUE_RETRY");

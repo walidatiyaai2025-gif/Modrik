@@ -1235,3 +1235,25 @@ button:disabled {
 .progress-card progress {
   display: block;
 }
+
+
+/* Issue #358: Home quick actions remain intrinsic-safe at narrow 200% text. */
+[data-student-home="quick-actions"] .next-actions button {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-student-home="quick-actions"] .next-actions button > span,
+[data-student-home="continue-learning"] .section-heading-row > *,
+[data-student-home="continue-learning-empty"] .section-heading-row > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (max-width: 680px) {
+  [data-student-home="quick-actions"] .next-actions {
+    min-width: 0;
+    max-width: 100%;
+  }
+}

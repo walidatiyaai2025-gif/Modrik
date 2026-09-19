@@ -22,7 +22,7 @@ import { directionForLocale, localize, studentCopy } from "./student-copy";
 const activeAttemptStorageKey = "modrik.student.active-attempt";
 
 type ViewState = "loading" | "ready" | "offline" | "error" | "permission";
-type WorkspaceView = "catalogue" | "study" | "practice" | "progress" | "academic";
+type WorkspaceView = "home" | "catalogue" | "study" | "practice" | "progress" | "academic";
 
 const catalogueCopy = {
   en: {
@@ -95,7 +95,7 @@ function flattenAssessments(node: CatalogueNode): CatalogueAssessment[] {
 export default function LearningWorkspace() {
   const [locale, setLocale] = useState<Locale>("en");
   const [state, setState] = useState<ViewState>("loading");
-  const [view, setView] = useState<WorkspaceView>("catalogue");
+  const [view, setView] = useState<WorkspaceView>("home");
   const [session, setSession] = useState<Session | null>(null);
   const [context, setContext] = useState<AcademicContext | null>(null);
   const [catalogue, setCatalogue] = useState<ContentCatalogue | null>(null);
@@ -342,7 +342,7 @@ export default function LearningWorkspace() {
     setResult(null);
     setLesson(null);
     setSelectedAssessment(null);
-    setView("catalogue");
+    setView("home");
     await load();
   }
 
@@ -402,11 +402,12 @@ export default function LearningWorkspace() {
         <aside className="student-sidebar" aria-label={labels.navigation}>
           <div className="brand-lockup"><span><strong>MODRIK</strong><small lang="ar" dir="rtl">مُدرك</small></span></div>
           <nav className="student-nav" aria-label={labels.navigation}>
-            <button type="button" className="nav-item" aria-current={view === "catalogue" ? "page" : undefined} onClick={() => setView("catalogue")}><span className="nav-marker">01</span><span>{copy.catalogue}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "study" ? "page" : undefined} onClick={() => setView("study")}><span className="nav-marker">02</span><span>{labels.study}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "practice" ? "page" : undefined} onClick={() => setView("practice")}><span className="nav-marker">03</span><span>{labels.practice}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "progress" ? "page" : undefined} onClick={() => setView("progress")}><span className="nav-marker">04</span><span>{labels.progress}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "academic" ? "page" : undefined} onClick={() => setView("academic")}><span className="nav-marker">05</span><span>{labels.academicTrack}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "home" ? "page" : undefined} onClick={() => setView("home")}><span className="nav-marker">01</span><span>{labels.home}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "catalogue" ? "page" : undefined} onClick={() => setView("catalogue")}><span className="nav-marker">02</span><span>{copy.catalogue}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "study" ? "page" : undefined} onClick={() => setView("study")}><span className="nav-marker">03</span><span>{labels.study}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "practice" ? "page" : undefined} onClick={() => setView("practice")}><span className="nav-marker">04</span><span>{labels.practice}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "progress" ? "page" : undefined} onClick={() => setView("progress")}><span className="nav-marker">05</span><span>{labels.progress}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "academic" ? "page" : undefined} onClick={() => setView("academic")}><span className="nav-marker">06</span><span>{labels.academicTrack}</span></button>
           </nav>
         </aside>
 
@@ -414,8 +415,8 @@ export default function LearningWorkspace() {
           <header className="student-topbar">
             <div>
               <p className="eyebrow">{labels.appName}</p>
-              <h1>{view === "catalogue" ? copy.catalogue : view === "study" ? labels.studyTitle : view === "practice" ? labels.practiceTitle : view === "progress" ? labels.progressTitle : labels.academicTrackTitle}</h1>
-              <p>{copy.publishedOnly}</p>
+              <h1>{view === "home" ? labels.homeTitle : view === "catalogue" ? copy.catalogue : view === "study" ? labels.studyTitle : view === "practice" ? labels.practiceTitle : view === "progress" ? labels.progressTitle : labels.academicTrackTitle}</h1>
+              <p>{view === "home" ? labels.homeSubtitle : copy.publishedOnly}</p>
             </div>
             <fieldset className="locale-switcher">
               <legend className="sr-only">{labels.languageSelector}</legend>
@@ -435,6 +436,48 @@ export default function LearningWorkspace() {
               <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} />
             ) : view === "academic" ? (
               <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} />
+            ) : view === "home" ? (
+              <div className="dashboard-stack">
+                <section className="dashboard-hero">
+                  <div>
+                    <p className="eyebrow">{labels.home}</p>
+                    <h2>{labels.homeTitle}</h2>
+                    <p>{labels.homeSubtitle}</p>
+                  </div>
+                </section>
+
+                {attempt?.status === "in_progress" ? (
+                  <section className="context-panel" data-student-home="continue-learning">
+                    <div className="section-heading-row">
+                      <div>
+                        <p className="eyebrow">{labels.continueLearning}</p>
+                        <h2>{labels.practiceTitle}</h2>
+                      </div>
+                      <small>{attempt.questions.filter((question) => question.current_answer !== null).length}/{attempt.questions.length} {labels.answered}</small>
+                    </div>
+                    <p>{labels.authoritativeNote}</p>
+                    <button type="button" className="primary-button" onClick={() => setView("practice")}>{labels.resume}</button>
+                  </section>
+                ) : (
+                  <section className="context-panel" data-student-home="continue-learning-empty">
+                    <div className="section-heading-row">
+                      <div>
+                        <p className="eyebrow">{labels.continueLearning}</p>
+                        <h2>{labels.noAttempt}</h2>
+                      </div>
+                    </div>
+                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.catalogue}</button>
+                  </section>
+                )}
+
+                <section className="context-panel" data-student-home="quick-actions">
+                  <div className="next-actions">
+                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}><span>{copy.catalogue}</span></button>
+                    <button type="button" className="secondary-button" onClick={() => setView("progress")}><span>{labels.openProgress}</span></button>
+                    <button type="button" className="secondary-button" onClick={() => setView("academic")}><span>{labels.openAcademicTrack}</span></button>
+                  </div>
+                </section>
+              </div>
             ) : view === "catalogue" ? (
               <div className="dashboard-stack">
                 <section className="dashboard-hero">
