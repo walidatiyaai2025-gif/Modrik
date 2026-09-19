@@ -233,13 +233,6 @@ export default function LearningWorkspace() {
   }, [load]);
 
   async function openLesson(lessonId: string) {
-    if (attempt.questions.some((question) =>
-      question.response_contract.kind === "numeric"
-      && !Number.isFinite(Number(answers[question.attempt_question_id])),
-    )) {
-      setMessage(labels.answerRequired);
-      return;
-    }
     setBusy(true);
     setMessage("");
     try {
@@ -282,6 +275,13 @@ export default function LearningWorkspace() {
   async function submitAssessment() {
     if (!attempt || !navigator.onLine) return;
     if (attempt.questions.some((question) => !answers[question.attempt_question_id]?.trim())) {
+      setMessage(labels.answerRequired);
+      return;
+    }
+    if (attempt.questions.some((question) =>
+      question.response_contract.kind === "numeric"
+      && !Number.isFinite(Number(answers[question.attempt_question_id])),
+    )) {
       setMessage(labels.answerRequired);
       return;
     }
