@@ -171,3 +171,11 @@ requirements:
     priority: P0
     acceptance_criteria: [AC-P0-037, AC-P0-038]
     status: owner_authorized_2026_09_17
+
+  - id: REQ-P0-023
+    title: Deterministic balanced Daily Study Plan
+    statement: MODRIK composes a reproducible bounded Daily Study Plan from due revision, recent mistakes and weak-Skill candidates, applies deterministic subject balance and study limits, and reports unavailable/insufficient content truthfully without paid AI at runtime.
+    area: learning
+    priority: P0
+    acceptance_criteria: [AC-P0-039, AC-P0-040]
+    status: owner_authorized_2026_09_17
