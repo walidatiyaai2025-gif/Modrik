@@ -572,12 +572,14 @@ export default function LearningWorkspace() {
                                 />
                                 <span dir="auto">{localize(option.label, locale)}</span>
                               </label>
-                            )) : question.response_contract.kind === "multi_select" ? question.response_contract.options.map((option) => {
-                              const selected = Array.isArray(answers[question.attempt_question_id])
-                                ? answers[question.attempt_question_id] as string[]
-                                : [];
-                              const optionIds = question.response_contract.options.map((candidate) => candidate.id);
-                              return (
+                            )) : question.response_contract.kind === "multi_select" ? (() => {
+                              const contract = question.response_contract;
+                              const optionIds = contract.options.map((candidate) => candidate.id);
+                              return contract.options.map((option) => {
+                                const selected = Array.isArray(answers[question.attempt_question_id])
+                                  ? answers[question.attempt_question_id] as string[]
+                                  : [];
+                                return (
                                 <label className="answer-option" key={option.id}>
                                   <input
                                     type="checkbox"
@@ -599,8 +601,9 @@ export default function LearningWorkspace() {
                                   />
                                   <span dir="auto">{localize(option.label, locale)}</span>
                                 </label>
-                              );
-                            }) : question.response_contract.kind === "boolean" ? (
+                                );
+                              });
+                            })() : question.response_contract.kind === "boolean" ? (
                               <div className="answer-options" data-response-kind="boolean">
                                 <label className="answer-option">
                                   <input
