@@ -470,11 +470,11 @@ export default function LearningWorkspace() {
                   </section>
                 )}
 
-                <section className="context-panel">
+                <section className="context-panel" data-student-home="quick-actions">
                   <div className="next-actions">
-                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.catalogue}</button>
-                    <button type="button" className="secondary-button" onClick={() => setView("progress")}>{labels.openProgress}</button>
-                    <button type="button" className="secondary-button" onClick={() => setView("academic")}>{labels.openAcademicTrack}</button>
+                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}><span>{copy.catalogue}</span></button>
+                    <button type="button" className="secondary-button" onClick={() => setView("progress")}><span>{labels.openProgress}</span></button>
+                    <button type="button" className="secondary-button" onClick={() => setView("academic")}><span>{labels.openAcademicTrack}</span></button>
                   </div>
                 </section>
               </div>
