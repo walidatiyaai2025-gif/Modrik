@@ -576,6 +576,7 @@ export default function LearningWorkspace() {
                               const selected = Array.isArray(answers[question.attempt_question_id])
                                 ? answers[question.attempt_question_id] as string[]
                                 : [];
+                              const optionIds = question.response_contract.options.map((candidate) => candidate.id);
                               return (
                                 <label className="answer-option" key={option.id}>
                                   <input
@@ -592,9 +593,7 @@ export default function LearningWorkspace() {
                                       else nextSet.delete(option.id);
                                       return {
                                         ...current,
-                                        [question.attempt_question_id]: question.response_contract.options
-                                          .map((candidate) => candidate.id)
-                                          .filter((candidateId) => nextSet.has(candidateId)),
+                                        [question.attempt_question_id]: optionIds.filter((candidateId) => nextSet.has(candidateId)),
                                       };
                                     })}
                                   />
