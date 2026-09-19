@@ -92,16 +92,18 @@ final class MistakeRecoveryLifecycleTest extends TestCase
         );
     }
 
-    public function test_unknown_state_or_event_fails_closed(): void
+    public function test_unknown_state_fails_closed(): void
     {
         $lifecycle = new MistakeRecoveryLifecycle;
 
-        try {
-            $lifecycle->transition('unknown', MistakeRecoveryLifecycle::EVENT_LAPSE);
-            self::fail('Unknown state should fail closed.');
-        } catch (InvalidArgumentException) {
-            self::assertTrue(true);
-        }
+        $this->expectException(InvalidArgumentException::class);
+
+        $lifecycle->transition('unknown', MistakeRecoveryLifecycle::EVENT_LAPSE);
+    }
+
+    public function test_unknown_event_fails_closed(): void
+    {
+        $lifecycle = new MistakeRecoveryLifecycle;
 
         $this->expectException(InvalidArgumentException::class);
 
