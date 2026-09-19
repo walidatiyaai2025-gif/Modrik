@@ -65,9 +65,12 @@ final class SpacedRepetitionScheduler
             $reason = 'successful_extension';
         }
 
+        $normalizedPolicy = $baseIntervals;
+        ksort($normalizedPolicy, SORT_STRING);
+
         $policyFingerprint = hash('sha256', json_encode([
             'algorithm_version' => self::ALGORITHM_VERSION,
-            'base_intervals' => $baseIntervals,
+            'base_intervals' => $normalizedPolicy,
             'min_interval_days' => $minIntervalDays,
             'max_interval_days' => $maxIntervalDays,
         ], JSON_THROW_ON_ERROR));
@@ -110,7 +113,7 @@ final class SpacedRepetitionScheduler
         }
 
         foreach ($baseIntervals as $band => $days) {
-            if (! is_int($days) || $days < 1 || $days > $maxIntervalDays) {
+            if (! is_int($days) || $days < $minIntervalDays || $days > $maxIntervalDays) {
                 throw new InvalidArgumentException(sprintf('Spaced-repetition interval for %s is outside the governed bounds.', $band));
             }
         }
