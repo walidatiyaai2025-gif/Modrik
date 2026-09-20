@@ -5,7 +5,7 @@
   "integration_issue": 363,
   "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
-  "overall_readiness_percent": 94,
+  "overall_readiness_percent": 98,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
@@ -88,8 +88,8 @@
       "id": "quality_security",
       "name": "Security/Tests/Data Integrity",
       "weight": 4,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 363
     },
     {
@@ -105,21 +105,21 @@
     }
   ],
   "mandatory_gates": {
-    "identity_academic_context": "not_evidenced",
-    "curriculum_content": "not_evidenced",
-    "question_bank": "not_evidenced",
+    "identity_academic_context": "PASS",
+    "curriculum_content": "blocked_owner_last",
+    "question_bank": "PASS",
     "assessment_runtime": "PASS",
     "mastery_adaptive": "PASS",
     "student_ux": "PASS",
     "parent_ux": "PASS",
     "arabic_english_accessibility": "PASS",
     "admin_controls": "PASS",
-    "security_integrity_qa": "not_evidenced",
+    "security_integrity_qa": "PASS",
     "real_year6_pilot": "blocked_owner_last",
     "real_year7_pilot": "blocked_owner_last",
     "parent_real_pilot": "blocked_dependency",
-    "open_mandatory_learning_blockers_zero": "not_evidenced",
-    "exact_main_governed_ci_green": "not_evidenced"
+    "open_mandatory_learning_blockers_zero": "blocked_owner_last",
+    "exact_main_governed_ci_green": "PASS"
   },
   "evidence": [
     {
@@ -555,10 +555,56 @@
         "status": "not_observed",
         "note": "No push-triggered governed workflow surfaced for merge SHA 0ccc0e371c5183db7302a8e22670ae22bf5985b6 at reconciliation time; whole-program exact_main_governed_ci_green remains unreconciled."
       }
+    },
+    {
+      "id": "AL11_CROSS_DOMAIN_QA",
+      "owner_issue": 363,
+      "status": "reconciled",
+      "composition_base_sha": "665225e425dabfc993fba4c3b7d2686b2895766b",
+      "facts": {
+        "identity_real_backend_session": "pass",
+        "academic_year_track_context": "pass",
+        "academic_history_reset_change_preserved": "pass",
+        "question_supported_types_contract": "pass",
+        "question_client_answer_parity": "pass",
+        "answer_leakage_pre_reveal": "fail_closed",
+        "import_schema_stale_duplicate_validation": "pass",
+        "rights_review_publication_rbac_audit": "pass",
+        "sqlite_backend_suite": "pass",
+        "mariadb_10_11_suite": "pass",
+        "web_lint_type_test_build": "pass",
+        "flutter_analyze_tests": "pass",
+        "android_ios_native_compile": "pass",
+        "secret_scan": "pass",
+        "dependency_review": "pass",
+        "cross_user_direct_id_idor": "fail_closed",
+        "csrf_same_origin_mutation": "fail_closed",
+        "stale_session_security": "pass",
+        "production_child_pii_repository_fixture": "absent",
+        "strict_pilot": "pass"
+      },
+      "source_ci": {
+        "bootstrap_pr": 430,
+        "bootstrap_run": 35508743211,
+        "bootstrap_number": 1669,
+        "bootstrap_conclusion": "success",
+        "pilot_strict": "success",
+        "pilot_matrix": "16 PASS / 0 FAIL / 0 BLOCKED",
+        "native_compile_pr": 428,
+        "native_compile_number": 170,
+        "native_compile_conclusion": "success"
+      },
+      "truth_boundary": {
+        "curriculum_content": "blocked_owner_last",
+        "real_year6_pilot": "blocked_owner_last",
+        "real_year7_pilot": "blocked_owner_last",
+        "parent_real_pilot": "blocked_dependency",
+        "reason": "Real pilot still lacks owner-approved/published Year 6+7 content coverage and cleared rights; zero source is student-delivery-eligible."
+      }
     }
   ],
   "notes": [
-    "Overall readiness is 94% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14), Mastery + Adaptive Engine (14), Revision + Daily Planner (10), Student Web/Mobile UX (12), Parent Analytics (7), Arabic/RTL/Typography/Accessibility (7) and Operations (4). Security/Tests/Data Integrity (4) and Real Children Pilot Acceptance (2) remain unevidenced/blocked, so children_ready remains false.",
+    "Overall readiness is 98% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14), Mastery + Adaptive Engine (14), Revision + Daily Planner (10), Student Web/Mobile UX (12), Parent Analytics (7), Arabic/RTL/Typography/Accessibility (7), Operations (4), and Security/Tests/Data Integrity (4). Real Children Pilot Acceptance (2) remains blocked_owner_last, so children_ready remains false.",
     "Foundation (#353) and Question Bank + Content Workflow (#354) are reconciled PASS from integrated closure evidence and governed CI. The separate mandatory Question Bank gate remains unreconciled until #363 records gate-specific cross-domain evidence; Student UX closure does not silently promote unrelated mandatory gates.",
     "Operations (#361) is reconciled PASS from current-main recovery PR #408 and exact-main Bootstrap #1541 / Unified Release #232; Admin Controls is PASS from integrated #354 + #361 evidence.",
     "Mastery + Adaptive Engine is reconciled PASS from integrated #356 Mastery Engine plus CLOSED/COMPLETED #357 Adaptive Study. #357 evidence spans PRs #410-#414: spaced repetition, Mistake Notebook lifecycle, evidenced weak/critical Skill selection, truthful diagnostic baseline and deterministic Daily Study Plan.",
@@ -571,6 +617,7 @@
     "Parent Analytics (#360) is reconciled PASS from merged PR #426. The integrated domain enforces parent-only linked-child authorization, fail-closed direct-ID access, authoritative activity/assessment/mastery/revision aggregates, truthful empty states, no sibling ranking, and exact-head AR/EN/FR responsive browser evidence.",
     "Parent Analytics final exact-head Bootstrap #1653, Unified Release #334, Demo Package #658 and Web Portals Runtime #166 were green before PR #426 merged at 90d129787101f6db96bbef3d78c6c593031f622a. No push-triggered exact-main governed workflow surfaced for that merge SHA at reconciliation time, so the whole-program exact_main_governed_ci_green gate remains separately unreconciled.",
     "Arabic/RTL/Typography/Accessibility (#359) is reconciled PASS from integrated PRs #366, #367 and final closure PR #428. Evidence covers mixed-direction math/text, four persisted Student text sizes on Web/Flutter, 18px Student question baseline, 44–48px interaction targets, Arabic line-height, and Student/Parent/Admin responsive RTL/LTR and large-text acceptance.",
-    "Final #359 exact-head Bootstrap #1665, RTL Accessibility #6, Admin UX #329, Web Portals Runtime #172, Mobile Native Compile #170, Unified Release #345 and Demo Package #667 were green before PR #428 merged at 0ccc0e371c5183db7302a8e22670ae22bf5985b6. No push-triggered exact-main governed run surfaced for that merge SHA at reconciliation time, so the whole-program exact_main_governed_ci_green gate remains separately unreconciled."
+    "Final #359 exact-head Bootstrap #1665, RTL Accessibility #6, Admin UX #329, Web Portals Runtime #172, Mobile Native Compile #170, Unified Release #345 and Demo Package #667 were green before PR #428 merged at 0ccc0e371c5183db7302a8e22670ae22bf5985b6. No push-triggered exact-main governed run surfaced for that merge SHA at reconciliation time, so the whole-program exact_main_governed_ci_green gate remains separately unreconciled.",
+    "AL-11 cross-domain QA is reconciled from Bootstrap #1669 plus prior native-compile evidence: identity/session, Question Bank execution safety, SQLite/MariaDB, Web, Flutter, secret/dependency, IDOR, CSRF/session-security and strict Pilot evidence are PASS. Curriculum content and real-pilot gates remain blocked_owner_last because pilot rights/publication/Year 7 evidence is still incomplete; no readiness credit is invented for the Real Pilot domain."
   ]
 }
