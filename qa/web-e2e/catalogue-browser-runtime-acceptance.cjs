@@ -39,6 +39,7 @@ const viewports = [
   { name: "desktop-en", width: 1440, height: 1000, locale: "en", textScale: 1 },
   { name: "desktop-ar", width: 1024, height: 900, locale: "ar", textScale: 1 },
   { name: "tablet-fr", width: 768, height: 900, locale: "fr", textScale: 1 },
+  { name: "mobile-en-412", width: 412, height: 915, locale: "en", textScale: 1 },
   { name: "mobile-en-390", width: 390, height: 844, locale: "en", textScale: 1 },
   { name: "mobile-fr-360-200", width: 360, height: 800, locale: "fr", textScale: 2 },
   { name: "mobile-ar-320-200", width: 320, height: 720, locale: "ar", textScale: 2 },
