@@ -1373,10 +1373,13 @@ button:disabled {
 .parent-content {
   display: grid;
   gap: 1.25rem;
+  min-width: 0;
 }
 
 .parent-hero,
 .parent-panel {
+  min-width: 0;
+  max-width: 100%;
   padding: 1.25rem;
 }
 
@@ -1402,6 +1405,8 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 1rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .parent-summary-list,
@@ -1453,12 +1458,16 @@ button:disabled {
 }
 
 .parent-table-wrap {
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .parent-table-wrap table {
   width: 100%;
+  max-width: none;
   border-collapse: collapse;
   min-width: 36rem;
 }
