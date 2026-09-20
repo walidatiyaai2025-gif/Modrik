@@ -143,11 +143,17 @@ jobs:
           if parent.get('expected_sha') != os.environ['EXPECTED_SHA']:
               raise SystemExit('Parent Analytics acceptance SHA mismatch')
           parent_cases = parent.get('cases', [])
-          parent_expected = {'parent-desktop-en-412', 'parent-mobile-fr-390-200', 'parent-mobile-ar-360-200'}
+          parent_expected = {
+              'parent-desktop-en-1440',
+              'parent-tablet-fr-768',
+              'parent-mobile-en-412',
+              'parent-mobile-fr-390-200',
+              'parent-mobile-ar-360-200',
+          }
           parent_actual = {case.get('name') for case in parent_cases if case.get('status') == 'PASS'}
-          if parent_actual != parent_expected or len(parent_cases) != 3:
+          if parent_actual != parent_expected or len(parent_cases) != 5:
               raise SystemExit(f'unexpected Parent Analytics matrix: {sorted(parent_actual)}')
-          print('Parent Analytics matrix: 3 PASS / 0 FAIL')
+          print('Parent Analytics matrix: 5 PASS / 0 FAIL')
           PY
 
       - name: Stop Web candidate
