@@ -126,7 +126,7 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame(1669, $qa['source_ci']['bootstrap_number'] ?? null);
         self::assertSame('success', $qa['source_ci']['bootstrap_conclusion'] ?? null);
         self::assertSame('success', $qa['source_ci']['pilot_strict'] ?? null);
-        self::assertSame('pass', $qa['facts']['csrf_same_origin_mutation'] ?? null);
+        self::assertSame('fail_closed', $qa['facts']['csrf_same_origin_mutation'] ?? null);
         self::assertSame('fail_closed', $qa['facts']['cross_user_direct_id_idor'] ?? null);
         self::assertSame('absent', $qa['facts']['production_child_pii_repository_fixture'] ?? null);
     }
