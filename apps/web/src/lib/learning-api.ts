@@ -98,6 +98,7 @@ export type AttemptQuestion = {
   type: string;
   prompt: LocalizedText;
   response_contract: ResponseContract;
+  hints?: string[];
   current_answer: null | { revision: number; value: AnswerValue; answered_at: string };
 };
 
@@ -105,6 +106,9 @@ export type Attempt = {
   id: string;
   academic_context_id: string;
   quiz_id: string;
+  mode?: string;
+  hints_allowed?: boolean;
+  reveal_policy?: string;
   status: "in_progress" | "submitted" | "graded" | "abandoned";
   blueprint_version: number;
   ordering_algorithm: "modrik-fy-v1";
@@ -114,7 +118,21 @@ export type Attempt = {
   questions: AttemptQuestion[];
 };
 
-export type AttemptResult = { attempt: Attempt; score: number; max_score: number };
+export type AttemptReview = {
+  attempt_question_id: string;
+  position: number;
+  correct: boolean | null;
+  awarded_score: number;
+  maximum_score: number;
+  explanation: LocalizedText | null;
+};
+
+export type AttemptResult = {
+  attempt: Attempt;
+  score: number;
+  max_score: number;
+  review?: AttemptReview[];
+};
 export type Progress = {
   academic_context_id: string;
   curriculum_node_id: string;
