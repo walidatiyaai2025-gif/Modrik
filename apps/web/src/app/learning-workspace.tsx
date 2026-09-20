@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   learningApi,
   LearningApiError,
@@ -34,6 +34,49 @@ const textScalePercent: Record<TextScalePreference, number> = {
 
 function isTextScalePreference(value: string | null): value is TextScalePreference {
   return value === "normal" || value === "large" || value === "largest";
+}
+
+const textScaleChangedEvent = "modrik:student-text-scale-changed";
+
+function readTextScalePreference(): TextScalePreference {
+  if (typeof window === "undefined") return "normal";
+  const stored = window.localStorage.getItem(textScaleStorageKey);
+  return isTextScalePreference(stored) ? stored : "normal";
+}
+
+function subscribeTextScalePreference(listener: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const notify = () => listener();
+  window.addEventListener("storage", notify);
+  window.addEventListener(textScaleChangedEvent, notify);
+  return () => {
+    window.removeEventListener("storage", notify);
+    window.removeEventListener(textScaleChangedEvent, notify);
+  };
+}
+
+function persistTextScalePreference(next: TextScalePreference) {
+  window.localStorage.setItem(textScaleStorageKey, next);
+  window.dispatchEvent(new Event(textScaleChangedEvent));
+}
+
+function readDocumentFontSize(): string {
+  return document.documentElement.style.fontSize;
+}
+
+function applyDocumentTextScale(next: TextScalePreference) {
+  document.documentElement.style.setProperty(
+    "font-size",
+    `${textScalePercent[next]}%`,
+  );
+}
+
+function restoreDocumentFontSize(previous: string) {
+  if (previous) {
+    document.documentElement.style.setProperty("font-size", previous);
+  } else {
+    document.documentElement.style.removeProperty("font-size");
+  }
 }
 
 type ViewState = "loading" | "ready" | "offline" | "error" | "permission";
@@ -142,7 +185,11 @@ export default function LearningWorkspace() {
   const [revisions, setRevisions] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [textScale, setTextScale] = useState<TextScalePreference>("normal");
+  const textScale = useSyncExternalStore(
+    subscribeTextScalePreference,
+    readTextScalePreference,
+    () => "normal",
+  );
   const mounted = useRef(true);
 
   const labels = studentCopy[locale];
@@ -255,21 +302,13 @@ export default function LearningWorkspace() {
   }, [applyAttempt, handleError]);
 
   useEffect(() => {
-    const previousInlineFontSize = document.documentElement.style.fontSize;
-    const stored = window.localStorage.getItem(textScaleStorageKey);
-    const restored = isTextScalePreference(stored) ? stored : "normal";
-    setTextScale(restored);
-    document.documentElement.style.fontSize = `${textScalePercent[restored]}%`;
-
-    return () => {
-      document.documentElement.style.fontSize = previousInlineFontSize;
-    };
-  }, []);
+    const previousInlineFontSize = readDocumentFontSize();
+    applyDocumentTextScale(textScale);
+    return () => restoreDocumentFontSize(previousInlineFontSize);
+  }, [textScale]);
 
   function updateTextScale(next: TextScalePreference) {
-    setTextScale(next);
-    window.localStorage.setItem(textScaleStorageKey, next);
-    document.documentElement.style.fontSize = `${textScalePercent[next]}%`;
+    persistTextScalePreference(next);
   }
 
   useEffect(() => {
