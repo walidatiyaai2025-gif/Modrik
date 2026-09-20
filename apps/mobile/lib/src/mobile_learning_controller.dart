@@ -7,6 +7,7 @@ import 'learning_gateway.dart';
 import 'models.dart';
 import 'offline_boundary.dart';
 import 'student_adaptive_study.dart';
+import 'student_preferences.dart';
 
 enum MobileViewStatus { loading, ready, empty, error, offline, permission }
 
@@ -20,6 +21,7 @@ class MobileLearningController extends ChangeNotifier {
     AttemptSnapshotCache? attemptSnapshotCache,
     PendingOperationStore? pendingOperationStore,
     PendingSyncClient? pendingSyncClient,
+    StudentPreferenceStore? studentPreferenceStore,
     DateTime Function()? clock,
   })  : downloadedContentCache =
             downloadedContentCache ?? MemoryDownloadedContentCache(),
@@ -29,6 +31,8 @@ class MobileLearningController extends ChangeNotifier {
             pendingOperationStore ?? MemoryPendingOperationStore(),
         pendingSyncClient =
             pendingSyncClient ?? const DeferredIssue14SyncClient(),
+        studentPreferenceStore =
+            studentPreferenceStore ?? MemoryStudentPreferenceStore(),
         _clock = clock ?? DateTime.now;
 
   final LearningGateway gateway;
@@ -37,11 +41,14 @@ class MobileLearningController extends ChangeNotifier {
   final AttemptSnapshotCache attemptSnapshotCache;
   final PendingOperationStore pendingOperationStore;
   final PendingSyncClient pendingSyncClient;
+  final StudentPreferenceStore studentPreferenceStore;
   final DateTime Function() _clock;
 
   MobileViewStatus status = MobileViewStatus.loading;
   StudentSection section = StudentSection.dashboard;
   ModrikLocale locale = ModrikLocale.en;
+  StudentTextScalePreference textScalePreference =
+      StudentTextScalePreference.normal;
   Session? session;
   AcademicContext? academicContext;
   Lesson? lesson;
@@ -65,6 +72,7 @@ class MobileLearningController extends ChangeNotifier {
       academicContext?.requiresOnboarding ?? false;
   bool get hasLesson => lesson != null;
   bool get hasAttempt => attempt != null;
+  double get textScaleFactor => textScalePreference.factor;
   bool get hasUnsavedAnswers => _answers.entries.any(
         (entry) => !jsonValueEquals(_savedAnswers[entry.key], entry.value),
       );
@@ -72,6 +80,7 @@ class MobileLearningController extends ChangeNotifier {
   Future<void> initialize() async {
     status = MobileViewStatus.loading;
     messageCode = null;
+    await _restoreTextScalePreference();
     notifyListeners();
 
     if (!config.isConfigured) {
@@ -157,6 +166,29 @@ class MobileLearningController extends ChangeNotifier {
     if (locale == next) return;
     locale = next;
     notifyListeners();
+  }
+
+  Future<void> setTextScalePreference(
+    StudentTextScalePreference next,
+  ) async {
+    if (textScalePreference == next) return;
+    textScalePreference = next;
+    notifyListeners();
+    try {
+      await studentPreferenceStore.writeTextScale(next);
+    } on Object {
+      // Preference persistence is best-effort and must never block learning.
+    }
+  }
+
+  Future<void> _restoreTextScalePreference() async {
+    try {
+      textScalePreference =
+          await studentPreferenceStore.readTextScale() ??
+          StudentTextScalePreference.normal;
+    } on Object {
+      textScalePreference = StudentTextScalePreference.normal;
+    }
   }
 
   void setSection(StudentSection next) {
