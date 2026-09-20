@@ -13,6 +13,10 @@ const evidenceDir = path.resolve(process.env.MODRIK_E2E_EVIDENCE_DIR || path.joi
 const appPort = Number(process.env.MODRIK_E2E_APP_PORT || 3310);
 const mockPort = Number(process.env.MODRIK_E2E_MOCK_PORT || 4310);
 const baseURL = `http://127.0.0.1:${appPort}`;
+const targetHomePath = path.join(appDir, "src", "app", "page.tsx");
+const usesLandingHome = fs.existsSync(targetHomePath)
+  && fs.readFileSync(targetHomePath, "utf8").includes('import LandingPage from "./landing-page"');
+const studentURL = usesLandingHome ? `${baseURL}/student` : baseURL;
 const learningWorkspacePath = path.join(appDir, "src", "app", "learning-workspace.tsx");
 const hasStudentHome = fs.existsSync(learningWorkspacePath)
   && fs.readFileSync(learningWorkspacePath, "utf8").includes('data-student-home="continue-learning');
@@ -378,7 +382,7 @@ async function recordAuth(browser, name, width, height, locale, loading = false)
   const context = await browser.newContext({ viewport: { width, height } });
   const page = await context.newPage();
   try {
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     if (loading) await page.locator(".auth-loading").waitFor({ state: "visible", timeout: 5000 });
     else await page.locator(".auth-card form").first().waitFor({ state: "visible", timeout: 15000 });
     if (!loading) await page.locator(".auth-locale button", { hasText: locale.toUpperCase() }).first().click();
@@ -406,7 +410,7 @@ async function recordLearning(browser, name, width, height, locale, mode = "lear
   await authenticate(context);
   const page = await context.newPage();
   try {
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     await page.locator(".student-shell").waitFor({ state: "visible", timeout: 15000 });
     await page.locator(".dashboard-stack").waitFor({ state: "visible", timeout: 15000 });
     await setTextScale(page);
