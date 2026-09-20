@@ -10,7 +10,6 @@ import {
   type ParentLocalizedText,
   type ParentMasterySkill,
 } from "../lib/parent-api";
-import styles from "./parent-analytics.module.css";
 
 type LoadState = "loading" | "ready" | "empty" | "error";
 
@@ -140,16 +139,16 @@ function SkillList({
   locale: ParentLocale;
   empty: string;
 }) {
-  if (items.length === 0) return <p className={styles.empty}>{empty}</p>;
+  if (items.length === 0) return <p className="parent-empty">{empty}</p>;
   return (
-    <ul className={styles.skillList}>
+    <ul className="parent-skill-list">
       {items.map((skill) => (
         <li key={skill.skill_id}>
           <div>
             <strong dir="auto">{localize(skill.skill_title, locale)}</strong>
             <span dir="auto">{localize(skill.subject.title, locale)}</span>
           </div>
-          <div className={styles.skillMetric}>
+          <div className="parent-skill-metric">
             <strong>{percent(skill.score_percent)}</strong>
             <span>{skill.display_band}</span>
           </div>
@@ -223,15 +222,15 @@ export default function ParentAnalyticsWorkspace({
   );
 
   return (
-    <main className={styles.shell} dir={direction} lang={locale} data-parent-analytics="workspace">
-      <header className={styles.header}>
+    <main className="parent-shell" dir={direction} lang={locale} data-parent-analytics="workspace">
+      <header className="parent-header">
         <div>
-          <p className={styles.eyebrow}>MODRIK</p>
+          <p className="parent-eyebrow">MODRIK</p>
           <h1>{labels.title}</h1>
           <p>{labels.subtitle}</p>
         </div>
-        <div className={styles.controls}>
-          <div className={styles.locale} aria-label="Language">
+        <div className="parent-controls">
+          <div className="parent-locale" aria-label="Language">
             {(["ar", "en", "fr"] as const).map((item) => (
               <button
                 key={item}
@@ -259,22 +258,22 @@ export default function ParentAnalyticsWorkspace({
         </div>
       </header>
 
-      <p className={styles.privacy}>{labels.privacy}</p>
+      <p className="parent-privacy">{labels.privacy}</p>
 
       {state === "loading" ? <p role="status">{labels.loading}</p> : null}
-      {state === "empty" ? <p className={styles.empty}>{labels.noChildren}</p> : null}
+      {state === "empty" ? <p className="parent-empty">{labels.noChildren}</p> : null}
       {state === "error" ? (
-        <div className={styles.error} role="alert">
+        <div className="parent-error" role="alert">
           <span>{labels.error}</span>
           <button type="button" onClick={() => void loadChildren()}>{labels.retry}</button>
         </div>
       ) : null}
 
       {state === "ready" && analytics ? (
-        <div className={styles.content}>
-          <section className={styles.hero} aria-labelledby="parent-child-title">
+        <div className="parent-content">
+          <section className="parent-hero" aria-labelledby="parent-child-title">
             <div>
-              <p className={styles.eyebrow}>{labels.child}</p>
+              <p className="parent-eyebrow">{labels.child}</p>
               <h2 id="parent-child-title">{selected?.name ?? analytics.child.name}</h2>
             </div>
             {analytics.state === "active" ? (
@@ -286,7 +285,7 @@ export default function ParentAnalyticsWorkspace({
 
           <section aria-labelledby="parent-activity-title">
             <h2 id="parent-activity-title">{labels.activity}</h2>
-            <div className={styles.metrics}>
+            <div className="parent-metrics">
               <article><span>{labels.attempts}</span><strong>{analytics.activity.attempts_started}</strong></article>
               <article><span>{labels.answered}</span><strong>{analytics.activity.answered_questions}</strong></article>
               <article><span>{labels.accuracy}</span><strong>{analytics.activity.accuracy_percent === null ? labels.noAccuracy : percent(analytics.activity.accuracy_percent)}</strong></article>
@@ -295,12 +294,12 @@ export default function ParentAnalyticsWorkspace({
             </div>
           </section>
 
-          <section className={styles.grid} aria-labelledby="parent-mastery-title">
-            <div className={styles.panel}>
+          <section className="parent-grid" aria-labelledby="parent-mastery-title">
+            <div className="parent-panel">
               <h2 id="parent-mastery-title">{labels.mastery}</h2>
               <h3>{labels.subjects}</h3>
-              {analytics.mastery.subjects.length === 0 ? <p className={styles.empty}>{labels.noMastery}</p> : (
-                <ul className={styles.summaryList}>
+              {analytics.mastery.subjects.length === 0 ? <p className="parent-empty">{labels.noMastery}</p> : (
+                <ul className="parent-summary-list">
                   {analytics.mastery.subjects.map((subject) => (
                     <li key={subject.id}>
                       <span dir="auto">{localize(subject.title, locale)}</span>
@@ -313,7 +312,7 @@ export default function ParentAnalyticsWorkspace({
               <SkillList items={analytics.mastery.skills} locale={locale} empty={labels.noMastery} />
             </div>
 
-            <div className={styles.panel}>
+            <div className="parent-panel">
               <h2>{labels.attention}</h2>
               <SkillList items={analytics.mastery.attention} locale={locale} empty={labels.noMastery} />
               <h2>{labels.strong}</h2>
@@ -321,15 +320,15 @@ export default function ParentAnalyticsWorkspace({
             </div>
           </section>
 
-          <section className={styles.panel} aria-labelledby="parent-revision-title">
-            <div className={styles.sectionHeading}>
+          <section className="parent-panel" aria-labelledby="parent-revision-title">
+            <div className="parent-section-heading">
               <h2 id="parent-revision-title">{labels.revision}</h2>
               <strong>{labels.dueNow}: {analytics.revision_attention.due_count}</strong>
             </div>
             {analytics.revision_attention.items.length === 0 ? (
-              <p className={styles.empty}>{labels.noRevision}</p>
+              <p className="parent-empty">{labels.noRevision}</p>
             ) : (
-              <ul className={styles.revisionList}>
+              <ul className="parent-revision-list">
                 {analytics.revision_attention.items.map((item) => (
                   <li key={item.skill_id}>
                     <div>
@@ -346,12 +345,12 @@ export default function ParentAnalyticsWorkspace({
             )}
           </section>
 
-          <section className={styles.panel} aria-labelledby="parent-assessments-title">
+          <section className="parent-panel" aria-labelledby="parent-assessments-title">
             <h2 id="parent-assessments-title">{labels.assessments}</h2>
             {analytics.assessment_history.length === 0 ? (
-              <p className={styles.empty}>{labels.noAssessments}</p>
+              <p className="parent-empty">{labels.noAssessments}</p>
             ) : (
-              <div className={styles.tableWrap}>
+              <div className="parent-table-wrap">
                 <table>
                   <thead><tr><th>{labels.assessments}</th><th>{labels.latest}</th><th>{labels.accuracy}</th></tr></thead>
                   <tbody>
