@@ -5,7 +5,7 @@
   "integration_issue": 363,
   "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
-  "overall_readiness_percent": 68,
+  "overall_readiness_percent": 80,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
@@ -56,8 +56,8 @@
       "id": "student_ux",
       "name": "Student Web/Mobile UX",
       "weight": 12,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 358
     },
     {
@@ -110,7 +110,7 @@
     "question_bank": "not_evidenced",
     "assessment_runtime": "PASS",
     "mastery_adaptive": "PASS",
-    "student_ux": "not_evidenced",
+    "student_ux": "PASS",
     "parent_ux": "not_evidenced",
     "arabic_english_accessibility": "not_evidenced",
     "admin_controls": "PASS",
@@ -420,11 +420,55 @@
         "content_operations_number": 204,
         "conclusion": "success"
       }
+    },
+    {
+      "id": "AL06_STUDENT_UX",
+      "owner_issue": 358,
+      "integration_issue": 363,
+      "status": "integrated",
+      "prs": [
+        406,
+        407,
+        416,
+        417,
+        421,
+        423,
+        424
+      ],
+      "upstream_dependency_prs": [
+        422
+      ],
+      "integrated_main_sha": "e886bf190f63695b0cd26c2127042d7e7630950c",
+      "facts": {
+        "real_backend_session_boundary": "pass",
+        "continue_learning_resume": "pass",
+        "supported_assessment_answer_parity": "pass",
+        "backend_authoritative_hint_review_exam_policy": "pass",
+        "authoritative_adaptive_home_today_mission_needs_practice_mistakes": "pass",
+        "progress_truth_and_refresh": "pass",
+        "truthful_loading_empty_error_offline_retry_degraded_states": "pass",
+        "persisted_student_text_size_preference_web_mobile": "pass",
+        "web_flutter_critical_flow_parity": "pass",
+        "client_scoring_mastery_planning_authority": "absent",
+        "runtime_paid_ai_required": false
+      },
+      "final_exact_head_ci": {
+        "pr": 424,
+        "exact_head_sha": "5d483f5507f134a7fe4aecc6c357b63a16c04e6f",
+        "bootstrap_run": 35498837338,
+        "bootstrap_number": 1619,
+        "unified_release_number": 303,
+        "demo_package_number": 629,
+        "web_portals_runtime_number": 140,
+        "mobile_native_compile_number": 164,
+        "pilot_strict": "pass",
+        "conclusion": "success"
+      }
     }
   ],
   "notes": [
-    "Overall readiness is 68% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14), Mastery + Adaptive Engine (14), Revision + Daily Planner (10) and Operations (4). Unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
-    "Foundation (#353) and Question Bank + Content Workflow (#354) are reconciled PASS from integrated closure evidence and governed CI; mandatory Question Bank remains unreconciled until full supported-type client rendering/submission is evidenced.",
+    "Overall readiness is 80% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14), Mastery + Adaptive Engine (14), Revision + Daily Planner (10), Student Web/Mobile UX (12) and Operations (4). Unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
+    "Foundation (#353) and Question Bank + Content Workflow (#354) are reconciled PASS from integrated closure evidence and governed CI. The separate mandatory Question Bank gate remains unreconciled until #363 records gate-specific cross-domain evidence; Student UX closure does not silently promote unrelated mandatory gates.",
     "Operations (#361) is reconciled PASS from current-main recovery PR #408 and exact-main Bootstrap #1541 / Unified Release #232; Admin Controls is PASS from integrated #354 + #361 evidence.",
     "Mastery + Adaptive Engine is reconciled PASS from integrated #356 Mastery Engine plus CLOSED/COMPLETED #357 Adaptive Study. #357 evidence spans PRs #410-#414: spaced repetition, Mistake Notebook lifecycle, evidenced weak/critical Skill selection, truthful diagnostic baseline and deterministic Daily Study Plan.",
     "Revision + Daily Planner is reconciled PASS from #357 deterministic revision scheduling, mistake recovery, question-availability truthfulness, subject balancing, bounded plan limits, degraded/empty states and reproducible plan fingerprints.",
@@ -432,6 +476,7 @@
     "The global exact_main_governed_ci_green mandatory gate remains unreconciled until final program composition is verified; this adaptive reconciliation does not claim whole-program exact-main closure.",
     "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger.",
     "Assessment Runtime (#355) remains reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation.",
-    "Student UX (#358), Parent Analytics (#360), Arabic/RTL/Accessibility (#359), Quality/Security final reconciliation (#363) and Real Pilot acceptance remain unreconciled or blocked and prevent Children Ready."
+    "Student UX (#358) is reconciled PASS from integrated Web/Flutter authoritative learning-flow evidence through PR #424. Parent Analytics (#360), Arabic/RTL/Accessibility (#359), Quality/Security final reconciliation (#363) and Real Pilot acceptance remain unreconciled or blocked and prevent Children Ready.",
+    "Student UX (#358) final reconciliation covers real-session Continue Learning, supported assessment answers, Backend-authorized hint/review/exam policy, authoritative adaptive Home surfaces, truthful progress/offline states and persisted text-size preferences on Web and Flutter. Final exact-head Bootstrap #1619, Unified Release #303, Demo Package #629, Web Portals Runtime #140 and Mobile Native Compile #164 were green before PR #424 merged at e886bf190f63695b0cd26c2127042d7e7630950c. The whole-program exact_main_governed_ci_green gate remains separately unreconciled."
   ]
 }
