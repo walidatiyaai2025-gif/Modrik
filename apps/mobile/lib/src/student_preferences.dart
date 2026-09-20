@@ -1,9 +1,10 @@
 import 'package:flutter/services.dart';
 
 enum StudentTextScalePreference {
+  small('small', 0.875),
   normal('normal', 1.0),
   large('large', 1.25),
-  largest('largest', 1.5);
+  extraLarge('extra_large', 1.5);
 
   const StudentTextScalePreference(this.storageValue, this.factor);
 
@@ -12,6 +13,7 @@ enum StudentTextScalePreference {
 
   static StudentTextScalePreference? fromStorage(Object? value) {
     if (value is! String) return null;
+    if (value == 'largest') return StudentTextScalePreference.extraLarge;
     for (final preference in values) {
       if (preference.storageValue == value) return preference;
     }
