@@ -6,6 +6,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use JsonException;
+use stdClass;
 
 final class StudentAdaptiveStudyReadService
 {
@@ -114,7 +115,7 @@ final class StudentAdaptiveStudyReadService
             'needs_practice' => [
                 'status' => $needsPracticeItems === [] ? 'empty' : 'ready',
                 'algorithm_version' => $selection['algorithm_version'],
-                'items' => array_values($needsPracticeItems),
+                'items' => $needsPracticeItems,
                 'selection_fingerprint' => $selection['selection_fingerprint'],
             ],
             'mistakes' => $mistakeNotebook['effective']
@@ -133,7 +134,7 @@ final class StudentAdaptiveStudyReadService
     /**
      * @param  list<array<string, mixed>>  $needsPractice
      * @param  list<array<string, mixed>>  $mistakes
-     * @param  array<string, object>  $nodes
+     * @param  array<string, stdClass>  $nodes
      * @param  array<string, mixed>  $dailyPlan
      * @return array<string, mixed>
      */
@@ -235,7 +236,7 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param  array<string, object>  $nodes
+     * @param  array<string, stdClass>  $nodes
      * @return list<array<string, mixed>>
      */
     private function masteryStates(User $user, string $contextId, array $nodes): array
@@ -269,7 +270,7 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param  array<string, object>  $nodes
+     * @param  array<string, stdClass>  $nodes
      * @param  array<string, mixed>  $mistakeNotebook
      * @return array{items:list<array<string, mixed>>,skipped_count:int}
      */
@@ -298,7 +299,7 @@ final class StudentAdaptiveStudyReadService
                 'answers.graded_at',
             ]);
 
-        /** @var array<string, object> $latest */
+        /** @var array<string, stdClass> $latest */
         $latest = [];
         foreach ($rows as $row) {
             $latest[(string) $row->attempt_question_id] = $row;
@@ -367,7 +368,7 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param  array<string, object>  $nodes
+     * @param  array<string, stdClass>  $nodes
      * @return array<string, mixed>|null
      */
     private function studyTarget(string $skillId, array $nodes): ?array
@@ -397,8 +398,8 @@ final class StudentAdaptiveStudyReadService
         ];
     }
 
-    /** @return array<string, mixed>|null */
-    private function assessmentForSkill(string $skillId): ?array
+    /** @return array<string, mixed> */
+    private function assessmentForSkill(string $skillId): array
     {
         $rows = DB::table('quizzes as quizzes')
             ->join('quiz_questions as links', 'links.quiz_id', '=', 'quizzes.id')
@@ -435,14 +436,14 @@ final class StudentAdaptiveStudyReadService
             ];
         }
 
-        $firstQuizId = (string) $rows->first()->id;
+        /** @var stdClass $first */
+        $first = $rows->first();
+        $firstQuizId = (string) $first->id;
         $questionIds = [];
-        $first = null;
         foreach ($rows as $row) {
             if ((string) $row->id !== $firstQuizId) {
                 break;
             }
-            $first ??= $row;
             $questionIds[(string) $row->question_id] = true;
         }
 
@@ -454,7 +455,7 @@ final class StudentAdaptiveStudyReadService
         ];
     }
 
-    /** @return array<string, object> */
+    /** @return array<string, stdClass> */
     private function publishedNodeMap(string $trackId): array
     {
         $nodes = [];
@@ -469,7 +470,7 @@ final class StudentAdaptiveStudyReadService
         return $nodes;
     }
 
-    /** @param array<string, object> $nodes */
+    /** @param array<string, stdClass> $nodes */
     private function isPublishedSkillWithSubject(string $skillId, array $nodes): bool
     {
         return isset($nodes[$skillId])
@@ -478,9 +479,9 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param  array<string, object>  $nodes
+     * @param  array<string, stdClass>  $nodes
      */
-    private function subjectFor(string $nodeId, array $nodes): ?object
+    private function subjectFor(string $nodeId, array $nodes): ?stdClass
     {
         $visited = [];
         $cursor = $nodeId;
