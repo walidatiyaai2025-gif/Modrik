@@ -5,7 +5,7 @@ import { parentApi } from "../lib/parent-api";
 
 const workspace = readFileSync(new URL("./parent-analytics-workspace.tsx", import.meta.url), "utf8");
 const authWorkspace = readFileSync(new URL("./auth-workspace.tsx", import.meta.url), "utf8");
-const css = readFileSync(new URL("./parent-analytics.module.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
 const bff = readFileSync(new URL("./api/learning/[...path]/route.ts", import.meta.url), "utf8");
 
 test("Parent Web consumes only the parent-scoped linked-child analytics contract", async () => {
@@ -73,7 +73,8 @@ test("Parent workspace is role-routed, multilingual, truthful, and non-competiti
   assert.match(authWorkspace, /roles\.includes\("parent"\)/);
   assert.match(authWorkspace, /<ParentAnalyticsWorkspace initialLocale=\{locale\}/);
   assert.match(workspace, /data-parent-analytics="workspace"/);
-  assert.match(workspace, /no_active_context/);
+  assert.match(workspace, /analytics\.state === "active"/);
+  assert.match(workspace, /labels\.noContext/);
   assert.match(workspace, /accuracy_percent === null/);
   assert.match(workspace, /mastery\.attention/);
   assert.match(workspace, /revision_attention\.due_count/);
