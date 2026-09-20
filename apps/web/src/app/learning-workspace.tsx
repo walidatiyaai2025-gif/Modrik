@@ -20,6 +20,7 @@ import {
 } from "@/lib/learning-api";
 import AcademicTrackSelector from "./academic-track-selector";
 import MathText from "./math-text";
+import { LocalizedQuestionText } from "./mixed-direction-text";
 import { directionForLocale, localize, studentCopy } from "./student-copy";
 
 const activeAttemptStorageKey = "modrik.student.active-attempt";
@@ -794,7 +795,7 @@ export default function LearningWorkspace() {
                       <div className="question-list">
                         {attempt.questions.map((question) => (
                           <fieldset className="question-card" key={question.attempt_question_id}>
-                            <legend><span>{labels.question} {question.position}</span><strong dir="auto">{localize(question.prompt, locale)}</strong></legend>
+                            <legend><span>{labels.question} {question.position}</span><strong><LocalizedQuestionText text={localize(question.prompt, locale)} locale={locale} /></strong></legend>
                             {question.response_contract.kind === "single_choice" ? question.response_contract.options.map((option) => (
                               <label className="answer-option" key={option.id}>
                                 <input
