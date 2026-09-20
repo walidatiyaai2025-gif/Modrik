@@ -23,6 +23,18 @@ import MathText from "./math-text";
 import { directionForLocale, localize, studentCopy } from "./student-copy";
 
 const activeAttemptStorageKey = "modrik.student.active-attempt";
+const textScaleStorageKey = "modrik.student.text-scale";
+
+type TextScalePreference = "normal" | "large" | "largest";
+const textScalePercent: Record<TextScalePreference, number> = {
+  normal: 100,
+  large: 125,
+  largest: 150,
+};
+
+function isTextScalePreference(value: string | null): value is TextScalePreference {
+  return value === "normal" || value === "large" || value === "largest";
+}
 
 type ViewState = "loading" | "ready" | "offline" | "error" | "permission";
 type WorkspaceView = "home" | "catalogue" | "study" | "practice" | "progress" | "academic";
@@ -130,6 +142,7 @@ export default function LearningWorkspace() {
   const [revisions, setRevisions] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [textScale, setTextScale] = useState<TextScalePreference>("normal");
   const mounted = useRef(true);
 
   const labels = studentCopy[locale];
@@ -240,6 +253,24 @@ export default function LearningWorkspace() {
       if (mounted.current) handleError(error);
     }
   }, [applyAttempt, handleError]);
+
+  useEffect(() => {
+    const previousInlineFontSize = document.documentElement.style.fontSize;
+    const stored = window.localStorage.getItem(textScaleStorageKey);
+    const restored = isTextScalePreference(stored) ? stored : "normal";
+    setTextScale(restored);
+    document.documentElement.style.fontSize = `${textScalePercent[restored]}%`;
+
+    return () => {
+      document.documentElement.style.fontSize = previousInlineFontSize;
+    };
+  }, []);
+
+  function updateTextScale(next: TextScalePreference) {
+    setTextScale(next);
+    window.localStorage.setItem(textScaleStorageKey, next);
+    document.documentElement.style.fontSize = `${textScalePercent[next]}%`;
+  }
 
   useEffect(() => {
     mounted.current = true;
@@ -487,12 +518,28 @@ export default function LearningWorkspace() {
               <h1>{view === "home" ? labels.homeTitle : view === "catalogue" ? copy.catalogue : view === "study" ? labels.studyTitle : view === "practice" ? labels.practiceTitle : view === "progress" ? labels.progressTitle : labels.academicTrackTitle}</h1>
               <p>{view === "home" ? labels.homeSubtitle : copy.publishedOnly}</p>
             </div>
-            <fieldset className="locale-switcher">
-              <legend className="sr-only">{labels.languageSelector}</legend>
-              {(["ar", "en", "fr"] as const).map((language) => (
-                <button type="button" key={language} lang={language} aria-pressed={locale === language} onClick={() => setLocale(language)}>{language.toUpperCase()}</button>
-              ))}
-            </fieldset>
+            <div className="student-preference-controls">
+              <fieldset className="text-size-switcher">
+                <legend className="sr-only">{labels.textSize}</legend>
+                {(["normal", "large", "largest"] as const).map((preference) => (
+                  <button
+                    type="button"
+                    key={preference}
+                    aria-label={labels[`textSize${preference === "normal" ? "Normal" : preference === "large" ? "Large" : "Largest"}`]}
+                    aria-pressed={textScale === preference}
+                    onClick={() => updateTextScale(preference)}
+                  >
+                    {textScalePercent[preference]}%
+                  </button>
+                ))}
+              </fieldset>
+              <fieldset className="locale-switcher">
+                <legend className="sr-only">{labels.languageSelector}</legend>
+                {(["ar", "en", "fr"] as const).map((language) => (
+                  <button type="button" key={language} lang={language} aria-pressed={locale === language} onClick={() => setLocale(language)}>{language.toUpperCase()}</button>
+                ))}
+              </fieldset>
+            </div>
           </header>
 
           <main id="student-main" className="student-main">
