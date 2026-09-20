@@ -115,6 +115,7 @@ export default function AuthWorkspace() {
     } catch (error) {
       if (error instanceof AuthApiError && error.status === 401) {
         setAuthenticated(false);
+        setRoles([]);
         setShowAccount(false);
         setNotice({ kind: "error", title: copy.sessionExpiredTitle, body: copy.sessionExpiredBody });
         return;
@@ -183,6 +184,7 @@ export default function AuthWorkspace() {
         if (error instanceof AuthApiError && error.status === 401) {
           setAuthenticated(false);
           setAccount(null);
+          setRoles([]);
           setSessions([]);
           setSessionsState("idle");
           setShowAccount(false);
@@ -219,6 +221,7 @@ export default function AuthWorkspace() {
     } catch (error) {
       if (error instanceof AuthApiError && error.status === 401) {
         setAuthenticated(false);
+        setRoles([]);
         setShowAccount(false);
         setNotice({ kind: "error", title: copy.sessionExpiredTitle, body: copy.sessionExpiredBody });
       } else if (error instanceof AuthApiError && (error.code === "RECENT_AUTHENTICATION_REQUIRED" || error.status === 403)) {
@@ -317,7 +320,7 @@ export default function AuthWorkspace() {
       await authApi.resetPassword(value(form, "token"), value(form, "password"));
       setAuthenticated(false);
       setAccount(null);
-    setRoles([]);
+      setRoles([]);
       setScreen("login");
       setNotice({ kind: "status", body: copy.resetComplete });
       window.history.replaceState({}, "", window.location.pathname);
@@ -430,6 +433,7 @@ export default function AuthWorkspace() {
       await protectedAction(() => authApi.deleteAccount());
       setAuthenticated(false);
       setAccount(null);
+      setRoles([]);
       setSessions([]);
       setShowAccount(false);
       setScreen("login");
