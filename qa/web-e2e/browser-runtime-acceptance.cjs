@@ -659,9 +659,7 @@ async function stateAcceptance(browser) {
     const expectedAcademicNavCount = hasAcademicTrackWorkspace ? (hasStudentHome ? 6 : 5) : (hasStudentHome ? 5 : 4);
     check(await academicNav.count() === expectedAcademicNavCount, "E2E_ACADEMIC_NAV_COUNT");
     if (hasAcademicTrackWorkspace) await academicNav.nth(hasStudentHome ? 5 : 4).click();
-    const catalogueRetry = hasAcademicTrackWorkspace
-      ? page.locator(".academic-track-workspace .context-panel .empty-panel button").first()
-      : page.locator(".context-panel .empty-panel button").first();
+    const catalogueRetry = page.locator("#student-main .empty-panel button").first();
     await catalogueRetry.waitFor({ state: "visible", timeout: 10000 });
     await reachable(catalogueRetry, page, "E2E_ACADEMIC_CATALOGUE_RETRY");
     mockState.academicTracksStatus = 200;
