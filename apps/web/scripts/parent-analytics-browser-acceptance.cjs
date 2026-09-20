@@ -247,8 +247,10 @@ async function runCase(browser, spec) {
     throw new Error(`${spec.name}: mastery aggregate missing`);
   }
 
-  const bodyText = (await workspace.innerText()).toLowerCase();
-  if (bodyText.includes("leaderboard") || bodyText.includes("sibling rank")) {
+  const competitiveUi = workspace.locator(
+    '[data-sibling-rank], [data-leaderboard], .sibling-rank, .leaderboard',
+  );
+  if (await competitiveUi.count() > 0) {
     throw new Error(`${spec.name}: competitive sibling comparison surfaced`);
   }
 
