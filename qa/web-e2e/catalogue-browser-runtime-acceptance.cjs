@@ -368,6 +368,43 @@ async function handleMock(req, res) {
     }]));
   }
 
+  if (pathname === "/v1/adaptive-study") {
+    return sendJson(res, 200, envelope({
+      state: "active",
+      context: {
+        context_id: ids.context,
+        academic_track_id: mockState.activeTrackId,
+        track_reference: "TRACK:E2E-GRADE-6",
+        year_level: "fixture-year",
+        track_title: {
+          en: "Grade 6 published curriculum",
+          ar: "المنهج المنشور للصف السادس",
+          fr: "Programme publié de 6e année",
+        },
+      },
+      features: {
+        daily_plan: { state: "disabled", effective: false },
+        mistake_notebook: { state: "disabled", effective: false },
+      },
+      today_mission: {
+        status: "disabled",
+        reason: "feature_disabled",
+        items: [],
+      },
+      needs_practice: {
+        status: "empty",
+        algorithm_version: "adaptive-skill-selector-v1",
+        items: [],
+        selection_fingerprint: null,
+      },
+      mistakes: {
+        status: "disabled",
+        reason: "feature_disabled",
+        items: [],
+      },
+    }));
+  }
+
   if (pathname === "/v1/attempts" && req.method === "POST") return sendJson(res, 200, envelope(attemptPayload()));
   if (pathname === `/v1/attempts/${ids.attempt}` && req.method === "GET") return sendJson(res, 200, envelope(attemptPayload()));
   if (pathname.startsWith(`/v1/attempts/${ids.attempt}/answers/`) && req.method === "PUT") {
