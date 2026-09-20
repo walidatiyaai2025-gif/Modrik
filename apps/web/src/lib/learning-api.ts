@@ -98,7 +98,7 @@ export type AttemptQuestion = {
   type: string;
   prompt: LocalizedText;
   response_contract: ResponseContract;
-  hints: string[];
+  hints?: string[];
   current_answer: null | { revision: number; value: AnswerValue; answered_at: string };
 };
 
@@ -106,9 +106,9 @@ export type Attempt = {
   id: string;
   academic_context_id: string;
   quiz_id: string;
-  mode: string;
-  hints_allowed: boolean;
-  reveal_policy: string;
+  mode?: string;
+  hints_allowed?: boolean;
+  reveal_policy?: string;
   status: "in_progress" | "submitted" | "graded" | "abandoned";
   blueprint_version: number;
   ordering_algorithm: "modrik-fy-v1";
