@@ -16,7 +16,7 @@ test("free-text practice answers auto-detect direction inside AR RTL and EN LTR 
   );
   assert.match(
     workspace,
-    /<input\s+className="text-answer"\s+dir="auto"[\s\S]*?value=\{answers\[question\.attempt_question_id\] \?\? ""\}/,
+    /<input\s+className="text-answer"\s+dir="auto"[\s\S]*?value=\{textInputValue\(answers\[question\.attempt_question_id\]\)\}/,
   );
   assert.doesNotMatch(
     workspace,

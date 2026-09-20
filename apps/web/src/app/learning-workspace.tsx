@@ -5,6 +5,7 @@ import {
   learningApi,
   LearningApiError,
   type AcademicContext,
+  type AnswerValue,
   type Attempt,
   type AttemptResult,
   type CatalogueAssessment,
@@ -92,6 +93,21 @@ function flattenAssessments(node: CatalogueNode): CatalogueAssessment[] {
   return [node.assessments, ...node.children.map(flattenAssessments)].flat();
 }
 
+function isAnswerEmpty(value: AnswerValue | undefined): boolean {
+  if (value === undefined) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  return false;
+}
+
+function answersEqual(left: AnswerValue | undefined, right: AnswerValue | undefined): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function textInputValue(value: AnswerValue | undefined): string {
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
 export default function LearningWorkspace() {
   const [locale, setLocale] = useState<Locale>("en");
   const [state, setState] = useState<ViewState>("loading");
@@ -105,8 +121,8 @@ export default function LearningWorkspace() {
   const [selectedAssessment, setSelectedAssessment] = useState<CatalogueAssessment | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [result, setResult] = useState<AttemptResult | null>(null);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [savedAnswers, setSavedAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const [savedAnswers, setSavedAnswers] = useState<Record<string, AnswerValue>>({});
   const [revisions, setRevisions] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -138,7 +154,7 @@ export default function LearningWorkspace() {
     }
     const nextAnswers = Object.fromEntries(nextAttempt.questions.map((question) => [
       question.attempt_question_id,
-      question.current_answer === null ? "" : String(question.current_answer.value),
+      question.current_answer?.value ?? "",
     ]));
     setAnswers(nextAnswers);
     setSavedAnswers(nextAnswers);
@@ -274,7 +290,7 @@ export default function LearningWorkspace() {
 
   async function submitAssessment() {
     if (!attempt || !navigator.onLine) return;
-    if (attempt.questions.some((question) => !answers[question.attempt_question_id]?.trim())) {
+    if (attempt.questions.some((question) => isAnswerEmpty(answers[question.attempt_question_id]))) {
       setMessage(labels.answerRequired);
       return;
     }
@@ -292,7 +308,7 @@ export default function LearningWorkspace() {
       const nextSavedAnswers = { ...savedAnswers };
       for (const question of attempt.questions) {
         const questionId = question.attempt_question_id;
-        if (nextSavedAnswers[questionId] === answers[questionId]) continue;
+        if (answersEqual(nextSavedAnswers[questionId], answers[questionId])) continue;
         const expectedRevision = nextRevisions[questionId] ?? 0;
         const scope = `answer.${attempt.id}.${questionId}.${expectedRevision + 1}`;
         const rawAnswer = answers[questionId] ?? "";
@@ -308,7 +324,7 @@ export default function LearningWorkspace() {
         );
         acknowledge(scope);
         nextRevisions[questionId] = saved.revision;
-        nextSavedAnswers[questionId] = String(saved.value);
+        nextSavedAnswers[questionId] = saved.value;
       }
       setRevisions(nextRevisions);
       setSavedAnswers(nextSavedAnswers);
@@ -556,7 +572,59 @@ export default function LearningWorkspace() {
                                 />
                                 <span dir="auto">{localize(option.label, locale)}</span>
                               </label>
-                            )) : question.response_contract.kind === "numeric" ? (
+                            )) : question.response_contract.kind === "multi_select" ? (() => {
+                              const contract = question.response_contract;
+                              const optionIds = contract.options.map((candidate) => candidate.id);
+                              return contract.options.map((option) => {
+                                const selected = Array.isArray(answers[question.attempt_question_id])
+                                  ? answers[question.attempt_question_id] as string[]
+                                  : [];
+                                return (
+                                <label className="answer-option" key={option.id}>
+                                  <input
+                                    type="checkbox"
+                                    name={question.attempt_question_id}
+                                    value={option.id}
+                                    checked={selected.includes(option.id)}
+                                    onChange={(event) => setAnswers((current) => {
+                                      const currentSelected = Array.isArray(current[question.attempt_question_id])
+                                        ? current[question.attempt_question_id] as string[]
+                                        : [];
+                                      const nextSet = new Set(currentSelected);
+                                      if (event.target.checked) nextSet.add(option.id);
+                                      else nextSet.delete(option.id);
+                                      return {
+                                        ...current,
+                                        [question.attempt_question_id]: optionIds.filter((candidateId) => nextSet.has(candidateId)),
+                                      };
+                                    })}
+                                  />
+                                  <span dir="auto">{localize(option.label, locale)}</span>
+                                </label>
+                                );
+                              });
+                            })() : question.response_contract.kind === "boolean" ? (
+                              <div className="answer-options" data-response-kind="boolean">
+                                <label className="answer-option">
+                                  <input
+                                    type="radio"
+                                    name={question.attempt_question_id}
+                                    checked={answers[question.attempt_question_id] === true}
+                                    onChange={() => setAnswers((current) => ({ ...current, [question.attempt_question_id]: true }))}
+                                  />
+                                  <span>{labels.trueAnswer}</span>
+                                </label>
+                                <label className="answer-option">
+                                  <input
+                                    type="radio"
+                                    name={question.attempt_question_id}
+                                    checked={answers[question.attempt_question_id] === false}
+                                    onChange={() => setAnswers((current) => ({ ...current, [question.attempt_question_id]: false }))}
+                                  />
+                                  <span>{labels.falseAnswer}</span>
+                                </label>
+                              </div>
+                            ) : question.response_contract.kind === "numeric" ? (
                               <label className="text-answer-label">
                                 <span>{labels.textAnswer}</span>
                                 <input
@@ -564,7 +632,7 @@ export default function LearningWorkspace() {
                                   type="number"
                                   inputMode="decimal"
                                   step="any"
-                                  value={answers[question.attempt_question_id] ?? ""}
+                                  value={textInputValue(answers[question.attempt_question_id])}
                                   onChange={(event) => setAnswers((current) => ({ ...current, [question.attempt_question_id]: event.target.value }))}
                                 />
                               </label>
@@ -574,7 +642,7 @@ export default function LearningWorkspace() {
                                 <input
                                   className="text-answer"
                                   dir="auto"
-                                  value={answers[question.attempt_question_id] ?? ""}
+                                  value={textInputValue(answers[question.attempt_question_id])}
                                   maxLength={question.response_contract.max_length}
                                   onChange={(event) => setAnswers((current) => ({ ...current, [question.attempt_question_id]: event.target.value }))}
                                 />

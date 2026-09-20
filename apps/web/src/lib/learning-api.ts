@@ -84,16 +84,18 @@ export type Lesson = {
 };
 
 export type ChoiceOption = { id: string; label: LocalizedText };
-export type AnswerValue = string | number;
+export type AnswerValue = string | number | boolean | string[];
 export type ResponseContract =
   | { kind: "single_choice"; options: ChoiceOption[] }
+  | { kind: "multi_select"; options: ChoiceOption[] }
+  | { kind: "boolean" }
   | { kind: "numeric" }
   | { kind: "short_text"; max_length: number };
 
 export type AttemptQuestion = {
   attempt_question_id: string;
   position: number;
-  type: "single_choice" | "numeric" | "short_text";
+  type: string;
   prompt: LocalizedText;
   response_contract: ResponseContract;
   current_answer: null | { revision: number; value: AnswerValue; answered_at: string };
