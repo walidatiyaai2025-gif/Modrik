@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ContentPreparationController;
 use App\Http\Controllers\Api\LearningController;
 use App\Http\Controllers\Api\OfflineAnswerSyncController;
 use App\Http\Controllers\Api\ProviderAuthController;
+use App\Http\Controllers\Api\StudentAdaptiveStudyController;
 use App\Http\Controllers\Api\StudentContentCatalogueController;
 use App\Http\Controllers\Api\StudentNotificationController;
 use Illuminate\Support\Facades\Route;
@@ -52,6 +53,7 @@ Route::prefix('/v1')->middleware('auth.modrik')->group(function (): void {
     Route::get('/content-catalogue', [StudentContentCatalogueController::class, 'index'])->name('content-catalogue.index');
     Route::get('/lessons/{lessonId}', [LearningController::class, 'lesson'])->name('lessons.show');
     Route::get('/progress', [LearningController::class, 'progress'])->name('progress.index');
+    Route::get('/adaptive-study', [StudentAdaptiveStudyController::class, 'show'])->name('adaptive-study.show');
     Route::get('/notifications', [StudentNotificationController::class, 'index'])->name('notifications.index');
     Route::put('/notifications/read-all', [StudentNotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::put('/notifications/{notificationId}/read', [StudentNotificationController::class, 'read'])->name('notifications.read');
