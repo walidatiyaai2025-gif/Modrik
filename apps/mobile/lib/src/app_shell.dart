@@ -148,12 +148,14 @@ class _Header extends StatelessWidget {
                     value: preference,
                     child: Text(
                       switch (preference) {
+                        StudentTextScalePreference.small =>
+                          copy.t('text_size_small'),
                         StudentTextScalePreference.normal =>
                           copy.t('text_size_normal'),
                         StudentTextScalePreference.large =>
                           copy.t('text_size_large'),
-                        StudentTextScalePreference.largest =>
-                          copy.t('text_size_largest'),
+                        StudentTextScalePreference.extraLarge =>
+                          copy.t('text_size_extra_large'),
                       },
                     ),
                   ),
@@ -612,8 +614,9 @@ class _QuestionCard extends StatelessWidget {
             Text(
               localize(question.prompt, controller.locale),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    height: 1.45,
+                    height: controller.locale == ModrikLocale.ar ? 1.7 : 1.45,
                   ),
             ),
             const SizedBox(height: 14),

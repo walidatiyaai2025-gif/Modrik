@@ -9,7 +9,7 @@ import 'package:modrik_mobile/src/student_preferences.dart';
 void main() {
   test('Flutter restores a persisted text-size preference before learning bootstrap', () async {
     final store = MemoryStudentPreferenceStore(
-      initialTextScale: StudentTextScalePreference.largest,
+      initialTextScale: StudentTextScalePreference.extraLarge,
     );
     final controller = MobileLearningController(
       gateway: const UnconfiguredLearningGateway(),
@@ -21,10 +21,17 @@ void main() {
 
     expect(
       controller.textScalePreference,
-      StudentTextScalePreference.largest,
+      StudentTextScalePreference.extraLarge,
     );
     expect(controller.textScaleFactor, 1.5);
     expect(controller.status, MobileViewStatus.permission);
+  });
+
+  test('Flutter exposes Small / Normal / Large / Extra Large text scales', () {
+    expect(StudentTextScalePreference.small.factor, 0.875);
+    expect(StudentTextScalePreference.normal.factor, 1.0);
+    expect(StudentTextScalePreference.large.factor, 1.25);
+    expect(StudentTextScalePreference.extraLarge.factor, 1.5);
   });
 
   test('Flutter text-size choice survives controller recreation', () async {
@@ -63,7 +70,7 @@ void main() {
       });
 
     await controller.setTextScalePreference(
-      StudentTextScalePreference.largest,
+      StudentTextScalePreference.extraLarge,
     );
 
     await tester.pumpWidget(
@@ -91,6 +98,14 @@ void main() {
     expect(
       StudentTextScalePreference.fromStorage('large'),
       StudentTextScalePreference.large,
+    );
+    expect(
+      StudentTextScalePreference.fromStorage('largest'),
+      StudentTextScalePreference.extraLarge,
+    );
+    expect(
+      StudentTextScalePreference.fromStorage('small'),
+      StudentTextScalePreference.small,
     );
   });
 }

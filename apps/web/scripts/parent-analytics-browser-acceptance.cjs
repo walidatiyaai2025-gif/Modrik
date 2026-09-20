@@ -291,7 +291,9 @@ async function runCase(browser, spec) {
   const results = [];
   try {
     const cases = [
-      { name: "parent-desktop-en-412", locale: "en", width: 412, height: 915, zoom: 1 },
+      { name: "parent-desktop-en-1440", locale: "en", width: 1440, height: 900, zoom: 1 },
+      { name: "parent-tablet-fr-768", locale: "fr", width: 768, height: 1024, zoom: 1 },
+      { name: "parent-mobile-en-412", locale: "en", width: 412, height: 915, zoom: 1 },
       { name: "parent-mobile-fr-390-200", locale: "fr", width: 390, height: 844, zoom: 2 },
       { name: "parent-mobile-ar-360-200", locale: "ar", width: 360, height: 800, zoom: 2 },
     ];

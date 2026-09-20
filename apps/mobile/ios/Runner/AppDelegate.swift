@@ -19,7 +19,7 @@ import UIKit
 
   private let studentPreferencesChannel = "org.modrik.mobile/student_preferences"
   private let textScalePreferenceKey = "modrik_student_text_scale_v1"
-  private let allowedTextScales: Set<String> = ["normal", "large", "largest"]
+  private let allowedTextScales: Set<String> = ["small", "normal", "large", "extra_large", "largest"]
 
   override func application(
     _ application: UIApplication,

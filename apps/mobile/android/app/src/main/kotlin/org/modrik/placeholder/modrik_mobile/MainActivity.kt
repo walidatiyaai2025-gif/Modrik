@@ -33,7 +33,7 @@ class MainActivity : FlutterActivity() {
     private val studentPreferencesChannelName = "org.modrik.mobile/student_preferences"
     private val studentPreferencesName = "modrik_student_preferences_v1"
     private val textScalePreferenceKey = "text_scale"
-    private val allowedTextScales = setOf("normal", "large", "largest")
+    private val allowedTextScales = setOf("small", "normal", "large", "extra_large", "largest")
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

@@ -20,20 +20,25 @@ import {
 } from "@/lib/learning-api";
 import AcademicTrackSelector from "./academic-track-selector";
 import MathText from "./math-text";
+import { LocalizedQuestionText } from "./mixed-direction-text";
 import { directionForLocale, localize, studentCopy } from "./student-copy";
 
 const activeAttemptStorageKey = "modrik.student.active-attempt";
 const textScaleStorageKey = "modrik.student.text-scale";
 
-type TextScalePreference = "normal" | "large" | "largest";
+type TextScalePreference = "small" | "normal" | "large" | "extraLarge";
 const textScalePercent: Record<TextScalePreference, number> = {
+  small: 87.5,
   normal: 100,
   large: 125,
-  largest: 150,
+  extraLarge: 150,
 };
 
-function isTextScalePreference(value: string | null): value is TextScalePreference {
-  return value === "normal" || value === "large" || value === "largest";
+function parseTextScalePreference(value: string | null): TextScalePreference | null {
+  if (value === "largest") return "extraLarge";
+  return value === "small" || value === "normal" || value === "large" || value === "extraLarge"
+    ? value
+    : null;
 }
 
 const textScaleChangedEvent = "modrik:student-text-scale-changed";
@@ -41,7 +46,7 @@ const textScaleChangedEvent = "modrik:student-text-scale-changed";
 function readTextScalePreference(): TextScalePreference {
   if (typeof window === "undefined") return "normal";
   const stored = window.localStorage.getItem(textScaleStorageKey);
-  return isTextScalePreference(stored) ? stored : "normal";
+  return parseTextScalePreference(stored) ?? "normal";
 }
 
 function subscribeTextScalePreference(listener: () => void): () => void {
@@ -560,16 +565,18 @@ export default function LearningWorkspace() {
             <div className="student-preference-controls">
               <fieldset className="text-size-switcher">
                 <legend className="sr-only">{labels.textSize}</legend>
-                {(["normal", "large", "largest"] as const).map((preference) => (
+                {(["small", "normal", "large", "extraLarge"] as const).map((preference) => (
                   <button
                     type="button"
                     key={preference}
                     aria-label={
-                      preference === "normal"
-                        ? labels.textSizeNormal
-                        : preference === "large"
-                          ? labels.textSizeLarge
-                          : labels.textSizeLargest
+                      preference === "small"
+                        ? labels.textSizeSmall
+                        : preference === "normal"
+                          ? labels.textSizeNormal
+                          : preference === "large"
+                            ? labels.textSizeLarge
+                            : labels.textSizeExtraLarge
                     }
                     aria-pressed={textScale === preference}
                     onClick={() => updateTextScale(preference)}
@@ -788,7 +795,7 @@ export default function LearningWorkspace() {
                       <div className="question-list">
                         {attempt.questions.map((question) => (
                           <fieldset className="question-card" key={question.attempt_question_id}>
-                            <legend><span>{labels.question} {question.position}</span><strong dir="auto">{localize(question.prompt, locale)}</strong></legend>
+                            <legend><span>{labels.question} {question.position}</span><strong><LocalizedQuestionText text={localize(question.prompt, locale)} locale={locale} /></strong></legend>
                             {question.response_contract.kind === "single_choice" ? question.response_contract.options.map((option) => (
                               <label className="answer-option" key={option.id}>
                                 <input
