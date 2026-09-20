@@ -1,9 +1,21 @@
 # CURRENT STATE
 
-Updated: 2026-09-10
-Last reconciled baseline: `4f4cbe23952340ed10cf03c055c64d3df32580a2`
+Updated: 2026-09-20
+Last reconciled implementation baseline: `e886bf190f63695b0cd26c2127042d7e7630950c`
 
 Live repository state must be fetched from GitHub before using this checkpoint. This file records a reconciled implementation baseline, deployed-build evidence and known work state; it does not predict the SHA that a later reconciliation merge will make live `main`.
+
+
+## Children Ready — Student UX (#358) reconciled
+
+Student Web/Mobile UX is implementation-complete and reconciled PASS at the integrated implementation baseline `e886bf190f63695b0cd26c2127042d7e7630950c`.
+
+- Integrated #358 recovery/parity sequence: PRs #406, #407, #416, #417, #421, #423 and #424, consuming Backend-authoritative adaptive-study contract PR #422.
+- Web and Flutter now cover authoritative Continue Learning/resume, supported assessment answer types, Backend-authorized hint/review/exam policy, Today's Mission, Needs Practice, My Mistakes, progress truth/refresh, truthful loading/empty/error/offline/retry/degraded states, and persisted Student text-size preferences.
+- Clients do not own scoring, mastery, plan selection, identity or publication and do not fabricate success/runtime learning state.
+- Final PR #424 exact head `5d483f5507f134a7fe4aecc6c357b63a16c04e6f` passed Bootstrap CI #1619 including strict Pilot, Unified Release #303, Demo Package #629, Web Portals Runtime #140 and Mobile Native Compile #164 before merge.
+- Readiness ledger Student UX weight 12 is now PASS, raising reconciled readiness from 68% to 80%. `children_ready` remains false: #359, #360, #363/final security reconciliation and real Year 6/7/Parent pilots remain unresolved or blocked.
+- The whole-program `exact_main_governed_ci_green` gate remains separately unreconciled; no push-triggered workflow run was surfaced for merge SHA `e886bf190f63695b0cd26c2127042d7e7630950c` at integration time, so this reconciliation does not fabricate one.
 
 ## Canonical-main CI security restoration
 
