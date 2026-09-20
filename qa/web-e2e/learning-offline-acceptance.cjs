@@ -345,19 +345,31 @@ async function main() {
     const nav = page.locator(".student-nav button");
     const catalogueIndex = hasStudentHome ? 1 : 0;
     const studyIndex = hasStudentHome ? 2 : 1;
+    const practiceIndex = hasStudentHome ? 3 : 2;
+    check(await nav.count() === (hasStudentHome ? 6 : 5), "E2E_LEARNING_OFFLINE_NAV_COUNT");
+
     if (hasStudentHome) await nav.nth(catalogueIndex).click();
     await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
-    const lessonButton = page.locator('[data-node-type="topic"] .next-actions').nth(0).locator("button").first();
+
+    const topicActions = page.locator('[data-node-type="topic"] .next-actions');
+    const lessonButton = topicActions.nth(0).locator("button").first();
     await reachable(lessonButton, page, "E2E_LEARNING_OFFLINE_LESSON_ACTION");
     await lessonButton.click();
     await page.locator(".lesson-block").first().waitFor({ state: "visible", timeout: 10000 });
 
+    await nav.nth(catalogueIndex).click();
+    await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
+    const assessmentButton = page.locator('[data-node-type="topic"] .next-actions').nth(1).locator("button").first();
+    await reachable(assessmentButton, page, "E2E_LEARNING_OFFLINE_ASSESSMENT_ACTION");
+    await assessmentButton.click();
+    const start = page.locator(".practice-workbench > .primary-button");
+    await start.waitFor({ state: "visible", timeout: 10000 });
+    check(!(await start.isDisabled()), "E2E_LEARNING_OFFLINE_ONLINE_START_DISABLED");
+
     await context.setOffline(true);
-    const banner = page.locator(".offline-banner");
+    const banner = page.locator(".auth-notice-offline");
     await banner.waitFor({ state: "visible", timeout: 5000 });
     await noHorizontalOverflow(page, "E2E_LEARNING_OFFLINE_HORIZONTAL_OVERFLOW");
-    const retry = banner.locator("button");
-    await reachable(retry, page, "E2E_LEARNING_OFFLINE_RETRY");
 
     const study = nav.nth(studyIndex);
     await reachable(study, page, "E2E_LEARNING_OFFLINE_STUDY_NAV");
@@ -365,9 +377,16 @@ async function main() {
     await page.locator(".lesson-block").first().waitFor({ state: "visible", timeout: 5000 });
     await noHorizontalOverflow(page, "E2E_LEARNING_OFFLINE_STUDY_HORIZONTAL_OVERFLOW");
 
+    const practice = nav.nth(practiceIndex);
+    await practice.click();
+    await start.waitFor({ state: "visible", timeout: 5000 });
+    check(await start.isDisabled(), "E2E_LEARNING_OFFLINE_PRACTICE_NOT_GATED");
+
     await context.setOffline(false);
     await banner.waitFor({ state: "hidden", timeout: 15000 });
     await page.locator(".student-shell").waitFor({ state: "visible", timeout: 15000 });
+    await start.waitFor({ state: "visible", timeout: 10000 });
+    check(!(await start.isDisabled()), "E2E_LEARNING_OFFLINE_RECOVERY_START_DISABLED");
     await noHorizontalOverflow(page, "E2E_LEARNING_OFFLINE_RECOVERY_HORIZONTAL_OVERFLOW");
 
     evidence.status = "PASS";
