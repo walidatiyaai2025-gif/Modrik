@@ -1,0 +1,28 @@
+name: DIAG Pint 420
+
+on:
+  push:
+    branches:
+      - issue-420-student-adaptive-read-contract
+
+permissions:
+  contents: read
+
+jobs:
+  pint-diff:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Format target and print exact diff
+        shell: bash
+        run: |
+          vendor/bin/pint app/Services/StudentAdaptiveStudyReadService.php
+          git diff --no-color -- app/Services/StudentAdaptiveStudyReadService.php
