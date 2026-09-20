@@ -220,7 +220,7 @@ async function runCase(browser, spec) {
   await page.goto(`${baseUrl}/parent`, { waitUntil: "domcontentloaded" });
   const workspace = page.locator('[data-parent-analytics="workspace"]');
   await workspace.waitFor({ state: "visible", timeout: 15000 });
-  await page.getByText("Linked learner", { exact: true }).first().waitFor({ state: "visible" });
+  await workspace.getByRole("heading", { name: "Linked learner", exact: true }).waitFor({ state: "visible" });
 
   if (spec.zoom === 2) await setTextScale(page);
 
