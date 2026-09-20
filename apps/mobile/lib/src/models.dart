@@ -270,6 +270,7 @@ class AttemptQuestion {
     required this.prompt,
     required this.responseContract,
     required this.currentAnswer,
+    this.hints = const [],
   });
 
   factory AttemptQuestion.fromJson(Map<String, dynamic> json) => AttemptQuestion(
@@ -279,6 +280,9 @@ class AttemptQuestion {
         prompt: localizedTextFromJson(json['prompt']),
         responseContract: ResponseContract.fromJson(
           Map<String, dynamic>.from(json['response_contract'] as Map),
+        ),
+        hints: List<String>.unmodifiable(
+          (json['hints'] as List<dynamic>? ?? const []).whereType<String>(),
         ),
         currentAnswer: json['current_answer'] is Map
             ? CurrentAnswer.fromJson(Map<String, dynamic>.from(json['current_answer'] as Map))
@@ -291,6 +295,7 @@ class AttemptQuestion {
         'type': type,
         'prompt': localizedTextToJson(prompt),
         'response_contract': responseContract.toJson(),
+        'hints': hints,
         'current_answer': currentAnswer?.toJson(),
       };
 
@@ -300,6 +305,7 @@ class AttemptQuestion {
   final LocalizedText prompt;
   final ResponseContract responseContract;
   final CurrentAnswer? currentAnswer;
+  final List<String> hints;
 }
 
 class Attempt {
@@ -307,6 +313,9 @@ class Attempt {
     required this.id,
     required this.academicContextId,
     required this.quizId,
+    this.mode = 'practice',
+    this.hintsAllowed = false,
+    this.revealPolicy = 'after_submit',
     required this.status,
     required this.blueprintVersion,
     required this.orderingAlgorithm,
@@ -327,6 +336,9 @@ class Attempt {
       id: json['id'] as String,
       academicContextId: json['academic_context_id'] as String,
       quizId: json['quiz_id'] as String,
+      mode: json['mode'] as String? ?? 'practice',
+      hintsAllowed: json['hints_allowed'] == true,
+      revealPolicy: json['reveal_policy'] as String? ?? 'after_submit',
       status: json['status'] as String,
       blueprintVersion: (json['blueprint_version'] as num).toInt(),
       orderingAlgorithm: json['ordering_algorithm'] as String? ?? '',
@@ -341,6 +353,9 @@ class Attempt {
         'id': id,
         'academic_context_id': academicContextId,
         'quiz_id': quizId,
+        'mode': mode,
+        'hints_allowed': hintsAllowed,
+        'reveal_policy': revealPolicy,
         'status': status,
         'blueprint_version': blueprintVersion,
         'ordering_algorithm': orderingAlgorithm,
@@ -353,6 +368,9 @@ class Attempt {
   final String id;
   final String academicContextId;
   final String quizId;
+  final String mode;
+  final bool hintsAllowed;
+  final String revealPolicy;
   final String status;
   final int blueprintVersion;
   final String orderingAlgorithm;
@@ -362,18 +380,56 @@ class Attempt {
   final List<AttemptQuestion> questions;
 }
 
+class AttemptReview {
+  const AttemptReview({
+    required this.attemptQuestionId,
+    required this.position,
+    required this.correct,
+    required this.awardedScore,
+    required this.maximumScore,
+    required this.explanation,
+  });
+
+  factory AttemptReview.fromJson(Map<String, dynamic> json) => AttemptReview(
+        attemptQuestionId: json['attempt_question_id'] as String,
+        position: (json['position'] as num).toInt(),
+        correct: json['correct'] as bool?,
+        awardedScore: (json['awarded_score'] as num? ?? 0).toDouble(),
+        maximumScore: (json['maximum_score'] as num? ?? 0).toDouble(),
+        explanation: localizedTextFromJson(json['explanation']),
+      );
+
+  final String attemptQuestionId;
+  final int position;
+  final bool? correct;
+  final double awardedScore;
+  final double maximumScore;
+  final LocalizedText explanation;
+}
+
 class AttemptResult {
-  const AttemptResult({required this.attempt, required this.score, required this.maxScore});
+  const AttemptResult({
+    required this.attempt,
+    required this.score,
+    required this.maxScore,
+    this.review = const [],
+  });
 
   factory AttemptResult.fromJson(Map<String, dynamic> json) => AttemptResult(
         attempt: Attempt.fromJson(Map<String, dynamic>.from(json['attempt'] as Map)),
         score: (json['score'] as num).toDouble(),
         maxScore: (json['max_score'] as num).toDouble(),
+        review: List<AttemptReview>.unmodifiable(
+          (json['review'] as List<dynamic>? ?? const [])
+              .whereType<Map>()
+              .map((item) => AttemptReview.fromJson(Map<String, dynamic>.from(item))),
+        ),
       );
 
   final Attempt attempt;
   final double score;
   final double maxScore;
+  final List<AttemptReview> review;
 }
 
 class ProgressSnapshot {
