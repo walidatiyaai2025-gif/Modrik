@@ -196,7 +196,8 @@ export default function ParentAnalyticsWorkspace({
   }
 
   useEffect(() => {
-    void loadChildren();
+    const startup = window.setTimeout(() => void loadChildren(), 0);
+    return () => window.clearTimeout(startup);
     // This initial load intentionally runs once; child changes use selectChild.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
