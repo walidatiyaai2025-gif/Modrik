@@ -558,7 +558,7 @@
     }
   ],
   "notes": [
-    "Overall readiness is 80% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14), Mastery + Adaptive Engine (14), Revision + Daily Planner (10), Student Web/Mobile UX (12) and Operations (4). Unreconciled domains retain zero credit and Real Pilot remains blocked_owner_last.",
+    "Overall readiness is 94% from reconciled PASS domains: Foundation (8), Question Bank + Content Workflow (18), Assessment (14), Mastery + Adaptive Engine (14), Revision + Daily Planner (10), Student Web/Mobile UX (12), Parent Analytics (7), Arabic/RTL/Typography/Accessibility (7) and Operations (4). Security/Tests/Data Integrity (4) and Real Children Pilot Acceptance (2) remain unevidenced/blocked, so children_ready remains false.",
     "Foundation (#353) and Question Bank + Content Workflow (#354) are reconciled PASS from integrated closure evidence and governed CI. The separate mandatory Question Bank gate remains unreconciled until #363 records gate-specific cross-domain evidence; Student UX closure does not silently promote unrelated mandatory gates.",
     "Operations (#361) is reconciled PASS from current-main recovery PR #408 and exact-main Bootstrap #1541 / Unified Release #232; Admin Controls is PASS from integrated #354 + #361 evidence.",
     "Mastery + Adaptive Engine is reconciled PASS from integrated #356 Mastery Engine plus CLOSED/COMPLETED #357 Adaptive Study. #357 evidence spans PRs #410-#414: spaced repetition, Mistake Notebook lifecycle, evidenced weak/critical Skill selection, truthful diagnostic baseline and deterministic Daily Study Plan.",
