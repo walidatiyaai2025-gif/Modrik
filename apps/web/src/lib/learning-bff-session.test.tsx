@@ -158,3 +158,53 @@ test("Learning BFF preserves the existing same-origin CSRF rejection before any 
     globalThis.fetch = originalFetch;
   }
 });
+
+test("Learning BFF forwards adaptive-study as an authenticated GET without client scope parameters", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: FetchCall[] = [];
+  globalThis.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return Response.json({
+      data: {
+        state: "active",
+        features: {
+          daily_plan: { state: "disabled", effective: false },
+          mistake_notebook: { state: "disabled", effective: false },
+        },
+        today_mission: { status: "disabled", reason: "feature_disabled", items: [] },
+        needs_practice: {
+          status: "empty",
+          algorithm_version: "adaptive-skill-selector-v1",
+          items: [],
+          selection_fingerprint: null,
+        },
+        mistakes: { status: "disabled", reason: "feature_disabled", items: [] },
+      },
+      meta: { request_id: "request-adaptive" },
+    });
+  };
+
+  try {
+    const response = await GET(
+      new Request("https://modrik.org/api/learning/adaptive-study", {
+        headers: { cookie: sessionCookie },
+      }),
+      routeContext(["adaptive-study"]),
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(calls.length, 1);
+    const upstream = new URL(calls[0].input);
+    assert.equal(upstream.pathname, "/v1/adaptive-study");
+    assert.equal(upstream.search, "");
+    assert.equal(calls[0].init?.method, "GET");
+    assert.equal(calls[0].init?.body, undefined);
+    assert.equal(
+      new Headers(calls[0].init?.headers).get("Authorization"),
+      `Bearer ${sessionToken}`,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+

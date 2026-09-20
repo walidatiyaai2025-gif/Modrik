@@ -141,6 +141,106 @@ export type Progress = {
   calculated_at: string;
 };
 
+export type AdaptiveFeatureState = {
+  state: "disabled" | "enabled" | "pilot" | "admin_only";
+  effective: boolean;
+};
+
+export type AdaptiveAssessmentTarget = {
+  id: string | null;
+  kind: "practice" | "quiz" | null;
+  title: LocalizedText | null;
+  available_question_count: number;
+};
+
+export type AdaptiveStudyTarget = {
+  skill_id: string;
+  skill_reference: string;
+  skill_title: LocalizedText;
+  subject: {
+    id: string;
+    reference: string;
+    title: LocalizedText;
+  };
+  assessment: AdaptiveAssessmentTarget;
+  display_band?: string;
+  score_percent?: number;
+  confidence?: number;
+  evidence_count?: number;
+  priority_reason?: string;
+  source_type?: string;
+  reason?: string;
+  attempt_question_id?: string;
+  revision?: number;
+  prompt?: LocalizedText;
+  latest_wrong_at?: string;
+};
+
+export type AdaptiveMissionSurface =
+  | { status: "disabled"; reason: string; items: [] }
+  | {
+      status: "empty" | "degraded" | "ready";
+      algorithm_version: string;
+      requested_max_items: number;
+      input_candidate_count: number;
+      available_candidate_count: number;
+      selected_count: number;
+      shortfall_count: number;
+      selected: AdaptiveStudyTarget[];
+      skipped_unavailable: Array<{
+        target_key: string;
+        source_type: string;
+        reason: string;
+        skill_id: string | null;
+      }>;
+      plan_fingerprint: string;
+    };
+
+export type AdaptiveNeedsPracticeSurface = {
+  status: "empty" | "ready";
+  algorithm_version: string;
+  items: AdaptiveStudyTarget[];
+  selection_fingerprint: string | null;
+};
+
+export type AdaptiveMistakesSurface =
+  | { status: "disabled"; reason: string; items: [] }
+  | {
+      status: "empty" | "degraded" | "ready";
+      algorithm_version: string;
+      items: AdaptiveStudyTarget[];
+      skipped_evidence_count: number;
+    };
+
+export type AdaptiveStudy =
+  | {
+      state: "onboarding_required";
+      features: {
+        daily_plan: AdaptiveFeatureState;
+        mistake_notebook: AdaptiveFeatureState;
+      };
+      today_mission: { status: "disabled"; reason: string; items: [] };
+      needs_practice: AdaptiveNeedsPracticeSurface;
+      mistakes: { status: "disabled"; reason: string; items: [] };
+    }
+  | {
+      state: "active";
+      context: {
+        context_id: string;
+        academic_track_id: string;
+        track_reference: string;
+        year_level: string;
+        track_title: LocalizedText;
+      };
+      features: {
+        daily_plan: AdaptiveFeatureState;
+        mistake_notebook: AdaptiveFeatureState;
+      };
+      today_mission: AdaptiveMissionSurface;
+      needs_practice: AdaptiveNeedsPracticeSurface;
+      mistakes: AdaptiveMistakesSurface;
+    };
+
 export type StudentNotificationAction = "study" | "practice" | "progress" | "academic" | "account";
 export type StudentNotification = {
   id: string;
@@ -174,6 +274,7 @@ type LearningDiagnosticOperation =
   | "learning:content-catalogue"
   | "learning:lesson"
   | "learning:progress"
+  | "learning:adaptive-study"
   | "learning:notifications"
   | "learning:notification-read"
   | "learning:notifications-read-all"
@@ -249,6 +350,7 @@ export const learningApi = {
   },
   lesson: (lessonId: string) => requestData<Lesson>("learning:lesson", `lessons/${lessonId}`),
   progress: () => requestData<Progress[]>("learning:progress", "progress"),
+  adaptiveStudy: () => requestData<AdaptiveStudy>("learning:adaptive-study", "adaptive-study"),
   notifications: () => requestData<StudentNotificationInbox>("learning:notifications", "notifications"),
   markNotificationRead: (notificationId: string) =>
     requestData<StudentNotification>(

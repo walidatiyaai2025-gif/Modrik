@@ -4,6 +4,7 @@ import 'package:modrik_design_tokens/modrik_design_tokens.dart';
 import 'copy.dart';
 import 'mobile_learning_controller.dart';
 import 'models.dart';
+import 'student_adaptive_study.dart';
 import 'student_catalogue_study_view.dart';
 
 class MobileStudentShell extends StatelessWidget {
@@ -377,6 +378,30 @@ class _DashboardView extends StatelessWidget {
               ],
             ),
           ),
+        _AdaptiveSurfaceCard(
+          icon: Icons.flag_outlined,
+          title: copy.t('today_mission'),
+          emptyKey: 'mission_empty',
+          surface: controller.adaptiveStudy?.todayMission,
+          controller: controller,
+          copy: copy,
+        ),
+        _AdaptiveSurfaceCard(
+          icon: Icons.trending_up_outlined,
+          title: copy.t('needs_practice'),
+          emptyKey: 'needs_practice_empty',
+          surface: controller.adaptiveStudy?.needsPractice,
+          controller: controller,
+          copy: copy,
+        ),
+        _AdaptiveSurfaceCard(
+          icon: Icons.history_edu_outlined,
+          title: copy.t('my_mistakes'),
+          emptyKey: 'mistakes_empty',
+          surface: controller.adaptiveStudy?.mistakes,
+          controller: controller,
+          copy: copy,
+        ),
         _SurfaceCard(
           child: _InfoRow(
             icon: Icons.download_done_outlined,
@@ -817,6 +842,118 @@ class _ScrollablePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AdaptiveSurfaceCard extends StatelessWidget {
+  const _AdaptiveSurfaceCard({
+    required this.icon,
+    required this.title,
+    required this.emptyKey,
+    required this.surface,
+    required this.controller,
+    required this.copy,
+  });
+
+  final IconData icon;
+  final String title;
+  final String emptyKey;
+  final AdaptiveStudySurface? surface;
+  final MobileLearningController controller;
+  final MobileCopy copy;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = surface;
+    final detail = current == null
+        ? copy.t('adaptive_unavailable')
+        : current.isDisabled
+            ? copy.t('adaptive_disabled')
+            : current.isEmpty
+                ? copy.t(emptyKey)
+                : copy.t('adaptive_authority');
+
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _InfoRow(icon: icon, title: title, value: detail),
+          if (current?.isDegraded ?? false) ...[
+            const SizedBox(height: 10),
+            Text(copy.t('adaptive_degraded')),
+          ],
+          if (current != null && !current.isDisabled && current.items.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            for (final target in current.items) ...[
+              _AdaptiveTargetRow(
+                target: target,
+                controller: controller,
+                copy: copy,
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AdaptiveTargetRow extends StatelessWidget {
+  const _AdaptiveTargetRow({
+    required this.target,
+    required this.controller,
+    required this.copy,
+  });
+
+  final AdaptiveStudyTarget target;
+  final MobileLearningController controller;
+  final MobileCopy copy;
+
+  @override
+  Widget build(BuildContext context) {
+    final score = target.scorePercent;
+    final subject = localize(target.subjectTitle, controller.locale);
+    final skill = localize(target.skillTitle, controller.locale);
+    final available = target.assessment.isAvailable &&
+        !controller.isOffline &&
+        !controller.isBusy;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          skill,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: ModrikColors.navy,
+              ),
+        ),
+        if (subject.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(subject, style: const TextStyle(color: ModrikColors.slate)),
+        ],
+        if (score != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            '${score.round()}%',
+            style: const TextStyle(color: ModrikColors.slate),
+          ),
+        ],
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: available
+              ? () => controller.startAdaptivePractice(target)
+              : null,
+          icon: const Icon(Icons.play_arrow_outlined),
+          label: Text(
+            target.assessment.isAvailable
+                ? copy.t('open_adaptive_practice')
+                : copy.t('adaptive_target_unavailable'),
+          ),
+        ),
+      ],
     );
   }
 }

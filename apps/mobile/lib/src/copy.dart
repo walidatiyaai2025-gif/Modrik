@@ -31,6 +31,66 @@ class MobileCopy {
       ModrikLocale.ar: 'متابعة التعلّم',
       ModrikLocale.fr: 'Continuer l’apprentissage',
     },
+    'today_mission': {
+      ModrikLocale.en: "Today's Mission",
+      ModrikLocale.ar: 'مهمة اليوم',
+      ModrikLocale.fr: 'Mission du jour',
+    },
+    'needs_practice': {
+      ModrikLocale.en: 'Needs Practice',
+      ModrikLocale.ar: 'يحتاج تدريبًا',
+      ModrikLocale.fr: 'À renforcer',
+    },
+    'my_mistakes': {
+      ModrikLocale.en: 'My Mistakes',
+      ModrikLocale.ar: 'أخطائي',
+      ModrikLocale.fr: 'Mes erreurs',
+    },
+    'adaptive_authority': {
+      ModrikLocale.en: 'These priorities come from your saved Backend learning state.',
+      ModrikLocale.ar: 'تأتي هذه الأولويات من حالة التعلّم المحفوظة في الخادم.',
+      ModrikLocale.fr: 'Ces priorités proviennent de votre état d’apprentissage enregistré sur le serveur.',
+    },
+    'adaptive_unavailable': {
+      ModrikLocale.en: 'Adaptive study information is unavailable right now.',
+      ModrikLocale.ar: 'معلومات التعلّم التكيفي غير متاحة حاليًا.',
+      ModrikLocale.fr: 'Les informations d’apprentissage adaptatif sont indisponibles pour le moment.',
+    },
+    'adaptive_disabled': {
+      ModrikLocale.en: 'This adaptive feature is not enabled for your learning context.',
+      ModrikLocale.ar: 'هذه الميزة التكيفية غير مفعّلة لسياق تعلّمك.',
+      ModrikLocale.fr: 'Cette fonction adaptative n’est pas activée pour votre contexte d’apprentissage.',
+    },
+    'adaptive_degraded': {
+      ModrikLocale.en: 'Some recommended work is unavailable; only Backend-ready practice is actionable.',
+      ModrikLocale.ar: 'بعض التدريبات المقترحة غير متاحة؛ يمكن فتح التدريبات الجاهزة في الخادم فقط.',
+      ModrikLocale.fr: 'Certaines recommandations sont indisponibles ; seuls les exercices prêts côté serveur peuvent être ouverts.',
+    },
+    'mission_empty': {
+      ModrikLocale.en: 'No mission is assigned from your saved learning state yet.',
+      ModrikLocale.ar: 'لا توجد مهمة مخصصة من سجل تعلّمك المحفوظ حتى الآن.',
+      ModrikLocale.fr: 'Aucune mission n’est encore assignée depuis votre historique enregistré.',
+    },
+    'needs_practice_empty': {
+      ModrikLocale.en: 'No practiced skill currently needs extra work.',
+      ModrikLocale.ar: 'لا توجد مهارة تدربت عليها تحتاج إلى تدريب إضافي حاليًا.',
+      ModrikLocale.fr: 'Aucune compétence déjà pratiquée ne nécessite de travail supplémentaire.',
+    },
+    'mistakes_empty': {
+      ModrikLocale.en: 'No recent graded mistakes are waiting for review.',
+      ModrikLocale.ar: 'لا توجد أخطاء مصححة حديثًا بانتظار المراجعة.',
+      ModrikLocale.fr: 'Aucune erreur corrigée récente n’attend de révision.',
+    },
+    'open_adaptive_practice': {
+      ModrikLocale.en: 'Open practice',
+      ModrikLocale.ar: 'فتح التدريب',
+      ModrikLocale.fr: 'Ouvrir l’exercice',
+    },
+    'adaptive_target_unavailable': {
+      ModrikLocale.en: 'Practice unavailable',
+      ModrikLocale.ar: 'التدريب غير متاح',
+      ModrikLocale.fr: 'Exercice indisponible',
+    },
     'progress': {
       ModrikLocale.en: 'Progress',
       ModrikLocale.ar: 'التقدّم',

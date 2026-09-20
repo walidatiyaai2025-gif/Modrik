@@ -5,6 +5,8 @@ import {
   learningApi,
   LearningApiError,
   type AcademicContext,
+  type AdaptiveStudy,
+  type AdaptiveStudyTarget,
   type AnswerValue,
   type Attempt,
   type AttemptResult,
@@ -24,6 +26,7 @@ const activeAttemptStorageKey = "modrik.student.active-attempt";
 
 type ViewState = "loading" | "ready" | "offline" | "error" | "permission";
 type WorkspaceView = "home" | "catalogue" | "study" | "practice" | "progress" | "academic";
+type AssessmentSelection = Pick<CatalogueAssessment, "id" | "kind" | "title">;
 
 const catalogueCopy = {
   en: {
@@ -118,7 +121,8 @@ export default function LearningWorkspace() {
   const [selectedSubjectReference, setSelectedSubjectReference] = useState("");
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] = useState<Progress[]>([]);
-  const [selectedAssessment, setSelectedAssessment] = useState<CatalogueAssessment | null>(null);
+  const [adaptiveStudy, setAdaptiveStudy] = useState<AdaptiveStudy | null>(null);
+  const [selectedAssessment, setSelectedAssessment] = useState<AssessmentSelection | null>(null);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
@@ -190,11 +194,13 @@ export default function LearningWorkspace() {
       ]);
       let nextCatalogue: ContentCatalogue | null = null;
       let nextProgress: Progress[] = [];
+      let nextAdaptiveStudy: AdaptiveStudy | null = null;
       let restoredAttempt: Attempt | null = null;
       if (nextContext.state === "active") {
-        [nextCatalogue, nextProgress] = await Promise.all([
+        [nextCatalogue, nextProgress, nextAdaptiveStudy] = await Promise.all([
           learningApi.contentCatalogue(),
           learningApi.progress(),
+          learningApi.adaptiveStudy(),
         ]);
         const storedAttemptId = window.localStorage.getItem(activeAttemptStorageKey);
         if (storedAttemptId) {
@@ -226,6 +232,7 @@ export default function LearningWorkspace() {
         setSelectedSubjectReference("");
       }
       setProgress(nextProgress);
+      setAdaptiveStudy(nextAdaptiveStudy);
       applyAttempt(restoredAttempt);
       setResult(null);
       setState("ready");
@@ -263,10 +270,26 @@ export default function LearningWorkspace() {
     }
   }
 
-  function openAssessment(assessment: CatalogueAssessment) {
+  function openAssessment(assessment: AssessmentSelection) {
     setSelectedAssessment(assessment);
     setResult(null);
     setView("practice");
+  }
+
+  function openAdaptiveTarget(target: AdaptiveStudyTarget) {
+    const assessment = target.assessment;
+    if (
+      !assessment.id
+      || !assessment.kind
+      || !assessment.title
+      || assessment.available_question_count < 1
+    ) return;
+
+    openAssessment({
+      id: assessment.id,
+      kind: assessment.kind,
+      title: assessment.title,
+    });
   }
 
   async function startAssessment() {
@@ -334,7 +357,12 @@ export default function LearningWorkspace() {
       window.localStorage.removeItem(activeAttemptStorageKey);
       setResult(submitted);
       applyAttempt(submitted.attempt);
-      setProgress(await learningApi.progress());
+      const [nextProgress, nextAdaptiveStudy] = await Promise.all([
+        learningApi.progress(),
+        learningApi.adaptiveStudy(),
+      ]);
+      setProgress(nextProgress);
+      setAdaptiveStudy(nextAdaptiveStudy);
     } catch (error) {
       if (error instanceof LearningApiError && error.status === 409) {
         try {
@@ -366,6 +394,31 @@ export default function LearningWorkspace() {
     if (progress.length === 0) return null;
     return Math.round((progress.reduce((sum, item) => sum + item.mastery, 0) / progress.length) * 100);
   }, [progress]);
+
+  function renderAdaptiveTarget(target: AdaptiveStudyTarget, key: string) {
+    const assessment = target.assessment;
+    const available = Boolean(
+      assessment.id
+      && assessment.kind
+      && assessment.title
+      && assessment.available_question_count > 0,
+    );
+
+    return (
+      <button
+        type="button"
+        className="secondary-button"
+        key={key}
+        disabled={!available || state === "offline" || busy}
+        onClick={() => openAdaptiveTarget(target)}
+      >
+        <strong dir="auto">{localize(target.skill_title, locale)}</strong>
+        <span dir="auto">{localize(target.subject.title, locale)}</span>
+        {typeof target.score_percent === "number" ? <small>{Math.round(target.score_percent)}%</small> : null}
+        <span>{available ? labels.openAdaptivePractice : labels.adaptiveTargetUnavailable}</span>
+      </button>
+    );
+  }
 
   function renderNode(node: CatalogueNode, depth = 0) {
     return (
@@ -485,6 +538,85 @@ export default function LearningWorkspace() {
                     <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.catalogue}</button>
                   </section>
                 )}
+
+                <section className="context-panel" data-student-home="today-mission">
+                  <div className="section-heading-row">
+                    <div>
+                      <p className="eyebrow">{labels.todayMission}</p>
+                      <h2>{labels.todayMission}</h2>
+                    </div>
+                    <small>{labels.adaptiveAuthority}</small>
+                  </div>
+                  {adaptiveStudy?.state !== "active" ? (
+                    <p>{labels.adaptiveUnavailable}</p>
+                  ) : adaptiveStudy.today_mission.status === "disabled" ? (
+                    <p>{labels.adaptiveDisabled}</p>
+                  ) : adaptiveStudy.today_mission.selected.length === 0 ? (
+                    <p>{labels.missionEmpty}</p>
+                  ) : (
+                    <>
+                      {adaptiveStudy.today_mission.status === "degraded" ? <p>{labels.adaptiveDegraded}</p> : null}
+                      <div className="next-actions">
+                        {adaptiveStudy.today_mission.selected.map((target, index) =>
+                          renderAdaptiveTarget(
+                            target,
+                            `mission-${target.skill_id}-${target.attempt_question_id ?? index}`,
+                          ),
+                        )}
+                      </div>
+                    </>
+                  )}
+                </section>
+
+                <section className="context-panel" data-student-home="needs-practice">
+                  <div className="section-heading-row">
+                    <div>
+                      <p className="eyebrow">{labels.needsPracticeHome}</p>
+                      <h2>{labels.needsPracticeHome}</h2>
+                    </div>
+                    <small>{labels.adaptiveAuthority}</small>
+                  </div>
+                  {adaptiveStudy?.state !== "active" ? (
+                    <p>{labels.adaptiveUnavailable}</p>
+                  ) : adaptiveStudy.needs_practice.items.length === 0 ? (
+                    <p>{labels.needsPracticeEmpty}</p>
+                  ) : (
+                    <div className="next-actions">
+                      {adaptiveStudy.needs_practice.items.map((target, index) =>
+                        renderAdaptiveTarget(target, `needs-${target.skill_id}-${index}`),
+                      )}
+                    </div>
+                  )}
+                </section>
+
+                <section className="context-panel" data-student-home="my-mistakes">
+                  <div className="section-heading-row">
+                    <div>
+                      <p className="eyebrow">{labels.myMistakes}</p>
+                      <h2>{labels.myMistakes}</h2>
+                    </div>
+                    <small>{labels.adaptiveAuthority}</small>
+                  </div>
+                  {adaptiveStudy?.state !== "active" ? (
+                    <p>{labels.adaptiveUnavailable}</p>
+                  ) : adaptiveStudy.mistakes.status === "disabled" ? (
+                    <p>{labels.adaptiveDisabled}</p>
+                  ) : adaptiveStudy.mistakes.items.length === 0 ? (
+                    <p>{labels.mistakesEmpty}</p>
+                  ) : (
+                    <>
+                      {adaptiveStudy.mistakes.status === "degraded" ? <p>{labels.adaptiveDegraded}</p> : null}
+                      <div className="next-actions">
+                        {adaptiveStudy.mistakes.items.map((target, index) =>
+                          renderAdaptiveTarget(
+                            target,
+                            `mistake-${target.skill_id}-${target.attempt_question_id ?? index}`,
+                          ),
+                        )}
+                      </div>
+                    </>
+                  )}
+                </section>
 
                 <section className="context-panel" data-student-home="quick-actions">
                   <div className="next-actions">
