@@ -30,10 +30,59 @@ class MainActivity : FlutterActivity() {
         "downloaded_lessons",
     )
 
+    private val studentPreferencesChannelName = "org.modrik.mobile/student_preferences"
+    private val studentPreferencesName = "modrik_student_preferences_v1"
+    private val textScalePreferenceKey = "text_scale"
+    private val allowedTextScales = setOf("normal", "large", "largest")
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         configureSecureSessionChannel(flutterEngine)
         configureLearningRecoveryChannel(flutterEngine)
+        configureStudentPreferencesChannel(flutterEngine)
+    }
+
+    private fun configureStudentPreferencesChannel(flutterEngine: FlutterEngine) {
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, studentPreferencesChannelName)
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "read_text_scale" -> {
+                            val value = getSharedPreferences(
+                                studentPreferencesName,
+                                MODE_PRIVATE,
+                            ).getString(textScalePreferenceKey, null)
+                            result.success(
+                                if (value != null && allowedTextScales.contains(value)) value else null,
+                            )
+                        }
+                        "write_text_scale" -> {
+                            val value = call.arguments as? String
+                                ?: throw IllegalArgumentException("Text scale preference is required")
+                            if (!allowedTextScales.contains(value)) {
+                                throw IllegalArgumentException("Unsupported text scale preference")
+                            }
+                            val stored = getSharedPreferences(
+                                studentPreferencesName,
+                                MODE_PRIVATE,
+                            ).edit()
+                                .putString(textScalePreferenceKey, value)
+                                .commit()
+                            if (!stored) {
+                                throw IllegalStateException("Text scale preference was not committed")
+                            }
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (error: Exception) {
+                    result.error(
+                        "MOBILE_STUDENT_PREFERENCES_UNAVAILABLE",
+                        "Android student preference storage is unavailable.",
+                        null,
+                    )
+                }
+            }
     }
 
     private fun configureSecureSessionChannel(flutterEngine: FlutterEngine) {
