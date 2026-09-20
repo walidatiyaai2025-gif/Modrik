@@ -18,6 +18,7 @@ const allowedPaths = [
   /^content-catalogue$/,
   new RegExp(`^lessons/${ulid}$`),
   /^progress$/,
+  /^adaptive-study$/,
   /^notifications$/,
   /^notifications\/read-all$/,
   new RegExp(`^notifications/${ulid}/read$`),
