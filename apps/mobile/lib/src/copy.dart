@@ -216,6 +216,41 @@ class MobileCopy {
       ModrikLocale.ar: 'نتيجة الخادم',
       ModrikLocale.fr: 'Résultat du serveur',
     },
+    'assessment_mode': {
+      ModrikLocale.en: 'Assessment mode',
+      ModrikLocale.ar: 'وضع التقييم',
+      ModrikLocale.fr: 'Mode d’évaluation',
+    },
+    'hints_available': {
+      ModrikLocale.en: 'Hints available',
+      ModrikLocale.ar: 'التلميحات متاحة',
+      ModrikLocale.fr: 'Indices disponibles',
+    },
+    'hints_disabled': {
+      ModrikLocale.en: 'Hints disabled by policy',
+      ModrikLocale.ar: 'التلميحات معطلة وفق السياسة',
+      ModrikLocale.fr: 'Indices désactivés par la politique',
+    },
+    'show_hint': {
+      ModrikLocale.en: 'Show hint',
+      ModrikLocale.ar: 'إظهار تلميح',
+      ModrikLocale.fr: 'Afficher un indice',
+    },
+    'correct': {
+      ModrikLocale.en: 'Correct',
+      ModrikLocale.ar: 'إجابة صحيحة',
+      ModrikLocale.fr: 'Correct',
+    },
+    'needs_review': {
+      ModrikLocale.en: 'Needs review',
+      ModrikLocale.ar: 'تحتاج مراجعة',
+      ModrikLocale.fr: 'À revoir',
+    },
+    'explanation': {
+      ModrikLocale.en: 'Explanation',
+      ModrikLocale.ar: 'الشرح',
+      ModrikLocale.fr: 'Explication',
+    },
     'score_authority': {
       ModrikLocale.en: 'Scoring is calculated only by the backend.',
       ModrikLocale.ar: 'يتم احتساب النتيجة بواسطة الخادم فقط.',
