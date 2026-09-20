@@ -17,6 +17,10 @@ import UIKit
     "downloaded_lessons",
   ]
 
+  private let studentPreferencesChannel = "org.modrik.mobile/student_preferences"
+  private let textScalePreferenceKey = "modrik_student_text_scale_v1"
+  private let allowedTextScales: Set<String> = ["normal", "large", "largest"]
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -32,6 +36,48 @@ import UIKit
     }
     configureSecureSessionChannel(messenger: registrar.messenger())
     configureLearningRecoveryChannel(messenger: registrar.messenger())
+    configureStudentPreferencesChannel(messenger: registrar.messenger())
+  }
+
+  private func configureStudentPreferencesChannel(messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(
+      name: studentPreferencesChannel,
+      binaryMessenger: messenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self else {
+        result(
+          FlutterError(
+            code: "MOBILE_STUDENT_PREFERENCES_UNAVAILABLE",
+            message: "iOS student preference storage is unavailable.",
+            details: nil
+          )
+        )
+        return
+      }
+
+      switch call.method {
+      case "read_text_scale":
+        let value = UserDefaults.standard.string(forKey: self.textScalePreferenceKey)
+        result(value.flatMap { self.allowedTextScales.contains($0) ? $0 : nil })
+      case "write_text_scale":
+        guard let value = call.arguments as? String,
+              self.allowedTextScales.contains(value) else {
+          result(
+            FlutterError(
+              code: "MOBILE_STUDENT_PREFERENCES_UNAVAILABLE",
+              message: "Unsupported text scale preference.",
+              details: nil
+            )
+          )
+          return
+        }
+        UserDefaults.standard.set(value, forKey: self.textScalePreferenceKey)
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   private func configureSecureSessionChannel(messenger: FlutterBinaryMessenger) {
