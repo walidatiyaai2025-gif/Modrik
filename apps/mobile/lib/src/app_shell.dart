@@ -432,12 +432,19 @@ class _PracticeView extends StatelessWidget {
 
     return _ScrollablePage(
       title: copy.t('practice'),
-      subtitle: '${_shortId(attempt.id)} · ${attempt.status}',
+      subtitle: '${_shortId(attempt.id)} · ${attempt.mode} · ${attempt.status}',
       children: [
         OutlinedButton.icon(
           onPressed: controller.isBusy ? null : controller.resumeAttempt,
           icon: const Icon(Icons.restore),
           label: Text(copy.t('resume_practice')),
+        ),
+        _SurfaceCard(
+          child: _InfoRow(
+            icon: Icons.policy_outlined,
+            title: copy.t('assessment_mode'),
+            value: '${attempt.mode} · ${attempt.hintsAllowed ? copy.t('hints_available') : copy.t('hints_disabled')}',
+          ),
         ),
         // Iterate in the exact order returned by the backend attempt snapshot.
         for (var index = 0; index < attempt.questions.length; index++)
@@ -474,6 +481,19 @@ class _PracticeView extends StatelessWidget {
                   Text('${result.score.toStringAsFixed(1)} / ${result.maxScore.toStringAsFixed(1)}'),
                   const SizedBox(height: 6),
                   Text(copy.t('score_authority')),
+                  for (final review in result.review) ...[
+                    const Divider(height: 24),
+                    Text(
+                      '${copy.t('question')} ${review.position} · ${review.correct == true ? copy.t('correct') : copy.t('needs_review')}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    if (review.explanation.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${copy.t('explanation')}: ${localize(review.explanation, controller.locale)}',
+                      ),
+                    ],
+                  ],
                 ],
               ),
             ),
@@ -601,6 +621,24 @@ class _QuestionCard extends StatelessWidget {
                   question.type == 'numeric' ? (num.tryParse(value) ?? value) : value,
                 ),
               ),
+            if ((controller.attempt?.hintsAllowed ?? false) && question.hints.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                title: Text(copy.t('show_hint')),
+                children: [
+                  for (final hint in question.hints)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(hint),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
