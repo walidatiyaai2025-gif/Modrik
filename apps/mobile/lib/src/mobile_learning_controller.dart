@@ -583,7 +583,7 @@ class MobileLearningController extends ChangeNotifier {
         (question) => MapEntry(
           question.attemptQuestionId,
           question.currentAnswer?.value ??
-              (question.responseContract.kind == 'multiple_choice'
+              (question.responseContract.kind == 'multi_select'
                   ? const <Object?>[]
                   : ''),
         ),

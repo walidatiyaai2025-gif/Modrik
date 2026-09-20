@@ -49,7 +49,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('multiple-choice UI emits ordered JSON arrays instead of scalar strings', (tester) async {
+  testWidgets('multi-select UI emits ordered JSON arrays instead of scalar strings', (tester) async {
     final controller = _readyController()..section = StudentSection.practice;
     await tester.pumpWidget(ModrikApp(controller: controller, autoInitialize: false));
 
@@ -178,10 +178,10 @@ MobileLearningController _readyController() {
         {
           'attempt_question_id': 'attempt-question-3',
           'position': 3,
-          'type': 'multiple_choice',
+          'type': 'multi_select',
           'prompt': {'en': 'Server multiple-choice question'},
           'response_contract': {
-            'kind': 'multiple_choice',
+            'kind': 'multi_select',
             'options': [
               {'id': 'option-a', 'label': {'en': 'Choice A'}},
               {'id': 'option-b', 'label': {'en': 'Choice B'}},

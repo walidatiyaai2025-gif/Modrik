@@ -281,6 +281,16 @@ class MobileCopy {
       ModrikLocale.ar: 'اكتب إجابتك',
       ModrikLocale.fr: 'Saisissez votre réponse',
     },
+    'true_answer': {
+      ModrikLocale.en: 'True',
+      ModrikLocale.ar: 'صحيح',
+      ModrikLocale.fr: 'Vrai',
+    },
+    'false_answer': {
+      ModrikLocale.en: 'False',
+      ModrikLocale.ar: 'خطأ',
+      ModrikLocale.fr: 'Faux',
+    },
     'question': {
       ModrikLocale.en: 'Question',
       ModrikLocale.ar: 'سؤال',

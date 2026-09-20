@@ -540,7 +540,7 @@ class _QuestionCard extends StatelessWidget {
                     option.id,
                   ),
                 )
-            else if (question.responseContract.kind == 'multiple_choice')
+            else if (question.responseContract.kind == 'multi_select')
               for (final option in question.responseContract.options)
                 _ChoiceTile(
                   label: localize(option.label, controller.locale),
@@ -560,6 +560,28 @@ class _QuestionCard extends StatelessWidget {
                     );
                   },
                 )
+            else if (question.responseContract.kind == 'boolean')
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ChoiceTile(
+                    label: copy.t('true_answer'),
+                    selected: selected == true,
+                    onPressed: () => controller.setAnswer(
+                      question.attemptQuestionId,
+                      true,
+                    ),
+                  ),
+                  _ChoiceTile(
+                    label: copy.t('false_answer'),
+                    selected: selected == false,
+                    onPressed: () => controller.setAnswer(
+                      question.attemptQuestionId,
+                      false,
+                    ),
+                  ),
+                ],
+              )
             else
               TextFormField(
                 key: ValueKey('${question.attemptQuestionId}-answer'),

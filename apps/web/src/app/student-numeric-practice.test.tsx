@@ -13,7 +13,7 @@ test("Student Web renders Backend numeric practice contracts explicitly", () => 
   assert.match(workspace, /step="any"/);
 });
 
-test("numeric practice answers cross the API boundary as finite numbers and resume as display text", () => {
+test("numeric practice answers cross the API boundary as finite numbers and hydrate without losing Backend type", () => {
   assert.match(
     workspace,
     /question\.response_contract\.kind === "numeric"[\s\S]*?!Number\.isFinite\(Number\(answers\[question\.attempt_question_id\]\)\)/,
@@ -22,7 +22,8 @@ test("numeric practice answers cross the API boundary as finite numbers and resu
     workspace,
     /const answerValue = question\.response_contract\.kind === "numeric"[\s\S]*?\? Number\(rawAnswer\)[\s\S]*?: rawAnswer;/,
   );
-  assert.match(workspace, /current_answer === null \? "" : String\(question\.current_answer\.value\)/);
-  assert.match(workspace, /nextSavedAnswers\[questionId\] = String\(saved\.value\)/);
+  assert.match(workspace, /question\.current_answer\?\.value \?\? ""/);
+  assert.match(workspace, /nextSavedAnswers\[questionId\] = saved\.value/);
+  assert.match(workspace, /textInputValue\(answers\[question\.attempt_question_id\]\)/);
   assert.doesNotMatch(workspace, /client.*score|calculate.*mastery|generate.*plan/i);
 });
