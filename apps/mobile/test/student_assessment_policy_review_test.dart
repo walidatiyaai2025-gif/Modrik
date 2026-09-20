@@ -74,7 +74,10 @@ void main() {
     expect(find.textContaining('Correct'), findsOneWidget);
     expect(find.textContaining('Two plus two equals four.'), findsOneWidget);
 
-    await tester.tap(find.text('Show hint'));
+    final hintToggle = find.text('Show hint');
+    await tester.ensureVisible(hintToggle);
+    await tester.pumpAndSettle();
+    await tester.tap(hintToggle);
     await tester.pumpAndSettle();
     expect(find.text('Think about two pairs.'), findsOneWidget);
   });
