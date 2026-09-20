@@ -13,6 +13,13 @@ const evidenceDir = path.resolve(process.env.MODRIK_E2E_EVIDENCE_DIR || path.joi
 const appPort = Number(process.env.MODRIK_E2E_APP_PORT || 3310);
 const mockPort = Number(process.env.MODRIK_E2E_MOCK_PORT || 4310);
 const baseURL = `http://127.0.0.1:${appPort}`;
+const targetHomePath = path.join(appDir, "src", "app", "page.tsx");
+const usesLandingHome = fs.existsSync(targetHomePath)
+  && fs.readFileSync(targetHomePath, "utf8").includes('import LandingPage from "./landing-page"');
+const studentURL = usesLandingHome ? `${baseURL}/student` : baseURL;
+const learningWorkspacePath = path.join(appDir, "src", "app", "learning-workspace.tsx");
+const hasStudentHome = fs.existsSync(learningWorkspacePath)
+  && fs.readFileSync(learningWorkspacePath, "utf8").includes('data-student-home="continue-learning');
 
 const ids = {
   user: "01J00000000000000000000001",
@@ -22,6 +29,9 @@ const ids = {
   node: "01J00000000000000000000005",
   attempt: "01J00000000000000000000006",
   question: "01J00000000000000000000007",
+  subject: "01J00000000000000000000009",
+  unit: "01J00000000000000000000010",
+  topic: "01J00000000000000000000011",
   track: "01J000000000000000000000A1",
 };
 
@@ -30,6 +40,60 @@ const state = {
   sessionMode: "unauthenticated",
   sessionDelayMs: 0,
 };
+
+function contentCatalogue() {
+  return {
+    state: "active",
+    context: {
+      context_id: ids.context,
+      academic_track_id: ids.track,
+      track_reference: "TRACK:E2E-GRADE-6",
+      year_level: "fixture-year",
+      track_title: {
+        en: "Grade 6 published curriculum",
+        ar: "المنهج المنشور للصف السادس",
+        fr: "Programme publié de 6e année",
+      },
+    },
+    subjects: [{
+      id: ids.subject,
+      reference: "SUBJECT:ARABIC-E2E",
+      type: "subject",
+      title: { en: "Arabic language", ar: "اللغة العربية", fr: "Langue arabe" },
+      lessons: [],
+      assessments: [],
+      children: [{
+        id: ids.unit,
+        reference: "UNIT:E2E-1",
+        type: "unit",
+        title: { en: "Unit one", ar: "الوحدة الأولى", fr: "Unité un" },
+        lessons: [],
+        assessments: [],
+        children: [{
+          id: ids.topic,
+          reference: "TOPIC:E2E-1",
+          type: "topic",
+          title: { en: "Reading and language", ar: "القراءة واللغة", fr: "Lecture et langue" },
+          lessons: [{
+            id: ids.lesson,
+            slug: "published-e2e-lesson",
+            content_version: 1,
+            title: { en: "Published Arabic lesson", ar: "درس اللغة العربية المنشور", fr: "Leçon d’arabe publiée" },
+            published_at: "2026-08-27T00:00:00Z",
+          }],
+          assessments: [{
+            id: ids.quiz,
+            kind: "practice",
+            blueprint_version: 1,
+            title: { en: "Published practice", ar: "تدريب منشور", fr: "Exercice publié" },
+          }],
+          children: [],
+        }],
+      }],
+    }],
+    counts: { subjects: 1, lessons: 1, assessments: 1 },
+  };
+}
 
 const evidence = {
   schema_version: "modrik.web.browser-overflow-geometry.v2",
@@ -144,14 +208,23 @@ async function handleMock(req, res) {
     }));
   }
 
+  if (pathname === "/v1/content-catalogue") {
+    return sendJson(res, 200, envelope(contentCatalogue()));
+  }
+
   if (pathname === `/v1/lessons/${ids.lesson}`) {
     return sendJson(res, 200, envelope({
       id: ids.lesson,
       curriculum_node_id: ids.node,
       content_version: 1,
-      title: { en: "Synthetic lesson", ar: "درس تجريبي", fr: "Leçon synthétique" },
+      title: { en: "Published Arabic lesson", ar: "درس اللغة العربية المنشور", fr: "Leçon d’arabe publiée" },
       practice_quiz_id: ids.quiz,
-      blocks: [],
+      blocks: [{
+        id: "01J00000000000000000000012",
+        position: 1,
+        type: "heading",
+        content: { en: "Published lesson content", ar: "محتوى الدرس المنشور", fr: "Contenu de la leçon publiée" },
+      }],
     }));
   }
 
@@ -293,12 +366,12 @@ const AUTH_SELECTORS = [
 const LEARNING_SELECTORS = [
   "html", "body", ".student-shell", ".student-frame", ".student-sidebar", ".student-stage",
   ".student-topbar", ".locale-switcher", ".student-nav", ".nav-item", ".dashboard-stack",
-  ".study-layout", ".workspace-rail", ".lesson-reader",
+  ".study-layout", ".context-panel", ".lesson-block",
 ];
 
 const PRACTICE_SELECTORS = [
   ...LEARNING_SELECTORS,
-  ".practice-empty", ".practice-empty .primary-button", ".question-card", ".question-card form",
+  ".practice-workbench", ".practice-workbench > .primary-button", ".question-card", ".question-card form",
   ".text-answer", ".practice-submit-row", ".practice-submit-row button", ".primary-button",
 ];
 
@@ -309,7 +382,7 @@ async function recordAuth(browser, name, width, height, locale, loading = false)
   const context = await browser.newContext({ viewport: { width, height } });
   const page = await context.newPage();
   try {
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     if (loading) await page.locator(".auth-loading").waitFor({ state: "visible", timeout: 5000 });
     else await page.locator(".auth-card form").first().waitFor({ state: "visible", timeout: 15000 });
     if (!loading) await page.locator(".auth-locale button", { hasText: locale.toUpperCase() }).first().click();
@@ -337,19 +410,28 @@ async function recordLearning(browser, name, width, height, locale, mode = "lear
   await authenticate(context);
   const page = await context.newPage();
   try {
-    await page.goto(baseURL, { waitUntil: "domcontentloaded" });
+    await page.goto(studentURL, { waitUntil: "domcontentloaded" });
     await page.locator(".student-shell").waitFor({ state: "visible", timeout: 15000 });
     await page.locator(".dashboard-stack").waitFor({ state: "visible", timeout: 15000 });
     await setTextScale(page);
 
+    const nav = page.locator(".student-nav button");
+    const catalogueIndex = hasStudentHome ? 1 : 0;
+
     if (mode === "study") {
-      await page.locator(".student-nav button").nth(1).click();
-      await page.locator(".lesson-reader").waitFor({ state: "visible", timeout: 10000 });
+      if (hasStudentHome) await nav.nth(catalogueIndex).click();
+      await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
+      const lessonButton = page.locator('[data-node-type="topic"] .next-actions').nth(0).locator("button").first();
+      await lessonButton.click();
+      await page.locator(".lesson-block").first().waitFor({ state: "visible", timeout: 10000 });
     } else if (mode === "practice") {
-      await page.locator(".student-nav button").nth(2).click();
-      const start = page.locator(".practice-empty .primary-button");
-      await start.waitFor({ state: "visible", timeout: 10000 });
-      await start.click();
+      if (hasStudentHome) await nav.nth(catalogueIndex).click();
+      await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
+      const assessmentButton = page.locator('[data-node-type="topic"] .next-actions').nth(1).locator("button").first();
+      await assessmentButton.click();
+      const startButton = page.locator(".practice-workbench > .primary-button");
+      await startButton.waitFor({ state: "visible", timeout: 10000 });
+      await startButton.click();
       await page.locator(".question-card").waitFor({ state: "visible", timeout: 10000 });
     }
 
