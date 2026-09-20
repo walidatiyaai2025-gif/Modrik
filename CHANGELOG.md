@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 2026-09-20 — Student UX #358 closure and readiness reconciliation
+
+- Integrated the Student UX closure chain through PRs #406, #407, #416, #417, #421, #423 and final text-size persistence PR #424; authoritative adaptive Home data is supplied by Backend contract PR #422.
+- Student Web and Flutter now expose Backend-authoritative Continue Learning/resume, supported answer contracts, hint/review/exam policy, Today's Mission, Needs Practice, My Mistakes and progress states without moving scoring, mastery, planning, identity or publication authority into clients.
+- Added persisted Student text-size preferences across Web and Flutter. Web uses bounded local persistence; Flutter uses a typed preference contract backed by Android SharedPreferences and iOS UserDefaults, restoring before learning bootstrap.
+- Final PR #424 head `5d483f5507f134a7fe4aecc6c357b63a16c04e6f` passed Bootstrap #1619 including strict Pilot, Unified Release #303, Demo Package #629, Web Portals Runtime #140 and Mobile Native Compile #164 before merge at `e886bf190f63695b0cd26c2127042d7e7630950c`.
+- Reconciled Student Web/Mobile UX from 0/not_evidenced to 100/PASS, raising weighted Student Learning readiness from 68% to 80%. Children Ready remains false because Parent Analytics, Arabic/RTL final acceptance, final security/integrity reconciliation and real child/parent pilots are still unreconciled or blocked.
+
+
 ## 2026-09-09 — Bootstrap npm advisory remediation (#342)
 
 - Kept the fail-closed `npm audit --audit-level=moderate` gates intact and updated Web from Next.js / `eslint-config-next` 16.3.1 to the patched 16.3.4 pair after current advisories made canonical-main Bootstrap CI fail before deployment.

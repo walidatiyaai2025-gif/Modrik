@@ -1,9 +1,19 @@
 # TASKS
 
-Updated: 2026-09-10
-Last reconciled baseline: `4f4cbe23952340ed10cf03c055c64d3df32580a2`
+Updated: 2026-09-20
+Last reconciled baseline: `e886bf190f63695b0cd26c2127042d7e7630950c`
 
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
+
+
+## Children Ready — Student UX
+
+- [x] #358 — Student Web + Flutter learning-flow scope integrated through PRs #406, #407, #416, #417, #421, #423 and #424, with Backend adaptive-study dependency PR #422.
+- [x] Continue Learning/resume, supported assessment answer parity, hint/review/exam policy, authoritative Today's Mission / Needs Practice / My Mistakes, progress truth/refresh and truthful failure/offline/degraded states are integrated without client-side scoring/mastery/planning authority.
+- [x] Persisted Student text-size preference is integrated on Web and Flutter, with Android/iOS native persistence and focused reopen/widget/source tests.
+- [x] Final #424 exact-head governed validation is green: Bootstrap #1619 + strict Pilot, Unified Release #303, Demo Package #629, Web Portals Runtime #140 and Mobile Native Compile #164.
+- [x] Reconcile Student UX domain to 100%/PASS in `governance/MODRIK_STUDENT_READINESS.json`; overall reconciled readiness is 80%.
+- [ ] Children Ready remains blocked by the unreconciled #359, #360, #363/final QA-security gates and real Year 6/7/Parent pilot acceptance. Do not convert these to PASS from #358 evidence.
 
 ## COMPLETE — capability / Admin / Student integration wave
 

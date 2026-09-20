@@ -10,10 +10,10 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
     {
         $ledger = $this->jsonFile(base_path('../../governance/MODRIK_STUDENT_READINESS.json'));
 
-        self::assertSame(68, $ledger['overall_readiness_percent'] ?? null);
+        self::assertSame(80, $ledger['overall_readiness_percent'] ?? null);
         self::assertFalse((bool) ($ledger['children_ready'] ?? true));
 
-        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'operations'] as $id) {
+        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'operations'] as $id) {
             $domain = $this->domainById($ledger, $id);
             self::assertSame(100, $domain['percent'] ?? null, $id);
             self::assertSame('pass', $domain['status'] ?? null, $id);
@@ -22,6 +22,7 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame('PASS', $ledger['mandatory_gates']['admin_controls'] ?? null);
         self::assertSame('not_evidenced', $ledger['mandatory_gates']['question_bank'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['mastery_adaptive'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['student_ux'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year6_pilot'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year7_pilot'] ?? null);
     }
@@ -61,6 +62,23 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame(1540, $operations['exact_head_ci']['bootstrap_number'] ?? null);
         self::assertSame(1541, $operations['exact_main_ci']['bootstrap_number'] ?? null);
         self::assertSame('blocked_dependency', $operations['facts']['adaptive_jobs_without_357'] ?? null);
+
+        $studentUx = $this->evidenceById($ledger, 'AL06_STUDENT_UX');
+        self::assertSame(358, $studentUx['owner_issue'] ?? null);
+        self::assertSame(363, $studentUx['integration_issue'] ?? null);
+        self::assertSame('integrated', $studentUx['status'] ?? null);
+        self::assertSame([406, 407, 416, 417, 421, 423, 424], $studentUx['prs'] ?? null);
+        self::assertSame([422], $studentUx['upstream_dependency_prs'] ?? null);
+        self::assertSame('e886bf190f63695b0cd26c2127042d7e7630950c', $studentUx['integrated_main_sha'] ?? null);
+        self::assertSame('pass', $studentUx['facts']['real_backend_session_boundary'] ?? null);
+        self::assertSame('pass', $studentUx['facts']['authoritative_adaptive_home_today_mission_needs_practice_mistakes'] ?? null);
+        self::assertSame('pass', $studentUx['facts']['persisted_student_text_size_preference_web_mobile'] ?? null);
+        self::assertSame('absent', $studentUx['facts']['client_scoring_mastery_planning_authority'] ?? null);
+        self::assertSame(false, $studentUx['facts']['runtime_paid_ai_required'] ?? null);
+        self::assertSame(424, $studentUx['final_exact_head_ci']['pr'] ?? null);
+        self::assertSame(1619, $studentUx['final_exact_head_ci']['bootstrap_number'] ?? null);
+        self::assertSame(164, $studentUx['final_exact_head_ci']['mobile_native_compile_number'] ?? null);
+        self::assertSame('success', $studentUx['final_exact_head_ci']['conclusion'] ?? null);
     }
 
     /** @return array<string, mixed> */
