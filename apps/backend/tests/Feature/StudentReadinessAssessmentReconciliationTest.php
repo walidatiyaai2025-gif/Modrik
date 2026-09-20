@@ -15,7 +15,7 @@ final class StudentReadinessAssessmentReconciliationTest extends TestCase
         $this->assertSame('pass', $assessment['status'] ?? null);
         $this->assertSame('PASS', $ledger['mandatory_gates']['assessment_runtime'] ?? null);
         $this->assertFalse((bool) ($ledger['children_ready'] ?? true));
-        $this->assertSame(94, $ledger['overall_readiness_percent'] ?? null);
+        $this->assertSame(98, $ledger['overall_readiness_percent'] ?? null);
 
         $evidence = $this->evidenceById($ledger, 'AL03_ASSESSMENT_RUNTIME');
 

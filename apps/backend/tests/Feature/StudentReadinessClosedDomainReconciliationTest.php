@@ -10,21 +10,26 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
     {
         $ledger = $this->jsonFile(base_path('../../governance/MODRIK_STUDENT_READINESS.json'));
 
-        self::assertSame(94, $ledger['overall_readiness_percent'] ?? null);
+        self::assertSame(98, $ledger['overall_readiness_percent'] ?? null);
         self::assertFalse((bool) ($ledger['children_ready'] ?? true));
 
-        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'parent', 'rtl_accessibility', 'operations'] as $id) {
+        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'parent', 'rtl_accessibility', 'operations', 'quality_security'] as $id) {
             $domain = $this->domainById($ledger, $id);
             self::assertSame(100, $domain['percent'] ?? null, $id);
             self::assertSame('pass', $domain['status'] ?? null, $id);
         }
 
         self::assertSame('PASS', $ledger['mandatory_gates']['admin_controls'] ?? null);
-        self::assertSame('not_evidenced', $ledger['mandatory_gates']['question_bank'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['identity_academic_context'] ?? null);
+        self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['curriculum_content'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['question_bank'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['mastery_adaptive'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['student_ux'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['parent_ux'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['arabic_english_accessibility'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['security_integrity_qa'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['exact_main_governed_ci_green'] ?? null);
+        self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['open_mandatory_learning_blockers_zero'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year6_pilot'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year7_pilot'] ?? null);
     }
@@ -115,6 +120,15 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame(172, $rtlAccessibility['final_exact_head_ci']['web_portals_runtime_number'] ?? null);
         self::assertSame(170, $rtlAccessibility['final_exact_head_ci']['mobile_native_compile_number'] ?? null);
         self::assertSame('success', $rtlAccessibility['final_exact_head_ci']['conclusion'] ?? null);
+        $qa = $this->evidenceById($ledger, 'AL11_CROSS_DOMAIN_QA');
+        self::assertSame(363, $qa['owner_issue'] ?? null);
+        self::assertSame('reconciled', $qa['status'] ?? null);
+        self::assertSame(1669, $qa['source_ci']['bootstrap_number'] ?? null);
+        self::assertSame('success', $qa['source_ci']['bootstrap_conclusion'] ?? null);
+        self::assertSame('success', $qa['source_ci']['pilot_strict'] ?? null);
+        self::assertSame('fail_closed', $qa['facts']['csrf_same_origin_mutation'] ?? null);
+        self::assertSame('fail_closed', $qa['facts']['cross_user_direct_id_idor'] ?? null);
+        self::assertSame('absent', $qa['facts']['production_child_pii_repository_fixture'] ?? null);
     }
 
     /** @return array<string, mixed> */
