@@ -65,7 +65,7 @@ jobs:
           MODRIK_E2E_CANDIDATE: issue-359-exact-head
           MODRIK_E2E_EXPECTED_SHA: ${{ steps.candidate.outputs.sha }}
           MODRIK_E2E_OBSERVED_SHA: ${{ steps.candidate.outputs.sha }}
-        run: node qa/web-e2e/catalogue-browser-runtime-acceptance.cjs
+        run: node apps/web/scripts/rtl-accessibility-full-learning-acceptance.cjs
       - name: Require complete #359 Student browser matrix
         env:
           EXPECTED_SHA: ${{ steps.candidate.outputs.sha }}
