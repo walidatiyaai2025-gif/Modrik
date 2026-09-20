@@ -125,7 +125,7 @@ html[dir='rtl'] .fi-sidebar-item.fi-active .fi-sidebar-item-button { box-shadow:
 .fi-select-input,
 .fi-fo-field-wrp-content-ctn { border-radius: var(--modrik-radius-sm); }
 
-.fi-btn { min-height: 2.5rem; border-radius: var(--modrik-radius-sm); font-weight: 650; }
+.fi-btn { min-height: 2.75rem; border-radius: var(--modrik-radius-sm); font-weight: 650; }
 .fi-badge { border-radius: 999px; font-weight: 650; }
 
 .fi-ta-header-cell {
