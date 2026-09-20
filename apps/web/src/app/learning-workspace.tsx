@@ -557,6 +557,10 @@ export default function LearningWorkspace() {
 
                   {attempt?.status === "in_progress" ? (
                     <form onSubmit={(event) => { event.preventDefault(); void submitAssessment(); }}>
+                      <div className="assessment-policy" aria-label={labels.assessmentMode}>
+                        <strong>{labels.assessmentMode}: {attempt.mode ?? "practice"}</strong>
+                        <span>{attempt.hints_allowed ? labels.hintsAvailable : labels.hintsDisabled}</span>
+                      </div>
                       <div className="question-list">
                         {attempt.questions.map((question) => (
                           <fieldset className="question-card" key={question.attempt_question_id}>
@@ -648,6 +652,16 @@ export default function LearningWorkspace() {
                                 />
                               </label>
                             )}
+                            {attempt.hints_allowed === true && (question.hints?.length ?? 0) > 0 ? (
+                              <details className="hint-panel">
+                                <summary>{labels.showHint}</summary>
+                                <ul>
+                                  {question.hints?.map((hint, hintIndex) => (
+                                    <li key={`${question.attempt_question_id}-hint-${hintIndex}`} dir="auto">{hint}</li>
+                                  ))}
+                                </ul>
+                              </details>
+                            ) : null}
                           </fieldset>
                         ))}
                       </div>
@@ -657,7 +671,15 @@ export default function LearningWorkspace() {
                   ) : null}
 
                   {result ? (
-                    <div className="metric-card"><span>{labels.result}</span><strong><MathText>{result.score} / {result.max_score}</MathText></strong></div>
+                    <div className="result-review">
+                      <div className="metric-card"><span>{labels.result}</span><strong><MathText>{result.score} / {result.max_score}</MathText></strong></div>
+                      {(result.review ?? []).map((review) => (
+                        <article className="question-card" key={review.attempt_question_id}>
+                          <strong>{labels.question} {review.position} · {review.correct === true ? labels.correct : labels.needsReview}</strong>
+                          {review.explanation ? <p dir="auto"><span className="eyebrow">{labels.explanation}</span> {localize(review.explanation, locale)}</p> : null}
+                        </article>
+                      ))}
+                    </div>
                   ) : null}
 
                   {!selectedAssessment && !attempt ? (
