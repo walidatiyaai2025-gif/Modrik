@@ -131,10 +131,10 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param list<array<string, mixed>> $needsPractice
-     * @param list<array<string, mixed>> $mistakes
-     * @param array<string, object> $nodes
-     * @param array<string, mixed> $dailyPlan
+     * @param  list<array<string, mixed>>  $needsPractice
+     * @param  list<array<string, mixed>>  $mistakes
+     * @param  array<string, object>  $nodes
+     * @param  array<string, mixed>  $dailyPlan
      * @return array<string, mixed>
      */
     private function mission(array $needsPractice, array $mistakes, array $nodes, array $dailyPlan): array
@@ -235,7 +235,7 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param array<string, object> $nodes
+     * @param  array<string, object>  $nodes
      * @return list<array<string, mixed>>
      */
     private function masteryStates(User $user, string $contextId, array $nodes): array
@@ -269,8 +269,8 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param array<string, object> $nodes
-     * @param array<string, mixed> $mistakeNotebook
+     * @param  array<string, object>  $nodes
+     * @param  array<string, mixed>  $mistakeNotebook
      * @return array{items:list<array<string, mixed>>,skipped_count:int}
      */
     private function mistakes(User $user, string $contextId, array $nodes, array $mistakeNotebook): array
@@ -367,7 +367,7 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param array<string, object> $nodes
+     * @param  array<string, object>  $nodes
      * @return array<string, mixed>|null
      */
     private function studyTarget(string $skillId, array $nodes): ?array
@@ -478,7 +478,7 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param array<string, object> $nodes
+     * @param  array<string, object>  $nodes
      */
     private function subjectFor(string $nodeId, array $nodes): ?object
     {
@@ -510,8 +510,8 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param array<string, mixed> $feature
-     * @param array<string, mixed> $context
+     * @param  array<string, mixed>  $feature
+     * @param  array<string, mixed>  $context
      * @return array<string, mixed>
      */
     private function effectiveFeature(array $feature, User $user, array $context): array
@@ -533,8 +533,8 @@ final class StudentAdaptiveStudyReadService
     }
 
     /**
-     * @param array<string, mixed> $scope
-     * @param array<string, mixed> $context
+     * @param  array<string, mixed>  $scope
+     * @param  array<string, mixed>  $context
      */
     private function contextScopeMatches(array $scope, User $user, array $context): bool
     {
