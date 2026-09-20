@@ -19,6 +19,28 @@ const allowedPaths = [
   new RegExp(`^lessons/${ulid}$`),
   /^progress$/,
   /^adaptive-study$/,
+  /^parent\/children$/,
+  new RegExp(`^parent/children/${ulid}/analyticsimport {
+  CORRELATION_HEADER,
+  correlationIdForRequest,
+  correlationIdFromResponse,
+} from "../../../../lib/diagnostic-correlation";
+import {
+  isSameOriginMutation,
+  readWebSessionToken,
+  webSessionClearCookie,
+} from "../../../../lib/web-session";
+
+const ulid = "[0-9A-HJKMNP-TV-Z]{26}";
+const allowedPaths = [
+  /^session$/,
+  /^academic-tracks$/,
+  /^academic-context$/,
+  /^academic-context\/(activate|reset)$/,
+  /^content-catalogue$/,
+  new RegExp(`^lessons/${ulid}$`),
+  /^progress$/,
+),
   /^notifications$/,
   /^notifications\/read-all$/,
   new RegExp(`^notifications/${ulid}/read$`),
