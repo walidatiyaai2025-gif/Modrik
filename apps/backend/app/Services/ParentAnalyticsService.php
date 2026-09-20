@@ -15,7 +15,6 @@ final class ParentAnalyticsService
 
     public function __construct(private readonly MasteryBandPolicy $bands, private readonly SpacedRepetitionScheduler $revisionScheduler) {}
 
-
     /** @return list<array<string, mixed>> */
     public function children(User $parent): array
     {
