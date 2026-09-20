@@ -10,10 +10,10 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
     {
         $ledger = $this->jsonFile(base_path('../../governance/MODRIK_STUDENT_READINESS.json'));
 
-        self::assertSame(87, $ledger['overall_readiness_percent'] ?? null);
+        self::assertSame(94, $ledger['overall_readiness_percent'] ?? null);
         self::assertFalse((bool) ($ledger['children_ready'] ?? true));
 
-        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'parent', 'operations'] as $id) {
+        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'parent', 'rtl_accessibility', 'operations'] as $id) {
             $domain = $this->domainById($ledger, $id);
             self::assertSame(100, $domain['percent'] ?? null, $id);
             self::assertSame('pass', $domain['status'] ?? null, $id);
@@ -24,6 +24,7 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame('PASS', $ledger['mandatory_gates']['mastery_adaptive'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['student_ux'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['parent_ux'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['arabic_english_accessibility'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year6_pilot'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year7_pilot'] ?? null);
     }
@@ -94,6 +95,26 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame(1653, $parent['final_exact_head_ci']['bootstrap_number'] ?? null);
         self::assertSame(166, $parent['final_exact_head_ci']['web_portals_runtime_number'] ?? null);
         self::assertSame('success', $parent['final_exact_head_ci']['conclusion'] ?? null);
+
+        $rtlAccessibility = $this->evidenceById($ledger, 'AL07_RTL_ACCESSIBILITY');
+        self::assertSame(359, $rtlAccessibility['owner_issue'] ?? null);
+        self::assertSame(363, $rtlAccessibility['integration_issue'] ?? null);
+        self::assertSame('integrated', $rtlAccessibility['status'] ?? null);
+        self::assertSame([366, 367], $rtlAccessibility['prior_prs'] ?? null);
+        self::assertSame(428, $rtlAccessibility['final_pr'] ?? null);
+        self::assertSame('0ccc0e371c5183db7302a8e22670ae22bf5985b6', $rtlAccessibility['integrated_main_sha'] ?? null);
+        self::assertSame('pass', $rtlAccessibility['facts']['mixed_direction_math_isolation_web'] ?? null);
+        self::assertSame('pass', $rtlAccessibility['facts']['persisted_small_normal_large_extra_large_web_flutter'] ?? null);
+        self::assertSame('pass', $rtlAccessibility['facts']['student_question_minimum_18px_web_flutter'] ?? null);
+        self::assertSame('pass', $rtlAccessibility['facts']['student_360_390_412_tablet_desktop_browser_acceptance'] ?? null);
+        self::assertSame('pass', $rtlAccessibility['facts']['parent_360_390_412_tablet_desktop_browser_acceptance'] ?? null);
+        self::assertSame('pass', $rtlAccessibility['facts']['admin_rtl_large_text_browser_acceptance'] ?? null);
+        self::assertSame(1665, $rtlAccessibility['final_exact_head_ci']['bootstrap_number'] ?? null);
+        self::assertSame(6, $rtlAccessibility['final_exact_head_ci']['rtl_accessibility_number'] ?? null);
+        self::assertSame(329, $rtlAccessibility['final_exact_head_ci']['admin_ux_number'] ?? null);
+        self::assertSame(172, $rtlAccessibility['final_exact_head_ci']['web_portals_runtime_number'] ?? null);
+        self::assertSame(170, $rtlAccessibility['final_exact_head_ci']['mobile_native_compile_number'] ?? null);
+        self::assertSame('success', $rtlAccessibility['final_exact_head_ci']['conclusion'] ?? null);
     }
 
     /** @return array<string, mixed> */
