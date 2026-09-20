@@ -33,8 +33,6 @@ const ids = {
   topic: "01J00000000000000000000011",
   trackA: "01J000000000000000000000A1",
   trackB: "01J000000000000000000000A2",
-  parentChild: "01J000000000000000000000C1",
-  foreignChild: "01J000000000000000000000C2",
 };
 
 const viewports = [
@@ -44,12 +42,6 @@ const viewports = [
   { name: "mobile-en-390", width: 390, height: 844, locale: "en", textScale: 1 },
   { name: "mobile-fr-360-200", width: 360, height: 800, locale: "fr", textScale: 2 },
   { name: "mobile-ar-320-200", width: 320, height: 720, locale: "ar", textScale: 2 },
-];
-
-const parentViewports = [
-  { name: "parent-en-412", width: 412, height: 915, locale: "en", textScale: 1 },
-  { name: "parent-fr-390-200", width: 390, height: 844, locale: "fr", textScale: 2 },
-  { name: "parent-ar-360-200", width: 360, height: 800, locale: "ar", textScale: 2 },
 ];
 
 const evidence = {
@@ -222,9 +214,6 @@ function freshMockState(locale = "en") {
     academicTracksStatus: 200,
     contentCatalogueStatus: 200,
     accountSessionsStatus: 200,
-    parentRole: "student",
-    parentChildrenStatus: 200,
-    parentAnalyticsStatus: 200,
     activeTrackId: ids.trackA,
     questionSentinel: crypto.randomUUID(),
   };
@@ -286,7 +275,7 @@ async function handleMock(req, res) {
     if (mockState.sessionMode !== "authenticated" || !hasBearer(req)) {
       return sendJson(res, 401, problem(401, "AUTHENTICATION_REQUIRED", "Authentication required."), "application/problem+json");
     }
-    return sendJson(res, 200, envelope({ user_id: ids.user, locale: mockState.locale, roles: [mockState.parentRole] }));
+    return sendJson(res, 200, envelope({ user_id: ids.user, locale: mockState.locale, roles: ["student"] }));
   }
 
   if (pathname === "/v1/auth/sessions") {
@@ -377,163 +366,6 @@ async function handleMock(req, res) {
       source_version: 1,
       calculated_at: "2026-08-27T00:00:00Z",
     }]));
-  }
-
-  if (pathname === "/v1/parent/children") {
-    if (mockState.parentRole !== "parent") {
-      return sendJson(res, 403, problem(403, "PARENT_ROLE_REQUIRED", "Parent access required."), "application/problem+json");
-    }
-    if (mockState.parentChildrenStatus !== 200) {
-      return sendJson(res, mockState.parentChildrenStatus, problem(mockState.parentChildrenStatus, "PARENT_ANALYTICS_UNAVAILABLE", "Parent child list unavailable."), "application/problem+json");
-    }
-    return sendJson(res, 200, envelope({
-      children: [{
-        id: ids.parentChild,
-        name: "Linked learner",
-        locale: "en",
-        academic_context: {
-          context_id: ids.context,
-          year_level: "fixture-year",
-          track_title: {
-            en: "Grade 6 published curriculum",
-            ar: "المنهج المنشور للصف السادس",
-            fr: "Programme publié de 6e année",
-          },
-        },
-      }],
-    }));
-  }
-
-  if (pathname === `/v1/parent/children/${ids.parentChild}/analytics`) {
-    if (mockState.parentRole !== "parent") {
-      return sendJson(res, 403, problem(403, "PARENT_ROLE_REQUIRED", "Parent access required."), "application/problem+json");
-    }
-    if (mockState.parentAnalyticsStatus !== 200) {
-      return sendJson(res, mockState.parentAnalyticsStatus, problem(mockState.parentAnalyticsStatus, "PARENT_ANALYTICS_UNAVAILABLE", "Parent analytics unavailable."), "application/problem+json");
-    }
-    return sendJson(res, 200, envelope({
-      state: "active",
-      child: { id: ids.parentChild, name: "Linked learner", locale: "en" },
-      academic_context: {
-        context_id: ids.context,
-        academic_track_id: ids.trackA,
-        track_reference: "TRACK:E2E-GRADE-6",
-        year_level: "fixture-year",
-        track_title: {
-          en: "Grade 6 published curriculum",
-          ar: "المنهج المنشور للصف السادس",
-          fr: "Programme publié de 6e année",
-        },
-      },
-      activity: {
-        attempts_started: 3,
-        attempts_completed: 2,
-        answered_questions: 8,
-        graded_questions: 8,
-        correct_questions: 6,
-        accuracy_percent: 75,
-        practice_time_seconds: 720,
-        active_days: 3,
-        last_activity_at: "2026-09-20T07:30:00Z",
-      },
-      assessment_history: [{
-        attempt_id: ids.attempt,
-        kind: "practice",
-        title: { en: "Fractions practice", ar: "تدريب الكسور", fr: "Exercice sur les fractions" },
-        status: "graded",
-        score: 3,
-        max_score: 4,
-        score_percent: 75,
-        started_at: "2026-09-20T07:00:00Z",
-        completed_at: "2026-09-20T07:15:00Z",
-      }],
-      mastery: {
-        skills: [{
-          skill_id: ids.node,
-          skill_reference: "SKILL:FRACTIONS",
-          skill_title: { en: "Fractions", ar: "الكسور", fr: "Fractions" },
-          topic: {
-            id: ids.topic,
-            reference: "TOPIC:E2E-1",
-            title: { en: "Reading and language", ar: "القراءة واللغة", fr: "Lecture et langue" },
-          },
-          subject: {
-            id: ids.subject,
-            reference: "SUBJECT:MATH-E2E",
-            title: { en: "Mathematics", ar: "الرياضيات", fr: "Mathématiques" },
-          },
-          score_percent: 55,
-          display_band: "weak",
-          confidence: 0.8,
-          evidence_count: 4,
-          last_evidence_at: "2026-09-15T07:00:00Z",
-          calculated_at: "2026-09-15T07:10:00Z",
-          trend: [
-            { occurred_at: "2026-09-10T07:00:00Z", score_percent: 40, confidence: 0.6, state_version: 1 },
-            { occurred_at: "2026-09-15T07:00:00Z", score_percent: 55, confidence: 0.8, state_version: 2 },
-          ],
-        }],
-        topics: [{
-          id: ids.topic,
-          reference: "TOPIC:E2E-1",
-          title: { en: "Fractions topic", ar: "موضوع الكسور", fr: "Sujet des fractions" },
-          skill_count: 1,
-          average_mastery_percent: 55,
-        }],
-        subjects: [{
-          id: ids.subject,
-          reference: "SUBJECT:MATH-E2E",
-          title: { en: "Mathematics", ar: "الرياضيات", fr: "Mathématiques" },
-          skill_count: 1,
-          average_mastery_percent: 55,
-        }],
-        strong: [],
-        attention: [{
-          skill_id: ids.node,
-          skill_reference: "SKILL:FRACTIONS",
-          skill_title: { en: "Fractions", ar: "الكسور", fr: "Fractions" },
-          topic: null,
-          subject: {
-            id: ids.subject,
-            reference: "SUBJECT:MATH-E2E",
-            title: { en: "Mathematics", ar: "الرياضيات", fr: "Mathématiques" },
-          },
-          score_percent: 55,
-          display_band: "weak",
-          confidence: 0.8,
-          evidence_count: 4,
-          last_evidence_at: "2026-09-15T07:00:00Z",
-          calculated_at: "2026-09-15T07:10:00Z",
-          trend: [],
-        }],
-      },
-      revision_attention: {
-        algorithm_version: "spaced-repetition-v1",
-        due_count: 1,
-        attention_count: 1,
-        items: [{
-          skill_id: ids.node,
-          skill_reference: "SKILL:FRACTIONS",
-          skill_title: { en: "Fractions", ar: "الكسور", fr: "Fractions" },
-          subject: {
-            id: ids.subject,
-            reference: "SUBJECT:MATH-E2E",
-            title: { en: "Mathematics", ar: "الرياضيات", fr: "Mathématiques" },
-          },
-          display_band: "weak",
-          score_percent: 55,
-          last_evidence_at: "2026-09-15T07:00:00Z",
-          due_at: "2026-09-18T07:00:00Z",
-          due_now: true,
-          algorithm_version: "spaced-repetition-v1",
-          schedule_mode: "current_mastery_base_interval",
-        }],
-      },
-    }));
-  }
-
-  if (pathname === `/v1/parent/children/${ids.foreignChild}/analytics`) {
-    return sendJson(res, 404, problem(404, "RESOURCE_NOT_FOUND", "The child analytics resource is unavailable."), "application/problem+json");
   }
 
   if (pathname === "/v1/adaptive-study") {
@@ -929,84 +761,6 @@ async function stateAcceptance(browser) {
   }
 }
 
-async function parentViewport(browser, spec) {
-  resetMock(spec.locale);
-  mockState.parentRole = "parent";
-  const context = await browser.newContext({ viewport: { width: spec.width, height: spec.height } });
-  await authenticate(context);
-  const page = await context.newPage();
-
-  try {
-    try {
-      await page.goto(`${baseURL}/parent`, { waitUntil: "domcontentloaded" });
-    } catch {
-      fail("E2E_PARENT_ROUTE_LOAD_FAILED");
-    }
-
-    const workspace = page.locator('[data-parent-analytics="workspace"]');
-    try {
-      await workspace.waitFor({ state: "visible", timeout: 15000 });
-    } catch {
-      fail("E2E_PARENT_WORKSPACE_NOT_VISIBLE");
-    }
-
-    try {
-      await page.getByText("Linked learner", { exact: true }).first().waitFor({ state: "visible", timeout: 10000 });
-    } catch {
-      fail("E2E_PARENT_LINKED_CHILD_NOT_VISIBLE");
-    }
-
-    const direction = await workspace.getAttribute("dir");
-    check(direction === (spec.locale === "ar" ? "rtl" : "ltr"), "E2E_PARENT_DIRECTION_MISMATCH");
-
-    if (spec.textScale === 2) await setTextScale(page, 2);
-    await noHorizontalOverflow(page, "E2E_PARENT_HORIZONTAL_OVERFLOW");
-
-    const selector = workspace.locator("select");
-    check(await selector.count() === 1, "E2E_PARENT_CHILD_SELECTOR_MISSING");
-    let selectedChild = "";
-    try {
-      selectedChild = await selector.inputValue();
-    } catch {
-      fail("E2E_PARENT_CHILD_SELECTOR_UNREADABLE");
-    }
-    check(selectedChild === ids.parentChild, "E2E_PARENT_CHILD_SELECTION_MISMATCH");
-
-    check(await workspace.getByText("75%", { exact: true }).count() >= 1, "E2E_PARENT_ACCURACY_MISSING");
-    check(await workspace.getByText("55%", { exact: true }).count() >= 1, "E2E_PARENT_MASTERY_MISSING");
-
-    let bodyText = "";
-    try {
-      bodyText = (await workspace.innerText()).toLowerCase();
-    } catch {
-      fail("E2E_PARENT_WORKSPACE_TEXT_UNREADABLE");
-    }
-    check(!bodyText.includes("leaderboard"), "E2E_PARENT_LEADERBOARD_PRESENT");
-    check(!bodyText.includes("sibling rank"), "E2E_PARENT_SIBLING_RANK_PRESENT");
-
-    let unauthorizedStatus = 0;
-    try {
-      unauthorizedStatus = await page.evaluate(async (childId) => {
-        const response = await fetch(`/api/learning/parent/children/${childId}/analytics`, {
-          headers: { Accept: "application/json, application/problem+json" },
-          cache: "no-store",
-        });
-        return response.status;
-      }, ids.foreignChild);
-    } catch {
-      fail("E2E_PARENT_FOREIGN_CHILD_REQUEST_FAILED");
-    }
-    check(unauthorizedStatus === 404, "E2E_PARENT_FOREIGN_CHILD_NOT_FAIL_CLOSED");
-
-    const language = spec.locale.toUpperCase();
-    const localeButton = workspace.getByRole("button", { name: language, exact: true });
-    check(await localeButton.count() === 1, "E2E_PARENT_LOCALE_CONTROL_MISSING");
-    check(await localeButton.getAttribute("aria-pressed") === "true", "E2E_PARENT_LOCALE_MISMATCH");
-  } finally {
-    await context.close();
-  }
-}
-
 async function main() {
   check(fs.existsSync(path.join(appDir, "package.json")), "E2E_CATALOGUE_TARGET_MISSING");
   fs.mkdirSync(evidenceDir, { recursive: true });
@@ -1028,9 +782,6 @@ async function main() {
     for (const spec of viewports) {
       await runCase(`auth:${spec.name}`, { surface: "auth", ...spec }, () => authViewport(browser, spec));
       await runCase(`catalogue-learning:${spec.name}`, { surface: "catalogue-learning", ...spec }, () => learningViewport(browser, spec));
-    }
-    for (const spec of parentViewports) {
-      await runCase(`parent-analytics:${spec.name}`, { surface: "parent-analytics", ...spec }, () => parentViewport(browser, spec));
     }
     await runCase(
       "states:auth-catalogue-account",
