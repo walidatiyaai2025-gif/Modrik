@@ -15,13 +15,7 @@ final class StudentAdaptiveStudyReadService
 
     private const MISTAKE_ITEM_LIMIT = 100;
 
-    public function __construct(
-        private readonly AdaptiveSkillSelector $skillSelector,
-        private readonly DailyStudyPlanComposer $planComposer,
-        private readonly MasteryEngine $mastery,
-        private readonly LearningOperationsService $operations,
-    )
-    {}
+    public function __construct(private readonly AdaptiveSkillSelector $skillSelector, private readonly DailyStudyPlanComposer $planComposer, private readonly MasteryEngine $mastery, private readonly LearningOperationsService $operations) {}
 
     /** @return array<string, mixed> */
     public function snapshot(User $user): array
