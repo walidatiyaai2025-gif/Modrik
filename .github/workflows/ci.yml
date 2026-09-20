@@ -57,6 +57,12 @@ jobs:
         run: npm run build
       - name: Verify Admin theme entered Vite manifest
         run: grep -q 'resources/css/filament/admin/theme.css' public/build/manifest.json
+      - name: Diagnostic Parent Analytics Pint diff
+        run: |
+          cp app/Services/ParentAnalyticsService.php /tmp/ParentAnalyticsService.php
+          vendor/bin/pint app/Services/ParentAnalyticsService.php
+          git diff -- app/Services/ParentAnalyticsService.php
+          cp /tmp/ParentAnalyticsService.php app/Services/ParentAnalyticsService.php
       - run: vendor/bin/pint --test
       - run: vendor/bin/phpstan analyse --memory-limit=1G
       - run: php artisan test
