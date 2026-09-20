@@ -17,8 +17,12 @@ const appPort = Number(process.env.MODRIK_E2E_APP_PORT || 3200);
 const mockPort = Number(process.env.MODRIK_E2E_MOCK_PORT || 4200);
 const baseURL = `http://127.0.0.1:${appPort}`;
 const learningWorkspacePath = path.join(appDir, "src", "app", "learning-workspace.tsx");
-const hasAcademicTrackWorkspace = fs.existsSync(learningWorkspacePath)
-  && fs.readFileSync(learningWorkspacePath, "utf8").includes('id: "academic"');
+const learningWorkspaceSource = fs.existsSync(learningWorkspacePath)
+  ? fs.readFileSync(learningWorkspacePath, "utf8")
+  : "";
+const hasStudentHome = learningWorkspaceSource.includes('data-student-home="continue-learning');
+const hasAcademicTrackWorkspace = learningWorkspaceSource.includes('view === "academic"')
+  || learningWorkspaceSource.includes('id: "academic"');
 
 const ids = {
   user: "01J00000000000000000000001",
@@ -29,6 +33,9 @@ const ids = {
   attempt: "01J00000000000000000000006",
   question: "01J00000000000000000000007",
   session: "01J00000000000000000000008",
+  subject: "01J00000000000000000000009",
+  unit: "01J00000000000000000000010",
+  topic: "01J00000000000000000000011",
   trackA: "01J000000000000000000000A1",
   trackB: "01J000000000000000000000A2",
 };
@@ -135,6 +142,61 @@ function tracks() {
   ];
 }
 
+
+function contentCatalogue() {
+  return {
+    state: "active",
+    context: {
+      context_id: ids.context,
+      academic_track_id: mockState.activeTrackId,
+      track_reference: "TRACK:E2E-GRADE-6",
+      year_level: "fixture-year",
+      track_title: {
+        en: "Grade 6 published curriculum",
+        ar: "المنهج المنشور للصف السادس",
+        fr: "Programme publié de 6e année",
+      },
+    },
+    subjects: [{
+      id: ids.subject,
+      reference: "SUBJECT:ARABIC-E2E",
+      type: "subject",
+      title: { en: "Arabic language", ar: "اللغة العربية", fr: "Langue arabe" },
+      lessons: [],
+      assessments: [],
+      children: [{
+        id: ids.unit,
+        reference: "UNIT:E2E-1",
+        type: "unit",
+        title: { en: "Unit one", ar: "الوحدة الأولى", fr: "Unité un" },
+        lessons: [],
+        assessments: [],
+        children: [{
+          id: ids.topic,
+          reference: "TOPIC:E2E-1",
+          type: "topic",
+          title: { en: "Reading and language", ar: "القراءة واللغة", fr: "Lecture et langue" },
+          lessons: [{
+            id: ids.lesson,
+            slug: "published-e2e-lesson",
+            content_version: 1,
+            title: { en: "Published Arabic lesson", ar: "درس اللغة العربية المنشور", fr: "Leçon d’arabe publiée" },
+            published_at: "2026-08-27T00:00:00Z",
+          }],
+          assessments: [{
+            id: ids.quiz,
+            kind: "practice",
+            blueprint_version: 1,
+            title: { en: "Published practice", ar: "تدريب منشور", fr: "Exercice publié" },
+          }],
+          children: [],
+        }],
+      }],
+    }],
+    counts: { subjects: 1, lessons: 1, assessments: 1 },
+  };
+}
+
 function freshMockState(locale = "en") {
   return {
     locale,
@@ -143,6 +205,7 @@ function freshMockState(locale = "en") {
     academicContextStatus: 200,
     academicContextDelayMs: 0,
     academicTracksStatus: 200,
+    contentCatalogueStatus: 200,
     accountSessionsStatus: 200,
     activeTrackId: ids.trackA,
     questionSentinel: crypto.randomUUID(),
@@ -251,8 +314,27 @@ async function handleMock(req, res) {
     return sendJson(res, 200, envelope({ state: "active", context_id: ids.context, academic_track_id: mockState.activeTrackId, year_level: "fixture-year", activated_at: "2026-08-21T00:00:00Z" }));
   }
 
+  if (pathname === "/v1/content-catalogue") {
+    if (mockState.contentCatalogueStatus !== 200) {
+      return sendJson(res, mockState.contentCatalogueStatus, problem(mockState.contentCatalogueStatus, "LEARNING_SERVICE_UNAVAILABLE", "Published catalogue unavailable."), "application/problem+json");
+    }
+    return sendJson(res, 200, envelope(contentCatalogue()));
+  }
+
   if (pathname === `/v1/lessons/${ids.lesson}`) {
-    return sendJson(res, 200, envelope({ id: ids.lesson, curriculum_node_id: ids.node, content_version: 1, title: { en: "Synthetic lesson", ar: "درس تجريبي", fr: "Leçon synthétique" }, practice_quiz_id: ids.quiz, blocks: [] }));
+    return sendJson(res, 200, envelope({
+      id: ids.lesson,
+      curriculum_node_id: ids.node,
+      content_version: 1,
+      title: { en: "Published Arabic lesson", ar: "درس اللغة العربية المنشور", fr: "Leçon d’arabe publiée" },
+      practice_quiz_id: ids.quiz,
+      blocks: [{
+        id: "01J00000000000000000000012",
+        position: 1,
+        type: "heading",
+        content: { en: "Published lesson content", ar: "محتوى الدرس المنشور", fr: "Contenu de la leçon publiée" },
+      }],
+    }));
   }
   if (pathname === "/v1/progress") {
     return sendJson(res, 200, envelope([{ academic_context_id: ids.context, curriculum_node_id: ids.node, mastery: 0.72, source_version: 1, calculated_at: "2026-08-21T00:00:00Z" }]));
@@ -451,49 +533,75 @@ async function learningViewport(browser, spec, inspectorExpected) {
     await noKeyboardTrap(page, "E2E_LEARNING_KEYBOARD_TRAP");
 
     const nav = page.locator(".student-nav button");
-    const expectedNavCount = hasAcademicTrackWorkspace ? 5 : 4;
+    const catalogueIndex = hasStudentHome ? 1 : 0;
+    const progressIndex = hasStudentHome ? 4 : 3;
+    const academicIndex = hasStudentHome ? 5 : 4;
+    const expectedNavCount = hasAcademicTrackWorkspace ? (hasStudentHome ? 6 : 5) : (hasStudentHome ? 5 : 4);
     check(await nav.count() === expectedNavCount, "E2E_LEARNING_NAV_COUNT");
-    await nav.nth(1).click();
-    await reachable(page.locator(".lesson-reader"), page, "E2E_STUDY_WORKSPACE");
+
+    if (hasStudentHome) {
+      check(await nav.nth(0).getAttribute("aria-current") === "page", "E2E_HOME_INITIAL_DESTINATION");
+      await reachable(page.locator('[data-student-home="continue-learning-empty"]'), page, "E2E_HOME_CONTINUE_LEARNING_EMPTY");
+      await nav.nth(catalogueIndex).click();
+    }
+
+    await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
+    const topic = page.locator('[data-node-type="topic"]');
+    const actionGroups = topic.locator(".next-actions");
+    check(await actionGroups.count() === 2, "E2E_CATALOGUE_ACTION_GROUPS");
+
+    const lessonButton = actionGroups.nth(0).locator("button").first();
+    await reachable(lessonButton, page, "E2E_CATALOGUE_LESSON_ACTION");
+    await lessonButton.click();
+    await page.locator(".study-layout .context-panel").waitFor({ state: "visible", timeout: 10000 });
+    await reachable(page.locator(".lesson-block").first(), page, "E2E_STUDY_WORKSPACE");
     await noHorizontalOverflow(page, "E2E_STUDY_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(2).click();
-    const start = page.locator(".practice-empty .primary-button");
-    await reachable(start, page, "E2E_PRACTICE_START");
-    check(!(await start.isDisabled()), "E2E_PRACTICE_START_DISABLED");
-    await start.click();
+    await nav.nth(catalogueIndex).click();
+    await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
+    const assessmentButton = page.locator('[data-node-type="topic"] .next-actions').nth(1).locator("button").first();
+    await reachable(assessmentButton, page, "E2E_CATALOGUE_ASSESSMENT_ACTION");
+    await assessmentButton.click();
+
+    const startButton = page.locator(".practice-workbench > .primary-button");
+    await reachable(startButton, page, "E2E_PRACTICE_START");
+    check(!(await startButton.isDisabled()), "E2E_PRACTICE_START_DISABLED");
+    await startButton.click();
     await page.locator(".question-card").waitFor({ state: "visible", timeout: 10000 });
     await reachable(page.locator(".text-answer"), page, "E2E_ATTEMPT_ANSWER_CONTROL");
     await reachable(page.locator(".practice-submit-row button[type=submit]"), page, "E2E_ATTEMPT_SUBMIT");
     await noHorizontalOverflow(page, "E2E_ATTEMPT_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(3).click();
+    await nav.nth(progressIndex).click();
     await reachable(page.locator(".progress-workspace"), page, "E2E_PROGRESS_WORKSPACE");
     await noHorizontalOverflow(page, "E2E_PROGRESS_HORIZONTAL_OVERFLOW");
 
-    await nav.nth(hasAcademicTrackWorkspace ? 4 : 0).click();
-    const selectors = page.locator(".academic-track-selector select");
-    await selectors.first().waitFor({ state: "visible", timeout: 10000 });
-    const selectorCount = await selectors.count();
-    check(selectorCount >= 1 && selectorCount <= 2, "E2E_ACADEMIC_SELECTOR_COUNT");
-    const selector = selectors.nth(selectorCount - 1);
-    if (selectorCount === 2) {
-      const yearSelector = selectors.nth(0);
-      await reachable(yearSelector, page, "E2E_ACADEMIC_YEAR_SELECT");
-      check(await yearSelector.inputValue() === "fixture-year", "E2E_ACADEMIC_YEAR_SELECTION");
+    if (hasAcademicTrackWorkspace) {
+      await nav.nth(academicIndex).click();
+      const selectors = page.locator(".academic-track-selector select");
+      await selectors.first().waitFor({ state: "visible", timeout: 10000 });
+      const selectorCount = await selectors.count();
+      check(selectorCount >= 1 && selectorCount <= 2, "E2E_ACADEMIC_SELECTOR_COUNT");
+      const selector = selectors.nth(selectorCount - 1);
+      if (selectorCount === 2) {
+        const yearSelector = selectors.nth(0);
+        await reachable(yearSelector, page, "E2E_ACADEMIC_YEAR_SELECT");
+        check(await yearSelector.inputValue() === "fixture-year", "E2E_ACADEMIC_YEAR_SELECTION");
+      }
+      await reachable(selector, page, "E2E_ACADEMIC_TRACK_SELECT");
+      const optionText = await selector.locator("option").first().textContent();
+      check(Boolean(optionText && optionText.length >= 60), "E2E_ACADEMIC_LONG_LABEL_FIXTURE");
+      const confirmAction = page.locator(".academic-track-selector .primary-button");
+      check(await confirmAction.isDisabled(), "E2E_ACADEMIC_RESET_INITIAL_DISABLED");
+      await selector.selectOption(ids.trackB);
+      const consequence = page.locator(".academic-track-selector .reset-consequence");
+      await reachable(consequence, page, "E2E_ACADEMIC_RESET_CONSEQUENCE");
+      await consequence.locator("input[type=checkbox]").check();
+      await reachable(confirmAction, page, "E2E_ACADEMIC_RESET_CONFIRM");
+      check(!(await confirmAction.isDisabled()), "E2E_ACADEMIC_RESET_CONFIRM_DISABLED");
+      await noHorizontalOverflow(page, "E2E_ACADEMIC_HORIZONTAL_OVERFLOW");
     }
-    await reachable(selector, page, "E2E_ACADEMIC_TRACK_SELECT");
-    const optionText = await selector.locator("option").first().textContent();
-    check(Boolean(optionText && optionText.length >= 60), "E2E_ACADEMIC_LONG_LABEL_FIXTURE");
-    const confirmAction = page.locator(".academic-track-selector .primary-button");
-    check(await confirmAction.isDisabled(), "E2E_ACADEMIC_RESET_INITIAL_DISABLED");
-    await selector.selectOption(ids.trackB);
-    const consequence = page.locator(".academic-track-selector .reset-consequence");
-    await reachable(consequence, page, "E2E_ACADEMIC_RESET_CONSEQUENCE");
-    await consequence.locator("input[type=checkbox]").check();
-    await reachable(confirmAction, page, "E2E_ACADEMIC_RESET_CONFIRM");
-    check(!(await confirmAction.isDisabled()), "E2E_ACADEMIC_RESET_CONFIRM_DISABLED");
-    await noHorizontalOverflow(page, "E2E_ACADEMIC_HORIZONTAL_OVERFLOW");
+
     if (inspectorExpected) check((await page.locator('[data-runtime-inspector="enabled"]').count()) === 1, "E2E_INSPECTOR_EXPECTED_HOST");
   } finally {
     await context.close();
@@ -548,9 +656,9 @@ async function stateAcceptance(browser) {
     await page.reload({ waitUntil: "domcontentloaded" });
     await waitLearning(page);
     const academicNav = page.locator(".student-nav button");
-    const expectedAcademicNavCount = hasAcademicTrackWorkspace ? 5 : 4;
+    const expectedAcademicNavCount = hasAcademicTrackWorkspace ? (hasStudentHome ? 6 : 5) : (hasStudentHome ? 5 : 4);
     check(await academicNav.count() === expectedAcademicNavCount, "E2E_ACADEMIC_NAV_COUNT");
-    if (hasAcademicTrackWorkspace) await academicNav.nth(4).click();
+    if (hasAcademicTrackWorkspace) await academicNav.nth(hasStudentHome ? 5 : 4).click();
     const catalogueRetry = hasAcademicTrackWorkspace
       ? page.locator(".academic-track-workspace .context-panel .empty-panel button").first()
       : page.locator(".context-panel .empty-panel button").first();
@@ -621,8 +729,12 @@ async function verifyInspector(page, locale, textScale, questionSentinel, answer
   }
 
   const nav = page.locator(".student-nav button");
-  await nav.nth(2).click();
-  const start = page.locator(".practice-empty .primary-button");
+  const catalogueIndex = hasStudentHome ? 1 : 0;
+  if (hasStudentHome) await nav.nth(catalogueIndex).click();
+  await page.locator('[data-node-type="topic"]').waitFor({ state: "visible", timeout: 10000 });
+  const assessmentButton = page.locator('[data-node-type="topic"] .next-actions').nth(1).locator("button").first();
+  await assessmentButton.click();
+  const start = page.locator(".practice-workbench > .primary-button");
   if (await start.isVisible()) {
     await start.click();
     await page.locator(".question-card").waitFor({ state: "visible", timeout: 10000 });
