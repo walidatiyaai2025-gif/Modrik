@@ -13,10 +13,7 @@ final class ParentAnalyticsService
 {
     private const HISTORY_LIMIT = 20;
 
-    public function __construct(
-        private readonly MasteryBandPolicy $bands,
-        private readonly SpacedRepetitionScheduler $revisionScheduler,
-    ) {}
+    public function __construct(private readonly MasteryBandPolicy $bands, private readonly SpacedRepetitionScheduler $revisionScheduler) {}
 
 
     /** @return list<array<string, mixed>> */
