@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'learning_gateway.dart';
 import 'models.dart';
 import 'offline_boundary.dart';
+import 'student_adaptive_study.dart';
 
 enum MobileViewStatus { loading, ready, empty, error, offline, permission }
 
@@ -47,6 +48,7 @@ class MobileLearningController extends ChangeNotifier {
   Attempt? attempt;
   AttemptResult? result;
   List<ProgressSnapshot> progress = const [];
+  AdaptiveStudySnapshot? adaptiveStudy;
   bool isStale = false;
   bool isBusy = false;
   int pendingOperationCount = 0;
@@ -85,6 +87,7 @@ class MobileLearningController extends ChangeNotifier {
       locale = session!.locale;
       academicContext = await gateway.academicContext();
       progress = await gateway.progress();
+      await _refreshAdaptiveStudy();
       await _loadConfiguredLessonOnline();
       await _restoreAttemptSnapshot();
       await _refreshPendingCount();
@@ -140,6 +143,7 @@ class MobileLearningController extends ChangeNotifier {
       cachedLesson = await downloadedContentCache.readLesson(lessonId);
       lesson = cachedLesson?.lesson;
     }
+    adaptiveStudy = null;
     await _restoreAttemptSnapshot();
     await _refreshPendingCount();
     isStale = cachedLesson?.isStaleAt(_clock()) ?? false;
@@ -177,6 +181,8 @@ class MobileLearningController extends ChangeNotifier {
           academicTrackId,
           idempotencyKey,
         );
+        progress = await gateway.progress();
+        await _refreshAdaptiveStudy();
         messageCode = null;
         status = MobileViewStatus.ready;
       } on LearningFailure catch (failure) {
@@ -238,6 +244,7 @@ class MobileLearningController extends ChangeNotifier {
         _savedAnswers.clear();
         _revisions.clear();
         progress = await gateway.progress();
+        await _refreshAdaptiveStudy();
         await _loadConfiguredLessonOnline();
         section = StudentSection.dashboard;
         status = MobileViewStatus.ready;
@@ -284,6 +291,36 @@ class MobileLearningController extends ChangeNotifier {
       try {
         final started = await gateway.startAttempt(
           currentLesson.practiceQuizId,
+          newLogicalCommandKey(),
+        );
+        _acceptAttemptSnapshot(started);
+        result = null;
+        section = StudentSection.practice;
+        messageCode = null;
+        await attemptSnapshotCache.write(started, _clock());
+      } on LearningFailure catch (failure) {
+        await _handleFailure(failure);
+      }
+    });
+  }
+
+  Future<void> startAdaptivePractice(AdaptiveStudyTarget target) async {
+    final assessmentId = target.assessment.id;
+    if (!target.assessment.isAvailable || assessmentId == null) {
+      messageCode = 'adaptive_target_unavailable';
+      notifyListeners();
+      return;
+    }
+    if (isOffline) {
+      messageCode = 'new_attempt_requires_connection';
+      notifyListeners();
+      return;
+    }
+
+    await _runBusy(() async {
+      try {
+        final started = await gateway.startAttempt(
+          assessmentId,
           newLogicalCommandKey(),
         );
         _acceptAttemptSnapshot(started);
@@ -419,6 +456,7 @@ class MobileLearningController extends ChangeNotifier {
         _acceptAttemptSnapshot(submitted.attempt);
         await attemptSnapshotCache.write(submitted.attempt, _clock());
         progress = await gateway.progress();
+        await _refreshAdaptiveStudy();
         messageCode = null;
       } on LearningFailure catch (failure) {
         await _handleFailure(failure);
@@ -607,6 +645,16 @@ class MobileLearningController extends ChangeNotifier {
     if (value is List) return value.isEmpty;
     if (value is Map) return value.isEmpty;
     return false;
+  }
+
+  Future<void> _refreshAdaptiveStudy() async {
+    adaptiveStudy = null;
+    if (academicContext?.requiresOnboarding ?? true) return;
+
+    final adaptiveGateway = gateway;
+    if (adaptiveGateway is AdaptiveStudyGateway) {
+      adaptiveStudy = await adaptiveGateway.adaptiveStudy();
+    }
   }
 
   Future<void> _refreshPendingCount() async {
