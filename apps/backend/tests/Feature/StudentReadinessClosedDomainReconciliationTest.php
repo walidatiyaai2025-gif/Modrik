@@ -10,10 +10,10 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
     {
         $ledger = $this->jsonFile(base_path('../../governance/MODRIK_STUDENT_READINESS.json'));
 
-        self::assertSame(80, $ledger['overall_readiness_percent'] ?? null);
+        self::assertSame(87, $ledger['overall_readiness_percent'] ?? null);
         self::assertFalse((bool) ($ledger['children_ready'] ?? true));
 
-        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'operations'] as $id) {
+        foreach (['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'parent', 'operations'] as $id) {
             $domain = $this->domainById($ledger, $id);
             self::assertSame(100, $domain['percent'] ?? null, $id);
             self::assertSame('pass', $domain['status'] ?? null, $id);
@@ -23,6 +23,7 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame('not_evidenced', $ledger['mandatory_gates']['question_bank'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['mastery_adaptive'] ?? null);
         self::assertSame('PASS', $ledger['mandatory_gates']['student_ux'] ?? null);
+        self::assertSame('PASS', $ledger['mandatory_gates']['parent_ux'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year6_pilot'] ?? null);
         self::assertSame('blocked_owner_last', $ledger['mandatory_gates']['real_year7_pilot'] ?? null);
     }
@@ -79,6 +80,20 @@ final class StudentReadinessClosedDomainReconciliationTest extends TestCase
         self::assertSame(1619, $studentUx['final_exact_head_ci']['bootstrap_number'] ?? null);
         self::assertSame(164, $studentUx['final_exact_head_ci']['mobile_native_compile_number'] ?? null);
         self::assertSame('success', $studentUx['final_exact_head_ci']['conclusion'] ?? null);
+
+        $parent = $this->evidenceById($ledger, 'AL08_PARENT_ANALYTICS');
+        self::assertSame(360, $parent['owner_issue'] ?? null);
+        self::assertSame(363, $parent['integration_issue'] ?? null);
+        self::assertSame('integrated', $parent['status'] ?? null);
+        self::assertSame(426, $parent['pr'] ?? null);
+        self::assertSame('90d129787101f6db96bbef3d78c6c593031f622a', $parent['integrated_main_sha'] ?? null);
+        self::assertSame('pass', $parent['facts']['parent_child_authorization'] ?? null);
+        self::assertSame('fail_closed', $parent['facts']['direct_id_idor'] ?? null);
+        self::assertSame('absent', $parent['facts']['sibling_ranking'] ?? null);
+        self::assertSame('pass', $parent['facts']['responsive_parent_browser_matrix'] ?? null);
+        self::assertSame(1653, $parent['final_exact_head_ci']['bootstrap_number'] ?? null);
+        self::assertSame(166, $parent['final_exact_head_ci']['web_portals_runtime_number'] ?? null);
+        self::assertSame('success', $parent['final_exact_head_ci']['conclusion'] ?? null);
     }
 
     /** @return array<string, mixed> */
