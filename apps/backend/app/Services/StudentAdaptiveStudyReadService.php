@@ -344,7 +344,7 @@ final class StudentAdaptiveStudyReadService
             }
 
             $prompt = $snapshot['prompt'] ?? [];
-            if (! is_array($prompt)) {
+            if (is_array($prompt) === false) {
                 $prompt = [];
             }
 
