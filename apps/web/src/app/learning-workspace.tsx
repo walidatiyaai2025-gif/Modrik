@@ -558,7 +558,7 @@ export default function LearningWorkspace() {
                   {attempt?.status === "in_progress" ? (
                     <form onSubmit={(event) => { event.preventDefault(); void submitAssessment(); }}>
                       <div className="assessment-policy" aria-label={labels.assessmentMode}>
-                        <strong>{labels.assessmentMode}: {attempt.mode}</strong>
+                        <strong>{labels.assessmentMode}: {attempt.mode ?? "practice"}</strong>
                         <span>{attempt.hints_allowed ? labels.hintsAvailable : labels.hintsDisabled}</span>
                       </div>
                       <div className="question-list">
@@ -652,11 +652,11 @@ export default function LearningWorkspace() {
                                 />
                               </label>
                             )}
-                            {attempt.hints_allowed && question.hints.length > 0 ? (
+                            {attempt.hints_allowed === true && (question.hints?.length ?? 0) > 0 ? (
                               <details className="hint-panel">
                                 <summary>{labels.showHint}</summary>
                                 <ul>
-                                  {question.hints.map((hint, hintIndex) => (
+                                  {question.hints?.map((hint, hintIndex) => (
                                     <li key={`${question.attempt_question_id}-hint-${hintIndex}`} dir="auto">{hint}</li>
                                   ))}
                                 </ul>
