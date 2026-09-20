@@ -89,7 +89,7 @@ final class ParentAnalyticsTest extends TestCase
             'parent_id' => LearningSliceSeeder::TOPIC_NODE_ID,
             'code' => 'FIXTURE:PARENT:SKILL',
             'type' => 'skill',
-            'title' => $this->json([
+            'title' => $this->encodeJson([
                 'en' => 'Fractions',
                 'ar' => 'الكسور',
                 'fr' => 'Fractions',
@@ -123,7 +123,7 @@ final class ParentAnalyticsTest extends TestCase
                 'aggregate_type' => 'student_skill_mastery',
                 'aggregate_id' => $stateId,
                 'event_type' => 'mastery.state_recalculated',
-                'payload' => $this->json([
+                'payload' => $this->encodeJson([
                     'state_version' => $version,
                     'score_percent' => $score,
                     'confidence' => 0.90,
@@ -162,7 +162,7 @@ final class ParentAnalyticsTest extends TestCase
             'attempt_id' => $attemptId,
             'question_id' => $questionId,
             'position' => 1,
-            'question_snapshot' => $this->json([
+            'question_snapshot' => $this->encodeJson([
                 'skill_node_id' => $skillId,
                 'prompt' => ['en' => 'One half equals?'],
             ]),
@@ -173,7 +173,7 @@ final class ParentAnalyticsTest extends TestCase
             'id' => (string) Str::ulid(),
             'attempt_question_id' => $attemptQuestionId,
             'revision' => 1,
-            'value' => $this->json('0.5'),
+            'value' => $this->encodeJson('0.5'),
             'duration_ms' => 45000,
             'hint_count' => 0,
             'is_correct' => true,
@@ -289,10 +289,10 @@ final class ParentAnalyticsTest extends TestCase
             'reviewed_at' => now(),
             'published_by' => null,
             'published_at' => now(),
-            'prompt' => $this->json(['en' => 'One half equals?']),
+            'prompt' => $this->encodeJson(['en' => 'One half equals?']),
             'options' => null,
-            'answer_contract' => $this->json(['kind' => 'numeric', 'value' => 0.5]),
-            'explanation' => $this->json(['en' => 'One half is 0.5']),
+            'answer_contract' => $this->encodeJson(['kind' => 'numeric', 'value' => 0.5]),
+            'explanation' => $this->encodeJson(['en' => 'One half is 0.5']),
             'maximum_score' => 1,
             'assessment_metadata' => null,
             'option_shuffle_safe' => false,
@@ -306,7 +306,7 @@ final class ParentAnalyticsTest extends TestCase
             'kind' => 'practice',
             'blueprint_version' => 1,
             'blueprint' => null,
-            'title' => $this->json([
+            'title' => $this->encodeJson([
                 'en' => 'Fractions practice',
                 'ar' => 'تدريب الكسور',
                 'fr' => 'Exercice sur les fractions',
@@ -324,7 +324,7 @@ final class ParentAnalyticsTest extends TestCase
         return [$quizId, $questionId];
     }
 
-    private function json(mixed $value): string
+    private function encodeJson(mixed $value): string
     {
         return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
