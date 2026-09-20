@@ -153,7 +153,7 @@ final class StudentAdaptiveStudyReadService
             $skillId = (string) ($mistake['skill_id'] ?? '');
             $subjectReference = (string) ($mistake['subject']['reference'] ?? '');
             if ($skillId === ''
-                || ! $this->subjectAllowed($dailyPlan, $subjectReference)) {
+                || $this->subjectAllowed($dailyPlan, $subjectReference) === false) {
                 continue;
             }
 
@@ -176,7 +176,7 @@ final class StudentAdaptiveStudyReadService
             $skillId = (string) ($item['skill_id'] ?? '');
             $subjectReference = (string) ($item['subject']['reference'] ?? '');
             if ($skillId === ''
-                || ! $this->subjectAllowed($dailyPlan, $subjectReference)) {
+                || $this->subjectAllowed($dailyPlan, $subjectReference) === false) {
                 continue;
             }
 
@@ -256,7 +256,7 @@ final class StudentAdaptiveStudyReadService
 
         foreach ($rows as $row) {
             $skillId = (string) $row->skill_node_id;
-            if (! $this->isPublishedSkillWithSubject($skillId, $nodes)) {
+            if ($this->isPublishedSkillWithSubject($skillId, $nodes) === false) {
                 continue;
             }
 
@@ -280,7 +280,7 @@ final class StudentAdaptiveStudyReadService
      */
     private function mistakes(User $user, string $contextId, array $nodes, array $mistakeNotebook): array
     {
-        if (! $mistakeNotebook['effective']) {
+        if ($mistakeNotebook['effective'] === false) {
             return ['items' => [], 'skipped_count' => 0];
         }
 
@@ -325,7 +325,7 @@ final class StudentAdaptiveStudyReadService
             }
 
             $skillId = $snapshot['skill_node_id'] ?? null;
-            if (! is_string($skillId) || ! $this->isPublishedSkillWithSubject($skillId, $nodes)) {
+            if (is_string($skillId) === false || $this->isPublishedSkillWithSubject($skillId, $nodes) === false) {
                 $skipped++;
 
                 continue;
@@ -339,7 +339,7 @@ final class StudentAdaptiveStudyReadService
             }
 
             $subjectReference = (string) ($target['subject']['reference'] ?? '');
-            if (! $this->subjectAllowed($mistakeNotebook, $subjectReference)) {
+            if ($this->subjectAllowed($mistakeNotebook, $subjectReference) === false) {
                 continue;
             }
 
@@ -505,7 +505,7 @@ final class StudentAdaptiveStudyReadService
             }
 
             $parentId = $node->parent_id;
-            if (! is_string($parentId) || $parentId === '') {
+            if (is_string($parentId) === false || $parentId === '') {
                 return null;
             }
             $cursor = $parentId;
@@ -545,13 +545,13 @@ final class StudentAdaptiveStudyReadService
     {
         $userIds = $scope['user_ids'] ?? null;
         if (is_array($userIds) && $userIds !== []
-            && ! in_array((string) $user->getKey(), $userIds, true)) {
+            && in_array((string) $user->getKey(), $userIds, true) === false) {
             return false;
         }
 
         $years = $scope['academic_years'] ?? null;
         if (is_array($years) && $years !== []
-            && ! in_array((string) $context['year_level'], $years, true)) {
+            && in_array((string) $context['year_level'], $years, true) === false) {
             return false;
         }
 
@@ -561,18 +561,18 @@ final class StudentAdaptiveStudyReadService
     /** @param array<string, mixed> $feature */
     private function subjectAllowed(array $feature, string $subjectReference): bool
     {
-        if (! $feature['effective']) {
+        if ($feature['effective'] === false) {
             return false;
         }
 
         $scope = $feature['scope'] ?? null;
-        if (! is_array($scope)) {
+        if (is_array($scope) === false) {
             return true;
         }
 
         $subjects = $scope['subject_codes'] ?? null;
 
-        return ! is_array($subjects)
+        return is_array($subjects) === false
             || $subjects === []
             || in_array($subjectReference, $subjects, true);
     }
