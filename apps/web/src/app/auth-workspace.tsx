@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthApiError, authApi, type AccountSummary, type AuthSession, type Locale, type Provider } from "../lib/auth-api";
 import { authCopy, localeDirection } from "./auth-copy";
 import LearningWorkspace from "./learning-workspace";
+import ParentAnalyticsWorkspace from "./parent-analytics-workspace";
 
 type AuthScreen = "login" | "register" | "recovery" | "verify" | "reset";
 type NoticeKind = "status" | "error" | "permission" | "provider";
@@ -90,6 +91,7 @@ function OfflineBanner({ locale }: { locale: Locale }) {
 export default function AuthWorkspace() {
   const [locale, setLocale] = useState<Locale>("en");
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [screen, setScreen] = useState<AuthScreen>("login");
   const [account, setAccount] = useState<AccountSummary | null>(null);
   const [showAccount, setShowAccount] = useState(false);
@@ -143,6 +145,7 @@ export default function AuthWorkspace() {
         const session = await authApi.session();
         if (!active) return;
         setLocale(session.locale);
+        setRoles(session.roles);
         setAuthenticated(true);
       } catch (error) {
         if (!active) return;
@@ -172,7 +175,9 @@ export default function AuthWorkspace() {
     let active = true;
     const recheck = async () => {
       try {
-        await authApi.session();
+        const session = await authApi.session();
+        setRoles(session.roles);
+        setLocale(session.locale);
       } catch (error) {
         if (!active) return;
         if (error instanceof AuthApiError && error.status === 401) {
@@ -236,7 +241,10 @@ export default function AuthWorkspace() {
     setNotice(null);
     try {
       const result = await authApi.login(value(form, "email"), value(form, "password"));
+      const session = await authApi.session();
       setAccount(result.account);
+      setLocale(session.locale);
+      setRoles(session.roles);
       setAuthenticated(true);
       setNotice({ kind: "status", body: copy.signedIn });
     } catch (error) {
@@ -254,7 +262,10 @@ export default function AuthWorkspace() {
     setNotice(null);
     try {
       const result = await authApi.register(value(form, "name"), value(form, "email"), value(form, "password"));
+      const session = await authApi.session();
       setAccount(result.account);
+      setLocale(session.locale);
+      setRoles(session.roles);
       setAuthenticated(true);
       setNotice({ kind: "permission", title: copy.unverifiedTitle, body: copy.accountCreated });
     } catch (error) {
@@ -306,6 +317,7 @@ export default function AuthWorkspace() {
       await authApi.resetPassword(value(form, "token"), value(form, "password"));
       setAuthenticated(false);
       setAccount(null);
+    setRoles([]);
       setScreen("login");
       setNotice({ kind: "status", body: copy.resetComplete });
       window.history.replaceState({}, "", window.location.pathname);
@@ -352,6 +364,7 @@ export default function AuthWorkspace() {
     }
     setAuthenticated(false);
     setAccount(null);
+    setRoles([]);
     setSessions([]);
     setShowAccount(false);
     setScreen("login");
@@ -374,6 +387,7 @@ export default function AuthWorkspace() {
     }
     setAuthenticated(false);
     setAccount(null);
+    setRoles([]);
     setSessions([]);
     setShowAccount(false);
     setScreen("login");
@@ -629,6 +643,8 @@ export default function AuthWorkspace() {
             </section>
           </div>
         </main>
+      ) : roles.includes("parent") ? (
+        <ParentAnalyticsWorkspace initialLocale={locale} />
       ) : (
         <LearningWorkspace />
       )}
