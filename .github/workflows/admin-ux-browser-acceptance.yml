@@ -143,7 +143,10 @@ jobs:
               { name: 'en-1440x900', locale: 'en', width: 1440, height: 900, scale: 1 },
               { name: 'fr-1280x720', locale: 'fr', width: 1280, height: 720, scale: 1 },
               { name: 'ar-1024x768', locale: 'ar', width: 1024, height: 768, scale: 1 },
-              { name: 'ar-390x844', locale: 'ar', width: 390, height: 844, scale: 1 },
+              { name: 'fr-768x1024', locale: 'fr', width: 768, height: 1024, scale: 1 },
+              { name: 'en-412x915', locale: 'en', width: 412, height: 915, scale: 1 },
+              { name: 'fr-390x844', locale: 'fr', width: 390, height: 844, scale: 1 },
+              { name: 'ar-360x800-200pct', locale: 'ar', width: 360, height: 800, scale: 2 },
               { name: 'en-200pct-1280x720', locale: 'en', width: 1280, height: 720, scale: 2 },
             ];
 
