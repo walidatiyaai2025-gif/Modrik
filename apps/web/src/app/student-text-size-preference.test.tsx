@@ -12,9 +12,10 @@ test("Student Web text-size preference is bounded, persisted, and restored", () 
   assert.match(workspace, /normal: 100/);
   assert.match(workspace, /large: 125/);
   assert.match(workspace, /largest: 150/);
+  assert.match(workspace, /useSyncExternalStore/);
   assert.match(workspace, /localStorage\.getItem\(textScaleStorageKey\)/);
   assert.match(workspace, /localStorage\.setItem\(textScaleStorageKey, next\)/);
-  assert.match(workspace, /document\.documentElement\.style\.fontSize/);
+  assert.match(workspace, /style\.setProperty\([\s\S]*"font-size"/);
 });
 
 test("Student Web exposes localized text-size controls without altering learning authority", () => {
