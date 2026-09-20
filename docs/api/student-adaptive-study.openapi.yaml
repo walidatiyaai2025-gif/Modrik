@@ -1,0 +1,99 @@
+# Issue #420 OpenAPI contract supplement.
+# Integration may fold this path/schema into docs/api/openapi.yaml after the bounded recovery is accepted.
+paths:
+  /v1/adaptive-study:
+    get:
+      operationId: getStudentAdaptiveStudy
+      tags: [Academics, Attempts]
+      summary: Read Backend-authoritative adaptive study surfaces for the authenticated learner
+      description: >-
+        Returns Today's Mission, Needs Practice, and My Mistakes from the authenticated
+        learner's active academic context. Scope is Backend-owned: user_id and
+        academic_context_id are not accepted. Mission ordering delegates to the
+        deterministic adaptive-study services and only published practice targets are
+        navigable. Correct answers, grading contracts, and explanations are never
+        returned by this read surface.
+      responses:
+        '200':
+          description: Active, onboarding, disabled, empty, degraded, or ready adaptive-study state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentAdaptiveStudyResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '422': {$ref: '#/components/responses/ValidationFailed'}
+components:
+  schemas:
+    StudentAdaptiveFeatureState:
+      type: object
+      additionalProperties: false
+      required: [state, effective]
+      properties:
+        state: {type: string, enum: [disabled, enabled, pilot, admin_only]}
+        effective: {type: boolean}
+    StudentAdaptiveAssessmentTarget:
+      type: object
+      additionalProperties: false
+      required: [id, kind, title, available_question_count]
+      properties:
+        id: {type: [string, 'null']}
+        kind: {type: [string, 'null'], enum: [practice, quiz, null]}
+        title: {type: [object, 'null']}
+        available_question_count: {type: integer, minimum: 0}
+    StudentAdaptiveTarget:
+      type: object
+      required: [skill_id, skill_reference, skill_title, subject, assessment]
+      properties:
+        skill_id: {$ref: '#/components/schemas/Ulid'}
+        skill_reference: {type: string}
+        skill_title: {type: object}
+        subject:
+          type: object
+          required: [id, reference, title]
+          properties:
+            id: {$ref: '#/components/schemas/Ulid'}
+            reference: {type: string}
+            title: {type: object}
+        assessment: {$ref: '#/components/schemas/StudentAdaptiveAssessmentTarget'}
+    StudentAdaptiveStudyResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [state, features, today_mission, needs_practice, mistakes]
+          properties:
+            state: {type: string, enum: [onboarding_required, active]}
+            context: {type: object}
+            features:
+              type: object
+              required: [daily_plan, mistake_notebook]
+              properties:
+                daily_plan: {$ref: '#/components/schemas/StudentAdaptiveFeatureState'}
+                mistake_notebook: {$ref: '#/components/schemas/StudentAdaptiveFeatureState'}
+            today_mission:
+              type: object
+              required: [status]
+              properties:
+                status: {type: string, enum: [disabled, empty, degraded, ready]}
+                selected:
+                  type: array
+                  items: {$ref: '#/components/schemas/StudentAdaptiveTarget'}
+            needs_practice:
+              type: object
+              required: [status, items]
+              properties:
+                status: {type: string, enum: [empty, ready]}
+                items:
+                  type: array
+                  items: {$ref: '#/components/schemas/StudentAdaptiveTarget'}
+            mistakes:
+              type: object
+              required: [status]
+              properties:
+                status: {type: string, enum: [disabled, empty, degraded, ready]}
+                items:
+                  type: array
+                  items: {$ref: '#/components/schemas/StudentAdaptiveTarget'}
+        meta: {type: object}
