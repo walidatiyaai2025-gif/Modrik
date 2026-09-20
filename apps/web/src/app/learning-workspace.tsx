@@ -185,7 +185,7 @@ export default function LearningWorkspace() {
   const [revisions, setRevisions] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const textScale = useSyncExternalStore(
+  const textScale = useSyncExternalStore<TextScalePreference>(
     subscribeTextScalePreference,
     readTextScalePreference,
     () => "normal",
