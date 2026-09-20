@@ -293,7 +293,7 @@ final class ParentAnalyticsService
     }
 
     /**
-     * @param array<string, stdClass> $nodes
+     * @param  array<string, stdClass>  $nodes
      * @return array<string, mixed>
      */
     private function mastery(string $childId, string $contextId, array $nodes): array
@@ -491,7 +491,7 @@ final class ParentAnalyticsService
     }
 
     /**
-     * @param array<string, array{id:string,reference:string,title:array<string,mixed>,scores:list<float>}> $buckets
+     * @param  array<string, array{id:string,reference:string,title:array<string,mixed>,scores:list<float>}>  $buckets
      */
     private function bucket(array &$buckets, ?stdClass $node, float $score): void
     {
@@ -511,7 +511,7 @@ final class ParentAnalyticsService
     }
 
     /**
-     * @param array<string, array{id:string,reference:string,title:array<string,mixed>,scores:list<float>}> $buckets
+     * @param  array<string, array{id:string,reference:string,title:array<string,mixed>,scores:list<float>}>  $buckets
      * @return list<array<string, mixed>>
      */
     private function summaries(array $buckets): array
