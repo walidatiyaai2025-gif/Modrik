@@ -5,7 +5,7 @@
   "integration_issue": 363,
   "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
-  "overall_readiness_percent": 87,
+  "overall_readiness_percent": 94,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
@@ -72,8 +72,8 @@
       "id": "rtl_accessibility",
       "name": "Arabic/RTL/Typography/Accessibility",
       "weight": 7,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 359
     },
     {
@@ -112,7 +112,7 @@
     "mastery_adaptive": "PASS",
     "student_ux": "PASS",
     "parent_ux": "PASS",
-    "arabic_english_accessibility": "not_evidenced",
+    "arabic_english_accessibility": "PASS",
     "admin_controls": "PASS",
     "security_integrity_qa": "not_evidenced",
     "real_year6_pilot": "blocked_owner_last",
@@ -504,6 +504,57 @@
         "status": "not_observed",
         "note": "No push-triggered governed workflow run surfaced for merge SHA 90d129787101f6db96bbef3d78c6c593031f622a at reconciliation time; whole-program exact_main_governed_ci_green remains unreconciled."
       }
+    },
+    {
+      "id": "AL07_RTL_ACCESSIBILITY",
+      "owner_issue": 359,
+      "integration_issue": 363,
+      "status": "integrated",
+      "prior_prs": [
+        366,
+        367
+      ],
+      "final_pr": 428,
+      "exact_head_sha": "c4672e4fb1158750677c90712ea45ebcb5be9fb1",
+      "integrated_main_sha": "0ccc0e371c5183db7302a8e22670ae22bf5985b6",
+      "facts": {
+        "mixed_direction_math_isolation_web": "pass",
+        "free_text_auto_direction_web": "pass",
+        "localized_question_mixed_direction_component": "pass",
+        "persisted_small_normal_large_extra_large_web_flutter": "pass",
+        "legacy_largest_preference_migration": "pass",
+        "student_question_minimum_18px_web_flutter": "pass",
+        "primary_answer_action_touch_targets_44_48px": "pass",
+        "arabic_line_height_student_parent": "pass",
+        "student_360_390_412_tablet_desktop_browser_acceptance": "pass",
+        "parent_360_390_412_tablet_desktop_browser_acceptance": "pass",
+        "admin_rtl_large_text_browser_acceptance": "pass",
+        "loading_error_retry_offline_permission_states": "pass",
+        "android_ios_native_compile": "pass",
+        "runtime_paid_ai_required": false
+      },
+      "final_exact_head_ci": {
+        "bootstrap_run": 35507438238,
+        "bootstrap_number": 1665,
+        "rtl_accessibility_run": 35507438201,
+        "rtl_accessibility_number": 6,
+        "admin_ux_run": 35507438252,
+        "admin_ux_number": 329,
+        "web_portals_runtime_run": 35507438211,
+        "web_portals_runtime_number": 172,
+        "mobile_native_compile_run": 35507438206,
+        "mobile_native_compile_number": 170,
+        "unified_release_run": 35507438199,
+        "unified_release_number": 345,
+        "demo_package_run": 35507438214,
+        "demo_package_number": 667,
+        "pilot_strict": "pass",
+        "conclusion": "success"
+      },
+      "exact_main_ci": {
+        "status": "not_observed",
+        "note": "No push-triggered governed workflow surfaced for merge SHA 0ccc0e371c5183db7302a8e22670ae22bf5985b6 at reconciliation time; whole-program exact_main_governed_ci_green remains unreconciled."
+      }
     }
   ],
   "notes": [
@@ -518,6 +569,8 @@
     "Assessment Runtime (#355) remains reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation.",
     "Student UX (#358) final reconciliation covers real-session Continue Learning, supported assessment answers, Backend-authorized hint/review/exam policy, authoritative adaptive Home surfaces, truthful progress/offline states and persisted text-size preferences on Web and Flutter. Final exact-head Bootstrap #1619, Unified Release #303, Demo Package #629, Web Portals Runtime #140 and Mobile Native Compile #164 were green before PR #424 merged at e886bf190f63695b0cd26c2127042d7e7630950c. The whole-program exact_main_governed_ci_green gate remains separately unreconciled.",
     "Parent Analytics (#360) is reconciled PASS from merged PR #426. The integrated domain enforces parent-only linked-child authorization, fail-closed direct-ID access, authoritative activity/assessment/mastery/revision aggregates, truthful empty states, no sibling ranking, and exact-head AR/EN/FR responsive browser evidence.",
-    "Parent Analytics final exact-head Bootstrap #1653, Unified Release #334, Demo Package #658 and Web Portals Runtime #166 were green before PR #426 merged at 90d129787101f6db96bbef3d78c6c593031f622a. No push-triggered exact-main governed workflow surfaced for that merge SHA at reconciliation time, so the whole-program exact_main_governed_ci_green gate remains separately unreconciled."
+    "Parent Analytics final exact-head Bootstrap #1653, Unified Release #334, Demo Package #658 and Web Portals Runtime #166 were green before PR #426 merged at 90d129787101f6db96bbef3d78c6c593031f622a. No push-triggered exact-main governed workflow surfaced for that merge SHA at reconciliation time, so the whole-program exact_main_governed_ci_green gate remains separately unreconciled.",
+    "Arabic/RTL/Typography/Accessibility (#359) is reconciled PASS from integrated PRs #366, #367 and final closure PR #428. Evidence covers mixed-direction math/text, four persisted Student text sizes on Web/Flutter, 18px Student question baseline, 44–48px interaction targets, Arabic line-height, and Student/Parent/Admin responsive RTL/LTR and large-text acceptance.",
+    "Final #359 exact-head Bootstrap #1665, RTL Accessibility #6, Admin UX #329, Web Portals Runtime #172, Mobile Native Compile #170, Unified Release #345 and Demo Package #667 were green before PR #428 merged at 0ccc0e371c5183db7302a8e22670ae22bf5985b6. No push-triggered exact-main governed run surfaced for that merge SHA at reconciliation time, so the whole-program exact_main_governed_ci_green gate remains separately unreconciled."
   ]
 }
