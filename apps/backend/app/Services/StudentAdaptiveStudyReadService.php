@@ -320,6 +320,7 @@ final class StudentAdaptiveStudyReadService
                 $snapshot = $this->decode((string) $row->question_snapshot);
             } catch (JsonException) {
                 $skipped++;
+
                 continue;
             }
 
