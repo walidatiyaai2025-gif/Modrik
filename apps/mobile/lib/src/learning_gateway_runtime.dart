@@ -7,6 +7,7 @@ import 'academic_track_catalogue.dart';
 import 'models.dart';
 import 'runtime_diagnostic_transport.dart';
 import 'runtime_diagnostics.dart';
+import 'student_adaptive_study.dart';
 
 /// Compatibility bootstrap surface for callers that import the runtime module
 /// directly. Production/Demo startup consumes only the API endpoint; static
@@ -86,6 +87,10 @@ class SavedAnswer {
   final String answeredAt;
 }
 
+abstract interface class AdaptiveStudyGateway {
+  Future<AdaptiveStudySnapshot> adaptiveStudy();
+}
+
 abstract interface class LearningGateway {
   Future<Session> session();
   Future<AcademicContext> academicContext();
@@ -125,7 +130,10 @@ String newLogicalCommandKey() {
 }
 
 class HttpLearningGateway
-    implements LearningGateway, AcademicTrackCatalogueGateway {
+    implements
+        LearningGateway,
+        AcademicTrackCatalogueGateway,
+        AdaptiveStudyGateway {
   HttpLearningGateway({
     required this.baseUrl,
     String? bearerToken,
@@ -216,6 +224,12 @@ class HttpLearningGateway
           ),
     );
   }
+
+  @override
+  Future<AdaptiveStudySnapshot> adaptiveStudy() async =>
+      AdaptiveStudySnapshot.fromJson(
+        await _requestMap('adaptive-study'),
+      );
 
   @override
   Future<Attempt> startAttempt(
