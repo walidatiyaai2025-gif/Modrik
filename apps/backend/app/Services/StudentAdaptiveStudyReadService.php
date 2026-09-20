@@ -327,12 +327,14 @@ final class StudentAdaptiveStudyReadService
             $skillId = $snapshot['skill_node_id'] ?? null;
             if (! is_string($skillId) || ! $this->isPublishedSkillWithSubject($skillId, $nodes)) {
                 $skipped++;
+
                 continue;
             }
 
             $target = $this->studyTarget($skillId, $nodes);
             if ($target === null) {
                 $skipped++;
+
                 continue;
             }
 
