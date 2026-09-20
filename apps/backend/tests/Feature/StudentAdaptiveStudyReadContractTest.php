@@ -143,7 +143,7 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
             'parent_id' => LearningSliceSeeder::TOPIC_NODE_ID,
             'code' => 'FIXTURE:SKILL:FOREIGN',
             'type' => 'skill',
-            'title' => $this->json(['en' => 'Foreign private skill']),
+            'title' => $this->encodeJson(['en' => 'Foreign private skill']),
             'status' => 'published',
             'created_at' => now(),
             'updated_at' => now(),
@@ -208,7 +208,7 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
             'parent_id' => LearningSliceSeeder::TOPIC_NODE_ID,
             'code' => $code,
             'type' => 'skill',
-            'title' => $this->json([
+            'title' => $this->encodeJson([
                 'en' => str_replace('FIXTURE:SKILL:', '', $code).' skill',
                 'ar' => 'مهارة تجريبية',
                 'fr' => 'Compétence de test',
@@ -257,10 +257,10 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
             'reviewed_at' => now(),
             'published_by' => null,
             'published_at' => now(),
-            'prompt' => $this->json(['en' => 'Which value needs recovery?']),
+            'prompt' => $this->encodeJson(['en' => 'Which value needs recovery?']),
             'options' => null,
-            'answer_contract' => $this->json(['kind' => 'short_text', 'correct' => 'DO_NOT_EXPOSE_CORRECT_ANSWER']),
-            'explanation' => $this->json(['en' => 'DO_NOT_EXPOSE_EXPLANATION']),
+            'answer_contract' => $this->encodeJson(['kind' => 'short_text', 'correct' => 'DO_NOT_EXPOSE_CORRECT_ANSWER']),
+            'explanation' => $this->encodeJson(['en' => 'DO_NOT_EXPOSE_EXPLANATION']),
             'maximum_score' => 1,
             'assessment_metadata' => null,
             'option_shuffle_safe' => false,
@@ -274,7 +274,7 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
             'kind' => 'practice',
             'blueprint_version' => 1,
             'blueprint' => null,
-            'title' => $this->json(['en' => 'Recovery practice']),
+            'title' => $this->encodeJson(['en' => 'Recovery practice']),
             'status' => 'published',
             'created_at' => now(),
             'updated_at' => now(),
@@ -300,7 +300,7 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
             'seed_encrypted' => 'fixture-seed',
             'seed_fingerprint' => hash('sha256', 'fixture-seed'),
             'blueprint_version' => 1,
-            'scope_snapshot' => $this->json([
+            'scope_snapshot' => $this->encodeJson([
                 'curriculum_node_id' => $skillId,
                 'quiz_kind' => 'practice',
                 'mode' => 'practice',
@@ -321,7 +321,7 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
             'attempt_id' => $attemptId,
             'question_id' => $questionId,
             'position' => 1,
-            'question_snapshot' => $this->json([
+            'question_snapshot' => $this->encodeJson([
                 'schema_version' => 3,
                 'source_question_id' => $questionId,
                 'skill_node_id' => $skillId,
@@ -342,7 +342,7 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
             'id' => (string) Str::ulid(),
             'attempt_question_id' => $attemptQuestionId,
             'revision' => 1,
-            'value' => $this->json('wrong'),
+            'value' => $this->encodeJson('wrong'),
             'duration_ms' => 1200,
             'hint_count' => 0,
             'is_correct' => false,
@@ -360,7 +360,7 @@ class StudentAdaptiveStudyReadContractTest extends TestCase
         ];
     }
 
-    private function json(mixed $value): string
+    private function encodeJson(mixed $value): string
     {
         return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
