@@ -198,7 +198,7 @@ final class ParentAnalyticsService
                 'answers.graded_at',
             ]);
 
-        /** @var array<string, object> $latest */
+        /** @var array<string, stdClass> $latest */
         $latest = [];
         foreach ($answers as $answer) {
             $latest[(string) $answer->attempt_question_id] = $answer;
@@ -299,7 +299,9 @@ final class ParentAnalyticsService
     private function mastery(string $childId, string $contextId, array $nodes): array
     {
         $skills = [];
+        /** @var array<string, array{id:string,reference:string,title:array<array-key, mixed>,scores:list<float>}> $topicBuckets */
         $topicBuckets = [];
+        /** @var array<string, array{id:string,reference:string,title:array<array-key, mixed>,scores:list<float>}> $subjectBuckets */
         $subjectBuckets = [];
 
         $states = DB::table('student_skill_mastery_states')
@@ -399,7 +401,10 @@ final class ParentAnalyticsService
             ->all());
     }
 
-    /** @param list<array<string, mixed>> $skills */
+    /**
+     * @param  list<array<string, mixed>>  $skills
+     * @return array<string, mixed>
+     */
     private function revisionAttention(array $skills): array
     {
         $items = [];
@@ -491,7 +496,7 @@ final class ParentAnalyticsService
     }
 
     /**
-     * @param  array<string, array{id:string,reference:string,title:array<string,mixed>,scores:list<float>}>  $buckets
+     * @param  array<string, array{id:string,reference:string,title:array<array-key, mixed>,scores:list<float>}>  $buckets
      */
     private function bucket(array &$buckets, ?stdClass $node, float $score): void
     {
@@ -511,7 +516,7 @@ final class ParentAnalyticsService
     }
 
     /**
-     * @param  array<string, array{id:string,reference:string,title:array<string,mixed>,scores:list<float>}>  $buckets
+     * @param  array<string, array{id:string,reference:string,title:array<array-key, mixed>,scores:list<float>}>  $buckets
      * @return list<array<string, mixed>>
      */
     private function summaries(array $buckets): array
