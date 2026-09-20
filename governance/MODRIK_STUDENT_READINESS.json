@@ -5,7 +5,7 @@
   "integration_issue": 363,
   "status": "PARTIALLY_RECONCILED",
   "children_ready": false,
-  "overall_readiness_percent": 80,
+  "overall_readiness_percent": 87,
   "calculation_rule": "Weighted sum of evidenced domain percentages. A numeric 100 is invalid unless every mandatory gate in docs/learning/CHILDREN_READY_DEFINITION.md is PASS.",
   "hosting_readiness_is_separate": true,
   "domains": [
@@ -64,8 +64,8 @@
       "id": "parent",
       "name": "Parent Analytics",
       "weight": 7,
-      "percent": 0,
-      "status": "not_evidenced",
+      "percent": 100,
+      "status": "pass",
       "owner_issue": 360
     },
     {
@@ -111,7 +111,7 @@
     "assessment_runtime": "PASS",
     "mastery_adaptive": "PASS",
     "student_ux": "PASS",
-    "parent_ux": "not_evidenced",
+    "parent_ux": "PASS",
     "arabic_english_accessibility": "not_evidenced",
     "admin_controls": "PASS",
     "security_integrity_qa": "not_evidenced",
@@ -464,6 +464,46 @@
         "pilot_strict": "pass",
         "conclusion": "success"
       }
+    },
+    {
+      "id": "AL08_PARENT_ANALYTICS",
+      "owner_issue": 360,
+      "integration_issue": 363,
+      "status": "integrated",
+      "pr": 426,
+      "exact_head_sha": "faa3b7435a7681e264aa6c7a69f06eb3f696bb22",
+      "integrated_main_sha": "90d129787101f6db96bbef3d78c6c593031f622a",
+      "facts": {
+        "parent_child_authorization": "pass",
+        "linked_children_only": "pass",
+        "direct_id_idor": "fail_closed",
+        "authoritative_activity_accuracy_assessment_history": "pass",
+        "mastery_subject_topic_skill_views": "pass",
+        "historical_mastery_trend": "pass",
+        "revision_attention_summary": "pass",
+        "truthful_empty_sparse_states": "pass",
+        "sibling_ranking": "absent",
+        "web_ar_en_fr": "pass",
+        "rtl_ltr_surface_support": "pass",
+        "responsive_parent_browser_matrix": "pass",
+        "runtime_paid_ai_required": false
+      },
+      "final_exact_head_ci": {
+        "bootstrap_run": 35503760866,
+        "bootstrap_number": 1653,
+        "unified_release_run": 35503760900,
+        "unified_release_number": 334,
+        "demo_package_run": 35503760871,
+        "demo_package_number": 658,
+        "web_portals_runtime_run": 35503760874,
+        "web_portals_runtime_number": 166,
+        "pilot_strict": "pass",
+        "conclusion": "success"
+      },
+      "exact_main_ci": {
+        "status": "not_observed",
+        "note": "No push-triggered governed workflow run surfaced for merge SHA 90d129787101f6db96bbef3d78c6c593031f622a at reconciliation time; whole-program exact_main_governed_ci_green remains unreconciled."
+      }
     }
   ],
   "notes": [
@@ -476,7 +516,8 @@
     "The global exact_main_governed_ci_green mandatory gate remains unreconciled until final program composition is verified; this adaptive reconciliation does not claim whole-program exact-main closure.",
     "Demo/Production deployment issues such as #260/#318 are tracked separately and do not become PASS from this ledger.",
     "Assessment Runtime (#355) remains reconciled PASS from integrated core and hardening evidence, including immutable same-attempt resume, retry/idempotency, Backend-authoritative scoring, persistence reread, exam reveal/hint policy and fail-closed cross-user direct-ID mutation.",
-    "Student UX (#358) is reconciled PASS from integrated Web/Flutter authoritative learning-flow evidence through PR #424. Parent Analytics (#360), Arabic/RTL/Accessibility (#359), Quality/Security final reconciliation (#363) and Real Pilot acceptance remain unreconciled or blocked and prevent Children Ready.",
-    "Student UX (#358) final reconciliation covers real-session Continue Learning, supported assessment answers, Backend-authorized hint/review/exam policy, authoritative adaptive Home surfaces, truthful progress/offline states and persisted text-size preferences on Web and Flutter. Final exact-head Bootstrap #1619, Unified Release #303, Demo Package #629, Web Portals Runtime #140 and Mobile Native Compile #164 were green before PR #424 merged at e886bf190f63695b0cd26c2127042d7e7630950c. The whole-program exact_main_governed_ci_green gate remains separately unreconciled."
+    "Student UX (#358) final reconciliation covers real-session Continue Learning, supported assessment answers, Backend-authorized hint/review/exam policy, authoritative adaptive Home surfaces, truthful progress/offline states and persisted text-size preferences on Web and Flutter. Final exact-head Bootstrap #1619, Unified Release #303, Demo Package #629, Web Portals Runtime #140 and Mobile Native Compile #164 were green before PR #424 merged at e886bf190f63695b0cd26c2127042d7e7630950c. The whole-program exact_main_governed_ci_green gate remains separately unreconciled.",
+    "Parent Analytics (#360) is reconciled PASS from merged PR #426. The integrated domain enforces parent-only linked-child authorization, fail-closed direct-ID access, authoritative activity/assessment/mastery/revision aggregates, truthful empty states, no sibling ranking, and exact-head AR/EN/FR responsive browser evidence.",
+    "Parent Analytics final exact-head Bootstrap #1653, Unified Release #334, Demo Package #658 and Web Portals Runtime #166 were green before PR #426 merged at 90d129787101f6db96bbef3d78c6c593031f622a. No push-triggered exact-main governed workflow surfaced for that merge SHA at reconciliation time, so the whole-program exact_main_governed_ci_green gate remains separately unreconciled."
   ]
 }
