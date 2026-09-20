@@ -937,10 +937,24 @@ async function parentViewport(browser, spec) {
   const page = await context.newPage();
 
   try {
-    await page.goto(`${baseURL}/parent`, { waitUntil: "domcontentloaded" });
+    try {
+      await page.goto(`${baseURL}/parent`, { waitUntil: "domcontentloaded" });
+    } catch {
+      fail("E2E_PARENT_ROUTE_LOAD_FAILED");
+    }
+
     const workspace = page.locator('[data-parent-analytics="workspace"]');
-    await workspace.waitFor({ state: "visible", timeout: 15000 });
-    await page.getByText("Linked learner", { exact: true }).first().waitFor({ state: "visible", timeout: 10000 });
+    try {
+      await workspace.waitFor({ state: "visible", timeout: 15000 });
+    } catch {
+      fail("E2E_PARENT_WORKSPACE_NOT_VISIBLE");
+    }
+
+    try {
+      await page.getByText("Linked learner", { exact: true }).first().waitFor({ state: "visible", timeout: 10000 });
+    } catch {
+      fail("E2E_PARENT_LINKED_CHILD_NOT_VISIBLE");
+    }
 
     const direction = await workspace.getAttribute("dir");
     check(direction === (spec.locale === "ar" ? "rtl" : "ltr"), "E2E_PARENT_DIRECTION_MISMATCH");
@@ -950,26 +964,43 @@ async function parentViewport(browser, spec) {
 
     const selector = workspace.locator("select");
     check(await selector.count() === 1, "E2E_PARENT_CHILD_SELECTOR_MISSING");
-    check(await selector.inputValue() === ids.parentChild, "E2E_PARENT_CHILD_SELECTION_MISMATCH");
+    let selectedChild = "";
+    try {
+      selectedChild = await selector.inputValue();
+    } catch {
+      fail("E2E_PARENT_CHILD_SELECTOR_UNREADABLE");
+    }
+    check(selectedChild === ids.parentChild, "E2E_PARENT_CHILD_SELECTION_MISMATCH");
 
     check(await workspace.getByText("75%", { exact: true }).count() >= 1, "E2E_PARENT_ACCURACY_MISSING");
     check(await workspace.getByText("55%", { exact: true }).count() >= 1, "E2E_PARENT_MASTERY_MISSING");
 
-    const bodyText = (await workspace.innerText()).toLowerCase();
+    let bodyText = "";
+    try {
+      bodyText = (await workspace.innerText()).toLowerCase();
+    } catch {
+      fail("E2E_PARENT_WORKSPACE_TEXT_UNREADABLE");
+    }
     check(!bodyText.includes("leaderboard"), "E2E_PARENT_LEADERBOARD_PRESENT");
     check(!bodyText.includes("sibling rank"), "E2E_PARENT_SIBLING_RANK_PRESENT");
 
-    const unauthorizedStatus = await page.evaluate(async (childId) => {
-      const response = await fetch(`/api/learning/parent/children/${childId}/analytics`, {
-        headers: { Accept: "application/json, application/problem+json" },
-        cache: "no-store",
-      });
-      return response.status;
-    }, ids.foreignChild);
+    let unauthorizedStatus = 0;
+    try {
+      unauthorizedStatus = await page.evaluate(async (childId) => {
+        const response = await fetch(`/api/learning/parent/children/${childId}/analytics`, {
+          headers: { Accept: "application/json, application/problem+json" },
+          cache: "no-store",
+        });
+        return response.status;
+      }, ids.foreignChild);
+    } catch {
+      fail("E2E_PARENT_FOREIGN_CHILD_REQUEST_FAILED");
+    }
     check(unauthorizedStatus === 404, "E2E_PARENT_FOREIGN_CHILD_NOT_FAIL_CLOSED");
 
     const language = spec.locale.toUpperCase();
     const localeButton = workspace.getByRole("button", { name: language, exact: true });
+    check(await localeButton.count() === 1, "E2E_PARENT_LOCALE_CONTROL_MISSING");
     check(await localeButton.getAttribute("aria-pressed") === "true", "E2E_PARENT_LOCALE_MISMATCH");
   } finally {
     await context.close();
