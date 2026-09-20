@@ -166,6 +166,26 @@ class MobileCopy {
       ModrikLocale.ar: 'لغة الواجهة',
       ModrikLocale.fr: 'Langue de l’interface',
     },
+    'text_size': {
+      ModrikLocale.en: 'Text size',
+      ModrikLocale.ar: 'حجم النص',
+      ModrikLocale.fr: 'Taille du texte',
+    },
+    'text_size_normal': {
+      ModrikLocale.en: 'Normal',
+      ModrikLocale.ar: 'عادي',
+      ModrikLocale.fr: 'Normale',
+    },
+    'text_size_large': {
+      ModrikLocale.en: 'Large',
+      ModrikLocale.ar: 'كبير',
+      ModrikLocale.fr: 'Grande',
+    },
+    'text_size_largest': {
+      ModrikLocale.en: 'Largest',
+      ModrikLocale.ar: 'الأكبر',
+      ModrikLocale.fr: 'Maximale',
+    },
     'onboarding_title': {
       ModrikLocale.en: 'Set your academic context',
       ModrikLocale.ar: 'إعداد السياق الأكاديمي',

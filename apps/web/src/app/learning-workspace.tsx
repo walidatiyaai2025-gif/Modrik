@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   learningApi,
   LearningApiError,
@@ -23,6 +23,61 @@ import MathText from "./math-text";
 import { directionForLocale, localize, studentCopy } from "./student-copy";
 
 const activeAttemptStorageKey = "modrik.student.active-attempt";
+const textScaleStorageKey = "modrik.student.text-scale";
+
+type TextScalePreference = "normal" | "large" | "largest";
+const textScalePercent: Record<TextScalePreference, number> = {
+  normal: 100,
+  large: 125,
+  largest: 150,
+};
+
+function isTextScalePreference(value: string | null): value is TextScalePreference {
+  return value === "normal" || value === "large" || value === "largest";
+}
+
+const textScaleChangedEvent = "modrik:student-text-scale-changed";
+
+function readTextScalePreference(): TextScalePreference {
+  if (typeof window === "undefined") return "normal";
+  const stored = window.localStorage.getItem(textScaleStorageKey);
+  return isTextScalePreference(stored) ? stored : "normal";
+}
+
+function subscribeTextScalePreference(listener: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const notify = () => listener();
+  window.addEventListener("storage", notify);
+  window.addEventListener(textScaleChangedEvent, notify);
+  return () => {
+    window.removeEventListener("storage", notify);
+    window.removeEventListener(textScaleChangedEvent, notify);
+  };
+}
+
+function persistTextScalePreference(next: TextScalePreference) {
+  window.localStorage.setItem(textScaleStorageKey, next);
+  window.dispatchEvent(new Event(textScaleChangedEvent));
+}
+
+function readDocumentFontSize(): string {
+  return document.documentElement.style.fontSize;
+}
+
+function applyDocumentTextScale(next: TextScalePreference) {
+  document.documentElement.style.setProperty(
+    "font-size",
+    `${textScalePercent[next]}%`,
+  );
+}
+
+function restoreDocumentFontSize(previous: string) {
+  if (previous) {
+    document.documentElement.style.setProperty("font-size", previous);
+  } else {
+    document.documentElement.style.removeProperty("font-size");
+  }
+}
 
 type ViewState = "loading" | "ready" | "offline" | "error" | "permission";
 type WorkspaceView = "home" | "catalogue" | "study" | "practice" | "progress" | "academic";
@@ -130,6 +185,11 @@ export default function LearningWorkspace() {
   const [revisions, setRevisions] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const textScale = useSyncExternalStore<TextScalePreference>(
+    subscribeTextScalePreference,
+    readTextScalePreference,
+    () => "normal",
+  );
   const mounted = useRef(true);
 
   const labels = studentCopy[locale];
@@ -240,6 +300,16 @@ export default function LearningWorkspace() {
       if (mounted.current) handleError(error);
     }
   }, [applyAttempt, handleError]);
+
+  useEffect(() => {
+    const previousInlineFontSize = readDocumentFontSize();
+    applyDocumentTextScale(textScale);
+    return () => restoreDocumentFontSize(previousInlineFontSize);
+  }, [textScale]);
+
+  function updateTextScale(next: TextScalePreference) {
+    persistTextScalePreference(next);
+  }
 
   useEffect(() => {
     mounted.current = true;
@@ -487,12 +557,34 @@ export default function LearningWorkspace() {
               <h1>{view === "home" ? labels.homeTitle : view === "catalogue" ? copy.catalogue : view === "study" ? labels.studyTitle : view === "practice" ? labels.practiceTitle : view === "progress" ? labels.progressTitle : labels.academicTrackTitle}</h1>
               <p>{view === "home" ? labels.homeSubtitle : copy.publishedOnly}</p>
             </div>
-            <fieldset className="locale-switcher">
-              <legend className="sr-only">{labels.languageSelector}</legend>
-              {(["ar", "en", "fr"] as const).map((language) => (
-                <button type="button" key={language} lang={language} aria-pressed={locale === language} onClick={() => setLocale(language)}>{language.toUpperCase()}</button>
-              ))}
-            </fieldset>
+            <div className="student-preference-controls">
+              <fieldset className="text-size-switcher">
+                <legend className="sr-only">{labels.textSize}</legend>
+                {(["normal", "large", "largest"] as const).map((preference) => (
+                  <button
+                    type="button"
+                    key={preference}
+                    aria-label={
+                      preference === "normal"
+                        ? labels.textSizeNormal
+                        : preference === "large"
+                          ? labels.textSizeLarge
+                          : labels.textSizeLargest
+                    }
+                    aria-pressed={textScale === preference}
+                    onClick={() => updateTextScale(preference)}
+                  >
+                    {textScalePercent[preference]}%
+                  </button>
+                ))}
+              </fieldset>
+              <fieldset className="locale-switcher">
+                <legend className="sr-only">{labels.languageSelector}</legend>
+                {(["ar", "en", "fr"] as const).map((language) => (
+                  <button type="button" key={language} lang={language} aria-pressed={locale === language} onClick={() => setLocale(language)}>{language.toUpperCase()}</button>
+                ))}
+              </fieldset>
+            </div>
           </header>
 
           <main id="student-main" className="student-main">

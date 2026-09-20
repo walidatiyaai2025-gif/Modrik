@@ -21,6 +21,7 @@ import 'src/runtime_diagnostics.dart';
 import 'src/runtime_inspector.dart';
 import 'src/secure_session_store.dart';
 import 'src/student_notifications.dart';
+import 'src/student_preferences.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -229,6 +230,7 @@ class _ModrikAppState extends State<ModrikApp> {
     return MobileLearningController(
       gateway: gateway,
       config: config,
+      studentPreferenceStore: const PlatformStudentPreferenceStore(),
       pendingSyncClient: pendingSyncClient,
     );
   }
@@ -263,6 +265,7 @@ class _ModrikAppState extends State<ModrikApp> {
     return MobileLearningController(
       gateway: gateway,
       config: config,
+      studentPreferenceStore: const PlatformStudentPreferenceStore(),
       downloadedContentCache: DurableDownloadedContentCache(
         storage: recoveryStorage,
         scope: recoveryScope,

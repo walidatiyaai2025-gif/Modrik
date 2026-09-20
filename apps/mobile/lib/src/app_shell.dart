@@ -6,6 +6,7 @@ import 'mobile_learning_controller.dart';
 import 'models.dart';
 import 'student_adaptive_study.dart';
 import 'student_catalogue_study_view.dart';
+import 'student_preferences.dart';
 
 class MobileStudentShell extends StatelessWidget {
   const MobileStudentShell({super.key, required this.controller});
@@ -21,24 +22,31 @@ class MobileStudentShell extends StatelessWidget {
         final textDirection = controller.locale == ModrikLocale.ar
             ? TextDirection.rtl
             : TextDirection.ltr;
-        return Directionality(
-          textDirection: textDirection,
-          child: Scaffold(
-            body: SafeArea(
-              child: Column(
-                children: [
-                  _Header(controller: controller, copy: copy),
-                  if (controller.status == MobileViewStatus.offline || controller.isStale)
-                    _OfflineBanner(controller: controller, copy: copy),
-                  if (controller.messageCode case final code?)
-                    _MessageBanner(code: code, copy: copy),
-                  Expanded(child: _body(copy)),
-                ],
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(controller.textScaleFactor),
+          ),
+          child: Directionality(
+            textDirection: textDirection,
+            child: Scaffold(
+              body: SafeArea(
+                child: Column(
+                  children: [
+                    _Header(controller: controller, copy: copy),
+                    if (controller.status == MobileViewStatus.offline ||
+                        controller.isStale)
+                      _OfflineBanner(controller: controller, copy: copy),
+                    if (controller.messageCode case final code?)
+                      _MessageBanner(code: code, copy: copy),
+                    Expanded(child: _body(copy)),
+                  ],
+                ),
               ),
+              bottomNavigationBar: _showNavigation
+                  ? _StudentNavigation(controller: controller, copy: copy)
+                  : null,
             ),
-            bottomNavigationBar: _showNavigation
-                ? _StudentNavigation(controller: controller, copy: copy)
-                : null,
           ),
         );
       },
@@ -128,6 +136,40 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
+          Semantics(
+            label: copy.t('text_size'),
+            child: PopupMenuButton<StudentTextScalePreference>(
+              tooltip: copy.t('text_size'),
+              initialValue: controller.textScalePreference,
+              onSelected: controller.setTextScalePreference,
+              itemBuilder: (context) => [
+                for (final preference in StudentTextScalePreference.values)
+                  PopupMenuItem(
+                    value: preference,
+                    child: Text(
+                      switch (preference) {
+                        StudentTextScalePreference.normal =>
+                          copy.t('text_size_normal'),
+                        StudentTextScalePreference.large =>
+                          copy.t('text_size_large'),
+                        StudentTextScalePreference.largest =>
+                          copy.t('text_size_largest'),
+                      },
+                    ),
+                  ),
+              ],
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                child: Center(
+                  child: Text(
+                    '${(controller.textScaleFactor * 100).round()}%',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           Semantics(
             label: copy.t('language'),
             child: PopupMenuButton<ModrikLocale>(
