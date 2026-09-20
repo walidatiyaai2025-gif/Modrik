@@ -208,3 +208,47 @@ test("Learning BFF forwards adaptive-study as an authenticated GET without clien
   }
 });
 
+test("Learning BFF forwards parent child list and linked-child analytics with the session bearer", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: FetchCall[] = [];
+  globalThis.fetch = async (input, init) => {
+    calls.push({ input: String(input), init });
+    return Response.json({ data: {}, meta: { request_id: "request-parent" } });
+  };
+
+  try {
+    const childId = "01J000000000000000000000C1";
+    const list = await GET(
+      new Request("https://modrik.org/api/learning/parent/children", {
+        headers: { cookie: sessionCookie },
+      }),
+      routeContext(["parent", "children"]),
+    );
+    const analytics = await GET(
+      new Request(`https://modrik.org/api/learning/parent/children/${childId}/analytics`, {
+        headers: { cookie: sessionCookie },
+      }),
+      routeContext(["parent", "children", childId, "analytics"]),
+    );
+
+    assert.equal(list.status, 200);
+    assert.equal(analytics.status, 200);
+    assert.equal(calls.length, 2);
+    assert.equal(new URL(calls[0].input).pathname, "/v1/parent/children");
+    assert.equal(
+      new URL(calls[1].input).pathname,
+      `/v1/parent/children/${childId}/analytics`,
+    );
+    for (const call of calls) {
+      assert.equal(call.init?.method, "GET");
+      assert.equal(call.init?.body, undefined);
+      assert.equal(
+        new Headers(call.init?.headers).get("Authorization"),
+        `Bearer ${sessionToken}`,
+      );
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+

@@ -84,7 +84,8 @@ jobs:
           echo $! > "$RUNNER_TEMP/modrik-portals-web.pid"
           for attempt in $(seq 1 60); do
             if curl --fail --silent --show-error http://127.0.0.1:3102/ >/dev/null \
-              && curl --fail --silent --show-error http://127.0.0.1:3102/student >/dev/null; then
+              && curl --fail --silent --show-error http://127.0.0.1:3102/student >/dev/null \
+              && curl --fail --silent --show-error http://127.0.0.1:3102/parent >/dev/null; then
               exit 0
             fi
             sleep 1
@@ -100,6 +101,15 @@ jobs:
           MODRIK_PORTAL_EVIDENCE_DIR: ${{ github.workspace }}/evidence/web-portals-runtime
           MODRIK_PORTAL_EXPECTED_SHA: ${{ steps.candidate.outputs.sha }}
         run: node qa/web-e2e/portal-entry-acceptance.cjs
+
+      - name: Execute exact-head Parent Analytics matrix
+        env:
+          NODE_PATH: ${{ runner.temp }}/playwright/node_modules
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+          MODRIK_PORTAL_BASE_URL: http://127.0.0.1:3102
+          MODRIK_PARENT_EVIDENCE_DIR: ${{ github.workspace }}/evidence/web-parent-runtime
+          MODRIK_PORTAL_EXPECTED_SHA: ${{ steps.candidate.outputs.sha }}
+        run: node apps/web/scripts/parent-analytics-browser-acceptance.cjs
 
       - name: Require exact-head PASS evidence
         env:
@@ -123,6 +133,21 @@ jobs:
           if actual != expected or len(cases) != 3:
               raise SystemExit(f'unexpected portal matrix: {sorted(actual)}')
           print('Landing -> Student Portal matrix: 3 PASS / 0 FAIL')
+
+          parent_path = pathlib.Path('evidence/web-parent-runtime/acceptance.json')
+          if not parent_path.exists():
+              raise SystemExit('missing Parent Analytics browser acceptance evidence')
+          parent = json.loads(parent_path.read_text(encoding='utf-8'))
+          if parent.get('status') != 'PASS':
+              raise SystemExit(f"Parent Analytics acceptance is not PASS: {parent.get('status')}")
+          if parent.get('expected_sha') != os.environ['EXPECTED_SHA']:
+              raise SystemExit('Parent Analytics acceptance SHA mismatch')
+          parent_cases = parent.get('cases', [])
+          parent_expected = {'parent-desktop-en-412', 'parent-mobile-fr-390-200', 'parent-mobile-ar-360-200'}
+          parent_actual = {case.get('name') for case in parent_cases if case.get('status') == 'PASS'}
+          if parent_actual != parent_expected or len(parent_cases) != 3:
+              raise SystemExit(f'unexpected Parent Analytics matrix: {sorted(parent_actual)}')
+          print('Parent Analytics matrix: 3 PASS / 0 FAIL')
           PY
 
       - name: Stop Web candidate
@@ -138,6 +163,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: web-portals-runtime-${{ steps.candidate.outputs.sha }}
-          path: evidence/web-portals-runtime
+          path: |
+            evidence/web-portals-runtime
+            evidence/web-parent-runtime
           if-no-files-found: warn
           retention-days: 14

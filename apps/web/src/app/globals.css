@@ -1281,3 +1281,256 @@ button:disabled {
     max-width: 100%;
   }
 }
+
+/* Parent Analytics #360 */
+.parent-shell {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 4rem;
+  color: #172033;
+}
+
+.parent-header,
+.parent-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.parent-header h1,
+.parent-hero h2,
+.parent-panel h2 {
+  margin: 0.25rem 0;
+}
+
+.parent-header p,
+.parent-hero p,
+.parent-privacy,
+.parent-empty {
+  line-height: 1.7;
+}
+
+.parent-eyebrow {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.parent-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.parent-controls label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.parent-controls select,
+.parent-locale button,
+.parent-error button {
+  min-height: 44px;
+  border: 1px solid #b7c1d1;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.65rem 0.9rem;
+  font: inherit;
+}
+
+.parent-locale {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.parent-locale button[aria-pressed="true"] {
+  font-weight: 800;
+  border-color: #172033;
+}
+
+.parent-privacy,
+.parent-hero,
+.parent-panel,
+.parent-metrics article {
+  border: 1px solid #dce2eb;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.parent-privacy {
+  padding: 0.9rem 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.parent-content {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.parent-hero,
+.parent-panel {
+  min-width: 0;
+  max-width: 100%;
+  padding: 1.25rem;
+}
+
+.parent-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.parent-metrics article {
+  min-width: 0;
+  padding: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.parent-metrics strong {
+  font-size: 1.4rem;
+  overflow-wrap: anywhere;
+}
+
+.parent-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 1rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.parent-summary-list,
+.parent-skill-list,
+.parent-revision-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.parent-summary-list li,
+.parent-skill-list li,
+.parent-revision-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.parent-skill-list li > div,
+.parent-revision-list li > div {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.parent-skill-list span,
+.parent-revision-list span {
+  overflow-wrap: anywhere;
+}
+
+.parent-skill-metric {
+  text-align: end;
+}
+
+.parent-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #c43b3b;
+  border-radius: 0.9rem;
+}
+
+.parent-table-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.parent-table-wrap table {
+  width: 100%;
+  max-width: none;
+  border-collapse: collapse;
+  min-width: 36rem;
+}
+
+.parent-table-wrap th,
+.parent-table-wrap td {
+  padding: 0.8rem;
+  border-bottom: 1px solid #e5e9f0;
+  text-align: start;
+}
+
+@media (max-width: 900px) {
+  .parent-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .parent-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .parent-shell {
+    width: min(100% - 1rem, 1180px);
+    padding-top: 1rem;
+  }
+
+  .parent-controls,
+  .parent-controls label,
+  .parent-controls select {
+    width: 100%;
+  }
+
+  .parent-locale {
+    width: 100%;
+  }
+
+  .parent-locale button {
+    flex: 1 1 0;
+  }
+
+  .parent-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .parent-summary-list li,
+  .parent-skill-list li,
+  .parent-revision-list li {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .parent-skill-metric {
+    text-align: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parent-shell *,
+  .parent-shell *::before,
+  .parent-shell *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
+
