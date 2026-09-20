@@ -20,7 +20,8 @@ final class StudentAdaptiveStudyReadService
         private readonly DailyStudyPlanComposer $planComposer,
         private readonly MasteryEngine $mastery,
         private readonly LearningOperationsService $operations,
-    ) {}
+    )
+    {}
 
     /** @return array<string, mixed> */
     public function snapshot(User $user): array
