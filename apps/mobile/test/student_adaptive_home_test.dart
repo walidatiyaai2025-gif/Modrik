@@ -186,6 +186,6 @@ Map<String, Object?> _target({
       'title': assessmentId == null ? null : {'en': '$skill practice'},
       'available_question_count': availableQuestionCount,
     },
-    if (scorePercent != null) 'score_percent': scorePercent,
+    'score_percent': ?scorePercent,
   };
 }
