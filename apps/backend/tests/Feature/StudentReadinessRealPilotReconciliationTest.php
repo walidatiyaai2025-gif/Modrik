@@ -61,7 +61,7 @@ final class StudentReadinessRealPilotReconciliationTest extends TestCase
                 continue;
             }
 
-            if (in_array($id, ['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'parent', 'rtl_accessibility', 'operations'], true)) {
+            if (in_array($id, ['foundation', 'question_content', 'assessment', 'mastery_adaptive', 'revision_plan', 'student_ux', 'parent', 'rtl_accessibility', 'operations', 'quality_security'], true)) {
                 $this->assertSame(100, $domain['percent'] ?? null);
                 $this->assertSame('pass', $domain['status'] ?? null);
 
