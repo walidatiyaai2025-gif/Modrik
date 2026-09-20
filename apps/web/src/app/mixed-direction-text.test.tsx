@@ -15,7 +15,7 @@ test("MixedDirectionText isolates mixed Arabic Latin numbers and math", () => {
   );
 
   assert.match(markup, /<bdi dir="auto" data-modrik-mixed-direction="true" style="unicode-bidi:isolate">/);
-  assert.match(markup, /3x + 5 = 20/);
+  assert.match(markup, /3x \+ 5 = 20/);
   assert.match(markup, /12 cm × 8 cm/);
   assert.match(markup, /H2O/);
 });
