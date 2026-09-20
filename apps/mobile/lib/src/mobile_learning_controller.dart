@@ -651,8 +651,8 @@ class MobileLearningController extends ChangeNotifier {
     adaptiveStudy = null;
     if (academicContext?.requiresOnboarding ?? true) return;
 
-    final adaptiveGateway = gateway;
-    if (adaptiveGateway is AdaptiveStudyGateway) {
+    if (gateway is AdaptiveStudyGateway) {
+      final adaptiveGateway = gateway as AdaptiveStudyGateway;
       adaptiveStudy = await adaptiveGateway.adaptiveStudy();
     }
   }
