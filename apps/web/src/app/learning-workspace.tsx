@@ -525,7 +525,13 @@ export default function LearningWorkspace() {
                   <button
                     type="button"
                     key={preference}
-                    aria-label={labels[`textSize${preference === "normal" ? "Normal" : preference === "large" ? "Large" : "Largest"}`]}
+                    aria-label={
+                      preference === "normal"
+                        ? labels.textSizeNormal
+                        : preference === "large"
+                          ? labels.textSizeLarge
+                          : labels.textSizeLargest
+                    }
                     aria-pressed={textScale === preference}
                     onClick={() => updateTextScale(preference)}
                   >
