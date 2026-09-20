@@ -138,3 +138,73 @@ test("multi-select and boolean answers preserve Backend JSON types", async () =>
   assert.equal(booleanBody.value, false);
   assert.equal(typeof booleanBody.value, "boolean");
 });
+
+test("adaptive study reads the authenticated Backend scope without client planning inputs", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+
+  globalThis.fetch = async (input, init) => {
+    calls.push({ url: String(input), init });
+    return Response.json({
+      data: {
+        state: "active",
+        context: {
+          context_id: "01J00000000000000000000032",
+          academic_track_id: "01J00000000000000000000031",
+          track_reference: "TRACK:Y7",
+          year_level: "Year 7",
+          track_title: { en: "Year 7" },
+        },
+        features: {
+          daily_plan: { state: "enabled", effective: true },
+          mistake_notebook: { state: "enabled", effective: true },
+        },
+        today_mission: {
+          status: "ready",
+          algorithm_version: "daily-study-plan-v1",
+          requested_max_items: 5,
+          input_candidate_count: 1,
+          available_candidate_count: 1,
+          selected_count: 1,
+          shortfall_count: 0,
+          selected: [],
+          skipped_unavailable: [],
+          plan_fingerprint: "fixture-plan",
+        },
+        needs_practice: {
+          status: "empty",
+          algorithm_version: "adaptive-skill-selector-v1",
+          items: [],
+          selection_fingerprint: null,
+        },
+        mistakes: {
+          status: "empty",
+          algorithm_version: "latest-graded-answer-v1",
+          items: [],
+          skipped_evidence_count: 0,
+        },
+      },
+      meta: { request_id: "01J00000000000000000000093" },
+    });
+  };
+
+  try {
+    const snapshot = await learningApi.adaptiveStudy();
+    assert.equal(snapshot.state, "active");
+    if (snapshot.state === "active") {
+      assert.equal(snapshot.features.daily_plan.effective, true);
+      assert.equal(snapshot.today_mission.status, "ready");
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]?.url, "/api/learning/adaptive-study");
+  assert.equal(calls[0]?.init?.method, undefined);
+  assert.equal(calls[0]?.init?.body, undefined);
+  assert.equal(String(calls[0]?.url).includes("user_id"), false);
+  assert.equal(String(calls[0]?.url).includes("academic_context_id"), false);
+  assert.equal(String(calls[0]?.url).includes("skill"), false);
+});
+
