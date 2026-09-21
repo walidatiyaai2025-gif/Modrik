@@ -601,9 +601,9 @@ export default function LearningWorkspace() {
                 {state !== "loading" && <button type="button" className="primary-button" onClick={() => void load()}>{labels.retry}</button>}
               </div>
             ) : context?.state !== "active" ? (
-              <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} />
+              <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} onContextReconciled={load} />
             ) : view === "academic" ? (
-              <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} />
+              <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} onContextReconciled={load} />
             ) : view === "home" ? (
               <div className="dashboard-stack">
                 <section className="dashboard-hero">
