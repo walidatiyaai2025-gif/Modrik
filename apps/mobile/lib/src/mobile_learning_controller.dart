@@ -98,7 +98,7 @@ class MobileLearningController extends ChangeNotifier {
       progress = await gateway.progress();
       await _refreshAdaptiveStudy();
       await _loadConfiguredLessonOnline();
-      await _restoreAttemptSnapshot();
+      await _restoreAttemptOnline();
       await _refreshPendingCount();
       status = _hasAnyWorkspaceData
           ? MobileViewStatus.ready
@@ -129,6 +129,27 @@ class MobileLearningController extends ChangeNotifier {
     if (cached == null) return;
     attempt = cached.attempt;
     _hydrateAttemptAnswers(cached.attempt);
+  }
+
+  Future<void> _restoreAttemptOnline() async {
+    if (gateway is! CurrentAttemptGateway) {
+      await _restoreAttemptSnapshot();
+      return;
+    }
+
+    final current = await (gateway as CurrentAttemptGateway).currentAttempt();
+    if (current == null) {
+      attempt = null;
+      result = null;
+      _answers.clear();
+      _savedAnswers.clear();
+      _revisions.clear();
+      await attemptSnapshotCache.clear();
+      return;
+    }
+
+    _acceptAttemptSnapshot(current);
+    await attemptSnapshotCache.write(current, _clock());
   }
 
   Future<void> _handleFailure(LearningFailure failure) async {
