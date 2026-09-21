@@ -181,6 +181,10 @@ async function handleMock(req, res) {
     }));
   }
 
+  if (pathname === "/v1/attempts/current" && req.method === "GET") {
+    return sendJson(res, 200, envelope({ attempt: null }));
+  }
+
   if (pathname === "/v1/progress") {
     return sendJson(res, 200, envelope([{
       academic_context_id: ids.context,
