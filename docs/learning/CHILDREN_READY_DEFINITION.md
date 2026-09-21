@@ -51,6 +51,10 @@ All items below must be PASS on the authoritative integrated composition.
 - Diagnostic produces a baseline without assigning fake mastery to untested skills.
 
 ### Student UX
+- The screen/route inventory required by `CHILDREN_FIRST_UX_HARD_GATE.md` is complete for pilot-critical Student Web and Flutter surfaces.
+- No pilot-critical Student screen is `NOT TESTED`.
+- No known P0/P1 UX defect remains on the accepted pilot path.
+- Every visible pilot-critical button/link/tab/action is wired, authorized and exercised against the real Backend.
 - Today's Mission works end to end.
 - Continue Learning works.
 - Skill/topic practice works.
@@ -76,12 +80,22 @@ All items below must be PASS on the authoritative integrated composition.
 - Directional icons/navigation behave correctly.
 
 ### Admin controls
+- Pilot-required Admin screens have route/screen-level UX acceptance under `CHILDREN_FIRST_UX_HARD_GATE.md`.
+- No dead, placeholder or misleading control exists on the real-content preparation/import/review/publish path.
+- Human-readable selectors are used instead of raw technical identifiers where canonical entities already exist.
 - Content Workbench is discoverable.
 - Prompt Library is discoverable and versioned.
 - Feature controls are discoverable, permission-safe and audited.
 - Job controls expose truthful status/history.
 - Kill switches degrade safely without corrupting student state.
 - Security/integrity invariants remain `internal_non_editable` rather than being exposed as unsafe toggles.
+
+### Cross-surface visual/runtime QA
+- Issue #435 is closed only with a complete PASS / FAIL / BLOCKED / NOT TESTED inventory and evidence.
+- Required Student Web widths 360/390/412 + tablet + desktop have no pilot-blocking defect.
+- Flutter critical flows have surface-specific Android/iOS evidence; Web PASS does not imply Flutter PASS.
+- Arabic/English, RTL/LTR, large text, long strings and required loading/empty/error/retry/offline/degraded states are accepted where applicable.
+- Compilation, unit tests or a green build alone are not sufficient UX evidence.
 
 ### Security / integrity / QA
 - SQLite and MariaDB suites required by repository governance pass.
@@ -100,6 +114,12 @@ All items below must be PASS on the authoritative integrated composition.
 - Both profiles can complete: login -> Today's Mission -> answer -> score -> mastery update -> mistake/revision update -> progress view.
 - Parent account can see truthful progress for both profiles independently.
 - Open mandatory learning blockers = 0.
+
+## Supervised pilot usability
+
+The project may report `PILOT USABLE` for supervised owner testing before full `CHILDREN_READY = YES` only when the earlier gate defined in `docs/learning/CHILDREN_FIRST_UX_HARD_GATE.md` passes.
+
+`PILOT USABLE` must never be presented as full Children Ready, production readiness or completion. It exists only to prioritize getting real Year 6/7 children onto the verified critical learning path as early as possible.
 
 ## Machine status
 

@@ -81,3 +81,9 @@ Every learning surface must be checked in:
 ## QA gate
 
 A feature is not UX-complete merely because English screenshots pass. The owned Issue must include focused RTL/LTR and large-text evidence/tests appropriate to the surface. Shared design-token changes require explicit ownership and must not fork canonical brand tokens.
+
+Under the children-first policy in `CHILDREN_FIRST_UX_HARD_GATE.md`, acceptance is **screen-by-screen**, not feature-label-by-feature-label. Every pilot-critical Web, Flutter and Admin screen must appear in an inventory with PASS / FAIL / BLOCKED / NOT TESTED plus evidence.
+
+A surface fails UX acceptance if a primary control is dead/unwired, navigation lands in the wrong place, a required state is visually broken, a critical action is clipped/unreachable, or the screen only works in one language/direction/text size.
+
+Issue #435 owns the cross-surface recovery pass. Previously closed RTL/accessibility work does not exempt newly discovered regressions from repair.
