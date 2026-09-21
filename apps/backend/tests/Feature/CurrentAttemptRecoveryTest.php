@@ -7,7 +7,6 @@ use App\Services\AttemptService;
 use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 final class CurrentAttemptRecoveryTest extends TestCase
@@ -38,11 +37,8 @@ final class CurrentAttemptRecoveryTest extends TestCase
             ->assertJsonPath('data.attempt', null)
             ->assertHeader('Cache-Control', 'no-store, private');
 
-        $first = $this->start('current-attempt-start-0001');
-        $firstId = (string) $first->json('data.id');
-
-        $second = $this->start('current-attempt-start-0002');
-        $secondId = (string) $second->json('data.id');
+        $firstId = $this->start('current-attempt-start-0001');
+        $secondId = $this->start('current-attempt-start-0002');
 
         $this->withToken(self::TOKEN)
             ->getJson('/v1/attempts/current')
@@ -77,11 +73,13 @@ final class CurrentAttemptRecoveryTest extends TestCase
             ->assertJsonPath('data.attempt', null);
     }
 
-    private function start(string $key): TestResponse
+    private function start(string $key): string
     {
-        return $this->withToken(self::TOKEN)
+        $response = $this->withToken(self::TOKEN)
             ->withHeader('Idempotency-Key', $key)
             ->postJson('/v1/attempts', ['quiz_id' => LearningSliceSeeder::QUIZ_ID])
             ->assertCreated();
+
+        return (string) $response->json('data.id');
     }
 }
