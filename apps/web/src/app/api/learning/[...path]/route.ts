@@ -25,6 +25,7 @@ const allowedPaths = [
   /^notifications\/read-all$/,
   new RegExp(`^notifications/${ulid}/read$`),
   /^attempts$/,
+  /^attempts\/current$/,
   new RegExp(`^attempts/${ulid}$`),
   new RegExp(`^attempts/${ulid}/answers/${ulid}$`),
   new RegExp(`^attempts/${ulid}/submit$`),

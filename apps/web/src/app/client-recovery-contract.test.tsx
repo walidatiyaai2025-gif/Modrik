@@ -33,20 +33,25 @@ test("offline before initial load fails closed without fabricating client author
   assert.doesNotMatch(load, /seed\s*=|questionOrder\s*=|score\s*=/);
 });
 
-test("browser restart restores the exact stored attempt through backend authority", () => {
+test("browser restart restores the exact current attempt through backend authority", () => {
   assert.match(
     workspaceSource,
     /const activeAttemptStorageKey = "modrik\.student\.active-attempt";/,
   );
+  assert.match(workspaceSource, /learningApi\.currentAttempt\(\)/);
+  assert.match(workspaceSource, /restoredAttempt\?\.status === "in_progress"/);
   assert.match(
+    workspaceSource,
+    /window\.localStorage\.setItem\(activeAttemptStorageKey, restoredAttempt\.id\);/,
+  );
+  assert.doesNotMatch(
     workspaceSource,
     /const storedAttemptId = window\.localStorage\.getItem\(activeAttemptStorageKey\);/,
   );
-  assert.match(
+  assert.doesNotMatch(
     workspaceSource,
     /const candidate = await learningApi\.attempt\(storedAttemptId\);/,
   );
-  assert.match(workspaceSource, /restoredAttempt = candidate;/);
   assert.match(workspaceSource, /applyAttempt\(restoredAttempt\);/);
 
   const applyAttempt = sliceFunction(

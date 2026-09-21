@@ -65,6 +65,8 @@ Route::prefix('/v1')->middleware('auth.modrik')->group(function (): void {
 
     Route::post('/attempts', [AttemptController::class, 'start'])
         ->middleware(['auth.verified-password', 'throttle:60,1'])->name('attempts.store');
+    Route::get('/attempts/current', [AttemptController::class, 'current'])
+        ->middleware('throttle:120,1')->name('attempts.current');
     Route::get('/attempts/{attemptId}', [AttemptController::class, 'show'])
         ->middleware('throttle:120,1')->name('attempts.show');
     Route::get('/attempts/{attemptId}/result', [AttemptController::class, 'result'])
