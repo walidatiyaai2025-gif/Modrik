@@ -91,6 +91,10 @@ abstract interface class AdaptiveStudyGateway {
   Future<AdaptiveStudySnapshot> adaptiveStudy();
 }
 
+abstract interface class CurrentAttemptGateway {
+  Future<Attempt?> currentAttempt();
+}
+
 abstract interface class LearningGateway {
   Future<Session> session();
   Future<AcademicContext> academicContext();
@@ -133,7 +137,8 @@ class HttpLearningGateway
     implements
         LearningGateway,
         AcademicTrackCatalogueGateway,
-        AdaptiveStudyGateway {
+        AdaptiveStudyGateway,
+        CurrentAttemptGateway {
   HttpLearningGateway({
     required this.baseUrl,
     String? bearerToken,
@@ -244,6 +249,23 @@ class HttpLearningGateway
           idempotencyKey: idempotencyKey,
         ),
       );
+
+  @override
+  Future<Attempt?> currentAttempt() async {
+    final data = await _requestMap('attempts/current');
+    final rawAttempt = data['attempt'];
+    if (rawAttempt == null) return null;
+    if (rawAttempt is! Map) {
+      throw const LearningFailure(
+        status: 0,
+        code: 'MOBILE_INVALID_RESPONSE',
+        message: 'The learning service returned an invalid current attempt.',
+        retryable: false,
+      );
+    }
+
+    return Attempt.fromJson(Map<String, dynamic>.from(rawAttempt));
+  }
 
   @override
   Future<Attempt> resumeAttempt(String attemptId) async => Attempt.fromJson(
