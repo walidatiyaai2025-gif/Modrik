@@ -11,6 +11,25 @@ import {
 
 type CatalogueState = "loading" | "ready" | "empty" | "error" | "offline" | "permission";
 
+export type AcademicContextRecovery = "reconcile_context" | "reload_catalogue" | "none";
+
+export function academicContextRecovery(code: string): AcademicContextRecovery {
+  if ([
+    "ACADEMIC_CONTEXT_RESET_REQUIRED",
+    "ACADEMIC_CONTEXT_ALREADY_ACTIVE",
+    "ACADEMIC_CONTEXT_ONBOARDING_REQUIRED",
+    "ACADEMIC_CONTEXT_UNCHANGED",
+  ].includes(code)) {
+    return "reconcile_context";
+  }
+
+  if (code === "RESOURCE_NOT_FOUND") {
+    return "reload_catalogue";
+  }
+
+  return "none";
+}
+
 export const academicTrackCopy = {
   en: {
     label: "Academic track",
@@ -33,7 +52,8 @@ export const academicTrackCopy = {
     same: "Choose a different available track to continue.",
     busy: "Updating your academic track…",
     failed: "We couldn’t update your academic track. Nothing changed. Check your connection and that the selected track is still available, then try again.",
-    resetRequired: "Nothing changed. Review what will happen when you change tracks, confirm it, then try again.",
+    resetRequired: "Your academic context changed elsewhere. We refreshed it from MODRIK so you can continue from the current state.",
+    trackUnavailable: "That academic track is no longer available. The list has been refreshed; choose an available track.",
   },
   ar: {
     label: "المسار الأكاديمي",
@@ -56,7 +76,8 @@ export const academicTrackCopy = {
     same: "اختر مسارًا آخر متاحًا للمتابعة.",
     busy: "جارٍ تحديث مسارك الأكاديمي…",
     failed: "تعذر تحديث مسارك الأكاديمي. لم يتغير شيء. تحقق من اتصالك ومن أن المسار المختار ما زال متاحًا، ثم حاول مرة أخرى.",
-    resetRequired: "لم يتغير شيء. راجع ما سيحدث عند تغيير المسار وأكّد موافقتك، ثم حاول مرة أخرى.",
+    resetRequired: "تغيّرت حالتك الأكاديمية من مكان آخر. حدّثنا الحالة من MODRIK لتكمل من الوضع الحالي.",
+    trackUnavailable: "هذا المسار لم يعد متاحًا. تم تحديث القائمة؛ اختر مسارًا متاحًا.",
   },
   fr: {
     label: "Parcours académique",
@@ -79,7 +100,8 @@ export const academicTrackCopy = {
     same: "Choisissez un autre parcours disponible pour continuer.",
     busy: "Mise à jour de votre parcours académique…",
     failed: "Nous n’avons pas pu mettre à jour votre parcours académique. Rien n’a changé. Vérifiez votre connexion et que le parcours choisi est toujours disponible, puis réessayez.",
-    resetRequired: "Rien n’a changé. Relisez ce qui se passera lors du changement de parcours, confirmez, puis réessayez.",
+    resetRequired: "Votre contexte académique a changé ailleurs. Nous l’avons actualisé depuis MODRIK pour continuer avec l’état courant.",
+    trackUnavailable: "Ce parcours n’est plus disponible. La liste a été actualisée ; choisissez un parcours disponible.",
   },
 } as const;
 
@@ -105,11 +127,13 @@ export default function AcademicTrackSelector({
   locale,
   offline,
   onTransitioned,
+  onContextReconciled,
 }: {
   context: AcademicContext | null;
   locale: Locale;
   offline: boolean;
   onTransitioned: () => Promise<void>;
+  onContextReconciled: () => Promise<void>;
 }) {
   const labels = academicTrackCopy[locale];
   const [state, setState] = useState<CatalogueState>(offline ? "offline" : "loading");
@@ -190,11 +214,22 @@ export default function AcademicTrackSelector({
       await onTransitioned();
       await loadCatalogue();
     } catch (error) {
-      if (error instanceof LearningApiError && error.code === "ACADEMIC_RESET_REQUIRED") {
-        setMessage(labels.resetRequired);
-      } else {
-        setMessage(labels.failed);
+      if (error instanceof LearningApiError) {
+        const recovery = academicContextRecovery(error.code);
+        if (recovery === "reconcile_context") {
+          acknowledgeOperation(action, selectedTrack.id);
+          await onContextReconciled();
+          setMessage(labels.resetRequired);
+          return;
+        }
+        if (recovery === "reload_catalogue") {
+          acknowledgeOperation(action, selectedTrack.id);
+          await loadCatalogue();
+          setMessage(labels.trackUnavailable);
+          return;
+        }
       }
+      setMessage(labels.failed);
     } finally {
       setBusy(false);
     }
