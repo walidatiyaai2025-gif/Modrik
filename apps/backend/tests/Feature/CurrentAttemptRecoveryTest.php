@@ -7,6 +7,7 @@ use App\Services\AttemptService;
 use Database\Seeders\LearningSliceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 final class CurrentAttemptRecoveryTest extends TestCase
@@ -76,7 +77,7 @@ final class CurrentAttemptRecoveryTest extends TestCase
             ->assertJsonPath('data.attempt', null);
     }
 
-    private function start(string $key): \Illuminate\Testing\TestResponse
+    private function start(string $key): TestResponse
     {
         return $this->withToken(self::TOKEN)
             ->withHeader('Idempotency-Key', $key)
