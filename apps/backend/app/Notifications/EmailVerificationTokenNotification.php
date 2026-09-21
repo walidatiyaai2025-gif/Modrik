@@ -21,10 +21,17 @@ final class EmailVerificationTokenNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        $studentPortalUrl = rtrim((string) config('modrik.web.student_portal_url'), '/');
+        $verificationUrl = $studentPortalUrl.'?verify_token='.rawurlencode($this->token);
+        $ttlMinutes = max(5, (int) config('modrik.auth.verification_ttl_minutes', 60));
+
         return (new MailMessage)
             ->subject('Verify your MODRIK email')
-            ->line('Use the one-time token below to verify your MODRIK email address.')
-            ->line($this->token)
-            ->line('If you did not request this, no action is required.');
+            ->greeting('Welcome to MODRIK')
+            ->line('Confirm your email address to finish setting up your MODRIK account.')
+            ->action('Verify email address', $verificationUrl)
+            ->line("This verification link expires in {$ttlMinutes} minutes and can be used only once.")
+            ->line('If you did not create a MODRIK account, you can safely ignore this email.')
+            ->salutation('MODRIK');
     }
 }
