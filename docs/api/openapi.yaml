@@ -454,6 +454,24 @@ paths:
         '404': {$ref: '#/components/responses/ResourceNotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
         '422': {$ref: '#/components/responses/ValidationFailed'}
+  /v1/attempts/current:
+    get:
+      summary: Discover the current in-progress attempt
+      operationId: getCurrentAttempt
+      tags: [Attempts]
+      description: Returns the most recent in-progress attempt owned by the authenticated user in the active academic context. Browser/device storage is not authoritative. Returns null when there is no resumable attempt.
+      responses:
+        '200':
+          description: Current resumable attempt or null.
+          headers:
+            Cache-Control:
+              description: Attempt state is private and must not be shared or cached.
+              schema: {type: string, const: 'no-store, private'}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentAttemptResponse'
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
   /v1/attempts/{attemptId}:
     parameters:
       - $ref: '#/components/parameters/AttemptId'
@@ -1179,6 +1197,16 @@ components:
       required: [data, meta]
       properties:
         data: {$ref: '#/components/schemas/Attempt'}
+        meta: {$ref: '#/components/schemas/ResponseMeta'}
+    CurrentAttemptResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Attempt'
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     Answer:
       type: object
