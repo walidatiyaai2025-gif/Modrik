@@ -34,7 +34,7 @@ final class CurrentAttemptRecoveryTest extends TestCase
         $this->withToken(self::TOKEN)
             ->getJson('/v1/attempts/current')
             ->assertOk()
-            ->assertJsonPath('data', null)
+            ->assertJsonPath('data.attempt', null)
             ->assertHeader('Cache-Control', 'no-store, private');
 
         $first = $this->start('current-attempt-start-0001');
@@ -46,8 +46,8 @@ final class CurrentAttemptRecoveryTest extends TestCase
         $this->withToken(self::TOKEN)
             ->getJson('/v1/attempts/current')
             ->assertOk()
-            ->assertJsonPath('data.id', $secondId)
-            ->assertJsonPath('data.status', 'in_progress');
+            ->assertJsonPath('data.attempt.id', $secondId)
+            ->assertJsonPath('data.attempt.status', 'in_progress');
 
         $foreign = User::factory()->create();
         self::assertNull(app(AttemptService::class)->current($foreign));
@@ -60,7 +60,7 @@ final class CurrentAttemptRecoveryTest extends TestCase
         $this->withToken(self::TOKEN)
             ->getJson('/v1/attempts/current')
             ->assertOk()
-            ->assertJsonPath('data.id', $firstId);
+            ->assertJsonPath('data.attempt.id', $firstId);
 
         DB::table('user_academic_contexts')
             ->where('id', LearningSliceSeeder::CONTEXT_ID)
@@ -73,7 +73,7 @@ final class CurrentAttemptRecoveryTest extends TestCase
         $this->withToken(self::TOKEN)
             ->getJson('/v1/attempts/current')
             ->assertOk()
-            ->assertJsonPath('data', null);
+            ->assertJsonPath('data.attempt', null);
     }
 
     private function start(string $key): \Illuminate\Testing\TestResponse
