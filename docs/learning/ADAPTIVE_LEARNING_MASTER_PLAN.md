@@ -27,6 +27,9 @@ ChatGPT may be used manually by the owner/content operator as an **offline conte
 8. Every manageable capability/job/flag must satisfy `GOV-SURFACE-001` with a discoverable Admin surface, RBAC and auditability.
 9. Student learning readiness and Demo/Production hosting readiness are separate statuses.
 10. Progress reporting must come from a canonical machine-readable readiness ledger, never from conversational estimates.
+11. **Children-first UX hard gate:** until the real Year 6/7 pilot path is usable, non-blocking feature expansion is frozen. Known P0/P1 UX defects on pilot-critical Web, Flutter or Admin paths take priority over new features.
+12. A screen is not complete because it compiles or has unit tests. Pilot-critical screens require route/screen inventory, wired-control verification and real visual/runtime evidence.
+13. The strict cross-surface policy in `docs/learning/CHILDREN_FIRST_UX_HARD_GATE.md` is mandatory and overrides convenience-driven sequencing.
 
 ## 3. Core domains
 
@@ -187,6 +190,18 @@ Primary home experience:
 
 Avoid exposing operator/analytics complexity to the child.
 
+### 3.14 Children-first UX recovery and pilot acceleration
+
+The immediate execution objective is to make the real Year 6/7 pilot usable before unrelated feature expansion.
+
+Issue **#435** owns the strict recovery pass across Student Web, Flutter, pilot-required Admin and Parent surfaces. Work must proceed in pilot-critical order: identity/context -> Home/mission -> lesson/practice -> submit/result/review -> mistakes/progress -> real-content Admin flow -> Parent -> remaining secondary screens.
+
+Every visible action on an owned screen must be wired, authorized and exercised. Dead controls, wrong navigation, misleading success states, severe RTL/LTR defects, clipped critical content, broken retry/error states and unusable required viewports/text sizes are blockers according to impact.
+
+A supervised owner pilot may reach **PILOT USABLE** before the full program reaches `CHILDREN_READY = YES`, but only under the evidence-backed gate in `CHILDREN_FIRST_UX_HARD_GATE.md`. This distinction accelerates real child use without weakening the final Children Ready definition.
+
+See `docs/learning/CHILDREN_FIRST_UX_HARD_GATE.md`.
+
 ## 4. Arabic, RTL, typography and accessibility
 
 All new Web/Mobile/Admin surfaces must support AR/EN according to the active product language contract; existing FR obligations remain where current global governance requires them.
@@ -256,6 +271,7 @@ A numeric 100% is invalid unless every mandatory gate in `CHILDREN_READY_DEFINIT
 - **L4 Mastery** — mastery calculation/history/recalculation.
 - **L5 Adaptive Study** — spaced repetition, mistakes, daily plan, diagnostics.
 - **L6 Student UX** — Web + Flutter learning flows.
+- **L6A Children-First UX Recovery** — #435 route/screen inventory, repair all known pilot-path P0/P1 defects, verify every visible control, and obtain Web/Flutter/Admin visual/runtime evidence before unrelated feature expansion.
 - **L7 Arabic/Accessibility** — RTL/LTR, mixed direction, typography, large text, responsive acceptance.
 - **L8 Parent Analytics** — child-specific progress/attention/trends.
 - **L9 Operations** — feature/job controls, kill switches, audit/health.
@@ -268,7 +284,7 @@ A numeric 100% is invalid unless every mandatory gate in `CHILDREN_READY_DEFINIT
 
 Workers execute only assigned GitHub Issues. Shared schema/migration/OpenAPI ownership is singular. Workers may parallelize only after dependency-valid contracts are merged or explicitly coordinated by the Integration Captain.
 
-Canonical task partition is in `docs/learning/WORKER_EXECUTION_MAP.md` and umbrella Issue #352.
+Canonical task partition is in `docs/learning/WORKER_EXECUTION_MAP.md` and umbrella Issue #352. The active children-first UX recovery policy is `docs/learning/CHILDREN_FIRST_UX_HARD_GATE.md` / Issue #435 and must be consulted before scheduling new UI/product work.
 
 ## 10. Definition of complete
 
