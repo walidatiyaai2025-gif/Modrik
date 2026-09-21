@@ -38,6 +38,12 @@ class AttemptController extends Controller
         });
     }
 
+    public function current(Request $request): JsonResponse
+    {
+        return ApiResponse::success($request, $this->attempts->current($this->user($request)))
+            ->header('Cache-Control', 'no-store, private');
+    }
+
     public function show(Request $request, string $attemptId): JsonResponse
     {
         $this->assertUlid($attemptId, 'attempt');
