@@ -230,6 +230,42 @@ final class AttemptService
     }
 
     /**
+     * Return the most recent in-progress attempt in the authenticated user's
+     * active academic context. The Backend is the authority for resume state;
+     * browser/device storage is never required for discovery.
+     *
+     * @return array<string, mixed>|null
+     *
+     * @throws JsonException
+     */
+    public function current(User $user): ?array
+    {
+        $contextId = DB::table('user_academic_contexts')
+            ->where('user_id', $user->getKey())
+            ->where('status', 'active')
+            ->value('id');
+
+        if (! is_string($contextId)) {
+            return null;
+        }
+
+        $attemptId = DB::table('attempts')
+            ->where('user_id', $user->getKey())
+            ->where('academic_context_id', $contextId)
+            ->where('status', 'in_progress')
+            ->whereNull('archived_at')
+            ->orderByDesc('started_at')
+            ->orderByDesc('id')
+            ->value('id');
+
+        if (! is_string($attemptId)) {
+            return null;
+        }
+
+        return $this->attempt($user, $attemptId);
+    }
+
+    /**
      * @return array<string, mixed>
      *
      * @throws JsonException
