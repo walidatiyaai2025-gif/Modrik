@@ -28,6 +28,7 @@ test("Continue Learning remains presentation-only and localized", () => {
 
 
 test("Continue Learning current-attempt contract is exposed through the Web API and BFF", () => {
-  assert.match(api, /currentAttempt: \(\) => requestData<Attempt \| null>\("learning:attempt-current", "attempts\/current"\)/);
+  assert.match(api, /requestData<\{ attempt: Attempt \| null \}>\("learning:attempt-current", "attempts\/current"\)/);
+  assert.match(api, /\.then\(\(\{ attempt \}\) => attempt\)/);
   assert.match(bff, /\^attempts\\\/current\$\//);
 });
