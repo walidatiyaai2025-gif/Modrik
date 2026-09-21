@@ -19,6 +19,7 @@ This file defines ownership and dependency boundaries for parallel workers. Ever
 | #361 AL-09 | Feature/job control, kill switches, audit | After #353; integrate domain jobs as they land | Owns control-plane UI/policy integration |
 | #362 AL-10 | Real Year 6/7 content pilot | After #353/#354 + owner inputs | Owns pilot content evidence, not product code |
 | #363 AL-11 | Integration Captain / readiness / final QA | Continuous read-only coordination; closure after children Issues | Owns merge sequencing/reconciliation, not duplicate implementation |
+| #435 UX Recovery | Children-first Web / Flutter / Admin / Parent screen recovery | **Immediate / highest-priority UX lane** | Owns route/screen inventory, pilot-path P0/P1 recovery and visual/runtime acceptance; does not own Backend domain logic |
 
 ## Recommended parallel lanes
 
@@ -55,6 +56,17 @@ Worker I: #362 after import workflow exists and owner-approved materials/scope a
 ### Lane J — Integration Captain
 Captain: #363. Re-fetches live state, sequences merge/rebase/conflict resolution, enforces exact-head/exact-main gates and updates readiness ledger.
 
+### Lane K — Children-First UX Recovery
+Worker K: #435. This lane is prioritized above unrelated feature expansion until the supervised Year 6/7 pilot is usable.
+
+It owns:
+- route/screen inventory across Student Web, Flutter, pilot-required Admin and Parent;
+- repair of known pilot-path P0/P1 UX defects;
+- visible-control wiring checks;
+- responsive/RTL/LTR/large-text/state acceptance evidence.
+
+It must not move scoring, mastery, planning, identity or publication authority into clients.
+
 ## Hard anti-overlap rules
 
 1. One Issue per worker/session unless Integration Captain explicitly reassigns.
@@ -67,6 +79,8 @@ Captain: #363. Re-fetches live state, sequences merge/rebase/conflict resolution
 8. #361 owns operator feature/job controls; domain workers expose safe domain hooks/status, not hidden operator endpoints.
 9. #363 does not create substitute domain implementations. It integrates/reconciles legitimate completed work.
 10. No worker may weaken existing P0/deployment/security gates to make this program green.
+11. While #435 is open, unrelated feature expansion is frozen unless it directly unblocks the pilot, fixes P0/P1, security/data integrity, deployment/runtime, or required acceptance evidence.
+12. A green compile/unit-test result cannot close a UX defect without route/screen runtime evidence for the affected surface.
 
 ## Dependency graph
 
