@@ -367,9 +367,21 @@ export const learningApi = {
     ),
   startAttempt: (quizId: string, idempotencyKey: string) =>
     requestData<Attempt>("learning:attempt-start", "attempts", command("POST", { quiz_id: quizId }, idempotencyKey)),
-  currentAttempt: () =>
-    requestData<{ attempt: Attempt | null }>("learning:attempt-current", "attempts/current")
-      .then(({ attempt }) => attempt),
+  currentAttempt: async () => {
+    try {
+      const { attempt } = await requestData<{ attempt: Attempt | null }>(
+        "learning:attempt-current",
+        "attempts/current",
+      );
+      return attempt;
+    } catch (error) {
+      // During a rolling deployment the Web candidate can briefly precede the
+      // Backend route. Treat only route-level 404 as "nothing to resume";
+      // authentication, transport and server failures must still surface.
+      if (error instanceof LearningApiError && error.status === 404) return null;
+      throw error;
+    }
+  },
   attempt: (attemptId: string) => requestData<Attempt>("learning:attempt", `attempts/${attemptId}`),
   answer: (
     attemptId: string,
