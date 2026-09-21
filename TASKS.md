@@ -6,6 +6,18 @@ Last reconciled baseline: `e886bf190f63695b0cd26c2127042d7e7630950c`
 Live repository state must be fetched from GitHub before scheduling or integration decisions. This file is a work-queue checkpoint, not a live repository oracle.
 
 
+## CHILDREN-FIRST UX HARD GATE — #435
+
+- [ ] **Highest-priority UX lane:** complete route/screen inventory across Student Web, Flutter, pilot-required Admin and Parent surfaces.
+- [ ] Fix all known P0/P1 UX defects on the supervised Year 6/7 pilot path before unrelated feature expansion.
+- [ ] Verify every visible pilot-critical button/link/tab/action is wired, authorized and exercised against the real Backend.
+- [ ] Student Web: AR/EN, RTL/LTR, 360/390/412 + tablet + desktop, Small/Normal/Large/Extra Large text, long strings and truthful loading/empty/error/retry/offline/degraded states.
+- [ ] Flutter: surface-specific Android/iOS evidence, text-size modes, safe areas, scrolling/input/back behavior and offline/retry states.
+- [ ] Admin: review the complete pilot content/support path for discoverability, human-readable selectors, destructive confirmations, working CRUD/review/publish actions, localization and no dead controls.
+- [ ] Record PASS / FAIL / BLOCKED / NOT TESTED plus evidence for every pilot-critical screen.
+- [ ] Do not close #435 while a known pilot-path P0/P1 defect remains or a pilot-critical screen is NOT TESTED.
+- [ ] #363 reconciles readiness only after #435 evidence is integrated. `PILOT USABLE` is an earlier supervised-use gate and does not equal `CHILDREN_READY = YES`.
+
 ## Children Ready — Student UX
 
 - [x] #358 — Student Web + Flutter learning-flow scope integrated through PRs #406, #407, #416, #417, #421, #423 and #424, with Backend adaptive-study dependency PR #422.
