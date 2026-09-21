@@ -31,6 +31,21 @@ A Domain Agent's completion condition is:
 
 Only the Integration Captain may declare a Wave closed after integrated-main verification and repository closure evidence are complete.
 
+## Children-first UX governance — `UX-CHILD-FIRST-001`
+
+For Student-learning, Web, Flutter, Parent and pilot-required Admin work, read `docs/learning/CHILDREN_FIRST_UX_HARD_GATE.md` before changing or accepting UI.
+
+While Issue #435 is open:
+
+- Pilot-critical P0/P1 UX defects outrank unrelated feature expansion.
+- Unrelated new features are frozen unless they directly unblock the pilot, fix security/data integrity, deployment/runtime, or required acceptance evidence.
+- Every visible action must be real, wired, authorized and exercised; dead clicks/placeholders are not acceptable.
+- Web, Flutter and Admin acceptance is surface-specific and screen-by-screen. Compilation or unit tests alone cannot prove UX completion.
+- Previously closed UX/RTL issues do not suppress newly observed regressions; create focused recovery evidence rather than pretending the old acceptance still covers the current screen.
+- No worker may move Backend-owned scoring, mastery, planning, identity or publication authority into clients to make a broken flow appear usable.
+
+Issue #435 owns the cross-surface recovery inventory. #363 remains the readiness/integration authority.
+
 ## Capability & settings surface governance
 
 Read `docs/product/CAPABILITY_SURFACE_GOVERNANCE.md` and `docs/product/capability-surface-matrix.yaml` before implementing or declaring complete any new capability, settings change, integration, Backend operator action, or user workflow.
