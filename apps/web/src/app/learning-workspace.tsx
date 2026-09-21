@@ -262,22 +262,17 @@ export default function LearningWorkspace() {
       let nextAdaptiveStudy: AdaptiveStudy | null = null;
       let restoredAttempt: Attempt | null = null;
       if (nextContext.state === "active") {
-        [nextCatalogue, nextProgress, nextAdaptiveStudy] = await Promise.all([
+        [nextCatalogue, nextProgress, nextAdaptiveStudy, restoredAttempt] = await Promise.all([
           learningApi.contentCatalogue(),
           learningApi.progress(),
           learningApi.adaptiveStudy(),
+          learningApi.currentAttempt(),
         ]);
-        const storedAttemptId = window.localStorage.getItem(activeAttemptStorageKey);
-        if (storedAttemptId) {
-          try {
-            const candidate = await learningApi.attempt(storedAttemptId);
-            if (candidate.status === "in_progress") restoredAttempt = candidate;
-            else window.localStorage.removeItem(activeAttemptStorageKey);
-          } catch (error) {
-            if (error instanceof LearningApiError && error.status === 404) {
-              window.localStorage.removeItem(activeAttemptStorageKey);
-            } else throw error;
-          }
+        if (restoredAttempt?.status === "in_progress") {
+          window.localStorage.setItem(activeAttemptStorageKey, restoredAttempt.id);
+        } else {
+          restoredAttempt = null;
+          window.localStorage.removeItem(activeAttemptStorageKey);
         }
       } else {
         window.localStorage.removeItem(activeAttemptStorageKey);
