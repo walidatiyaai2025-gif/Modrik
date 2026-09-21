@@ -367,7 +367,9 @@ export const learningApi = {
     ),
   startAttempt: (quizId: string, idempotencyKey: string) =>
     requestData<Attempt>("learning:attempt-start", "attempts", command("POST", { quiz_id: quizId }, idempotencyKey)),
-  currentAttempt: () => requestData<Attempt | null>("learning:attempt-current", "attempts/current"),
+  currentAttempt: () =>
+    requestData<{ attempt: Attempt | null }>("learning:attempt-current", "attempts/current")
+      .then(({ attempt }) => attempt),
   attempt: (attemptId: string) => requestData<Attempt>("learning:attempt", `attempts/${attemptId}`),
   answer: (
     attemptId: string,
