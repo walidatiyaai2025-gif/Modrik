@@ -1204,9 +1204,14 @@ components:
       required: [data, meta]
       properties:
         data:
-          oneOf:
-            - type: 'null'
-            - $ref: '#/components/schemas/Attempt'
+          type: object
+          additionalProperties: false
+          required: [attempt]
+          properties:
+            attempt:
+              oneOf:
+                - type: 'null'
+                - $ref: '#/components/schemas/Attempt'
         meta: {$ref: '#/components/schemas/ResponseMeta'}
     Answer:
       type: object
