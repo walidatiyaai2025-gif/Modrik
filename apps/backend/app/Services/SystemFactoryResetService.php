@@ -174,11 +174,12 @@ final class SystemFactoryResetService
 
         $normalized = array_map(static function (mixed $table): string {
             $name = (string) $table;
-            if (str_contains($name, '.')) {
-                $name = substr($name, (int) strrpos($name, '.') + 1);
+            $separator = strrpos($name, '.');
+            if ($separator !== false) {
+                $name = substr($name, $separator + 1);
             }
 
-            return trim($name, "`\"[]");
+            return trim($name, '`"[]');
         }, $tables);
 
         return array_values(array_unique(array_filter(
