@@ -221,6 +221,46 @@ function textInputValue(value: AnswerValue | undefined): string {
   return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
+function correctAnswerValue(contract: Record<string, unknown> | null): AnswerValue | undefined {
+  if (!contract) return undefined;
+  if (typeof contract.correct_option_id === "string") return contract.correct_option_id;
+  if (Array.isArray(contract.correct_option_ids)) {
+    return contract.correct_option_ids.filter((value): value is string => typeof value === "string");
+  }
+  if (typeof contract.correct === "boolean") return contract.correct;
+  if (typeof contract.value === "number") return contract.value;
+  if (Array.isArray(contract.accepted_answers)) {
+    const first = contract.accepted_answers.find((value): value is string => typeof value === "string");
+    return first;
+  }
+  return undefined;
+}
+
+function formatAnswer(
+  question: Attempt["questions"][number] | undefined,
+  value: AnswerValue | undefined,
+  locale: Locale,
+): string {
+  if (value === undefined) return "—";
+  if (typeof value === "boolean") {
+    if (locale === "ar") return value ? "صحيح" : "خطأ";
+    if (locale === "fr") return value ? "Vrai" : "Faux";
+    return value ? "True" : "False";
+  }
+  if (question && (question.response_contract.kind === "single_choice" || question.response_contract.kind === "multi_select")) {
+    const ids = Array.isArray(value) ? value : [String(value)];
+    const labels = ids.map((id) => {
+      const option = question.response_contract.kind === "single_choice" || question.response_contract.kind === "multi_select"
+        ? question.response_contract.options.find((candidate) => candidate.id === id)
+        : undefined;
+      return option ? localize(option.label, locale) : id;
+    });
+    return labels.join("، ");
+  }
+  if (Array.isArray(value)) return value.join("، ");
+  return String(value);
+}
+
 export default function LearningWorkspace() {
   const [locale, setLocale] = useState<Locale>("en");
   const [state, setState] = useState<ViewState>("loading");
