@@ -263,6 +263,18 @@ export default function LearningWorkspace() {
     [selectedSubject],
   );
 
+  const allLessons = useMemo(
+    () => selectedSubject ? flattenLessons(selectedSubject) : [],
+    [selectedSubject],
+  );
+
+  const firstLesson = allLessons[0] ?? null;
+  const firstAssessment = allAssessments[0] ?? null;
+  const firstMockExam = allAssessments.find((assessment) => assessment.kind === "mock_exam") ?? null;
+  const lessonPracticeAssessment = lesson?.practice_quiz_id
+    ? allAssessments.find((assessment) => assessment.id === lesson.practice_quiz_id) ?? null
+    : null;
+
   const applyAttempt = useCallback((nextAttempt: Attempt | null) => {
     setAttempt(nextAttempt);
     if (!nextAttempt) {
