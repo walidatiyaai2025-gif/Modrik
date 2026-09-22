@@ -739,11 +739,27 @@ export default function LearningWorkspace() {
               <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} onContextReconciled={load} />
             ) : view === "home" ? (
               <div className="dashboard-stack">
-                <section className="dashboard-hero">
+                <section className="dashboard-hero student-start-hero">
                   <div>
-                    <p className="eyebrow">{labels.home}</p>
-                    <h2>{labels.homeTitle}</h2>
-                    <p>{labels.homeSubtitle}</p>
+                    <p className="eyebrow">{copy.learningPath}</p>
+                    <h2>{copy.startLearning}</h2>
+                    <p>{copy.subjectHint}</p>
+                  </div>
+                  <div className="hero-actions">
+                    {firstLesson ? (
+                      <button type="button" className="primary-button" disabled={busy} onClick={() => void openLesson(firstLesson.id)}>
+                        {copy.startFirstLesson}
+                      </button>
+                    ) : (
+                      <button type="button" className="primary-button" onClick={() => setView("catalogue")}>
+                        {copy.catalogue}
+                      </button>
+                    )}
+                    {firstMockExam ? (
+                      <button type="button" className="hero-secondary-button" onClick={() => openAssessment(firstMockExam)}>
+                        {copy.mock_exam}
+                      </button>
+                    ) : null}
                   </div>
                 </section>
 
@@ -763,11 +779,24 @@ export default function LearningWorkspace() {
                   <section className="context-panel" data-student-home="continue-learning-empty">
                     <div className="section-heading-row">
                       <div>
-                        <p className="eyebrow">{labels.continueLearning}</p>
-                        <h2>{labels.noAttempt}</h2>
+                        <p className="eyebrow">{copy.learningPath}</p>
+                        <h2>{firstLesson ? localize(firstLesson.title, locale) : copy.chooseLesson}</h2>
                       </div>
                     </div>
-                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.catalogue}</button>
+                    <p>{copy.subjectHint}</p>
+                    <div className="journey-actions">
+                      {firstLesson ? (
+                        <button type="button" className="primary-button" disabled={busy} onClick={() => void openLesson(firstLesson.id)}>
+                          {copy.startLesson}
+                        </button>
+                      ) : null}
+                      {firstAssessment ? (
+                        <button type="button" className="secondary-button" onClick={() => openAssessment(firstAssessment)}>
+                          {copy.openAssessment}
+                        </button>
+                      ) : null}
+                      <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.catalogue}</button>
+                    </div>
                   </section>
                 )}
 
