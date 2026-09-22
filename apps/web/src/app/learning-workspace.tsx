@@ -1131,8 +1131,7 @@ export default function LearningWorkspace() {
                   {result ? (
                     <div className="result-review">
                       <div className="result-summary-card">
-                        <span>{copy.score}</span>
-                        <strong><MathText>{result.score} / {result.max_score}</MathText></strong>
+                        <span>{labels.result}</span><strong><MathText>{result.score} / {result.max_score}</MathText></strong>
                         <small>{copy.questionsAndAnswers}</small>
                       </div>
                       <div className="review-list">
