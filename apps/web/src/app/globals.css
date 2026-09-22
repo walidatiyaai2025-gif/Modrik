@@ -2049,3 +2049,12 @@ button:disabled {
 .dashboard-hero {
   overflow: hidden;
 }
+
+
+@media (max-width: 640px) {
+  .dashboard-hero {
+    inline-size: 100%;
+    max-inline-size: calc(100vw - 2.4rem);
+    margin-inline: 0;
+  }
+}
