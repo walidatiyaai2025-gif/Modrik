@@ -104,6 +104,19 @@ const catalogueCopy = {
     backCatalogue: "Back to content",
     trackContent: "Published curriculum for your active track",
     publishedOnly: "Only published lessons and assessments are shown.",
+    startLearning: "Start learning",
+    startFirstLesson: "Start first lesson",
+    learningPath: "Your learning path",
+    subjectHint: "Choose a subject, then open a lesson. Each lesson can take you straight to its practice.",
+    startLesson: "Start lesson",
+    lessonPractice: "Practice this lesson",
+    retryAssessment: "Try again",
+    chooseAnother: "Choose another lesson or exam",
+    lessonNumber: "Lesson",
+    unit: "Unit",
+    topic: "Topic",
+    exam: "Exam",
+    questionsAndAnswers: "Questions, answers & explanations",
   },
   ar: {
     catalogue: "المحتوى المنشور",
@@ -120,6 +133,19 @@ const catalogueCopy = {
     backCatalogue: "العودة للمحتوى",
     trackContent: "المنهج المنشور لمسارك الأكاديمي الحالي",
     publishedOnly: "تظهر هنا الدروس والتدريبات والاختبارات المنشورة فقط.",
+    startLearning: "ابدأ التعلّم",
+    startFirstLesson: "ابدأ أول درس",
+    learningPath: "مسار تعلّمك",
+    subjectHint: "اختر المادة ثم افتح الدرس. بعد كل درس ستجد زرًا واضحًا لبدء التدريب المرتبط به.",
+    startLesson: "ابدأ الدرس",
+    lessonPractice: "ابدأ تدريب الدرس",
+    retryAssessment: "جرّب مرة أخرى",
+    chooseAnother: "اختر درسًا أو اختبارًا آخر",
+    lessonNumber: "الدرس",
+    unit: "الوحدة",
+    topic: "الموضوع",
+    exam: "امتحان",
+    questionsAndAnswers: "الأسئلة والإجابات والتفسير",
   },
   fr: {
     catalogue: "Contenu publié",
@@ -136,6 +162,19 @@ const catalogueCopy = {
     backCatalogue: "Retour au contenu",
     trackContent: "Programme publié pour votre parcours actif",
     publishedOnly: "Seules les leçons et évaluations publiées sont affichées.",
+    startLearning: "Commencer à apprendre",
+    startFirstLesson: "Commencer la première leçon",
+    learningPath: "Votre parcours d’apprentissage",
+    subjectHint: "Choisissez une matière puis une leçon. Chaque leçon mène directement à son exercice.",
+    startLesson: "Commencer la leçon",
+    lessonPractice: "S’exercer sur cette leçon",
+    retryAssessment: "Réessayer",
+    chooseAnother: "Choisir une autre leçon ou évaluation",
+    lessonNumber: "Leçon",
+    unit: "Unité",
+    topic: "Sujet",
+    exam: "Examen",
+    questionsAndAnswers: "Questions, réponses et explications",
   },
 } as const;
 
@@ -154,6 +193,17 @@ function acknowledge(scope: string) {
 
 function flattenAssessments(node: CatalogueNode): CatalogueAssessment[] {
   return [node.assessments, ...node.children.map(flattenAssessments)].flat();
+}
+
+function flattenLessons(node: CatalogueNode) {
+  return [node.lessons, ...node.children.map(flattenLessons)].flat();
+}
+
+function nodeCounts(node: CatalogueNode) {
+  return {
+    lessons: flattenLessons(node).length,
+    assessments: flattenAssessments(node).length,
+  };
 }
 
 function isAnswerEmpty(value: AnswerValue | undefined): boolean {
