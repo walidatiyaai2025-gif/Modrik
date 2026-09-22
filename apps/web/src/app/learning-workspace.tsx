@@ -698,8 +698,8 @@ export default function LearningWorkspace() {
           <nav className="student-nav" aria-label={labels.navigation}>
             <button type="button" className="nav-item" aria-current={view === "home" ? "page" : undefined} onClick={() => setView("home")}><span className="nav-marker">01</span><span>{labels.home}</span></button>
             <button type="button" className="nav-item" aria-current={view === "catalogue" ? "page" : undefined} onClick={() => setView("catalogue")}><span className="nav-marker">02</span><span>{copy.catalogue}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "study" ? "page" : undefined} onClick={() => setView("study")}><span className="nav-marker">03</span><span>{labels.study}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "practice" ? "page" : undefined} onClick={() => setView("practice")}><span className="nav-marker">04</span><span>{labels.practice}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "study" ? "page" : undefined} onClick={() => setView(lesson ? "study" : "catalogue")}><span className="nav-marker">03</span><span>{labels.study}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "practice" ? "page" : undefined} onClick={() => setView(selectedAssessment || attempt ? "practice" : "catalogue")}><span className="nav-marker">04</span><span>{labels.practice}</span></button>
             <button type="button" className="nav-item" aria-current={view === "progress" ? "page" : undefined} onClick={() => setView("progress")}><span className="nav-marker">05</span><span>{labels.progress}</span></button>
             <button type="button" className="nav-item" aria-current={view === "academic" ? "page" : undefined} onClick={() => setView("academic")}><span className="nav-marker">06</span><span>{labels.academicTrack}</span></button>
           </nav>
