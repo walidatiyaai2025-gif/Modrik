@@ -33,6 +33,8 @@ final class AccountOperations extends Page
 
     public string $revokeReason = '';
 
+    public string $verifyReason = '';
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -80,12 +82,14 @@ final class AccountOperations extends Page
     {
         $this->selectedUserId = $userId;
         $this->revokeReason = '';
+        $this->verifyReason = '';
     }
 
     public function clearSelection(): void
     {
         $this->selectedUserId = '';
         $this->revokeReason = '';
+        $this->verifyReason = '';
     }
 
     public function revokeAllSessions(): void
@@ -114,6 +118,41 @@ final class AccountOperations extends Page
                 'fr' => (string) $result['revoked_sessions'].' session(s) active(s) révoquée(s).',
                 default => (string) $result['revoked_sessions'].' active session(s) revoked.',
             })
+            ->send();
+    }
+
+    public function verifySelectedEmail(): void
+    {
+        $actor = auth()->user();
+        if (! $actor instanceof User || $this->selectedUserId === '') {
+            return;
+        }
+
+        $result = app(AdminAccountOperationsService::class)->verifyStudentEmail(
+            $actor,
+            $this->selectedUserId,
+            $this->verifyReason,
+        );
+        $this->verifyReason = '';
+
+        Notification::make()
+            ->success()
+            ->title(match (App::getLocale()) {
+                'ar' => 'تم توثيق بريد الطالب',
+                'fr' => 'E-mail étudiant vérifié',
+                default => 'Student email verified',
+            })
+            ->body($result['changed']
+                ? match (App::getLocale()) {
+                    'ar' => 'تم اعتبار البريد موثّقًا بواسطة مدير النظام، ويمكن للطالب الآن تفعيل المسار والبدء.',
+                    'fr' => 'L’e-mail a été vérifié par un administrateur. L’étudiant peut maintenant activer son parcours.',
+                    default => 'The email was verified by an administrator. The student can now activate an academic track.',
+                }
+                : match (App::getLocale()) {
+                    'ar' => 'الحساب كان موثّقًا بالفعل؛ لم يتم تغيير شيء.',
+                    'fr' => 'Le compte était déjà vérifié ; aucune modification.',
+                    default => 'The account was already verified; nothing changed.',
+                })
             ->send();
     }
 
