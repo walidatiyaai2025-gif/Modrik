@@ -899,22 +899,45 @@ export default function LearningWorkspace() {
 
                 {catalogue?.state === "active" && catalogue.subjects.length > 0 ? (
                   <>
-                    <section className="context-panel">
-                      <div className="section-heading-row"><h2>{copy.chooseSubject}</h2></div>
-                      <div className="next-actions">
-                        {catalogue.subjects.map((subject) => (
-                          <button
-                            type="button"
-                            key={subject.id}
-                            className={selectedSubject?.id === subject.id ? "primary-button" : "secondary-button"}
-                            onClick={() => setSelectedSubjectReference(subject.reference)}
-                          >
-                            {localize(subject.title, locale)}
-                          </button>
-                        ))}
+                    <section className="context-panel subject-picker-panel">
+                      <div className="section-heading-row">
+                        <div>
+                          <p className="eyebrow">{copy.learningPath}</p>
+                          <h2>{copy.chooseSubject}</h2>
+                          <p className="subject-picker-help">{copy.subjectHint}</p>
+                        </div>
+                      </div>
+                      <div className="subject-card-grid">
+                        {catalogue.subjects.map((subject) => {
+                          const counts = nodeCounts(subject);
+                          const selected = selectedSubject?.id === subject.id;
+                          return (
+                            <button
+                              type="button"
+                              key={subject.id}
+                              className={selected ? "subject-card is-selected" : "subject-card"}
+                              aria-pressed={selected}
+                              onClick={() => setSelectedSubjectReference(subject.reference)}
+                            >
+                              <span className="subject-card-icon" aria-hidden="true">📘</span>
+                              <strong dir="auto">{localize(subject.title, locale)}</strong>
+                              <small>{counts.lessons} {copy.lessons} · {counts.assessments} {copy.assessments}</small>
+                            </button>
+                          );
+                        })}
                       </div>
                     </section>
-                    {selectedSubject ? renderNode(selectedSubject) : null}
+                    {selectedSubject ? (
+                      <section className="curriculum-surface">
+                        <div className="curriculum-surface-header">
+                          <div>
+                            <p className="eyebrow">{copy.learningPath}</p>
+                            <h2 dir="auto">{localize(selectedSubject.title, locale)}</h2>
+                          </div>
+                        </div>
+                        {renderNode(selectedSubject)}
+                      </section>
+                    ) : null}
                   </>
                 ) : (
                   <div className="empty-panel"><p>{copy.noContent}</p></div>
