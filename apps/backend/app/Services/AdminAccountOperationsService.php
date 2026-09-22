@@ -299,6 +299,68 @@ final class AdminAccountOperationsService
         });
     }
 
+    /** @return array{changed: bool, verified_at: string} */
+    public function verifyStudentEmail(User $actor, string $targetUserId, string $reason): array
+    {
+        $this->assertAdmin($actor);
+        $reason = trim($reason);
+        if (mb_strlen($reason) < 8 || mb_strlen($reason) > 500) {
+            throw ValidationException::withMessages([
+                'verifyReason' => 'A specific reason between 8 and 500 characters is required.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($actor, $targetUserId, $reason): array {
+            $target = User::query()->lockForUpdate()->find($targetUserId);
+            if (! $target instanceof User) {
+                throw ValidationException::withMessages(['selectedUserId' => 'The selected account no longer exists.']);
+            }
+            if ((string) $target->role !== 'student'
+                || (string) $target->account_status !== 'active'
+                || $target->deleted_at !== null) {
+                throw ValidationException::withMessages([
+                    'selectedUserId' => 'Only an active student account can be manually verified.',
+                ]);
+            }
+
+            $beforeActive = $this->activeSessionCount($target);
+            $before = $this->safeAuditState($target, $beforeActive);
+            $changed = $target->email_verified_at === null;
+            $now = now();
+
+            if ($changed) {
+                $target->forceFill(['email_verified_at' => $now])->save();
+
+                DB::table('auth_tokens')
+                    ->where('user_id', $target->getKey())
+                    ->where('purpose', 'email_verification')
+                    ->whereNull('revoked_at')
+                    ->update(['revoked_at' => $now]);
+            }
+
+            $afterActive = $this->activeSessionCount($target->refresh());
+            $after = $this->safeAuditState($target, $afterActive);
+
+            DB::table('admin_account_operation_audits')->insert([
+                'id' => (string) Str::ulid(),
+                'actor_id' => $actor->getKey(),
+                'target_user_id' => $target->getKey(),
+                'action' => $changed ? 'email.verify_manual' : 'email.verify_manual_noop',
+                'reason' => $reason,
+                'before' => json_encode($before, JSON_THROW_ON_ERROR),
+                'after' => json_encode($after, JSON_THROW_ON_ERROR),
+                'occurred_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            return [
+                'changed' => $changed,
+                'verified_at' => Carbon::parse((string) $target->email_verified_at)->toIso8601String(),
+            ];
+        });
+    }
+
     private function activeSessionCount(User $user): int
     {
         return DB::table('auth_sessions')
