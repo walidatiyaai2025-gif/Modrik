@@ -1998,3 +1998,40 @@ button:disabled {
     height: 2.7rem;
   }
 }
+
+
+@media (max-width: 640px) {
+  .student-start-hero,
+  .student-start-hero > *,
+  .student-start-hero .hero-actions,
+  .student-start-hero .hero-actions > *,
+  [data-student-home="continue-learning-empty"],
+  [data-student-home="continue-learning-empty"] .section-heading-row,
+  [data-student-home="continue-learning-empty"] .section-heading-row > *,
+  [data-student-home="continue-learning-empty"] .journey-actions,
+  [data-student-home="continue-learning-empty"] .journey-actions > * {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .student-start-hero {
+    overflow: hidden;
+  }
+
+  .student-start-hero h2,
+  .student-start-hero p,
+  .student-start-hero button,
+  [data-student-home="continue-learning-empty"] h2,
+  [data-student-home="continue-learning-empty"] p,
+  [data-student-home="continue-learning-empty"] button {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  [data-student-home="continue-learning-empty"] .section-heading-row {
+    flex-direction: column;
+  }
+}
