@@ -634,7 +634,8 @@ export default function LearningWorkspace() {
         </div>
 
         {node.lessons.length > 0 ? (
-          <div className="learning-card-grid" aria-label={copy.lessons}>
+          <div className="next-actions student-action-group" aria-label={copy.lessons}>
+            <div className="learning-card-grid">
             {node.lessons.map((item, index) => (
               <article className="learning-card lesson-card" key={item.id}>
                 <div className="learning-card-icon" aria-hidden="true">▶</div>
@@ -652,11 +653,13 @@ export default function LearningWorkspace() {
                 </div>
               </article>
             ))}
+            </div>
           </div>
         ) : null}
 
         {node.assessments.length > 0 ? (
-          <div className="assessment-card-grid" aria-label={copy.assessments}>
+          <div className="next-actions student-action-group" aria-label={copy.assessments}>
+            <div className="assessment-card-grid">
             {node.assessments.map((assessment) => (
               <article className="learning-card assessment-card" key={assessment.id}>
                 <div className="learning-card-icon assessment-icon" aria-hidden="true">
@@ -675,6 +678,7 @@ export default function LearningWorkspace() {
                 </div>
               </article>
             ))}
+            </div>
           </div>
         ) : null}
 
