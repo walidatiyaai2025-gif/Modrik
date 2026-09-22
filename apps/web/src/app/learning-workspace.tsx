@@ -593,43 +593,79 @@ export default function LearningWorkspace() {
   }
 
   function renderNode(node: CatalogueNode, depth = 0) {
+    const counts = nodeCounts(node);
+    const nodeLabel = node.type === "unit"
+      ? copy.unit
+      : node.type === "topic"
+        ? copy.topic
+        : copy.catalogue;
+
     return (
-      <section className="context-panel" key={node.id} data-node-type={node.type}>
-        <div className="section-heading-row">
+      <section
+        className={`curriculum-node curriculum-depth-${Math.min(depth, 2)}`}
+        key={node.id}
+        data-node-type={node.type}
+      >
+        <div className="curriculum-node-header">
           <div>
-            <p className="eyebrow">{node.type}</p>
+            <span className="curriculum-kind">{nodeLabel}</span>
             <h3 dir="auto">{localize(node.title, locale)}</h3>
           </div>
-          <small>{node.reference}</small>
+          <span className="curriculum-count">
+            {counts.lessons} {copy.lessons} · {counts.assessments} {copy.assessments}
+          </span>
         </div>
 
-        {node.lessons.length > 0 && (
-          <div className="next-actions" aria-label={copy.lessons}>
-            {node.lessons.map((item) => (
-              <button type="button" className="secondary-button" key={item.id} disabled={busy} onClick={() => void openLesson(item.id)}>
-                <strong dir="auto">{localize(item.title, locale)}</strong>
-                <span>{copy.openLesson}</span>
-              </button>
+        {node.lessons.length > 0 ? (
+          <div className="learning-card-grid" aria-label={copy.lessons}>
+            {node.lessons.map((item, index) => (
+              <article className="learning-card lesson-card" key={item.id}>
+                <div className="learning-card-icon" aria-hidden="true">▶</div>
+                <div className="learning-card-body">
+                  <span className="learning-card-kicker">{copy.lessonNumber} {index + 1}</span>
+                  <h4 dir="auto">{localize(item.title, locale)}</h4>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={busy}
+                    onClick={() => void openLesson(item.id)}
+                  >
+                    {copy.startLesson}
+                  </button>
+                </div>
+              </article>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {node.assessments.length > 0 && (
-          <div className="next-actions" aria-label={copy.assessments}>
+        {node.assessments.length > 0 ? (
+          <div className="assessment-card-grid" aria-label={copy.assessments}>
             {node.assessments.map((assessment) => (
-              <button type="button" className="secondary-button" key={assessment.id} onClick={() => openAssessment(assessment)}>
-                <strong dir="auto">{localize(assessment.title, locale)}</strong>
-                <span>{copy[assessment.kind]}</span>
-              </button>
+              <article className="learning-card assessment-card" key={assessment.id}>
+                <div className="learning-card-icon assessment-icon" aria-hidden="true">
+                  {assessment.kind === "mock_exam" ? "★" : "✓"}
+                </div>
+                <div className="learning-card-body">
+                  <span className="learning-card-kicker">{copy[assessment.kind]}</span>
+                  <h4 dir="auto">{localize(assessment.title, locale)}</h4>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => openAssessment(assessment)}
+                  >
+                    {assessment.kind === "mock_exam" ? copy.exam : copy.openAssessment}
+                  </button>
+                </div>
+              </article>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {node.children.length > 0 && (
-          <div className={depth === 0 ? "dashboard-stack" : "catalogue-children"}>
+        {node.children.length > 0 ? (
+          <div className="curriculum-children">
             {node.children.map((child) => renderNode(child, depth + 1))}
           </div>
-        )}
+        ) : null}
       </section>
     );
   }
