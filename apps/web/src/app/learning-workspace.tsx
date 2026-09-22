@@ -117,6 +117,11 @@ const catalogueCopy = {
     topic: "Topic",
     exam: "Exam",
     questionsAndAnswers: "Questions, answers & explanations",
+    readyForPractice: "Ready to practice?",
+    practiceExplainer: "Finish the lesson, then answer the linked questions and review every answer with its explanation.",
+    yourAnswer: "Your answer",
+    correctAnswer: "Correct answer",
+    score: "Score",
   },
   ar: {
     catalogue: "المحتوى المنشور",
@@ -146,6 +151,11 @@ const catalogueCopy = {
     topic: "الموضوع",
     exam: "امتحان",
     questionsAndAnswers: "الأسئلة والإجابات والتفسير",
+    readyForPractice: "جاهز للتدريب؟",
+    practiceExplainer: "بعد إنهاء الدرس ابدأ التدريب المرتبط به، أجب عن الأسئلة ثم راجع كل إجابة مع التفسير.",
+    yourAnswer: "إجابتك",
+    correctAnswer: "الإجابة الصحيحة",
+    score: "النتيجة",
   },
   fr: {
     catalogue: "Contenu publié",
@@ -175,6 +185,11 @@ const catalogueCopy = {
     topic: "Sujet",
     exam: "Examen",
     questionsAndAnswers: "Questions, réponses et explications",
+    readyForPractice: "Prêt à vous exercer ?",
+    practiceExplainer: "Après la leçon, répondez aux questions liées puis consultez chaque réponse avec son explication.",
+    yourAnswer: "Votre réponse",
+    correctAnswer: "Bonne réponse",
+    score: "Résultat",
   },
 } as const;
 
