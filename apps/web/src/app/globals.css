@@ -2035,3 +2035,17 @@ button:disabled {
     flex-direction: column;
   }
 }
+
+
+/* Keep the catalogue hero inside the viewport even at 200% root text scale. */
+.dashboard-stack,
+.dashboard-hero {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-hero {
+  overflow: hidden;
+}
