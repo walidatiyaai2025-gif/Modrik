@@ -1541,3 +1541,520 @@ button:disabled {
   }
 }
 
+
+
+
+
+.student-action-group {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.student-action-group > .learning-card-grid,
+.student-action-group > .assessment-card-grid {
+  width: 100%;
+  min-width: 0;
+}
+
+.hero-actions,
+.hero-actions > *,
+.journey-actions,
+.journey-actions > *,
+.curriculum-node,
+.curriculum-node-header,
+.curriculum-node-header > *,
+.curriculum-count,
+.learning-card,
+.learning-card-body,
+.learning-card-body > *,
+.subject-card,
+.subject-card > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hero-actions button,
+.journey-actions button,
+.learning-card button,
+.curriculum-count {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+/* Student learning journey — child-first catalogue, lesson, practice and review */
+.student-start-hero {
+  align-items: center;
+}
+
+.hero-actions,
+.journey-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.hero-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.hero-secondary-button {
+  min-height: 3rem;
+  padding: 0.7rem 1.15rem;
+  color: var(--modrik-white);
+  font-weight: 780;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--modrik-white) 58%, transparent);
+  border-radius: var(--modrik-radius-pill);
+  cursor: pointer;
+}
+
+.hero-secondary-button:hover {
+  background: color-mix(in srgb, var(--modrik-white) 12%, transparent);
+}
+
+.subject-picker-help {
+  max-width: 68ch;
+  margin-top: 0.65rem;
+  color: var(--modrik-slate);
+  line-height: 1.7;
+}
+
+.subject-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  gap: 0.9rem;
+  margin-top: 1.25rem;
+}
+
+.subject-card {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 0.25rem 0.9rem;
+  min-width: 0;
+  min-height: 6.5rem;
+  padding: 1rem 1.1rem;
+  color: var(--modrik-navy);
+  text-align: start;
+  background: var(--modrik-white);
+  border: 2px solid color-mix(in srgb, var(--modrik-blue) 14%, transparent);
+  border-radius: var(--modrik-radius-md);
+  cursor: pointer;
+}
+
+.subject-card:hover,
+.subject-card.is-selected {
+  border-color: var(--modrik-teal);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--modrik-navy) 8%, transparent);
+}
+
+.subject-card.is-selected {
+  background: color-mix(in srgb, var(--modrik-teal) 8%, var(--modrik-white));
+}
+
+.subject-card-icon {
+  grid-row: 1 / span 2;
+  display: grid;
+  width: 3.2rem;
+  height: 3.2rem;
+  place-items: center;
+  font-size: 1.4rem;
+  background: color-mix(in srgb, var(--modrik-sky) 70%, var(--modrik-white));
+  border-radius: var(--modrik-radius-md);
+}
+
+.subject-card strong,
+.subject-card small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.subject-card strong {
+  align-self: end;
+  font-size: 1.1rem;
+}
+
+.subject-card small {
+  color: var(--modrik-slate);
+  line-height: 1.45;
+}
+
+.curriculum-surface {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  background: var(--modrik-white);
+  border: 1px solid color-mix(in srgb, var(--modrik-blue) 10%, transparent);
+  border-radius: var(--modrik-radius-lg);
+}
+
+.curriculum-surface-header h2 {
+  margin-top: 0.25rem;
+  color: var(--modrik-navy);
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+}
+
+.curriculum-node {
+  min-width: 0;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--modrik-background) 58%, var(--modrik-white));
+  border: 1px solid color-mix(in srgb, var(--modrik-blue) 10%, transparent);
+  border-radius: var(--modrik-radius-md);
+}
+
+.curriculum-depth-1,
+.curriculum-depth-2 {
+  background: var(--modrik-white);
+}
+
+.curriculum-node-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.curriculum-node-header h3 {
+  margin-top: 0.25rem;
+  color: var(--modrik-navy);
+  font-size: clamp(1.15rem, 2vw, 1.45rem);
+  line-height: 1.5;
+}
+
+.curriculum-kind {
+  color: var(--modrik-blue);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.curriculum-count {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.65rem;
+  color: var(--modrik-slate);
+  font-size: 0.75rem;
+  background: var(--modrik-white);
+  border-radius: var(--modrik-radius-pill);
+}
+
+.curriculum-children {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 0.9rem;
+}
+
+.learning-card-grid,
+.assessment-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+
+.learning-card {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 1rem;
+  background: var(--modrik-white);
+  border: 1px solid color-mix(in srgb, var(--modrik-blue) 13%, transparent);
+  border-radius: var(--modrik-radius-md);
+}
+
+.learning-card:hover {
+  border-color: color-mix(in srgb, var(--modrik-teal) 70%, var(--modrik-blue));
+}
+
+.learning-card-icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  color: var(--modrik-white);
+  font-weight: 850;
+  background: var(--modrik-blue);
+  border-radius: 50%;
+}
+
+.assessment-icon {
+  color: var(--modrik-navy);
+  background: var(--modrik-teal);
+}
+
+.learning-card-body {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.learning-card-kicker {
+  color: var(--modrik-blue);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.learning-card h4 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--modrik-navy);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.learning-card .primary-button,
+.learning-card .secondary-button {
+  justify-self: start;
+  margin-top: 0.2rem;
+}
+
+.lesson-finish-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin-top: 2rem;
+  padding: clamp(1.2rem, 2.2vw, 1.7rem);
+  background: color-mix(in srgb, var(--modrik-teal) 9%, var(--modrik-white));
+  border: 1px solid color-mix(in srgb, var(--modrik-teal) 55%, transparent);
+  border-radius: var(--modrik-radius-md);
+}
+
+.lesson-finish-panel h3 {
+  margin-top: 0.25rem;
+  color: var(--modrik-navy);
+  font-size: 1.35rem;
+}
+
+.lesson-finish-panel p:not(.eyebrow) {
+  max-width: 62ch;
+  margin-top: 0.45rem;
+  color: var(--modrik-slate);
+  line-height: 1.7;
+}
+
+.result-review {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.result-summary-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 1.5rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--modrik-teal) 10%, var(--modrik-white));
+  border: 1px solid color-mix(in srgb, var(--modrik-teal) 50%, transparent);
+  border-radius: var(--modrik-radius-md);
+}
+
+.result-summary-card > span,
+.result-summary-card > small {
+  color: var(--modrik-slate);
+}
+
+.result-summary-card > strong {
+  color: var(--modrik-navy);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+}
+
+.review-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.review-card {
+  padding: 1rem 1.1rem;
+  background: var(--modrik-white);
+  border: 1px solid color-mix(in srgb, var(--modrik-blue) 14%, transparent);
+  border-inline-start: 0.35rem solid var(--modrik-amber);
+  border-radius: var(--modrik-radius-md);
+}
+
+.review-card.is-correct {
+  border-inline-start-color: var(--modrik-teal);
+}
+
+.review-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--modrik-navy);
+}
+
+.review-question {
+  margin-top: 0.75rem;
+  color: var(--modrik-ink);
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.answer-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+
+.answer-review-grid > div {
+  min-width: 0;
+  padding: 0.8rem;
+  background: var(--modrik-background);
+  border-radius: var(--modrik-radius-sm);
+}
+
+.answer-review-grid dt {
+  color: var(--modrik-slate);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.answer-review-grid dd {
+  margin-top: 0.3rem;
+  overflow-wrap: anywhere;
+  color: var(--modrik-navy);
+  font-weight: 750;
+}
+
+.answer-explanation {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid color-mix(in srgb, var(--modrik-slate) 16%, transparent);
+}
+
+.answer-explanation p {
+  margin-top: 0.35rem;
+  line-height: 1.7;
+}
+
+.result-actions {
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .student-start-hero,
+  .lesson-finish-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero-actions {
+    justify-content: flex-start;
+  }
+
+  .curriculum-node-header {
+    flex-direction: column;
+  }
+
+  .curriculum-count {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .answer-review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .subject-card-grid,
+  .learning-card-grid,
+  .assessment-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .journey-actions > *,
+  .hero-actions > * {
+    width: 100%;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .learning-card {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-card-icon {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  .subject-card {
+    grid-template-columns: 2.7rem minmax(0, 1fr);
+  }
+
+  .subject-card-icon {
+    width: 2.7rem;
+    height: 2.7rem;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .student-start-hero,
+  .student-start-hero > *,
+  .student-start-hero .hero-actions,
+  .student-start-hero .hero-actions > *,
+  [data-student-home="continue-learning-empty"],
+  [data-student-home="continue-learning-empty"] .section-heading-row,
+  [data-student-home="continue-learning-empty"] .section-heading-row > *,
+  [data-student-home="continue-learning-empty"] .journey-actions,
+  [data-student-home="continue-learning-empty"] .journey-actions > * {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .student-start-hero {
+    overflow: hidden;
+  }
+
+  .student-start-hero h2,
+  .student-start-hero p,
+  .student-start-hero button,
+  [data-student-home="continue-learning-empty"] h2,
+  [data-student-home="continue-learning-empty"] p,
+  [data-student-home="continue-learning-empty"] button {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  [data-student-home="continue-learning-empty"] .section-heading-row {
+    flex-direction: column;
+  }
+}
+
+
+/* Keep the catalogue hero inside the viewport even at 200% root text scale. */
+.dashboard-stack,
+.dashboard-hero {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.dashboard-hero {
+  overflow: hidden;
+}
+
+
+@media (max-width: 640px) {
+  .dashboard-hero {
+    inline-size: 100%;
+    max-inline-size: calc(100vw - 2.4rem);
+    margin-inline: 0;
+  }
+}
