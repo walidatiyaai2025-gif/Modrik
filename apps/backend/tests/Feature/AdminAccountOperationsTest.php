@@ -250,7 +250,8 @@ final class AdminAccountOperationsTest extends TestCase
             ->call('verifySelectedEmail')
             ->assertHasErrors(['verifyReason']);
 
-        $this->assertNull($student->fresh()->email_verified_at);
+        $student->refresh();
+        $this->assertNull($student->email_verified_at);
 
         Livewire::test(AccountOperations::class)
             ->set('selectedUserId', (string) $content->id)
@@ -258,7 +259,8 @@ final class AdminAccountOperationsTest extends TestCase
             ->call('verifySelectedEmail')
             ->assertHasErrors(['selectedUserId']);
 
-        $this->assertNull($content->fresh()->email_verified_at);
+        $content->refresh();
+        $this->assertNull($content->email_verified_at);
     }
 
     public function test_role_matrix_is_read_only_and_arabic_surface_is_rtl(): void
