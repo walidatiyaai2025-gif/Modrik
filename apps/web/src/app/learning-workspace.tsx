@@ -965,11 +965,36 @@ export default function LearningWorkspace() {
                     <div><p className="eyebrow">{labels.study}</p><h2 dir="auto">{lesson ? localize(lesson.title, locale) : labels.lessonEmpty}</h2></div>
                     <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.backCatalogue}</button>
                   </div>
-                  {lesson ? lesson.blocks.map((block) => (
-                    <article key={block.id} className="lesson-block" data-block-type={block.type}>
-                      {block.type === "heading" ? <h3 dir="auto">{localize(block.content, locale)}</h3> : <p dir="auto">{localize(block.content, locale)}</p>}
-                    </article>
-                  )) : <p>{copy.chooseLesson}</p>}
+                  {lesson ? (
+                    <>
+                      <div className="lesson-content">
+                        {lesson.blocks.map((block) => (
+                          <article key={block.id} className="lesson-block" data-block-type={block.type}>
+                            {block.type === "heading"
+                              ? <h3 dir="auto">{localize(block.content, locale)}</h3>
+                              : <p dir="auto">{localize(block.content, locale)}</p>}
+                          </article>
+                        ))}
+                      </div>
+                      <section className="lesson-finish-panel" aria-label={copy.readyForPractice}>
+                        <div>
+                          <p className="eyebrow">{copy.questionsAndAnswers}</p>
+                          <h3>{copy.readyForPractice}</h3>
+                          <p>{copy.practiceExplainer}</p>
+                        </div>
+                        <div className="journey-actions">
+                          {lessonPracticeAssessment ? (
+                            <button type="button" className="primary-button" onClick={() => openAssessment(lessonPracticeAssessment)}>
+                              {copy.lessonPractice}
+                            </button>
+                          ) : null}
+                          <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>
+                            {copy.chooseAnother}
+                          </button>
+                        </div>
+                      </section>
+                    </>
+                  ) : <p>{copy.chooseLesson}</p>}
                 </section>
               </div>
             ) : view === "practice" ? (
@@ -1103,13 +1128,59 @@ export default function LearningWorkspace() {
 
                   {result ? (
                     <div className="result-review">
-                      <div className="metric-card"><span>{labels.result}</span><strong><MathText>{result.score} / {result.max_score}</MathText></strong></div>
-                      {(result.review ?? []).map((review) => (
-                        <article className="question-card" key={review.attempt_question_id}>
-                          <strong>{labels.question} {review.position} · {review.correct === true ? labels.correct : labels.needsReview}</strong>
-                          {review.explanation ? <p dir="auto"><span className="eyebrow">{labels.explanation}</span> {localize(review.explanation, locale)}</p> : null}
-                        </article>
-                      ))}
+                      <div className="result-summary-card">
+                        <span>{copy.score}</span>
+                        <strong><MathText>{result.score} / {result.max_score}</MathText></strong>
+                        <small>{copy.questionsAndAnswers}</small>
+                      </div>
+                      <div className="review-list">
+                        {(result.review ?? []).map((review) => {
+                          const question = result.attempt.questions.find(
+                            (candidate) => candidate.attempt_question_id === review.attempt_question_id,
+                          );
+                          const correctValue = correctAnswerValue(review.correct_answer);
+                          return (
+                            <article
+                              className={review.correct === true ? "review-card is-correct" : "review-card needs-review"}
+                              key={review.attempt_question_id}
+                            >
+                              <div className="review-card-heading">
+                                <span>{labels.question} {review.position}</span>
+                                <strong>{review.correct === true ? labels.correct : labels.needsReview}</strong>
+                              </div>
+                              {question ? (
+                                <p className="review-question" dir="auto">
+                                  <LocalizedQuestionText text={localize(question.prompt, locale)} locale={locale} />
+                                </p>
+                              ) : null}
+                              <dl className="answer-review-grid">
+                                <div>
+                                  <dt>{copy.yourAnswer}</dt>
+                                  <dd dir="auto">{formatAnswer(question, review.current_answer?.value, locale)}</dd>
+                                </div>
+                                <div>
+                                  <dt>{copy.correctAnswer}</dt>
+                                  <dd dir="auto">{formatAnswer(question, correctValue, locale)}</dd>
+                                </div>
+                              </dl>
+                              {review.explanation ? (
+                                <div className="answer-explanation">
+                                  <span className="eyebrow">{labels.explanation}</span>
+                                  <p dir="auto">{localize(review.explanation, locale)}</p>
+                                </div>
+                              ) : null}
+                            </article>
+                          );
+                        })}
+                      </div>
+                      <div className="journey-actions result-actions">
+                        <button type="button" className="primary-button" disabled={busy || state === "offline"} onClick={() => void startAssessment()}>
+                          {copy.retryAssessment}
+                        </button>
+                        <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>
+                          {copy.chooseAnother}
+                        </button>
+                      </div>
                     </div>
                   ) : null}
 
