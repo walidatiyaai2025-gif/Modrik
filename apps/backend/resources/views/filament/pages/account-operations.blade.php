@@ -165,6 +165,29 @@
                     </div>
                 </div>
 
+                @if (! $selectedAccount['verified'] && $selectedAccount['role'] === 'student' && $selectedAccount['account_status'] === 'active')
+                    <div class="mt-6 min-w-0 max-w-full rounded-2xl border border-warning-200 bg-warning-50 p-5" data-testid="modrik-manual-email-verification">
+                        <h3 class="break-words font-semibold text-warning-950">{{ $locale === 'ar' ? 'توثيق بريد الطالب يدويًا' : ($locale === 'fr' ? 'Vérifier manuellement l’e-mail étudiant' : 'Manually verify student email') }}</h3>
+                        <p class="mt-1 break-words text-sm text-warning-800">
+                            {{ $locale === 'ar'
+                                ? 'استخدم هذا فقط بعد التأكد من هوية الطالب والبريد. الإجراء يتجاوز انتظار رسالة التفعيل، يلغي رموز التفعيل القديمة، ويسجل المدير والسبب في سجل التدقيق.'
+                                : ($locale === 'fr'
+                                    ? 'Utilisez cette action uniquement après vérification de l’identité et de l’adresse. Elle contourne l’attente de l’e-mail, révoque les anciens jetons et journalise l’opérateur et le motif.'
+                                    : 'Use this only after confirming the student and email address. It bypasses email delivery, revokes old verification tokens, and audits the operator and reason.') }}
+                        </p>
+                        <label class="mt-4 block min-w-0">
+                            <span class="text-sm font-medium text-warning-950">{{ $locale === 'ar' ? 'سبب محدد (مطلوب)' : ($locale === 'fr' ? 'Raison précise (requise)' : 'Specific reason (required)') }}</span>
+                            <textarea wire:model="verifyReason" rows="2" maxlength="500" class="mt-2 block w-full max-w-full rounded-lg border-warning-300 text-sm shadow-sm focus:border-warning-500 focus:ring-warning-500" placeholder="{{ $locale === 'ar' ? 'مثال: حساب طفل تم التحقق منه بواسطة ولي الأمر — تعذر وصول رسالة التفعيل' : ($locale === 'fr' ? 'Exemple : compte enfant vérifié par le parent — e-mail non reçu' : 'Example: child account confirmed by parent — verification email not received') }}"></textarea>
+                            @error('verifyReason') <span class="mt-1 block break-words text-xs text-danger-700">{{ $message }}</span> @enderror
+                        </label>
+                        <div class="mt-4 flex min-w-0 flex-wrap justify-end">
+                            <x-filament::button color="warning" wire:click="verifySelectedEmail" wire:confirm="{{ $locale === 'ar' ? 'تأكيد توثيق بريد هذا الطالب يدويًا؟' : ($locale === 'fr' ? 'Confirmer la vérification manuelle de cet e-mail étudiant ?' : 'Confirm manual verification for this student email?') }}">
+                                {{ $locale === 'ar' ? 'توثيق البريد وفتح التعلم' : ($locale === 'fr' ? 'Vérifier et autoriser l’apprentissage' : 'Verify email and enable learning') }}
+                            </x-filament::button>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="mt-6 min-w-0 max-w-full rounded-2xl border border-danger-200 bg-danger-50 p-5" data-testid="modrik-session-recovery">
                     <h3 class="break-words font-semibold text-danger-950">{{ $locale === 'ar' ? 'استرداد أمني: إلغاء كل الجلسات' : ($locale === 'fr' ? 'Récupération de sécurité : révoquer toutes les sessions' : 'Security recovery: revoke all sessions') }}</h3>
                     <p class="mt-1 break-words text-sm text-danger-800">{{ $locale === 'ar' ? 'يستخدم هذا الإجراء خدمة المصادقة الرسمية ويسجل السبب والمشغل والنتيجة في سجل غير قابل للتغيير من الواجهة.' : ($locale === 'fr' ? 'Cette action utilise le service Auth canonique et journalise la raison, l’opérateur et le résultat.' : 'This action uses the canonical Auth service and audits the reason, operator and result.') }}</p>
