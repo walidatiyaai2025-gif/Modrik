@@ -196,6 +196,71 @@ final class AdminAccountOperationsTest extends TestCase
         $this->assertSame(0, DB::table('admin_account_operation_audits')->count());
     }
 
+    public function test_admin_can_manually_verify_active_student_with_reason_and_revoke_stale_tokens(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
+        $student = User::factory()->unverified()->create([
+            'role' => 'student',
+            'account_status' => 'active',
+        ]);
+        $now = now();
+
+        DB::table('auth_tokens')->insert([
+            'id' => (string) Str::ulid(),
+            'user_id' => $student->id,
+            'purpose' => 'email_verification',
+            'token_hash' => hash('sha256', 'old-verification-token'),
+            'expires_at' => $now->copy()->addHour(),
+            'consumed_at' => null,
+            'revoked_at' => null,
+            'created_at' => $now,
+        ]);
+
+        $this->actingAs($admin);
+        Livewire::test(AccountOperations::class)
+            ->call('selectAccount', (string) $student->id)
+            ->assertSee('data-testid="modrik-manual-email-verification"', false)
+            ->set('verifyReason', 'Parent confirmed this child account after email delivery failed.')
+            ->call('verifySelectedEmail')
+            ->assertHasNoErrors();
+
+        $student->refresh();
+        $this->assertNotNull($student->email_verified_at);
+        $this->assertNotNull(DB::table('auth_tokens')->where('user_id', $student->id)->value('revoked_at'));
+
+        $audit = DB::table('admin_account_operation_audits')->where('target_user_id', $student->id)->sole();
+        $this->assertSame('email.verify_manual', $audit->action);
+        $this->assertSame($admin->id, $audit->actor_id);
+        $before = json_decode((string) $audit->before, true, 512, JSON_THROW_ON_ERROR);
+        $after = json_decode((string) $audit->after, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertFalse($before['verified']);
+        $this->assertTrue($after['verified']);
+    }
+
+    public function test_manual_verification_fails_closed_for_non_student_or_short_reason(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
+        $student = User::factory()->unverified()->create(['role' => 'student', 'account_status' => 'active']);
+        $content = User::factory()->unverified()->create(['role' => 'content_team', 'account_status' => 'active']);
+
+        $this->actingAs($admin);
+        Livewire::test(AccountOperations::class)
+            ->set('selectedUserId', (string) $student->id)
+            ->set('verifyReason', 'short')
+            ->call('verifySelectedEmail')
+            ->assertHasErrors(['verifyReason']);
+
+        $this->assertNull($student->fresh()->email_verified_at);
+
+        Livewire::test(AccountOperations::class)
+            ->set('selectedUserId', (string) $content->id)
+            ->set('verifyReason', 'Operator attempted to bypass verification for a staff account.')
+            ->call('verifySelectedEmail')
+            ->assertHasErrors(['selectedUserId']);
+
+        $this->assertNull($content->fresh()->email_verified_at);
+    }
+
     public function test_role_matrix_is_read_only_and_arabic_surface_is_rtl(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
