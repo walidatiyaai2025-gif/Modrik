@@ -11,6 +11,7 @@ import {
   type Attempt,
   type AttemptResult,
   type CatalogueAssessment,
+  type CatalogueLesson,
   type CatalogueNode,
   type ContentCatalogue,
   type Lesson,
@@ -210,7 +211,7 @@ function flattenAssessments(node: CatalogueNode): CatalogueAssessment[] {
   return [node.assessments, ...node.children.map(flattenAssessments)].flat();
 }
 
-function flattenLessons(node: CatalogueNode) {
+function flattenLessons(node: CatalogueNode): CatalogueLesson[] {
   return [node.lessons, ...node.children.map(flattenLessons)].flat();
 }
 
@@ -262,15 +263,16 @@ function formatAnswer(
     if (locale === "fr") return value ? "Vrai" : "Faux";
     return value ? "True" : "False";
   }
-  if (question && (question.response_contract.kind === "single_choice" || question.response_contract.kind === "multi_select")) {
-    const ids = Array.isArray(value) ? value : [String(value)];
-    const labels = ids.map((id) => {
-      const option = question.response_contract.kind === "single_choice" || question.response_contract.kind === "multi_select"
-        ? question.response_contract.options.find((candidate) => candidate.id === id)
-        : undefined;
-      return option ? localize(option.label, locale) : id;
-    });
-    return labels.join("، ");
+  if (question) {
+    const contract = question.response_contract;
+    if (contract.kind === "single_choice" || contract.kind === "multi_select") {
+      const ids = Array.isArray(value) ? value : [String(value)];
+      const labels = ids.map((id) => {
+        const option = contract.options.find((candidate) => candidate.id === id);
+        return option ? localize(option.label, locale) : id;
+      });
+      return labels.join("، ");
+    }
   }
   if (Array.isArray(value)) return value.join("، ");
   return String(value);
