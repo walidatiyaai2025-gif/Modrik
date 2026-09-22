@@ -145,6 +145,7 @@ final class AcademicCatalogue extends Page
                 'year_label' => $this->humanizeReference((string) $row->year_level),
                 'title' => $title,
                 'is_fixture' => (bool) $row->is_fixture,
+                'availability_state' => (string) $row->availability_state,
                 'locked' => $this->canMutateTrack((string) $row->id) === false,
                 'updated_at' => (string) $row->updated_at,
             ];
@@ -216,6 +217,55 @@ final class AcademicCatalogue extends Page
         $this->editingId = null;
         $this->sourceRequestId = null;
         $this->resetForm();
+    }
+
+    public function publishTrack(string $id): void
+    {
+        $this->setAvailability($id, 'published');
+    }
+
+    public function hideTrack(string $id): void
+    {
+        $this->setAvailability($id, 'draft');
+    }
+
+    private function setAvailability(string $id, string $state): void
+    {
+        if (! in_array($state, ['draft', 'published'], true)) {
+            return;
+        }
+
+        $user = auth()->user();
+        abort_unless($user instanceof User && (string) $user->role === 'admin', 403);
+
+        DB::transaction(function () use ($id, $state): void {
+            $before = DB::table('academic_tracks')->where('id', $id)->lockForUpdate()->first();
+            if (! $before instanceof \stdClass || (string) $before->availability_state === $state) {
+                return;
+            }
+
+            $now = now();
+            DB::table('academic_tracks')->where('id', $id)->update([
+                'availability_state' => $state,
+                'updated_at' => $now,
+            ]);
+
+            $after = DB::table('academic_tracks')->where('id', $id)->first();
+            DB::table('academic_track_audits')->insert([
+                'id' => (string) Str::ulid(),
+                'academic_track_id' => $id,
+                'actor_id' => auth()->id(),
+                'action' => $state === 'published' ? 'published_to_students' : 'hidden_from_students',
+                'before' => json_encode((array) $before, JSON_THROW_ON_ERROR),
+                'after' => json_encode((array) $after, JSON_THROW_ON_ERROR),
+                'reason' => $state === 'published'
+                    ? 'Operator explicitly published this academic track to the student catalogue.'
+                    : 'Operator explicitly hid this academic track from the student catalogue.',
+                'occurred_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        });
     }
 
     public function save(): void
@@ -369,6 +419,8 @@ final class AcademicCatalogue extends Page
                     'action' => match ((string) $audit->action) {
                         'created' => $this->translate('Academic track created', 'تم إنشاء المسار الأكاديمي', 'Parcours académique créé'),
                         'updated' => $this->translate('Academic track updated', 'تم تحديث المسار الأكاديمي', 'Parcours académique mis à jour'),
+                        'published_to_students' => $this->translate('Academic track published to students', 'تم إتاحة المسار للطلاب', 'Parcours publié aux élèves'),
+                        'hidden_from_students' => $this->translate('Academic track hidden from students', 'تم إخفاء المسار عن الطلاب', 'Parcours masqué aux élèves'),
                         default => (string) $audit->action,
                     },
                     'status' => (string) ($title[App::getLocale()] ?? $title['en'] ?? $this->translate('Academic track', 'مسار أكاديمي', 'Parcours académique')),

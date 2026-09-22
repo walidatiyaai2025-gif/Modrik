@@ -128,8 +128,13 @@
                                         <td class="px-4 py-3">{{ $row['year_label'] }}</td>
                                         <td class="px-4 py-3">
                                             <div class="flex flex-wrap gap-2">
-                                                <x-filament::badge :color="$row['is_fixture'] ? 'gray' : 'success'">
-                                                    {{ $row['is_fixture'] ? ($locale === 'ar' ? 'اختباري' : 'Fixture') : ($locale === 'ar' ? 'معتمد' : ($locale === 'fr' ? 'Approuvé' : 'Approved')) }}
+                                                <x-filament::badge :color="$row['is_fixture'] ? 'gray' : 'info'">
+                                                    {{ $row['is_fixture'] ? ($locale === 'ar' ? 'اختباري' : 'Fixture') : ($locale === 'ar' ? 'حقيقي' : ($locale === 'fr' ? 'Réel' : 'Real')) }}
+                                                </x-filament::badge>
+                                                <x-filament::badge :color="$row['availability_state'] === 'published' ? 'success' : 'warning'">
+                                                    {{ $row['availability_state'] === 'published'
+                                                        ? ($locale === 'ar' ? 'متاح للطلاب' : ($locale === 'fr' ? 'Visible aux élèves' : 'Student visible'))
+                                                        : ($locale === 'ar' ? 'مسودة غير ظاهرة' : ($locale === 'fr' ? 'Brouillon masqué' : 'Hidden draft')) }}
                                                 </x-filament::badge>
                                                 @if ($row['locked'])
                                                     <x-filament::badge color="warning">{{ $locale === 'ar' ? 'مقفل تاريخيًا' : ($locale === 'fr' ? 'Historique verrouillé' : 'History locked') }}</x-filament::badge>
@@ -137,13 +142,32 @@
                                             </div>
                                         </td>
                                         <td class="px-4 py-3 text-end">
-                                            @if ($row['locked'])
-                                                <span class="text-xs text-gray-500">{{ $locale === 'ar' ? 'للقراءة فقط' : ($locale === 'fr' ? 'Lecture seule' : 'Read only') }}</span>
-                                            @else
-                                                <x-filament::button size="sm" color="gray" wire:click="edit('{{ $row['id'] }}')">
-                                                    {{ $locale === 'ar' ? 'تعديل' : ($locale === 'fr' ? 'Modifier' : 'Edit') }}
-                                                </x-filament::button>
-                                            @endif
+                                            <div class="flex flex-wrap justify-end gap-2">
+                                                @if (! $row['locked'])
+                                                    <x-filament::button size="sm" color="gray" wire:click="edit('{{ $row['id'] }}')">
+                                                        {{ $locale === 'ar' ? 'تعديل' : ($locale === 'fr' ? 'Modifier' : 'Edit') }}
+                                                    </x-filament::button>
+                                                @endif
+                                                @if ($row['availability_state'] === 'published')
+                                                    <x-filament::button
+                                                        size="sm"
+                                                        color="warning"
+                                                        wire:click="hideTrack('{{ $row['id'] }}')"
+                                                        wire:confirm="{{ $locale === 'ar' ? 'إخفاء هذا المسار من شاشة الطلاب؟' : ($locale === 'fr' ? 'Masquer ce parcours aux élèves ?' : 'Hide this track from students?') }}"
+                                                    >
+                                                        {{ $locale === 'ar' ? 'إخفاء عن الطلاب' : ($locale === 'fr' ? 'Masquer' : 'Hide') }}
+                                                    </x-filament::button>
+                                                @else
+                                                    <x-filament::button
+                                                        size="sm"
+                                                        color="success"
+                                                        wire:click="publishTrack('{{ $row['id'] }}')"
+                                                        wire:confirm="{{ $locale === 'ar' ? 'إتاحة هذا المسار في شاشة الطلاب؟ تأكد أولًا من نشر المحتوى المناسب.' : ($locale === 'fr' ? 'Publier ce parcours aux élèves ? Vérifiez d’abord le contenu.' : 'Publish this track to students? Confirm suitable content is published first.') }}"
+                                                    >
+                                                        {{ $locale === 'ar' ? 'إتاحة للطلاب' : ($locale === 'fr' ? 'Publier' : 'Publish') }}
+                                                    </x-filament::button>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach

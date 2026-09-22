@@ -116,6 +116,57 @@ class AdminAcademicCatalogueTest extends TestCase
         $this->assertDatabaseCount('academic_track_audits', 0);
     }
 
+    public function test_admin_explicitly_publishes_and_hides_track_for_student_catalogue(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $trackId = '01J00000000000000000000982';
+        $now = now();
+
+        DB::table('academic_tracks')->insert([
+            'id' => $trackId,
+            'code' => 'TRACK:YEAR-6:PUBLISH',
+            'board_reference' => 'BOARD:KUWAIT',
+            'syllabus_version' => 'SYLLABUS:2026',
+            'year_level' => 'YEAR:6',
+            'title' => json_encode(['en' => 'Year 6', 'ar' => 'الصف السادس', 'fr' => '6e année'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+            'is_fixture' => false,
+            'availability_state' => 'draft',
+            'display_order' => 0,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(AcademicCatalogue::class)
+            ->assertSee('Hidden draft')
+            ->call('publishTrack', $trackId)
+            ->assertHasNoErrors()
+            ->assertSee('Student visible');
+
+        $this->assertDatabaseHas('academic_tracks', [
+            'id' => $trackId,
+            'availability_state' => 'published',
+        ]);
+        $this->assertDatabaseHas('academic_track_audits', [
+            'academic_track_id' => $trackId,
+            'action' => 'published_to_students',
+        ]);
+
+        Livewire::test(AcademicCatalogue::class)
+            ->call('hideTrack', $trackId)
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('academic_tracks', [
+            'id' => $trackId,
+            'availability_state' => 'draft',
+        ]);
+        $this->assertDatabaseHas('academic_track_audits', [
+            'academic_track_id' => $trackId,
+            'action' => 'hidden_from_students',
+        ]);
+    }
+
     public function test_navigation_label_is_localized_for_ar_en_fr(): void
     {
         App::setLocale('en');
