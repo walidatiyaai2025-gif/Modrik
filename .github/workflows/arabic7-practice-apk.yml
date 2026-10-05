@@ -25,6 +25,26 @@ jobs:
           unzip -q arabic7-practice-app-src.zip
           test -f arabic7-practice-app/app/src/main/assets/questions.json.gz
 
+      - name: Make asset loading robust
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("arabic7-practice-app/app/src/main/java/com/fiftysolutions/arabic7/MainActivity.java")
+          s = p.read_text(encoding="utf-8")
+          old = 'BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(getAssets().open("questions.json.gz")), "UTF-8"));'
+          new = '''BufferedReader br;
+                  try {
+                      br = new BufferedReader(new InputStreamReader(getAssets().open("questions.json"), "UTF-8"));
+                  } catch (Exception plainMissing) {
+                      br = new BufferedReader(new InputStreamReader(new GZIPInputStream(getAssets().open("questions.json.gz")), "UTF-8"));
+                  }'''
+          if old not in s:
+              raise SystemExit("Expected loader line not found")
+          p.write_text(s.replace(old, new), encoding="utf-8")
+          PY
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -75,6 +95,14 @@ jobs:
           gradle --no-daemon --stacktrace assembleDebug
           test -f app/build/outputs/apk/debug/app-debug.apk
           cp app/build/outputs/apk/debug/app-debug.apk ../Arabic7-Practice-1.0.0.apk
+
+      - name: Verify packaged content
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -t Arabic7-Practice-1.0.0.apk >/dev/null
+          unzip -l Arabic7-Practice-1.0.0.apk | grep -E 'assets/questions\.json(\.gz)?'
+          test "$(unzip -p Arabic7-Practice-1.0.0.apk assets/questions.json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d["questions"]))' || true)" = "650"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
