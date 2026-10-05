@@ -20,7 +20,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .arabic7-build/part*.b64 | tr -d '\r\n' | base64 --decode > arabic7-practice-app-src.zip
+          cat .arabic7-build/part00.b64 .arabic7-build/part01.b64 .arabic7-build/part02.b64 .arabic7-build/part03.b64 .arabic7-build/part04a1.b64 .arabic7-build/part04a2.b64 .arabic7-build/part04b.b64 .arabic7-build/part05.b64 .arabic7-build/part06.b64 | tr -d '\r\n' | base64 --decode > arabic7-practice-app-src.zip
           unzip -t arabic7-practice-app-src.zip
           unzip -q arabic7-practice-app-src.zip
           test -f arabic7-practice-app/app/src/main/assets/questions.json.gz
