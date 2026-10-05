@@ -59,6 +59,15 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Create Android debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v               -keystore "$HOME/.android/debug.keystore"               -storepass android               -alias androiddebugkey               -keypass android               -dname "CN=Android Debug,O=Android,C=US"               -keyalg RSA -keysize 2048 -validity 10000
+          fi
+
       - name: Build installable APK
         working-directory: arabic7-practice-app
         shell: bash
