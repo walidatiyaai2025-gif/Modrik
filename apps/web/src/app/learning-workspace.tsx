@@ -11,6 +11,7 @@ import {
   type Attempt,
   type AttemptResult,
   type CatalogueAssessment,
+  type CatalogueLesson,
   type CatalogueNode,
   type ContentCatalogue,
   type Lesson,
@@ -104,6 +105,24 @@ const catalogueCopy = {
     backCatalogue: "Back to content",
     trackContent: "Published curriculum for your active track",
     publishedOnly: "Only published lessons and assessments are shown.",
+    startLearning: "Start learning",
+    startFirstLesson: "Start first lesson",
+    learningPath: "Your learning path",
+    subjectHint: "Choose a subject, then open a lesson. Each lesson can take you straight to its practice.",
+    startLesson: "Start lesson",
+    lessonPractice: "Practice this lesson",
+    retryAssessment: "Try again",
+    chooseAnother: "Choose another lesson or exam",
+    lessonNumber: "Lesson",
+    unit: "Unit",
+    topic: "Topic",
+    exam: "Exam",
+    questionsAndAnswers: "Questions, answers & explanations",
+    readyForPractice: "Ready to practice?",
+    practiceExplainer: "Finish the lesson, then answer the linked questions and review every answer with its explanation.",
+    yourAnswer: "Your answer",
+    correctAnswer: "Correct answer",
+    score: "Score",
   },
   ar: {
     catalogue: "المحتوى المنشور",
@@ -120,6 +139,24 @@ const catalogueCopy = {
     backCatalogue: "العودة للمحتوى",
     trackContent: "المنهج المنشور لمسارك الأكاديمي الحالي",
     publishedOnly: "تظهر هنا الدروس والتدريبات والاختبارات المنشورة فقط.",
+    startLearning: "ابدأ التعلّم",
+    startFirstLesson: "ابدأ أول درس",
+    learningPath: "مسار تعلّمك",
+    subjectHint: "اختر المادة ثم افتح الدرس. بعد كل درس ستجد زرًا واضحًا لبدء التدريب المرتبط به.",
+    startLesson: "ابدأ الدرس",
+    lessonPractice: "ابدأ تدريب الدرس",
+    retryAssessment: "جرّب مرة أخرى",
+    chooseAnother: "اختر درسًا أو اختبارًا آخر",
+    lessonNumber: "الدرس",
+    unit: "الوحدة",
+    topic: "الموضوع",
+    exam: "امتحان",
+    questionsAndAnswers: "الأسئلة والإجابات والتفسير",
+    readyForPractice: "جاهز للتدريب؟",
+    practiceExplainer: "بعد إنهاء الدرس ابدأ التدريب المرتبط به، أجب عن الأسئلة ثم راجع كل إجابة مع التفسير.",
+    yourAnswer: "إجابتك",
+    correctAnswer: "الإجابة الصحيحة",
+    score: "النتيجة",
   },
   fr: {
     catalogue: "Contenu publié",
@@ -136,6 +173,24 @@ const catalogueCopy = {
     backCatalogue: "Retour au contenu",
     trackContent: "Programme publié pour votre parcours actif",
     publishedOnly: "Seules les leçons et évaluations publiées sont affichées.",
+    startLearning: "Commencer à apprendre",
+    startFirstLesson: "Commencer la première leçon",
+    learningPath: "Votre parcours d’apprentissage",
+    subjectHint: "Choisissez une matière puis une leçon. Chaque leçon mène directement à son exercice.",
+    startLesson: "Commencer la leçon",
+    lessonPractice: "S’exercer sur cette leçon",
+    retryAssessment: "Réessayer",
+    chooseAnother: "Choisir une autre leçon ou évaluation",
+    lessonNumber: "Leçon",
+    unit: "Unité",
+    topic: "Sujet",
+    exam: "Examen",
+    questionsAndAnswers: "Questions, réponses et explications",
+    readyForPractice: "Prêt à vous exercer ?",
+    practiceExplainer: "Après la leçon, répondez aux questions liées puis consultez chaque réponse avec son explication.",
+    yourAnswer: "Votre réponse",
+    correctAnswer: "Bonne réponse",
+    score: "Résultat",
   },
 } as const;
 
@@ -156,6 +211,17 @@ function flattenAssessments(node: CatalogueNode): CatalogueAssessment[] {
   return [node.assessments, ...node.children.map(flattenAssessments)].flat();
 }
 
+function flattenLessons(node: CatalogueNode): CatalogueLesson[] {
+  return [node.lessons, ...node.children.map(flattenLessons)].flat();
+}
+
+function nodeCounts(node: CatalogueNode) {
+  return {
+    lessons: flattenLessons(node).length,
+    assessments: flattenAssessments(node).length,
+  };
+}
+
 function isAnswerEmpty(value: AnswerValue | undefined): boolean {
   if (value === undefined) return true;
   if (typeof value === "string") return value.trim() === "";
@@ -169,6 +235,47 @@ function answersEqual(left: AnswerValue | undefined, right: AnswerValue | undefi
 
 function textInputValue(value: AnswerValue | undefined): string {
   return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function correctAnswerValue(contract: Record<string, unknown> | null): AnswerValue | undefined {
+  if (!contract) return undefined;
+  if (typeof contract.correct_option_id === "string") return contract.correct_option_id;
+  if (Array.isArray(contract.correct_option_ids)) {
+    return contract.correct_option_ids.filter((value): value is string => typeof value === "string");
+  }
+  if (typeof contract.correct === "boolean") return contract.correct;
+  if (typeof contract.value === "number") return contract.value;
+  if (Array.isArray(contract.accepted_answers)) {
+    const first = contract.accepted_answers.find((value): value is string => typeof value === "string");
+    return first;
+  }
+  return undefined;
+}
+
+function formatAnswer(
+  question: Attempt["questions"][number] | undefined,
+  value: AnswerValue | undefined,
+  locale: Locale,
+): string {
+  if (value === undefined) return "—";
+  if (typeof value === "boolean") {
+    if (locale === "ar") return value ? "صحيح" : "خطأ";
+    if (locale === "fr") return value ? "Vrai" : "Faux";
+    return value ? "True" : "False";
+  }
+  if (question) {
+    const contract = question.response_contract;
+    if (contract.kind === "single_choice" || contract.kind === "multi_select") {
+      const ids = Array.isArray(value) ? value : [String(value)];
+      const labels = ids.map((id) => {
+        const option = contract.options.find((candidate) => candidate.id === id);
+        return option ? localize(option.label, locale) : id;
+      });
+      return labels.join("، ");
+    }
+  }
+  if (Array.isArray(value)) return value.join("، ");
+  return String(value);
 }
 
 export default function LearningWorkspace() {
@@ -212,6 +319,18 @@ export default function LearningWorkspace() {
     () => selectedSubject ? flattenAssessments(selectedSubject) : [],
     [selectedSubject],
   );
+
+  const allLessons = useMemo(
+    () => selectedSubject ? flattenLessons(selectedSubject) : [],
+    [selectedSubject],
+  );
+
+  const firstLesson = allLessons[0] ?? null;
+  const firstAssessment = allAssessments[0] ?? null;
+  const firstMockExam = allAssessments.find((assessment) => assessment.kind === "mock_exam") ?? null;
+  const lessonPracticeAssessment = lesson?.practice_quiz_id
+    ? allAssessments.find((assessment) => assessment.id === lesson.practice_quiz_id) ?? null
+    : null;
 
   const applyAttempt = useCallback((nextAttempt: Attempt | null) => {
     setAttempt(nextAttempt);
@@ -491,43 +610,83 @@ export default function LearningWorkspace() {
   }
 
   function renderNode(node: CatalogueNode, depth = 0) {
+    const counts = nodeCounts(node);
+    const nodeLabel = node.type === "unit"
+      ? copy.unit
+      : node.type === "topic"
+        ? copy.topic
+        : copy.catalogue;
+
     return (
-      <section className="context-panel" key={node.id} data-node-type={node.type}>
-        <div className="section-heading-row">
+      <section
+        className={`curriculum-node curriculum-depth-${Math.min(depth, 2)}`}
+        key={node.id}
+        data-node-type={node.type}
+      >
+        <div className="curriculum-node-header">
           <div>
-            <p className="eyebrow">{node.type}</p>
+            <span className="curriculum-kind">{nodeLabel}</span>
             <h3 dir="auto">{localize(node.title, locale)}</h3>
           </div>
-          <small>{node.reference}</small>
+          <span className="curriculum-count">
+            {counts.lessons} {copy.lessons} · {counts.assessments} {copy.assessments}
+          </span>
         </div>
 
-        {node.lessons.length > 0 && (
-          <div className="next-actions" aria-label={copy.lessons}>
-            {node.lessons.map((item) => (
-              <button type="button" className="secondary-button" key={item.id} disabled={busy} onClick={() => void openLesson(item.id)}>
-                <strong dir="auto">{localize(item.title, locale)}</strong>
-                <span>{copy.openLesson}</span>
-              </button>
+        {node.lessons.length > 0 ? (
+          <div className="next-actions student-action-group" aria-label={copy.lessons}>
+            <div className="learning-card-grid">
+            {node.lessons.map((item, index) => (
+              <article className="learning-card lesson-card" key={item.id}>
+                <div className="learning-card-icon" aria-hidden="true">▶</div>
+                <div className="learning-card-body">
+                  <span className="learning-card-kicker">{copy.lessonNumber} {index + 1}</span>
+                  <h4 dir="auto">{localize(item.title, locale)}</h4>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={busy}
+                    onClick={() => void openLesson(item.id)}
+                  >
+                    {copy.startLesson}
+                  </button>
+                </div>
+              </article>
             ))}
+            </div>
           </div>
-        )}
+        ) : null}
 
-        {node.assessments.length > 0 && (
-          <div className="next-actions" aria-label={copy.assessments}>
+        {node.assessments.length > 0 ? (
+          <div className="next-actions student-action-group" aria-label={copy.assessments}>
+            <div className="assessment-card-grid">
             {node.assessments.map((assessment) => (
-              <button type="button" className="secondary-button" key={assessment.id} onClick={() => openAssessment(assessment)}>
-                <strong dir="auto">{localize(assessment.title, locale)}</strong>
-                <span>{copy[assessment.kind]}</span>
-              </button>
+              <article className="learning-card assessment-card" key={assessment.id}>
+                <div className="learning-card-icon assessment-icon" aria-hidden="true">
+                  {assessment.kind === "mock_exam" ? "★" : "✓"}
+                </div>
+                <div className="learning-card-body">
+                  <span className="learning-card-kicker">{copy[assessment.kind]}</span>
+                  <h4 dir="auto">{localize(assessment.title, locale)}</h4>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={() => openAssessment(assessment)}
+                  >
+                    {assessment.kind === "mock_exam" ? copy.exam : copy.openAssessment}
+                  </button>
+                </div>
+              </article>
             ))}
+            </div>
           </div>
-        )}
+        ) : null}
 
-        {node.children.length > 0 && (
-          <div className={depth === 0 ? "dashboard-stack" : "catalogue-children"}>
+        {node.children.length > 0 ? (
+          <div className="curriculum-children">
             {node.children.map((child) => renderNode(child, depth + 1))}
           </div>
-        )}
+        ) : null}
       </section>
     );
   }
@@ -543,8 +702,8 @@ export default function LearningWorkspace() {
           <nav className="student-nav" aria-label={labels.navigation}>
             <button type="button" className="nav-item" aria-current={view === "home" ? "page" : undefined} onClick={() => setView("home")}><span className="nav-marker">01</span><span>{labels.home}</span></button>
             <button type="button" className="nav-item" aria-current={view === "catalogue" ? "page" : undefined} onClick={() => setView("catalogue")}><span className="nav-marker">02</span><span>{copy.catalogue}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "study" ? "page" : undefined} onClick={() => setView("study")}><span className="nav-marker">03</span><span>{labels.study}</span></button>
-            <button type="button" className="nav-item" aria-current={view === "practice" ? "page" : undefined} onClick={() => setView("practice")}><span className="nav-marker">04</span><span>{labels.practice}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "study" ? "page" : undefined} onClick={() => setView(lesson ? "study" : "catalogue")}><span className="nav-marker">03</span><span>{labels.study}</span></button>
+            <button type="button" className="nav-item" aria-current={view === "practice" ? "page" : undefined} onClick={() => setView(selectedAssessment || attempt ? "practice" : "catalogue")}><span className="nav-marker">04</span><span>{labels.practice}</span></button>
             <button type="button" className="nav-item" aria-current={view === "progress" ? "page" : undefined} onClick={() => setView("progress")}><span className="nav-marker">05</span><span>{labels.progress}</span></button>
             <button type="button" className="nav-item" aria-current={view === "academic" ? "page" : undefined} onClick={() => setView("academic")}><span className="nav-marker">06</span><span>{labels.academicTrack}</span></button>
           </nav>
@@ -601,11 +760,27 @@ export default function LearningWorkspace() {
               <AcademicTrackSelector context={context} locale={locale} offline={state === "offline"} onTransitioned={handleAcademicTransition} onContextReconciled={load} />
             ) : view === "home" ? (
               <div className="dashboard-stack">
-                <section className="dashboard-hero">
+                <section className="dashboard-hero student-start-hero">
                   <div>
-                    <p className="eyebrow">{labels.home}</p>
-                    <h2>{labels.homeTitle}</h2>
-                    <p>{labels.homeSubtitle}</p>
+                    <p className="eyebrow">{copy.learningPath}</p>
+                    <h2>{copy.startLearning}</h2>
+                    <p>{copy.subjectHint}</p>
+                  </div>
+                  <div className="hero-actions">
+                    {firstLesson ? (
+                      <button type="button" className="primary-button" disabled={busy} onClick={() => void openLesson(firstLesson.id)}>
+                        {copy.startFirstLesson}
+                      </button>
+                    ) : (
+                      <button type="button" className="primary-button" onClick={() => setView("catalogue")}>
+                        {copy.catalogue}
+                      </button>
+                    )}
+                    {firstMockExam ? (
+                      <button type="button" className="hero-secondary-button" onClick={() => openAssessment(firstMockExam)}>
+                        {copy.mock_exam}
+                      </button>
+                    ) : null}
                   </div>
                 </section>
 
@@ -625,11 +800,24 @@ export default function LearningWorkspace() {
                   <section className="context-panel" data-student-home="continue-learning-empty">
                     <div className="section-heading-row">
                       <div>
-                        <p className="eyebrow">{labels.continueLearning}</p>
-                        <h2>{labels.noAttempt}</h2>
+                        <p className="eyebrow">{copy.learningPath}</p>
+                        <h2>{firstLesson ? localize(firstLesson.title, locale) : copy.chooseLesson}</h2>
                       </div>
                     </div>
-                    <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.catalogue}</button>
+                    <p>{copy.subjectHint}</p>
+                    <div className="journey-actions">
+                      {firstLesson ? (
+                        <button type="button" className="primary-button" disabled={busy} onClick={() => void openLesson(firstLesson.id)}>
+                          {copy.startLesson}
+                        </button>
+                      ) : null}
+                      {firstAssessment ? (
+                        <button type="button" className="secondary-button" onClick={() => openAssessment(firstAssessment)}>
+                          {copy.openAssessment}
+                        </button>
+                      ) : null}
+                      <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.catalogue}</button>
+                    </div>
                   </section>
                 )}
 
@@ -732,22 +920,45 @@ export default function LearningWorkspace() {
 
                 {catalogue?.state === "active" && catalogue.subjects.length > 0 ? (
                   <>
-                    <section className="context-panel">
-                      <div className="section-heading-row"><h2>{copy.chooseSubject}</h2></div>
-                      <div className="next-actions">
-                        {catalogue.subjects.map((subject) => (
-                          <button
-                            type="button"
-                            key={subject.id}
-                            className={selectedSubject?.id === subject.id ? "primary-button" : "secondary-button"}
-                            onClick={() => setSelectedSubjectReference(subject.reference)}
-                          >
-                            {localize(subject.title, locale)}
-                          </button>
-                        ))}
+                    <section className="context-panel subject-picker-panel">
+                      <div className="section-heading-row">
+                        <div>
+                          <p className="eyebrow">{copy.learningPath}</p>
+                          <h2>{copy.chooseSubject}</h2>
+                          <p className="subject-picker-help">{copy.subjectHint}</p>
+                        </div>
+                      </div>
+                      <div className="subject-card-grid">
+                        {catalogue.subjects.map((subject) => {
+                          const counts = nodeCounts(subject);
+                          const selected = selectedSubject?.id === subject.id;
+                          return (
+                            <button
+                              type="button"
+                              key={subject.id}
+                              className={selected ? "subject-card is-selected" : "subject-card"}
+                              aria-pressed={selected}
+                              onClick={() => setSelectedSubjectReference(subject.reference)}
+                            >
+                              <span className="subject-card-icon" aria-hidden="true">📘</span>
+                              <strong dir="auto">{localize(subject.title, locale)}</strong>
+                              <small>{counts.lessons} {copy.lessons} · {counts.assessments} {copy.assessments}</small>
+                            </button>
+                          );
+                        })}
                       </div>
                     </section>
-                    {selectedSubject ? renderNode(selectedSubject) : null}
+                    {selectedSubject ? (
+                      <section className="curriculum-surface">
+                        <div className="curriculum-surface-header">
+                          <div>
+                            <p className="eyebrow">{copy.learningPath}</p>
+                            <h2 dir="auto">{localize(selectedSubject.title, locale)}</h2>
+                          </div>
+                        </div>
+                        {renderNode(selectedSubject)}
+                      </section>
+                    ) : null}
                   </>
                 ) : (
                   <div className="empty-panel"><p>{copy.noContent}</p></div>
@@ -760,11 +971,36 @@ export default function LearningWorkspace() {
                     <div><p className="eyebrow">{labels.study}</p><h2 dir="auto">{lesson ? localize(lesson.title, locale) : labels.lessonEmpty}</h2></div>
                     <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>{copy.backCatalogue}</button>
                   </div>
-                  {lesson ? lesson.blocks.map((block) => (
-                    <article key={block.id} className="lesson-block" data-block-type={block.type}>
-                      {block.type === "heading" ? <h3 dir="auto">{localize(block.content, locale)}</h3> : <p dir="auto">{localize(block.content, locale)}</p>}
-                    </article>
-                  )) : <p>{copy.chooseLesson}</p>}
+                  {lesson ? (
+                    <>
+                      <div className="lesson-content">
+                        {lesson.blocks.map((block) => (
+                          <article key={block.id} className="lesson-block" data-block-type={block.type}>
+                            {block.type === "heading"
+                              ? <h3 dir="auto">{localize(block.content, locale)}</h3>
+                              : <p dir="auto">{localize(block.content, locale)}</p>}
+                          </article>
+                        ))}
+                      </div>
+                      <section className="lesson-finish-panel" aria-label={copy.readyForPractice}>
+                        <div>
+                          <p className="eyebrow">{copy.questionsAndAnswers}</p>
+                          <h3>{copy.readyForPractice}</h3>
+                          <p>{copy.practiceExplainer}</p>
+                        </div>
+                        <div className="journey-actions">
+                          {lessonPracticeAssessment ? (
+                            <button type="button" className="primary-button" onClick={() => openAssessment(lessonPracticeAssessment)}>
+                              {copy.lessonPractice}
+                            </button>
+                          ) : null}
+                          <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>
+                            {copy.chooseAnother}
+                          </button>
+                        </div>
+                      </section>
+                    </>
+                  ) : <p>{copy.chooseLesson}</p>}
                 </section>
               </div>
             ) : view === "practice" ? (
@@ -898,13 +1134,58 @@ export default function LearningWorkspace() {
 
                   {result ? (
                     <div className="result-review">
-                      <div className="metric-card"><span>{labels.result}</span><strong><MathText>{result.score} / {result.max_score}</MathText></strong></div>
-                      {(result.review ?? []).map((review) => (
-                        <article className="question-card" key={review.attempt_question_id}>
-                          <strong>{labels.question} {review.position} · {review.correct === true ? labels.correct : labels.needsReview}</strong>
-                          {review.explanation ? <p dir="auto"><span className="eyebrow">{labels.explanation}</span> {localize(review.explanation, locale)}</p> : null}
-                        </article>
-                      ))}
+                      <div className="result-summary-card">
+                        <span>{labels.result}</span><strong><MathText>{result.score} / {result.max_score}</MathText></strong>
+                        <small>{copy.questionsAndAnswers}</small>
+                      </div>
+                      <div className="review-list">
+                        {(result.review ?? []).map((review) => {
+                          const question = result.attempt.questions.find(
+                            (candidate) => candidate.attempt_question_id === review.attempt_question_id,
+                          );
+                          const correctValue = correctAnswerValue(review.correct_answer);
+                          return (
+                            <article
+                              className={review.correct === true ? "review-card is-correct" : "review-card needs-review"}
+                              key={review.attempt_question_id}
+                            >
+                              <div className="review-card-heading">
+                                <span>{labels.question} {review.position}</span>
+                                <strong>{review.correct === true ? labels.correct : labels.needsReview}</strong>
+                              </div>
+                              {question ? (
+                                <p className="review-question" dir="auto">
+                                  <LocalizedQuestionText text={localize(question.prompt, locale)} locale={locale} />
+                                </p>
+                              ) : null}
+                              <dl className="answer-review-grid">
+                                <div>
+                                  <dt>{copy.yourAnswer}</dt>
+                                  <dd dir="auto">{formatAnswer(question, review.current_answer?.value, locale)}</dd>
+                                </div>
+                                <div>
+                                  <dt>{copy.correctAnswer}</dt>
+                                  <dd dir="auto">{formatAnswer(question, correctValue, locale)}</dd>
+                                </div>
+                              </dl>
+                              {review.explanation ? (
+                                <div className="answer-explanation">
+                                  <span className="eyebrow">{labels.explanation}</span>
+                                  <p dir="auto">{localize(review.explanation, locale)}</p>
+                                </div>
+                              ) : null}
+                            </article>
+                          );
+                        })}
+                      </div>
+                      <div className="journey-actions result-actions">
+                        <button type="button" className="primary-button" disabled={busy || state === "offline"} onClick={() => void startAssessment()}>
+                          {copy.retryAssessment}
+                        </button>
+                        <button type="button" className="secondary-button" onClick={() => setView("catalogue")}>
+                          {copy.chooseAnother}
+                        </button>
+                      </div>
                     </div>
                   ) : null}
 

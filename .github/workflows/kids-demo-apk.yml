@@ -53,7 +53,7 @@ jobs:
         working-directory: apps/mobile
         run: |
           flutter build apk --debug --no-pub \
-            --dart-define=MODRIK_API_BASE_URL=https://demo.modrik.org
+            --dart-define=MODRIK_API_BASE_URL=https://api.demo.modrik.org
 
       - name: Stage named APK
         shell: bash

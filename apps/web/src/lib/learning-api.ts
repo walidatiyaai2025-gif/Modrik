@@ -124,6 +124,8 @@ export type AttemptReview = {
   correct: boolean | null;
   awarded_score: number;
   maximum_score: number;
+  current_answer: null | { revision: number; value: AnswerValue; answered_at: string };
+  correct_answer: Record<string, unknown> | null;
   explanation: LocalizedText | null;
 };
 
